@@ -75,62 +75,57 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
         if (params.id !== 'new') {
             loadFlow()
         } else {
-            // Small delay to ensure localStorage is ready
-            const loadTemplateData = () => {
-                // Check if there's an AI-generated workflow in localStorage
-                const aiWorkflow = localStorage.getItem('ai_suggested_workflow')
-                if (aiWorkflow) {
-                    try {
-                        const workflow = JSON.parse(aiWorkflow)
-                        if (workflow.nodes && workflow.nodes.length > 0) {
-                            setNodes(workflow.nodes)
-                            setEdges(workflow.edges || [])
-                            if (workflow.suggested_name) {
-                                setWorkflowName(workflow.suggested_name)
-                            }
-                            toast.success('AI-generated workflow loaded!')
+            // Check if there's an AI-generated workflow in localStorage
+            const aiWorkflow = localStorage.getItem('ai_suggested_workflow')
+            if (aiWorkflow) {
+                try {
+                    const workflow = JSON.parse(aiWorkflow)
+                    if (workflow.nodes && workflow.nodes.length > 0) {
+                        setNodes(workflow.nodes)
+                        setEdges(workflow.edges || [])
+                        if (workflow.suggested_name) {
+                            setWorkflowName(workflow.suggested_name)
                         }
-                        // Clear localStorage after loading
-                        localStorage.removeItem('ai_suggested_workflow')
-                    } catch (e) {
-                        console.error('Failed to load AI workflow:', e)
+                        toast.success('AI-generated workflow loaded!')
                     }
-                }
-                
-                // Check if there's a template to load
-                const templateData = localStorage.getItem('n8n_template_data')
-                console.log('Checking for template data:', templateData)
-                if (templateData) {
-                    try {
-                        const template = JSON.parse(templateData)
-                        console.log('Parsed template:', template)
-                        if (template.nodes && template.nodes.length > 0) {
-                            console.log('Loading template nodes:', template.nodes)
-                            console.log('Loading template edges:', template.edges)
-                            
-                            // Set nodes and edges
-                            setNodes(template.nodes)
-                            setEdges(template.edges || [])
-                            setWorkflowName(template.name || 'Untitled Workflow')
-                            
-                            // Mark as having unsaved changes
-                            setHasUnsavedChanges(true)
-                            
-                            toast.success(`Template "${template.name}" loaded! Click Save to create workflow.`, {
-                                duration: 5000
-                            })
-                        }
-                        // Clear localStorage after loading
-                        localStorage.removeItem('n8n_template_data')
-                    } catch (e) {
-                        console.error('Failed to load template:', e)
-                        toast.error('Failed to load template')
-                    }
+                    // Clear localStorage after loading
+                    localStorage.removeItem('ai_suggested_workflow')
+                } catch (e) {
+                    console.error('Failed to load AI workflow:', e)
                 }
             }
             
-            // Delay to ensure page is mounted
-            setTimeout(loadTemplateData, 200)
+            // Check if there's a template to load
+            const templateData = localStorage.getItem('n8n_template_data')
+            console.log('Checking for template data:', templateData)
+            if (templateData) {
+                try {
+                    const template = JSON.parse(templateData)
+                    console.log('Parsed template:', template)
+                    if (template.nodes && template.nodes.length > 0) {
+                        console.log('Loading template nodes:', template.nodes.length, 'nodes')
+                        console.log('Loading template edges:', template.edges?.length || 0, 'edges')
+                        
+                        // IMPORTANT: Set nodes and edges immediately
+                        // Use functional updates to ensure state is set correctly
+                        setNodes(() => template.nodes)
+                        setEdges(() => template.edges || [])
+                        setWorkflowName(template.name || 'Untitled Workflow')
+                        
+                        // Mark as having unsaved changes
+                        setHasUnsavedChanges(true)
+                        
+                        toast.success(`Template "${template.name}" loaded with ${template.nodes.length} nodes! Click Save to create workflow.`, {
+                            duration: 5000
+                        })
+                    }
+                    // Clear localStorage after loading
+                    localStorage.removeItem('n8n_template_data')
+                } catch (e) {
+                    console.error('Failed to load template:', e)
+                    toast.error('Failed to load template')
+                }
+            }
         }
     }, [params.id])
 
