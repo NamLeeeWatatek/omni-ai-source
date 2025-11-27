@@ -71,14 +71,12 @@ export default function ArchivesPage() {
     }
 
     return (
-        <div className="p-8">
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold mb-2">Archives</h1>
-                    <p className="text-muted-foreground">
-                        Manage archived workflows
-                    </p>
-                </div>
+        <div className="h-full">
+            <div className="page-header">
+                <h1 className="text-3xl font-bold">Archives</h1>
+                <p className="text-muted-foreground mt-1">
+                    Manage archived workflows
+                </p>
             </div>
 
             {loading ? (

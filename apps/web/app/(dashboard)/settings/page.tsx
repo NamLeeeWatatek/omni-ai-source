@@ -51,9 +51,9 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="p-8 max-w-6xl mx-auto">
-            <header className="mb-10">
-                <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
+        <div className="h-full">
+            <header className="page-header">
+                <h1 className="text-3xl font-bold">Settings</h1>
                 <p className="text-gray-400">Manage your AI model configurations and preferences.</p>
             </header>
 

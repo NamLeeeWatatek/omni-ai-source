@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { FiCheckCircle, FiXCircle, FiLoader } from 'react-icons/fi'
+import { Spinner } from '@/components/ui/spinner'
+import { FiCheckCircle, FiXCircle } from 'react-icons/fi'
 
 export default function OAuthCallbackPage() {
     const searchParams = useSearchParams()
@@ -66,7 +67,7 @@ export default function OAuthCallbackPage() {
             <div className="glass rounded-xl p-8 max-w-md w-full text-center">
                 {status === 'loading' && (
                     <>
-                        <FiLoader className="w-16 h-16 mx-auto mb-4 animate-spin text-primary" />
+                        <Spinner className="size-16 mx-auto mb-4 text-primary" />
                         <h2 className="text-2xl font-bold mb-2">Connecting Channel...</h2>
                         <p className="text-muted-foreground">Please wait while we complete the connection</p>
                     </>

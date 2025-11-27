@@ -27,9 +27,9 @@ export default function TeamPage() {
     }
 
     return (
-        <div className="p-8 max-w-5xl mx-auto">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold mb-2">Team</h1>
+        <div className="h-full">
+            <div className="page-header">
+                <h1 className="text-3xl font-bold">Team</h1>
                 <p className="text-muted-foreground">
                     Manage your team members and permissions
                 </p>

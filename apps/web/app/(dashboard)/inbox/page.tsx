@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import {
     FiSend,
     FiSearch,
@@ -145,8 +146,12 @@ export default function InboxPage() {
                 <div className="p-4 border-b border-border/40 space-y-3">
                     <div className="flex items-center justify-between">
                         <h2 className="font-semibold">Inbox</h2>
-                        <Button variant="ghost" size="sm" onClick={loadConversations}>
-                            <FiRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                        <Button variant="ghost" size="sm" onClick={loadConversations} disabled={loading}>
+                            {loading ? (
+                                <Spinner className="size-4" />
+                            ) : (
+                                <FiRefreshCw className="w-4 h-4" />
+                            )}
                         </Button>
                     </div>
 
@@ -182,7 +187,7 @@ export default function InboxPage() {
                 <div className="flex-1 overflow-auto">
                     {loading && conversations.length === 0 ? (
                         <div className="p-8 text-center text-muted-foreground">
-                            <FiRefreshCw className="w-8 h-8 mx-auto mb-2 animate-spin" />
+                            <Spinner className="size-8 mx-auto mb-2" />
                             <p>Loading conversations...</p>
                         </div>
                     ) : conversations.length === 0 ? (

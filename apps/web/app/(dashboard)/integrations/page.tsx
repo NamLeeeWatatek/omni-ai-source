@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { FiLoader } from 'react-icons/fi'
+import { Spinner } from '@/components/ui/spinner'
 
 export default function IntegrationsRedirect() {
     const router = useRouter()
@@ -15,7 +15,7 @@ export default function IntegrationsRedirect() {
     return (
         <div className="flex items-center justify-center h-screen">
             <div className="text-center">
-                <FiLoader className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
+                <Spinner className="size-8 mx-auto mb-4 text-primary" />
                 <p className="text-muted-foreground">
                     Redirecting to Channels & Integrations...
                 </p>

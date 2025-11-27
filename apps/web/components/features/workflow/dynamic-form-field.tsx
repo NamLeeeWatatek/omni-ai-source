@@ -321,36 +321,98 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
                             </label>
                         </div>
 
-                        {/* Display uploaded URLs */}
+                        {/* Display uploaded files with image preview */}
                         {currentValue && (
                             <div className="space-y-2">
                                 {Array.isArray(currentValue) ? (
-                                    currentValue.map((url, idx) => (
-                                        <div key={idx} className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
-                                            <span className="text-xs flex-1 truncate">{url}</span>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const newUrls = currentValue.filter((_: any, i: number) => i !== idx)
-                                                    onChange(field.name, newUrls.length > 0 ? newUrls : null)
-                                                }}
-                                                className="p-1 hover:bg-red-500/10 rounded"
-                                            >
-                                                <FiX className="w-4 h-4 text-red-500" />
-                                            </button>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
-                                        <span className="text-xs flex-1 truncate">{currentValue}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => onChange(field.name, null)}
-                                            className="p-1 hover:bg-red-500/10 rounded"
-                                        >
-                                            <FiX className="w-4 h-4 text-red-500" />
-                                        </button>
+                                    // Multiple files - show grid of previews
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {currentValue.map((url, idx) => {
+                                            const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(url)
+                                            return (
+                                                <div key={idx} className="relative group">
+                                                    {isImage ? (
+                                                        <div className="relative aspect-square rounded-lg overflow-hidden border border-border/40 bg-muted/20">
+                                                            <img
+                                                                src={url}
+                                                                alt={`Upload ${idx + 1}`}
+                                                                className="w-full h-full object-cover"
+                                                                onError={(e) => {
+                                                                    // Fallback if image fails to load
+                                                                    e.currentTarget.style.display = 'none'
+                                                                    e.currentTarget.parentElement!.innerHTML = `<div class="flex items-center justify-center h-full text-xs text-muted-foreground p-2 break-all">${url}</div>`
+                                                                }}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const newUrls = currentValue.filter((_: any, i: number) => i !== idx)
+                                                                    onChange(field.name, newUrls.length > 0 ? newUrls : null)
+                                                                }}
+                                                                className="absolute top-1 right-1 p-1.5 bg-red-500 hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                                                            >
+                                                                <FiX className="w-3 h-3 text-white" />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg border border-border/40">
+                                                            <span className="text-xs flex-1 truncate">{url}</span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const newUrls = currentValue.filter((_: any, i: number) => i !== idx)
+                                                                    onChange(field.name, newUrls.length > 0 ? newUrls : null)
+                                                                }}
+                                                                className="p-1 hover:bg-red-500/10 rounded"
+                                                            >
+                                                                <FiX className="w-4 h-4 text-red-500" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )
+                                        })}
                                     </div>
+                                ) : (
+                                    // Single file - show larger preview
+                                    (() => {
+                                        const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(currentValue)
+                                        return isImage ? (
+                                            <div className="relative group">
+                                                <div className="relative w-full rounded-lg overflow-hidden border border-border/40 bg-muted/20">
+                                                    <img
+                                                        src={currentValue}
+                                                        alt="Uploaded image"
+                                                        className="w-full h-auto max-h-64 object-contain"
+                                                        onError={(e) => {
+                                                            // Fallback if image fails to load
+                                                            e.currentTarget.style.display = 'none'
+                                                            e.currentTarget.parentElement!.innerHTML = `<div class="flex items-center justify-center p-4 text-xs text-muted-foreground break-all">${currentValue}</div>`
+                                                        }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onChange(field.name, null)}
+                                                        className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                                                    >
+                                                        <FiX className="w-4 h-4 text-white" />
+                                                    </button>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground mt-1 truncate">{currentValue}</p>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg border border-border/40">
+                                                <span className="text-xs flex-1 truncate">{currentValue}</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onChange(field.name, null)}
+                                                    className="p-1 hover:bg-red-500/10 rounded"
+                                                >
+                                                    <FiX className="w-4 h-4 text-red-500" />
+                                                </button>
+                                            </div>
+                                        )
+                                    })()
                                 )}
                             </div>
                         )}

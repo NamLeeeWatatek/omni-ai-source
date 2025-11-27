@@ -5,13 +5,13 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
+import { Spinner } from '@/components/ui/spinner'
 import toast from 'react-hot-toast'
 import {
     FiArrowLeft,
     FiClock,
     FiCheckCircle,
     FiXCircle,
-    FiLoader,
     FiAlertCircle,
     FiRefreshCw,
     FiDownload
@@ -88,7 +88,7 @@ export default function ExecutionDetailPage({
             case 'failed':
                 return <FiXCircle className="w-5 h-5 text-red-500" />
             case 'running':
-                return <FiLoader className="w-5 h-5 text-blue-500 animate-spin" />
+                return <Spinner className="size-5 text-blue-500" />
             case 'skipped':
                 return <FiAlertCircle className="w-5 h-5 text-yellow-500" />
             default:
@@ -261,7 +261,7 @@ export default function ExecutionDetailPage({
     if (loading) {
         return (
             <div className="p-8 flex items-center justify-center">
-                <FiLoader className="w-8 h-8 animate-spin text-primary" />
+                <Spinner className="size-8 text-primary" />
             </div>
         )
     }

@@ -3,6 +3,7 @@ import { FiChevronDown, FiChevronRight, FiRefreshCw } from 'react-icons/fi'
 import { useAppDispatch, useAppSelector } from '@/lib/store/hooks'
 import { fetchNodeTypes, fetchNodeCategories } from '@/lib/store/slices/nodeTypesSlice'
 import { NodeType } from '@/lib/nodeTypes'
+import { getNodeIcon } from '@/lib/icon-resolver'
 import toast from 'react-hot-toast'
 
 interface NodePaletteProps {
@@ -126,7 +127,10 @@ export function NodePalette({ onAddNode }: NodePaletteProps) {
                                                         color: nodeType.color
                                                     }}
                                                 >
-                                                    {nodeType.icon && <nodeType.icon className="w-4 h-4" />}
+                                                    {(() => {
+                                                        const Icon = getNodeIcon(nodeType)
+                                                        return <Icon className="w-4 h-4" />
+                                                    })()}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="text-sm font-medium truncate">

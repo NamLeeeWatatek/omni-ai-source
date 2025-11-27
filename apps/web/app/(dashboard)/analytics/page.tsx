@@ -4,16 +4,17 @@ import { FiBarChart2, FiTrendingUp, FiClock, FiUsers } from 'react-icons/fi'
 
 export default function AnalyticsPage() {
     return (
-        <div className="p-6 space-y-6">
-            <div>
-                <h2 className="text-2xl font-bold mb-2">Analytics & Insights</h2>
-                <p className="text-muted-foreground">
+        <div className="h-full">
+            <div className="page-header">
+                <h1 className="text-3xl font-bold">Analytics & Insights</h1>
+                <p className="text-muted-foreground mt-1">
                     Track performance and measure engagement
                 </p>
             </div>
 
             {/* Key Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="content-section">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <MetricCard
                     title="Total Conversations"
                     value="12,847"
@@ -38,10 +39,12 @@ export default function AnalyticsPage() {
                     change="+0.2"
                     icon={FiBarChart2}
                 />
+                </div>
             </div>
 
             {/* Charts */}
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="content-section">
+                <div className="grid md:grid-cols-2 gap-6">
                 <div className="glass rounded-xl p-6 border border-border/40">
                     <h3 className="text-lg font-semibold mb-4">Conversation Volume</h3>
                     <div className="h-64 flex items-end justify-around space-x-2">
@@ -84,41 +87,44 @@ export default function AnalyticsPage() {
                         ))}
                     </div>
                 </div>
+                </div>
             </div>
 
             {/* Bot Performance */}
-            <div className="glass rounded-xl p-6 border border-border/40">
-                <h3 className="text-lg font-semibold mb-4">Bot Performance</h3>
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="border-b border-border/40">
-                                <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Bot Name</th>
-                                <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Conversations</th>
-                                <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Avg Response</th>
-                                <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Success Rate</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {[
-                                { name: 'Support Bot', conversations: 4523, response: '0.8s', success: '92%' },
-                                { name: 'Sales Bot', conversations: 3241, response: '1.2s', success: '88%' },
-                                { name: 'FAQ Bot', conversations: 2847, response: '0.5s', success: '95%' },
-                                { name: 'Booking Bot', conversations: 1956, response: '1.5s', success: '85%' },
-                            ].map((bot) => (
-                                <tr key={bot.name} className="border-b border-border/40 hover:bg-accent transition-colors">
-                                    <td className="py-3 px-4 font-medium">{bot.name}</td>
-                                    <td className="py-3 px-4 text-muted-foreground">{bot.conversations}</td>
-                                    <td className="py-3 px-4 text-muted-foreground">{bot.response}</td>
-                                    <td className="py-3 px-4">
-                                        <span className="px-2 py-1 rounded-full bg-green-500/10 text-green-500 text-sm font-medium">
-                                            {bot.success}
-                                        </span>
-                                    </td>
+            <div className="content-section">
+                <div className="glass rounded-xl p-6 border border-border/40">
+                    <h3 className="text-lg font-semibold mb-4">Bot Performance</h3>
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="border-b border-border/40">
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Bot Name</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Conversations</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Avg Response</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Success Rate</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {[
+                                    { name: 'Support Bot', conversations: 4523, response: '0.8s', success: '92%' },
+                                    { name: 'Sales Bot', conversations: 3241, response: '1.2s', success: '88%' },
+                                    { name: 'FAQ Bot', conversations: 2847, response: '0.5s', success: '95%' },
+                                    { name: 'Booking Bot', conversations: 1956, response: '1.5s', success: '85%' },
+                                ].map((bot) => (
+                                    <tr key={bot.name} className="border-b border-border/40 hover:bg-accent transition-colors">
+                                        <td className="py-3 px-4 font-medium">{bot.name}</td>
+                                        <td className="py-3 px-4 text-muted-foreground">{bot.conversations}</td>
+                                        <td className="py-3 px-4 text-muted-foreground">{bot.response}</td>
+                                        <td className="py-3 px-4">
+                                            <span className="px-2 py-1 rounded-full bg-green-500/10 text-green-500 text-sm font-medium">
+                                                {bot.success}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

@@ -5,6 +5,7 @@ import { Handle, Position, NodeProps } from 'reactflow'
 import { useAppSelector } from '@/lib/store/hooks'
 import { FiLoader, FiCheck, FiX, FiAlertCircle } from 'react-icons/fi'
 import { getNodeClassName, getIconStyle } from '@/lib/workflow-theme'
+import { getNodeIcon } from '@/lib/icon-resolver'
 
 const CustomNodeComponent = ({ data, selected }: NodeProps) => {
     const { items: nodeTypes = [] } = useAppSelector((state: any) => state.nodeTypes || {})
@@ -14,7 +15,7 @@ const CustomNodeComponent = ({ data, selected }: NodeProps) => {
     }
     
     const nodeType = getNodeType(data.type)
-    const Icon = nodeType?.icon
+    const Icon = getNodeIcon(nodeType) // Use icon resolver instead of direct access
     
     // Execution status from data
     const executionStatus = data.executionStatus // 'idle' | 'running' | 'success' | 'error'
@@ -101,6 +102,65 @@ const CustomNodeComponent = ({ data, selected }: NodeProps) => {
                         {data.customLabel}
                     </div>
                 )}
+
+                {/* Image Preview - Show if config has image URLs */}
+                {data.config && (() => {
+                    // Find first image URL in config
+                    const imageFields = Object.entries(data.config).filter(([_, value]) => {
+                        if (typeof value === 'string') {
+                            return /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(value) || value.includes('cloudinary')
+                        }
+                        if (Array.isArray(value)) {
+                            return value.some(v => typeof v === 'string' && (/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(v) || v.includes('cloudinary')))
+                        }
+                        return false
+                    })
+
+                    if (imageFields.length === 0) return null
+
+                    const [_, imageValue] = imageFields[0]
+                    const imageUrls = Array.isArray(imageValue) ? imageValue : [imageValue]
+                    const displayUrls = imageUrls.slice(0, 3) // Show max 3 images
+
+                    return (
+                        <div className="mt-2 space-y-1">
+                            {displayUrls.length === 1 ? (
+                                // Single image - larger preview
+                                <div className="relative rounded overflow-hidden border border-border/40 bg-muted/20">
+                                    <img
+                                        src={displayUrls[0]}
+                                        alt="Preview"
+                                        className="w-full h-20 object-cover"
+                                        onError={(e) => {
+                                            e.currentTarget.style.display = 'none'
+                                        }}
+                                    />
+                                </div>
+                            ) : (
+                                // Multiple images - grid
+                                <div className="grid grid-cols-3 gap-1">
+                                    {displayUrls.map((url, idx) => (
+                                        <div key={idx} className="relative rounded overflow-hidden border border-border/40 bg-muted/20 aspect-square">
+                                            <img
+                                                src={url}
+                                                alt={`Preview ${idx + 1}`}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    e.currentTarget.style.display = 'none'
+                                                }}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {imageUrls.length > 3 && (
+                                <div className="text-xs text-muted-foreground text-center">
+                                    +{imageUrls.length - 3} more
+                                </div>
+                            )}
+                        </div>
+                    )
+                })()}
             </div>
 
             {/* Connection Handles */}

@@ -61,7 +61,10 @@ const config: Config = {
     			'wata-pink': '#78716c',
     		},
     		backgroundImage: {
-    			'gradient-wata': 'linear-gradient(135deg, #475569 0%, #64748b 50%, #78716c 100%)',
+    			'gradient-wata': 'linear-gradient(135deg, #1e40af 0%, #0e7490 50%, #4f46e5 100%)',
+    			'gradient-blue': 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)',
+    			'gradient-blue-cyan': 'linear-gradient(135deg, #1d4ed8 0%, #0e7490 100%)',
+    			'gradient-blue-indigo': 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)',
     		},
     		fontFamily: {
     			serif: ['"Times New Roman"', 'Times', 'serif'],

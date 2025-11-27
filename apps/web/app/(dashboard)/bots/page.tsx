@@ -148,17 +148,21 @@ export default function BotsPage() {
     }
 
     return (
-        <div className="p-8 max-w-7xl mx-auto">
-            <div className="mb-8 flex items-center justify-between">
+        <div className="h-full">
+            <div className="page-header flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold mb-2">Bots</h1>
-                    <p className="text-muted-foreground">
+                    <h1 className="text-3xl font-bold">Bots</h1>
+                    <p className="text-muted-foreground mt-1">
                         Manage your AI bots and automation
                     </p>
                 </div>
                 <div className="flex gap-3">
-                    <Button variant="outline" onClick={loadBots}>
-                        <FiRefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                    <Button variant="outline" onClick={loadBots} disabled={loading}>
+                        {loading ? (
+                            <Spinner className="size-4 mr-2" />
+                        ) : (
+                            <FiRefreshCw className="w-4 h-4 mr-2" />
+                        )}
                         Refresh
                     </Button>
                     <Button onClick={() => openModal()}>

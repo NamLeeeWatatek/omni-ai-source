@@ -12,13 +12,43 @@ interface StatCardProps {
 }
 
 function StatCard({ title, value, trend, icon: Icon, color }: StatCardProps) {
+    // Color mapping for consistent theme - softer, less bright colors
+    const colorClasses = {
+        blue: {
+            bg: 'bg-blue-600/10',
+            bgHover: 'group-hover:bg-blue-600/15',
+            text: 'text-blue-600',
+            glow: 'bg-blue-600/8'
+        },
+        green: {
+            bg: 'bg-green-600/10',
+            bgHover: 'group-hover:bg-green-600/15',
+            text: 'text-green-600',
+            glow: 'bg-green-600/8'
+        },
+        cyan: {
+            bg: 'bg-cyan-600/10',
+            bgHover: 'group-hover:bg-cyan-600/15',
+            text: 'text-cyan-600',
+            glow: 'bg-cyan-600/8'
+        },
+        indigo: {
+            bg: 'bg-indigo-600/10',
+            bgHover: 'group-hover:bg-indigo-600/15',
+            text: 'text-indigo-600',
+            glow: 'bg-indigo-600/8'
+        }
+    }
+
+    const colors = colorClasses[color as keyof typeof colorClasses] || colorClasses.blue
+
     return (
         <div className="glass p-6 rounded-xl relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
-            <div className={`absolute top-0 right-0 w-32 h-32 bg-${color}-500/10 rounded-full blur-3xl -mr-16 -mt-16 transition-all group-hover:bg-${color}-500/20`} />
+            <div className={`absolute top-0 right-0 w-32 h-32 ${colors.glow} rounded-full blur-3xl -mr-16 -mt-16 transition-all ${colors.bgHover}`} />
 
             <div className="relative z-10">
                 <div className="flex justify-between items-start mb-4">
-                    <div className={`p-3 rounded-lg bg-${color}-500/10 text-${color}-500`}>
+                    <div className={`p-3 rounded-lg ${colors.bg} ${colors.text}`}>
                         <Icon className="w-6 h-6" />
                     </div>
                     {trend && (
@@ -66,14 +96,14 @@ export function WorkflowStats({ stats }: WorkflowStatsProps) {
                 title="Success Rate"
                 value={`${stats.successRate}%`}
                 icon={FiActivity}
-                color="purple"
+                color="cyan"
                 trend={{ value: 2, label: 'vs last month' }}
             />
             <StatCard
                 title="Avg Duration"
                 value={`${stats.avgDuration}s`}
                 icon={FiClock}
-                color="orange"
+                color="indigo"
                 trend={{ value: -8, label: 'vs last month' }}
             />
         </div>

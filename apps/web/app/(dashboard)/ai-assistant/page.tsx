@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { fetchAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
 import { useAIModels } from '@/lib/hooks/use-ai-models'
 import {
     FiSend,
-    FiLoader,
     FiTrash2,
     FiCopy,
     FiCheck,
@@ -308,7 +308,7 @@ export default function AIAssistantPage() {
                 <div className="flex-1 overflow-y-auto p-2 space-y-1">
                     {loadingConversations ? (
                         <div className="flex items-center justify-center py-8">
-                            <FiLoader className="w-5 h-5 animate-spin text-muted-foreground" />
+                            <Spinner className="size-5 text-muted-foreground" />
                         </div>
                     ) : conversations.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground text-sm">
@@ -409,7 +409,7 @@ export default function AIAssistantPage() {
                     {messages.length === 0 ? (
                         <div className="h-full flex items-center justify-center">
                             <div className="text-center max-w-lg">
-                                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-zinc-700 to-zinc-600 flex items-center justify-center">
+                                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-blue-600/30">
                                     <FiMessageCircle className="w-8 h-8 text-white" />
                                 </div>
                                 <h2 className="text-2xl font-bold mb-2">How can I help you?</h2>
@@ -437,7 +437,7 @@ export default function AIAssistantPage() {
                                     className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                 >
                                     {message.role === 'assistant' && (
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-md shadow-blue-600/30">
                                             AI
                                         </div>
                                     )}
@@ -465,7 +465,7 @@ export default function AIAssistantPage() {
                                         </div>
                                     </div>
                                     {message.role === 'user' && (
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-600 to-blue-700 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-md shadow-cyan-600/30">
                                             U
                                         </div>
                                     )}
@@ -473,7 +473,7 @@ export default function AIAssistantPage() {
                             ))}
                             {loading && (
                                 <div className="flex gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-600 flex items-center justify-center text-white text-xs font-bold">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white text-xs font-bold shadow-md shadow-blue-600/30">
                                         AI
                                     </div>
                                     <div className="glass border border-border/40 rounded-2xl px-4 py-2.5">
@@ -508,7 +508,7 @@ export default function AIAssistantPage() {
                             size="icon"
                             className="h-12 w-12 flex-shrink-0"
                         >
-                            {loading ? <FiLoader className="w-5 h-5 animate-spin" /> : <FiSend className="w-5 h-5" />}
+                            {loading ? <Spinner className="size-5" /> : <FiSend className="w-5 h-5" />}
                         </Button>
                     </div>
                 </footer>

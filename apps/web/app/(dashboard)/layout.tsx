@@ -263,7 +263,7 @@ export default function DashboardLayout({
                     </div>
 
                     {/* Navigation */}
-                    <nav className="flex-1 p-4 space-y-1">
+                    <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
                         {navigation.map((item) => {
                             const active = item.href ? isActive(item.href) : false
                             const isExpanded = expandedSections.includes(item.name.toLowerCase())
@@ -600,9 +600,15 @@ export default function DashboardLayout({
                         </div>
                     </header>
 
-                    {/* Page Content */}
+                    {/* Page Content - Centralized padding */}
                     <div className="flex-1 overflow-auto relative">
-                        <div className="h-full">
+                        <div className={`h-full ${
+                            pathname.includes('/edit') || 
+                            pathname === '/ai-assistant' || 
+                            pathname === '/inbox'
+                                ? '' 
+                                : 'page-container'
+                        }`}>
                             {children}
                         </div>
                     </div>

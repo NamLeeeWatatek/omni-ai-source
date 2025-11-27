@@ -315,9 +315,9 @@ export default function WorkflowsPage() {
     }
 
     return (
-        <div className="p-8">
+        <div className="h-full">
             {/* Header */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="page-header flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold mb-2">Workflows</h1>
                     <p className="text-muted-foreground">

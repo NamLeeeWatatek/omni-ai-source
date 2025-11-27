@@ -6,12 +6,12 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
+import { Spinner } from '@/components/ui/spinner'
 import toast from 'react-hot-toast'
 import {
     FiClock,
     FiCheckCircle,
     FiXCircle,
-    FiLoader,
     FiEye,
     FiTrash2,
     FiRefreshCw
@@ -104,7 +104,7 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
             case 'failed':
                 return <FiXCircle className="w-5 h-5 text-red-500" />
             case 'running':
-                return <FiLoader className="w-5 h-5 text-blue-500 animate-spin" />
+                return <Spinner className="size-5 text-blue-500" />
             default:
                 return <FiClock className="w-5 h-5 text-gray-500" />
         }
@@ -186,7 +186,7 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
 
                 <div className="glass rounded-xl p-6">
                     <div className="flex items-center justify-between mb-2">
-                        <FiLoader className="w-8 h-8 text-blue-500" />
+                        <FiClock className="w-8 h-8 text-blue-500" />
                     </div>
                     <h3 className="text-2xl font-bold mb-1">
                         {executions.filter(e => e.status === 'running').length}
@@ -213,7 +213,7 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
             {/* Executions List */}
             {loading ? (
                 <div className="flex justify-center items-center py-20">
-                    <FiLoader className="w-8 h-8 animate-spin text-primary" />
+                    <Spinner className="size-8 text-primary" />
                 </div>
             ) : executions.length === 0 ? (
                 <div className="text-center py-20 glass rounded-xl">

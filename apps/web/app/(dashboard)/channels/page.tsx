@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import { fetchAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
 import {
@@ -297,16 +298,20 @@ export default function ChannelsPage() {
     )
 
     return (
-        <div className="p-8 max-w-7xl mx-auto relative">
-            <div className="mb-8 flex items-center justify-between">
+        <div className="h-full relative">
+            <div className="page-header flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold mb-2">Channels & Integrations</h1>
                     <p className="text-muted-foreground">
                         Connect your communication channels to start automating
                     </p>
                 </div>
-                <Button variant="outline" onClick={loadData}>
-                    <FiRefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                <Button variant="outline" onClick={loadData} disabled={loading}>
+                    {loading ? (
+                        <Spinner className="size-4 mr-2" />
+                    ) : (
+                        <FiRefreshCw className="w-4 h-4 mr-2" />
+                    )}
                     Refresh
                 </Button>
             </div>

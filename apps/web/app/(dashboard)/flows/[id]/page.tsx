@@ -346,6 +346,9 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
     const [flow, setFlow] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    
+    // Ensure nodeTypes are loaded for FlowPreview
+    const { items: nodeTypes = [] } = useAppSelector((state: any) => state.nodeTypes || {})
 
     useEffect(() => {
         loadFlow()
@@ -544,10 +547,10 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
     }
 
     return (
-        <div className="p-8">
+        <div className="h-full">
             {/* Header */}
-            <div className="mb-8">
-                <div className="flex items-start justify-between mb-4">
+            <div className="page-header">
+                <div className="flex items-start justify-between">
                     <div className="flex-1">
                         <h1 className="text-3xl font-bold mb-2">{flow.name}</h1>
                         <p className="text-muted-foreground">{flow.description || 'No description'}</p>
@@ -605,7 +608,8 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div className="content-section">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="glass rounded-xl p-6">
                     <div className="flex items-center justify-between mb-2">
                         <FiActivity className="w-8 h-8 text-slate-400" />
@@ -645,9 +649,10 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
                     <p className="text-sm text-muted-foreground">Current Version</p>
                 </div>
             </div>
+            </div>
 
             {/* Tabs */}
-            <div className="mb-6">
+            <div className="content-section">
                 <div className="flex items-center gap-1 glass rounded-lg p-1 w-fit">
                     {(['overview', 'executions', 'versions', 'settings'] as const).map((tab) => (
                         <button

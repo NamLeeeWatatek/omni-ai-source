@@ -37,7 +37,8 @@ export interface NodeType {
   id: string
   label: string
   category: 'trigger' | 'ai' | 'action' | 'logic' | 'response'
-  icon: any
+  icon: string | any // Icon name (string) or component (legacy support)
+  iconName?: string // Explicit icon name field
   color: string
   bgColor: string
   borderColor: string
@@ -122,12 +123,14 @@ const nodeTypesSlice = createSlice({
       })
       .addCase(fetchNodeTypes.fulfilled, (state: Draft<NodeTypesState>, action: PayloadAction<ApiNodeType[]>) => {
         state.loading = false
-        // Map API response to NodeType format with icon components
+        // Map API response to NodeType format
+        // Store icon NAME (string) instead of component for Redux serializability
         state.items = action.payload.map((apiNode: ApiNodeType) => ({
           id: apiNode.id,
           label: apiNode.label,
           category: apiNode.category,
-          icon: getIconComponent(apiNode.icon), // Map icon string to React component
+          icon: apiNode.icon, // Keep as string name (e.g. "FiZap")
+          iconName: apiNode.icon, // Also store in iconName for clarity
           color: apiNode.color,
           bgColor: apiNode.color,
           borderColor: apiNode.color,
