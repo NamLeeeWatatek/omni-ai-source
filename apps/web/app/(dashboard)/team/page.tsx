@@ -1,7 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@wataomi/ui'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import {
     FiUserPlus,
     FiMail,
@@ -33,17 +36,17 @@ export default function TeamPage() {
             </div>
 
             {/* Invite Section */}
-            <div className="glass rounded-xl p-6 border border-border/40 mb-8">
+            <Card className="p-6 mb-8">
                 <h2 className="text-lg font-semibold mb-4">Invite Team Member</h2>
                 <div className="flex gap-3">
                     <div className="flex-1 relative">
                         <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <input
+                        <Input
                             type="email"
                             value={inviteEmail}
                             onChange={(e) => setInviteEmail(e.target.value)}
                             placeholder="colleague@example.com"
-                            className="w-full pl-10 pr-3 py-2 glass rounded-lg border border-border/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            className="pl-10"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') sendInvite()
                             }}
@@ -54,10 +57,10 @@ export default function TeamPage() {
                         Send Invite
                     </Button>
                 </div>
-            </div>
+            </Card>
 
             {/* Team Members */}
-            <div className="glass rounded-xl border border-border/40 overflow-hidden">
+            <Card className="overflow-hidden">
                 <div className="p-6 border-b border-border/40">
                     <h2 className="text-lg font-semibold">Team Members</h2>
                 </div>
@@ -75,10 +78,10 @@ export default function TeamPage() {
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
-                            <span className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                            <Badge variant="default" className="flex items-center gap-2">
                                 <FiShield className="w-4 h-4" />
                                 Owner
-                            </span>
+                            </Badge>
                         </div>
                     </div>
 
@@ -89,7 +92,7 @@ export default function TeamPage() {
                         <p className="text-sm mt-1">Invite colleagues to collaborate</p>
                     </div>
                 </div>
-            </div>
+            </Card>
 
             {/* Info Box */}
             <div className="mt-6 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">

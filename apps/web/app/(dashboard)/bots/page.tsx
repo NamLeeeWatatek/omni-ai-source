@@ -1,7 +1,27 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Button } from '@wataomi/ui'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { Spinner } from '@/components/ui/spinner'
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/components/ui/dialog'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
 import { fetchAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
 import {
@@ -10,8 +30,7 @@ import {
     FiTrash2,
     FiRefreshCw,
     FiMessageSquare,
-    FiActivity,
-    FiX
+    FiActivity
 } from 'react-icons/fi'
 
 interface Bot {
@@ -22,6 +41,12 @@ interface Bot {
     workspace_id: number
     created_at: string
     updated_at: string
+    flow_id?: number | null
+}
+
+interface Flow {
+    id: number
+    name: string
 }
 
 export default function BotsPage() {
@@ -34,7 +59,7 @@ export default function BotsPage() {
         description: '',
         flow_id: null as number | null
     })
-    const [flows, setFlows] = useState<any[]>([])
+    const [flows, setFlows] = useState<Flow[]>([])
 
     useEffect(() => {
         loadBots()
@@ -45,8 +70,8 @@ export default function BotsPage() {
         try {
             const data = await fetchAPI('/flows/')
             setFlows(data)
-        } catch (e: any) {
-            console.error('Failed to load flows:', e)
+        } catch (error) {
+            console.error('Failed to load flows:', error)
         }
     }
 
@@ -55,7 +80,7 @@ export default function BotsPage() {
             setLoading(true)
             const data = await fetchAPI('/bots/')
             setBots(data.bots || [])
-        } catch (e: any) {
+        } catch {
             toast.error('Failed to load bots')
         } finally {
             setLoading(false)
@@ -68,7 +93,7 @@ export default function BotsPage() {
             setFormData({
                 name: bot.name,
                 description: bot.description || '',
-                flow_id: (bot as any).flow_id || null
+                flow_id: bot.flow_id || null
             })
         } else {
             setEditingBot(null)
@@ -105,7 +130,7 @@ export default function BotsPage() {
             }
             closeModal()
             loadBots()
-        } catch (e: any) {
+        } catch {
             toast.error('Failed to save bot')
         }
     }
@@ -117,7 +142,7 @@ export default function BotsPage() {
             await fetchAPI(`/bots/${id}`, { method: 'DELETE' })
             toast.success('Bot deleted')
             loadBots()
-        } catch (e: any) {
+        } catch {
             toast.error('Failed to delete bot')
         }
     }
@@ -132,7 +157,7 @@ export default function BotsPage() {
             })
             toast.success('Bot status updated')
             loadBots()
-        } catch (e: any) {
+        } catch {
             toast.error('Failed to update status')
         }
     }
@@ -160,11 +185,11 @@ export default function BotsPage() {
 
             {loading && bots.length === 0 ? (
                 <div className="text-center py-12">
-                    <FiRefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-muted-foreground" />
+                    <Spinner className="size-6 mx-auto mb-4 text-muted-foreground" />
                     <p className="text-muted-foreground">Loading bots...</p>
                 </div>
             ) : bots.length === 0 ? (
-                <div className="text-center py-12 glass rounded-xl border border-border/40">
+                <Card className="text-center py-12">
                     <FiMessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                     <h3 className="text-lg font-semibold mb-2">No bots yet</h3>
                     <p className="text-muted-foreground mb-4">Create your first bot to get started</p>
@@ -172,11 +197,11 @@ export default function BotsPage() {
                         <FiPlus className="w-4 h-4 mr-2" />
                         Create Bot
                     </Button>
-                </div>
+                </Card>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {bots.map((bot) => (
-                        <div key={bot.id} className="glass rounded-xl p-6 border border-border/40 hover:border-primary/20 transition-all">
+                        <Card key={bot.id} className="p-6">
                             <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-center gap-3">
                                     <div className="w-12 h-12 rounded-xl bg-gradient-wata flex items-center justify-center">
@@ -184,12 +209,9 @@ export default function BotsPage() {
                                     </div>
                                     <div>
                                         <h3 className="font-semibold text-lg">{bot.name}</h3>
-                                        <span className={`text-xs px-2 py-1 rounded-full ${bot.is_active
-                                                ? 'bg-green-500/10 text-green-500'
-                                                : 'bg-gray-500/10 text-gray-500'
-                                            }`}>
+                                        <Badge variant={bot.is_active ? 'success' : 'default'}>
                                             {bot.is_active ? 'Active' : 'Inactive'}
-                                        </span>
+                                        </Badge>
                                     </div>
                                 </div>
                             </div>
@@ -224,78 +246,72 @@ export default function BotsPage() {
                                     <FiTrash2 className="w-4 h-4" />
                                 </Button>
                             </div>
-                        </div>
+                        </Card>
                     ))}
                 </div>
             )}
 
             {/* Modal */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-background border border-border rounded-xl p-6 w-full max-w-md shadow-2xl">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-xl font-semibold">
-                                {editingBot ? 'Edit Bot' : 'Create Bot'}
-                            </h3>
-                            <button onClick={closeModal} className="text-muted-foreground hover:text-foreground">
-                                <FiX className="w-5 h-5" />
-                            </button>
+            <Dialog open={showModal} onOpenChange={setShowModal}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{editingBot ? 'Edit Bot' : 'Create Bot'}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="name">Bot Name *</Label>
+                            <Input
+                                id="name"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                placeholder="My Awesome Bot"
+                            />
                         </div>
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-2">Bot Name *</label>
-                                <input
-                                    type="text"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    className="w-full glass rounded-lg px-3 py-2 border border-border/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                    placeholder="My Awesome Bot"
-                                />
-                            </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="description">Description</Label>
+                            <Textarea
+                                id="description"
+                                value={formData.description}
+                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                rows={3}
+                                placeholder="Describe what this bot does..."
+                            />
+                        </div>
 
-                            <div>
-                                <label className="block text-sm font-medium mb-2">Description</label>
-                                <textarea
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    className="w-full glass rounded-lg px-3 py-2 border border-border/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                    rows={3}
-                                    placeholder="Describe what this bot does..."
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium mb-2">Flow</label>
-                                <select
-                                    value={formData.flow_id || ''}
-                                    onChange={(e) => setFormData({ ...formData, flow_id: e.target.value ? Number(e.target.value) : null })}
-                                    className="w-full glass rounded-lg px-3 py-2 border border-border/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                >
-                                    <option value="">No flow (manual responses only)</option>
+                        <div className="space-y-2">
+                            <Label htmlFor="flow">Flow</Label>
+                            <Select
+                                value={formData.flow_id?.toString() || ''}
+                                onValueChange={(value) => setFormData({ ...formData, flow_id: value ? Number(value) : null })}
+                            >
+                                <SelectTrigger id="flow">
+                                    <SelectValue placeholder="No flow (manual responses only)" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="">No flow (manual responses only)</SelectItem>
                                     {flows.map((flow) => (
-                                        <option key={flow.id} value={flow.id}>
+                                        <SelectItem key={flow.id} value={flow.id.toString()}>
                                             {flow.name}
-                                        </option>
+                                        </SelectItem>
                                     ))}
-                                </select>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    Select which flow this bot should execute when it receives messages
-                                </p>
-                            </div>
-
-                            <div className="pt-4 flex gap-3">
-                                <Button variant="outline" className="flex-1" onClick={closeModal}>
-                                    Cancel
-                                </Button>
-                                <Button className="flex-1" onClick={saveBot}>
-                                    {editingBot ? 'Update' : 'Create'}
-                                </Button>
-                            </div>
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                                Select which flow this bot should execute when it receives messages
+                            </p>
                         </div>
                     </div>
-                </div>
-            )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={closeModal}>
+                            Cancel
+                        </Button>
+                        <Button onClick={saveBot}>
+                            {editingBot ? 'Update' : 'Create'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

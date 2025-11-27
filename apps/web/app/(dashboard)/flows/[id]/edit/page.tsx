@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Button } from '@wataomi/ui'
+import { Button } from '@/components/ui/button'
 import toast from 'react-hot-toast'
 import {
     FiArrowLeft,
@@ -27,13 +27,18 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { fetchAPI } from '@/lib/api'
-import { NodePalette } from '@/components/workflow/NodePalette'
-import { NodeProperties } from '@/components/workflow/NodeProperties'
-import CustomNode from '@/components/workflow/CustomNode'
+import { NodePalette } from '@/components/features/workflow/node-palette'
+import NodeProperties from '@/components/features/workflow/node-properties'
+import CustomNode from '@/components/features/workflow/custom-node'
 import { NodeType } from '@/lib/nodeTypes'
 
 const nodeTypes = {
     custom: CustomNode
+}
+
+interface Channel {
+    id: number
+    name: string
 }
 
 export default function WorkflowEditorPage({ params }: { params: { id: string } }) {
@@ -41,36 +46,76 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
     const reactFlowWrapper = useRef<HTMLDivElement>(null)
     const { screenToFlowPosition } = useReactFlow()
 
+    // ReactFlow state
+    const [nodes, setNodes, onNodesChange] = useNodesState([])
+    const [edges, setEdges, onEdgesChange] = useEdgesState([])
+
+    // UI state
     const [isSaving, setIsSaving] = useState(false)
     const [isExecuting, setIsExecuting] = useState(false)
     const [showProperties, setShowProperties] = useState(false)
-    const [selectedNode, setSelectedNode] = useState<Node | null>(null)
+    const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+    const [showExecutionResults, setShowExecutionResults] = useState(false)
+
+    // Derived state
+    const selectedNode = useMemo(() =>
+        nodes.find(n => n.id === selectedNodeId) || null
+        , [nodes, selectedNodeId])
+
+    // Workflow state
     const [workflowName, setWorkflowName] = useState('Untitled Workflow')
     const [flow, setFlow] = useState<any>(null)
+    const [channels, setChannels] = useState<Channel[]>([])
     const [selectedChannelId, setSelectedChannelId] = useState<number | null>(null)
-    const [channels, setChannels] = useState<any[]>([])
-    
-    // Track changes for save button
-    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+
+    // Change tracking
     const [savedState, setSavedState] = useState<string>('')
-    
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+
     // Execution results
     const [executionResults, setExecutionResults] = useState<Record<string, any> | null>(null)
-    const [showExecutionResults, setShowExecutionResults] = useState(false)
     const [lastExecution, setLastExecution] = useState<any>(null)
 
-    const initialNodes: Node[] = []
-    const initialEdges: Edge[] = []
-
-    const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
-    const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
-
-    // Load channels
+    // Load channels on mount
     useEffect(() => {
         loadChannels()
     }, [])
 
-    // Load flow data
+    // Track changes using useMemo to avoid infinite loops
+    const currentStateString = useMemo(() => {
+        return JSON.stringify({
+            name: workflowName,
+            channel_id: selectedChannelId,
+            nodes,
+            edges
+        })
+    }, [workflowName, selectedChannelId, nodes, edges])
+
+    useEffect(() => {
+        if (!savedState) return
+        setHasUnsavedChanges(currentStateString !== savedState)
+    }, [currentStateString, savedState])
+
+    // Load flow data or templates
+    // Helper to migrate nodes to custom type
+    const migrateNodes = (nodes: Node[]) => {
+        return nodes.map(node => {
+            // If node type is not 'custom', migrate it
+            if (node.type !== 'custom') {
+                return {
+                    ...node,
+                    type: 'custom',
+                    data: {
+                        ...node.data,
+                        // Ensure type is stored in data, fallback to node.type
+                        type: node.data?.type || node.type
+                    }
+                }
+            }
+            return node
+        })
+    }
+
     useEffect(() => {
         if (params.id !== 'new') {
             loadFlow()
@@ -81,7 +126,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                 try {
                     const workflow = JSON.parse(aiWorkflow)
                     if (workflow.nodes && workflow.nodes.length > 0) {
-                        setNodes(workflow.nodes)
+                        setNodes(migrateNodes(workflow.nodes))
                         setEdges(workflow.edges || [])
                         if (workflow.suggested_name) {
                             setWorkflowName(workflow.suggested_name)
@@ -94,27 +139,18 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                     console.error('Failed to load AI workflow:', e)
                 }
             }
-            
+
             // Check if there's a template to load
             const templateData = localStorage.getItem('n8n_template_data')
-            console.log('Checking for template data:', templateData)
             if (templateData) {
                 try {
                     const template = JSON.parse(templateData)
-                    console.log('Parsed template:', template)
                     if (template.nodes && template.nodes.length > 0) {
-                        console.log('Loading template nodes:', template.nodes.length, 'nodes')
-                        console.log('Loading template edges:', template.edges?.length || 0, 'edges')
-                        
-                        // IMPORTANT: Set nodes and edges immediately
-                        // Use functional updates to ensure state is set correctly
-                        setNodes(() => template.nodes)
-                        setEdges(() => template.edges || [])
+                        setNodes(migrateNodes(template.nodes))
+                        setEdges(template.edges || [])
                         setWorkflowName(template.name || 'Untitled Workflow')
-                        
-                        // Mark as having unsaved changes
                         setHasUnsavedChanges(true)
-                        
+
                         toast.success(`Template "${template.name}" loaded with ${template.nodes.length} nodes! Click Save to create workflow.`, {
                             duration: 5000
                         })
@@ -127,6 +163,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                 }
             }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [params.id])
 
     const loadChannels = async () => {
@@ -146,12 +183,12 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
             setSelectedChannelId(data.channel_id || null)
 
             if (data.data?.nodes) {
-                setNodes(data.data.nodes)
+                setNodes(migrateNodes(data.data.nodes))
             }
             if (data.data?.edges) {
                 setEdges(data.data.edges)
             }
-            
+
             // Save initial state
             const initialState = JSON.stringify({
                 name: data.name,
@@ -165,21 +202,8 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
             toast.error('Failed to load workflow')
         }
     }
-    
-    // Track changes to nodes, edges, name, and channel
-    useEffect(() => {
-        const currentState = JSON.stringify({
-            name: workflowName,
-            channel_id: selectedChannelId,
-            nodes,
-            edges
-        })
-        
-        // Only mark as changed if we have a saved state to compare against
-        if (savedState) {
-            setHasUnsavedChanges(currentState !== savedState)
-        }
-    }, [nodes, edges, workflowName, selectedChannelId, savedState])
+
+
 
     const onConnect = useCallback(
         (params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -241,9 +265,13 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
     }
 
     const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-        setSelectedNode(node)
+        setSelectedNodeId(node.id)
         setShowProperties(true)
     }, [])
+
+    const handleNodeUpdate = useCallback((updatedNode: Node) => {
+        setNodes((nds) => nds.map((n) => (n.id === updatedNode.id ? updatedNode : n)))
+    }, [setNodes])
 
     const handleSave = async () => {
         const savePromise = (async () => {
@@ -263,7 +291,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                     method: 'POST',
                     body: JSON.stringify(flowData)
                 })
-                
+
                 // Update saved state after successful save
                 const newState = JSON.stringify({
                     name: workflowName,
@@ -273,7 +301,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                 })
                 setSavedState(newState)
                 setHasUnsavedChanges(false)
-                
+
                 router.push(`/flows/${created.id}/edit`)
                 return created
             } else {
@@ -282,7 +310,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                     body: JSON.stringify(flowData)
                 })
                 setFlow(updated)
-                
+
                 // Update saved state after successful save
                 const newState = JSON.stringify({
                     name: workflowName,
@@ -292,7 +320,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                 })
                 setSavedState(newState)
                 setHasUnsavedChanges(false)
-                
+
                 return updated
             }
         })()
@@ -333,7 +361,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                     input_data: {}
                 })
             })
-            
+
             // Convert node_executions to results format
             const results: Record<string, any> = {}
             execution.node_executions.forEach((nodeExec: any) => {
@@ -344,7 +372,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                     error: nodeExec.error_message
                 }
             })
-            
+
             // Store results and show panel
             setExecutionResults(results)
             setShowExecutionResults(true)
@@ -381,7 +409,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                         className="text-xl font-bold bg-transparent border-none focus:outline-none focus:ring-0 max-w-md"
                         placeholder="Workflow name"
                     />
-                    
+
                     {/* Channel Selector */}
                     <div className="flex items-center gap-2 ml-4">
                         <span className="text-sm text-muted-foreground">Channel:</span>
@@ -482,13 +510,12 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                                 <div className="space-y-2 text-xs">
                                     <div className="flex items-center justify-between">
                                         <span className="text-muted-foreground">Status:</span>
-                                        <span className={`px-2 py-0.5 rounded ${
-                                            lastExecution.status === 'completed' 
-                                                ? 'bg-green-500/10 text-green-500'
-                                                : lastExecution.status === 'failed'
+                                        <span className={`px-2 py-0.5 rounded ${lastExecution.status === 'completed'
+                                            ? 'bg-green-500/10 text-green-500'
+                                            : lastExecution.status === 'failed'
                                                 ? 'bg-red-500/10 text-red-500'
                                                 : 'bg-yellow-500/10 text-yellow-500'
-                                        }`}>
+                                            }`}>
                                             {lastExecution.status}
                                         </span>
                                     </div>
@@ -515,7 +542,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                             {Object.entries(executionResults).map(([nodeId, result]) => {
                                 const node = nodes.find(n => n.id === nodeId)
                                 const nodeData = node?.data as any
-                                
+
                                 return (
                                     <div key={nodeId} className="glass rounded-lg p-3 border border-border/40">
                                         <div className="flex items-center justify-between mb-2">
@@ -545,13 +572,13 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                                                 </div>
                                             ) : (
                                                 <div className="space-y-1">
-                                                    {Object.entries(result).filter(([key]) => 
+                                                    {Object.entries(result).filter(([key]) =>
                                                         !['status', 'execution_time_ms', 'error'].includes(key)
                                                     ).map(([key, value]) => (
                                                         <div key={key} className="flex gap-2">
                                                             <span className="font-medium text-foreground min-w-[80px]">{key}:</span>
                                                             <span className="flex-1 break-words">
-                                                                {typeof value === 'object' 
+                                                                {typeof value === 'object'
                                                                     ? JSON.stringify(value, null, 2)
                                                                     : String(value)
                                                                 }
@@ -584,12 +611,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                         <div className="flex-1 overflow-y-auto p-4">
                             <NodeProperties
                                 node={selectedNode}
-                                onUpdate={(updatedNode) => {
-                                    setNodes((nds) =>
-                                        nds.map((n) => (n.id === updatedNode.id ? updatedNode : n))
-                                    )
-                                    setSelectedNode(updatedNode)
-                                }}
+                                onUpdate={handleNodeUpdate}
                             />
                         </div>
                     </div>
@@ -597,293 +619,4 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
             </div>
         </div>
     )
-}
-
-// Workflow execution logic
-async function executeWorkflow(nodes: Node[], edges: Edge[]) {
-    // Find trigger nodes (nodes with no incoming edges)
-    const triggerNodes = nodes.filter(node => {
-        return !edges.some(edge => edge.target === node.id)
-    })
-
-    if (triggerNodes.length === 0) {
-        throw new Error('No trigger node found')
-    }
-
-    let nodesExecuted = 0
-    const executionResults: Record<string, any> = {}
-
-    // Execute nodes in order (simple BFS)
-    const queue = [...triggerNodes]
-    const visited = new Set<string>()
-
-    while (queue.length > 0) {
-        const currentNode = queue.shift()!
-        if (visited.has(currentNode.id)) continue
-
-        visited.add(currentNode.id)
-
-        // Execute node
-        const result = await executeNode(currentNode, executionResults)
-        executionResults[currentNode.id] = result
-        nodesExecuted++
-
-        // Find next nodes
-        const nextEdges = edges.filter(edge => edge.source === currentNode.id)
-        const nextNodes = nextEdges.map(edge => nodes.find(n => n.id === edge.target)!).filter(Boolean)
-        queue.push(...nextNodes)
-    }
-
-    return { nodesExecuted, results: executionResults }
-}
-
-async function executeNode(node: Node, previousResults: Record<string, any>) {
-    const nodeData = node.data as any
-    const nodeType = nodeData.type
-    const config = nodeData.config || {}
-
-    console.log(`Executing node: ${nodeType}`, config)
-
-    // Trigger nodes
-    if (nodeType === 'trigger-message') {
-        return { 
-            triggered: true, 
-            message: 'Message received',
-            timestamp: new Date().toISOString()
-        }
-    }
-
-    if (nodeType === 'trigger-schedule') {
-        return { 
-            triggered: true, 
-            schedule: config.schedule || 'manual',
-            timestamp: new Date().toISOString()
-        }
-    }
-
-    if (nodeType === 'trigger-webhook') {
-        return { 
-            triggered: true, 
-            webhook_url: config.webhook_url || 'Not configured',
-            timestamp: new Date().toISOString()
-        }
-    }
-
-    // AI nodes
-    if (nodeType === 'ai-suggest') {
-        const prompt = config.prompt || 'Generate a helpful response'
-        try {
-            const response = await fetchAPI('/ai/suggest', {
-                method: 'POST',
-                body: JSON.stringify({ prompt, context: previousResults })
-            })
-            return { ...response, executed: true }
-        } catch (e: any) {
-            return { error: 'AI suggest failed', message: e.message }
-        }
-    }
-
-    if (nodeType === 'ai-openai') {
-        const prompt = config.prompt || 'Hello'
-        const model = config.model || 'gpt-4'
-        const temperature = config.temperature || 0.7
-        const max_tokens = config.max_tokens || 150
-        
-        try {
-            const response = await fetchAPI('/ai/openai', {
-                method: 'POST',
-                body: JSON.stringify({ 
-                    prompt, 
-                    context: previousResults,
-                    model,
-                    temperature,
-                    max_tokens
-                })
-            })
-            return { ...response, executed: true }
-        } catch (e: any) {
-            return { error: 'OpenAI call failed', message: e.message }
-        }
-    }
-
-    if (nodeType === 'ai-gemini') {
-        const prompt = config.prompt || 'Hello'
-        const model = config.model || 'gemini-pro'
-        
-        try {
-            const response = await fetchAPI('/ai/gemini', {
-                method: 'POST',
-                body: JSON.stringify({ 
-                    prompt, 
-                    context: previousResults,
-                    model
-                })
-            })
-            return { ...response, executed: true }
-        } catch (e: any) {
-            return { error: 'Gemini call failed', message: e.message }
-        }
-    }
-
-    if (nodeType === 'ai-classify') {
-        const categories = config.categories || []
-        const text = config.text || previousResults[Object.keys(previousResults)[0]]?.suggestion || 'Sample text'
-        
-        try {
-            const response = await fetchAPI('/ai/classify', {
-                method: 'POST',
-                body: JSON.stringify({ text, categories })
-            })
-            return { ...response, executed: true }
-        } catch (e: any) {
-            return { error: 'Classification failed', message: e.message }
-        }
-    }
-
-    // Message nodes
-    if (nodeType?.startsWith('send-')) {
-        const platform = nodeType.replace('send-', '')
-        const message = config.message || 'Hello!'
-        const channel_id = config.channel_id
-        
-        if (!channel_id) {
-            return { 
-                error: 'No channel selected',
-                platform,
-                message 
-            }
-        }
-
-        // TODO: Implement actual message sending via channels API
-        return {
-            sent: true,
-            platform,
-            channel_id,
-            message,
-            timestamp: new Date().toISOString()
-        }
-    }
-
-    // Media nodes
-    if (nodeType === 'media-upload-image' || nodeType === 'media-upload-file') {
-        const media_url = config.media_url
-        const media_file = config.media_file
-        
-        if (!media_url && !media_file) {
-            return { error: 'No media uploaded' }
-        }
-
-        return {
-            uploaded: true,
-            media_url: media_url || media_file?.url,
-            filename: media_file?.filename || 'file',
-            type: nodeType.includes('image') ? 'image' : 'file'
-        }
-    }
-
-    if (nodeType === 'media-send-image') {
-        const media_url = config.media_url
-        const caption = config.caption || ''
-        
-        if (!media_url) {
-            return { error: 'No image to send' }
-        }
-
-        return {
-            sent: true,
-            media_url,
-            caption,
-            timestamp: new Date().toISOString()
-        }
-    }
-
-    // Action nodes
-    if (nodeType === 'action-http') {
-        const url = config.url
-        const method = config.method || 'GET'
-        const headers = config.headers ? JSON.parse(config.headers) : {}
-        const body = config.body ? JSON.parse(config.body) : null
-        
-        if (!url) {
-            return { error: 'No URL configured' }
-        }
-
-        try {
-            const response = await fetch(url, {
-                method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...headers
-                },
-                ...(body && { body: JSON.stringify(body) })
-            })
-            
-            const data = await response.json()
-            return { 
-                executed: true, 
-                status: response.status,
-                data 
-            }
-        } catch (e: any) {
-            return { error: 'HTTP request failed', message: e.message }
-        }
-    }
-
-    if (nodeType === 'action-code') {
-        const code = config.code
-        
-        if (!code) {
-            return { error: 'No code configured' }
-        }
-
-        try {
-            // Execute JavaScript code in a safe context
-            const func = new Function('input', 'previousResults', code)
-            const result = func({}, previousResults)
-            return { executed: true, result }
-        } catch (e: any) {
-            return { error: 'Code execution failed', message: e.message }
-        }
-    }
-
-    // Logic nodes
-    if (nodeType === 'logic-condition') {
-        const operator = config.operator || 'equals'
-        const value = config.value || ''
-        const inputValue = previousResults[Object.keys(previousResults)[0]]?.suggestion || ''
-        
-        let conditionMet = false
-        
-        switch (operator) {
-            case 'equals':
-                conditionMet = inputValue === value
-                break
-            case 'not_equals':
-                conditionMet = inputValue !== value
-                break
-            case 'contains':
-                conditionMet = String(inputValue).includes(value)
-                break
-            case 'not_contains':
-                conditionMet = !String(inputValue).includes(value)
-                break
-            case 'greater_than':
-                conditionMet = Number(inputValue) > Number(value)
-                break
-            case 'less_than':
-                conditionMet = Number(inputValue) < Number(value)
-                break
-        }
-        
-        return { 
-            executed: true, 
-            conditionMet,
-            operator,
-            inputValue,
-            compareValue: value
-        }
-    }
-
-    // Default
-    return { executed: true, nodeType, message: 'Node executed successfully' }
 }

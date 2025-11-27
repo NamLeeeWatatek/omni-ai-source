@@ -1,7 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1 import auth, bots, flows, channels, conversations, executions, webhooks, ai, integrations, ai_suggest, templates, media, agent_configs, versions, archives, ai_models
-from app.api.v1.endpoints import stats, oauth, n8n_templates
+from app.api.v1 import (
+    auth, bots, flows, channels, conversations, executions, 
+    webhooks, integrations, templates, media, agent_configs, 
+    versions, archives, stats, oauth, node_types, executions_stream, websocket
+)
+from app.api.v1 import ai
 from app.db.session import init_db
 from app.core.config import settings
 
@@ -32,9 +36,11 @@ app.include_router(versions.router, prefix=f"{settings.API_V1_STR}/flows", tags=
 app.include_router(channels.router, prefix=f"{settings.API_V1_STR}/channels", tags=["channels"])
 app.include_router(conversations.router, prefix=f"{settings.API_V1_STR}/conversations", tags=["conversations"])
 app.include_router(executions.router, prefix=f"{settings.API_V1_STR}/executions", tags=["executions"])
+app.include_router(executions_stream.router, prefix=f"{settings.API_V1_STR}/executions", tags=["executions-stream"])
+# Centralized WebSocket router
+app.include_router(websocket.router, prefix=f"{settings.API_V1_STR}", tags=["websocket"])
 app.include_router(webhooks.router, prefix=f"{settings.API_V1_STR}/webhooks", tags=["webhooks"])
 app.include_router(ai.router, prefix=f"{settings.API_V1_STR}/ai", tags=["ai"])
-app.include_router(ai_suggest.router, prefix=f"{settings.API_V1_STR}/ai/workflow", tags=["ai-workflow"])
 app.include_router(stats.router, prefix=f"{settings.API_V1_STR}/stats", tags=["stats"])
 app.include_router(oauth.router, prefix=f"{settings.API_V1_STR}/oauth", tags=["oauth"])
 app.include_router(integrations.router, prefix=f"{settings.API_V1_STR}/integrations", tags=["integrations"])
@@ -42,8 +48,7 @@ app.include_router(templates.router, prefix=f"{settings.API_V1_STR}/templates", 
 app.include_router(media.router, prefix=f"{settings.API_V1_STR}/media", tags=["media"])
 app.include_router(agent_configs.router, prefix=f"{settings.API_V1_STR}/agent-configs", tags=["agent-configs"])
 app.include_router(archives.router, prefix=f"{settings.API_V1_STR}/archives", tags=["archives"])
-app.include_router(ai_models.router, prefix=f"{settings.API_V1_STR}/ai-assistant", tags=["ai-assistant"])
-app.include_router(n8n_templates.router, prefix=f"{settings.API_V1_STR}/n8n-templates", tags=["n8n-templates"])
+app.include_router(node_types.router, prefix=f"{settings.API_V1_STR}/node-types", tags=["node-types"])
 
 @app.get("/")
 async def root():

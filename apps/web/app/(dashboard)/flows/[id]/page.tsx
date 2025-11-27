@@ -1,11 +1,27 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Button } from '@wataomi/ui'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
 import { fetchAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
+import ReactFlow, { Background, Controls, MiniMap, BackgroundVariant } from 'reactflow'
+import 'reactflow/dist/style.css'
+import { useNodeTypes } from '@/lib/context/node-types-context'
+import CustomNode from '@/components/features/workflow/custom-node'
 import {
     FiEdit,
     FiPlay,
@@ -18,6 +34,57 @@ import {
     FiTrendingUp,
     FiActivity
 } from 'react-icons/fi'
+
+function FlowPreview({ nodes, edges }: { nodes: any[], edges: any[] }) {
+    const { nodeTypes: allNodeTypes } = useNodeTypes()
+
+    const nodeTypes = useMemo(() => {
+        const types: Record<string, any> = { custom: CustomNode }
+        allNodeTypes.forEach(t => {
+            types[t.id] = CustomNode
+        })
+        return types
+    }, [allNodeTypes])
+
+    // Ensure nodes have correct type for CustomNode
+    const safeNodes = useMemo(() => {
+        return nodes.map(node => ({
+            ...node,
+            type: node.type || 'custom', // Fallback
+            data: {
+                ...node.data,
+                // Ensure type is in data for CustomNode lookup
+                type: node.type || node.data?.type
+            }
+        }))
+    }, [nodes])
+
+    return (
+        <div className="h-[600px] bg-background rounded-lg border border-border overflow-hidden relative shadow-sm group">
+            <ReactFlow
+                nodes={safeNodes}
+                edges={edges}
+                nodeTypes={nodeTypes}
+                fitView
+                proOptions={{ hideAttribution: true }}
+                nodesDraggable={false}
+                nodesConnectable={false}
+                elementsSelectable={false}
+                zoomOnScroll={true}
+                panOnScroll={true}
+                minZoom={0.1}
+            >
+                <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
+                <Controls />
+                <MiniMap className="!bg-background/90 !border-border" />
+            </ReactFlow>
+            <div className="absolute top-4 right-4 z-10 px-3 py-1.5 bg-background/80 backdrop-blur rounded-full text-xs font-medium text-muted-foreground border border-border shadow-sm flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-amber-500" />
+                Read Only Preview
+            </div>
+        </div>
+    )
+}
 
 function VersionsTab({ flowId, onUpdate }: { flowId: number, onUpdate: () => void }) {
     const [versions, setVersions] = useState<any[]>([])
@@ -82,7 +149,7 @@ function VersionsTab({ flowId, onUpdate }: { flowId: number, onUpdate: () => voi
                     Create Version
                 </Button>
             </div>
-            
+
             {loading ? (
                 <div className="text-center py-12 text-muted-foreground">
                     Loading versions...
@@ -103,11 +170,10 @@ function VersionsTab({ flowId, onUpdate }: { flowId: number, onUpdate: () => voi
                     {versions.map((v) => (
                         <div
                             key={v.version}
-                            className={`p-4 rounded-lg border ${
-                                v.is_current
-                                    ? 'border-primary/40 bg-primary/5'
-                                    : 'border-border/40 bg-muted/20'
-                            }`}
+                            className={`p-4 rounded-lg border ${v.is_current
+                                ? 'border-primary/40 bg-primary/5'
+                                : 'border-border/40 bg-muted/20'
+                                }`}
                         >
                             <div className="flex items-center justify-between">
                                 <div className="flex-1">
@@ -127,8 +193,8 @@ function VersionsTab({ flowId, onUpdate }: { flowId: number, onUpdate: () => voi
                                     </p>
                                 </div>
                                 {!v.is_current && (
-                                    <Button 
-                                        size="sm" 
+                                    <Button
+                                        size="sm"
                                         variant="outline"
                                         onClick={() => handleRestore(v.version)}
                                     >
@@ -144,12 +210,12 @@ function VersionsTab({ flowId, onUpdate }: { flowId: number, onUpdate: () => voi
     )
 }
 
-function SettingsTab({ 
-    flow, 
-    onUpdate, 
-    onArchive, 
-    onDelete 
-}: { 
+function SettingsTab({
+    flow,
+    onUpdate,
+    onArchive,
+    onDelete
+}: {
     flow: any
     onUpdate: () => void
     onArchive: () => void
@@ -181,9 +247,9 @@ function SettingsTab({
         }).finally(() => setSaving(false))
     }
 
-    const hasChanges = name !== flow.name || 
-                      description !== (flow.description || '') ||
-                      status !== flow.status
+    const hasChanges = name !== flow.name ||
+        description !== (flow.description || '') ||
+        status !== flow.status
 
     return (
         <div className="glass rounded-xl p-6">
@@ -199,7 +265,7 @@ function SettingsTab({
                         placeholder="Enter workflow name"
                     />
                 </div>
-                
+
                 <div>
                     <label className="block text-sm font-medium mb-2">Description</label>
                     <textarea
@@ -245,7 +311,7 @@ function SettingsTab({
                             Archive
                         </Button>
                     </div>
-                    
+
                     <div className="flex items-center justify-between pt-4 border-t border-border/40">
                         <div>
                             <h4 className="font-medium mb-1 text-red-500">Delete Workflow</h4>
@@ -253,9 +319,9 @@ function SettingsTab({
                                 Permanently delete this workflow and all its data
                             </p>
                         </div>
-                        <Button 
-                            variant="ghost" 
-                            className="text-red-500 hover:bg-red-500/10" 
+                        <Button
+                            variant="ghost"
+                            className="text-red-500 hover:bg-red-500/10"
                             onClick={onDelete}
                         >
                             <FiTrash2 className="w-4 h-4 mr-2" />
@@ -360,6 +426,26 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
         })
     }
 
+    const handleExport = () => {
+        try {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(flow, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", `${flow.name.replace(/\s+/g, '_')}_workflow.json`);
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+            toast.success('Workflow exported!')
+        } catch (e: any) {
+            toast.error('Failed to export: ' + e.message)
+        }
+    }
+
+    const handleShare = () => {
+        navigator.clipboard.writeText(window.location.href)
+        toast.success('Workflow link copied to clipboard!')
+    }
+
     const [recentExecutions, setRecentExecutions] = useState<any[]>([])
     const [executionsLoading, setExecutionsLoading] = useState(false)
     const [stats, setStats] = useState({
@@ -390,20 +476,20 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
     const loadStats = async () => {
         try {
             const allExecutions = await fetchAPI(`/executions/?flow_id=${params.id}&limit=100`)
-            
+
             const totalExecutions = allExecutions.length
             const completedExecutions = allExecutions.filter((e: any) => e.status === 'completed')
-            const successRate = totalExecutions > 0 
-                ? (completedExecutions.length / totalExecutions) * 100 
+            const successRate = totalExecutions > 0
+                ? (completedExecutions.length / totalExecutions) * 100
                 : 0
-            
+
             const durations = allExecutions
                 .filter((e: any) => e.duration_ms)
                 .map((e: any) => e.duration_ms)
             const avgDuration = durations.length > 0
                 ? durations.reduce((a: number, b: number) => a + b, 0) / durations.length
                 : 0
-            
+
             setStats({
                 totalExecutions,
                 successRate,
@@ -413,8 +499,6 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
             console.error('Failed to load stats:', e)
         }
     }
-
-
 
     const formatDuration = (ms: number) => {
         if (ms < 1000) return `${ms}ms`
@@ -490,19 +574,21 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
                             Edit Workflow
                         </Button>
                     </Link>
-                    <Button variant="outline">
-                        <FiPlay className="w-4 h-4 mr-2" />
-                        Test Run
-                    </Button>
+                    <Link href={`/flows/${flow.id}/edit`}>
+                        <Button variant="outline">
+                            <FiPlay className="w-4 h-4 mr-2" />
+                            Test Run
+                        </Button>
+                    </Link>
                     <Button variant="outline" onClick={handleDuplicate}>
                         <FiCopy className="w-4 h-4 mr-2" />
                         Duplicate
                     </Button>
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={handleExport}>
                         <FiDownload className="w-4 h-4 mr-2" />
                         Export
                     </Button>
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={handleShare}>
                         <FiShare2 className="w-4 h-4 mr-2" />
                         Share
                     </Button>
@@ -516,7 +602,7 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                 <div className="glass rounded-xl p-6">
                     <div className="flex items-center justify-between mb-2">
-                        <FiActivity className="w-8 h-8 text-wata-purple" />
+                        <FiActivity className="w-8 h-8 text-slate-400" />
                     </div>
                     <h3 className="text-2xl font-bold mb-1">{stats.totalExecutions}</h3>
                     <p className="text-sm text-muted-foreground">Total Executions</p>
@@ -524,7 +610,7 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
 
                 <div className="glass rounded-xl p-6">
                     <div className="flex items-center justify-between mb-2">
-                        <FiCheckCircle className="w-8 h-8 text-wata-blue" />
+                        <FiCheckCircle className="w-8 h-8 text-slate-400" />
                         {stats.successRate > 0 && (
                             <span className={`text-sm font-medium ${stats.successRate >= 80 ? 'text-green-500' : 'text-yellow-500'}`}>
                                 {stats.successRate.toFixed(0)}%
@@ -537,7 +623,7 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
 
                 <div className="glass rounded-xl p-6">
                     <div className="flex items-center justify-between mb-2">
-                        <FiClock className="w-8 h-8 text-wata-cyan" />
+                        <FiClock className="w-8 h-8 text-slate-400" />
                     </div>
                     <h3 className="text-2xl font-bold mb-1">
                         {stats.avgDuration > 0 ? formatDuration(stats.avgDuration) : '0s'}
@@ -547,7 +633,7 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
 
                 <div className="glass rounded-xl p-6">
                     <div className="flex items-center justify-between mb-2">
-                        <FiActivity className="w-8 h-8 text-wata-pink" />
+                        <FiActivity className="w-8 h-8 text-stone-400" />
                     </div>
                     <h3 className="text-2xl font-bold mb-1">v{flow.version || 1}</h3>
                     <p className="text-sm text-muted-foreground">Current Version</p>
@@ -578,20 +664,24 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
                     {/* Workflow Canvas Preview */}
                     <div className="glass rounded-xl p-6">
                         <h3 className="text-lg font-semibold mb-4">Workflow Diagram</h3>
-                        <div className="h-96 bg-muted/20 rounded-lg flex items-center justify-center border border-border/40">
-                            <p className="text-muted-foreground">Workflow canvas preview (ReactFlow integration)</p>
-                        </div>
+                        {flow.data?.nodes ? (
+                            <FlowPreview nodes={flow.data.nodes} edges={flow.data.edges || []} />
+                        ) : (
+                            <div className="h-96 bg-muted/20 rounded-lg flex items-center justify-center border border-border/40">
+                                <p className="text-muted-foreground">No diagram data available</p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Recent Executions */}
                     <div className="glass rounded-xl p-6">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold">Recent Executions</h3>
-                            <Link href={`/flows/${flow.id}/executions`}>
+                            <button onClick={() => setActiveTab('executions')}>
                                 <Button size="sm" variant="ghost">
                                     View All
                                 </Button>
-                            </Link>
+                            </button>
                         </div>
                         {executionsLoading ? (
                             <div className="text-center py-8 text-muted-foreground">
@@ -655,7 +745,7 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
                             </Button>
                         </Link>
                     </div>
-                    
+
                     {executionsLoading ? (
                         <div className="text-center py-12 text-muted-foreground">
                             Loading executions...
@@ -675,13 +765,10 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
                     ) : (
                         <div className="space-y-3">
                             {recentExecutions.map((execution) => (
-                                <div
+                                <Link
                                     key={execution.id}
-                                    className="p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
-                                    onClick={() => {
-                                        // Show execution details in modal or navigate
-                                        toast.success(`Viewing execution #${execution.id}`)
-                                    }}
+                                    href={`/flows/${flow.id}/executions/${execution.id}`}
+                                    className="block p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
                                 >
                                     <div className="flex items-center justify-between mb-3">
                                         <div className="flex items-center gap-3">
@@ -714,7 +801,7 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
                                             </p>
                                         </div>
                                     </div>
-                                    
+
                                     {/* Progress bar */}
                                     <div className="mb-2">
                                         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
@@ -722,25 +809,24 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
                                             <span>{execution.completed_nodes}/{execution.total_nodes} nodes</span>
                                         </div>
                                         <div className="h-2 bg-muted rounded-full overflow-hidden">
-                                            <div 
-                                                className={`h-full transition-all ${
-                                                    execution.status === 'completed' ? 'bg-green-500' :
+                                            <div
+                                                className={`h-full transition-all ${execution.status === 'completed' ? 'bg-green-500' :
                                                     execution.status === 'failed' ? 'bg-red-500' :
-                                                    'bg-yellow-500'
-                                                }`}
-                                                style={{ 
-                                                    width: `${(execution.completed_nodes / execution.total_nodes) * 100}%` 
+                                                        'bg-yellow-500'
+                                                    }`}
+                                                style={{
+                                                    width: `${(execution.completed_nodes / execution.total_nodes) * 100}%`
                                                 }}
                                             />
                                         </div>
                                     </div>
-                                    
+
                                     {execution.error_message && (
                                         <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded text-xs text-red-500">
                                             {execution.error_message}
                                         </div>
                                     )}
-                                </div>
+                                </Link>
                             ))}
                         </div>
                     )}
@@ -752,8 +838,8 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
             )}
 
             {activeTab === 'settings' && (
-                <SettingsTab 
-                    flow={flow} 
+                <SettingsTab
+                    flow={flow}
                     onUpdate={loadFlow}
                     onArchive={handleArchive}
                     onDelete={handleDelete}

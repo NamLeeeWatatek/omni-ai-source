@@ -75,10 +75,29 @@ async def delete_flow(
     current_user: dict = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
+    from app.models.execution import WorkflowExecution, NodeExecution
+    
     db_flow = await session.get(Flow, flow_id)
     if not db_flow:
         raise HTTPException(status_code=404, detail="Flow not found")
     
+    # Delete related node_executions first (via workflow_executions)
+    exec_stmt = select(WorkflowExecution).where(WorkflowExecution.flow_id == flow_id)
+    exec_result = await session.execute(exec_stmt)
+    executions = exec_result.scalars().all()
+    
+    for execution in executions:
+        # Delete node executions
+        node_stmt = select(NodeExecution).where(NodeExecution.workflow_execution_id == execution.id)
+        node_result = await session.execute(node_stmt)
+        node_executions = node_result.scalars().all()
+        for node_exec in node_executions:
+            await session.delete(node_exec)
+        
+        # Delete workflow execution
+        await session.delete(execution)
+    
+    # Now delete the flow
     await session.delete(db_flow)
     await session.commit()
     return {"status": "success", "message": "Flow deleted"}

@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Button } from '@wataomi/ui'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
 import toast from 'react-hot-toast'
 import {
     FiArrowLeft,
@@ -15,7 +17,7 @@ import {
     FiDownload
 } from 'react-icons/fi'
 import { fetchAPI } from '@/lib/api'
-import { getNodeType } from '@/lib/nodeTypes'
+import { useNodeTypes } from '@/lib/context/node-types-context'
 
 interface NodeExecution {
     id: number
@@ -52,6 +54,7 @@ export default function ExecutionDetailPage({
 }: {
     params: { id: string; executionId: string }
 }) {
+    const { getNodeType } = useNodeTypes()
     const [execution, setExecution] = useState<Execution | null>(null)
     const [loading, setLoading] = useState(true)
     const [selectedNode, setSelectedNode] = useState<NodeExecution | null>(null)
@@ -85,6 +88,120 @@ export default function ExecutionDetailPage({
             default:
                 return <FiClock className="w-5 h-5 text-gray-500" />
         }
+    }
+
+    // Detect output type and render accordingly
+    const renderOutputData = (data: any) => {
+        // 1. Check if it's a text response (AI output)
+        if (data.response && typeof data.response === 'string') {
+            return (
+                <div className="glass rounded-lg border border-border/40 p-4">
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                            {data.response}
+                        </p>
+                    </div>
+                    
+                    {/* Show metadata if exists */}
+                    {(data.model || data.tokens_used) && (
+                        <div className="mt-3 pt-3 border-t border-border/40 flex items-center gap-3 text-xs text-muted-foreground">
+                            {data.model && (
+                                <span className="px-2 py-1 bg-muted rounded">
+                                    Model: {data.model}
+                                </span>
+                            )}
+                            {data.tokens_used && (
+                                <span className="px-2 py-1 bg-muted rounded">
+                                    Tokens: {data.tokens_used}
+                                </span>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Show raw JSON in collapsible */}
+                    <details className="mt-3">
+                        <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                            View Raw JSON
+                        </summary>
+                        <pre className="mt-2 text-xs overflow-auto max-h-32 p-2 bg-muted/30 rounded">
+                            {JSON.stringify(data, null, 2)}
+                        </pre>
+                    </details>
+                </div>
+            )
+        }
+
+        // 2. Check if it's a product (has image/name/description)
+        const isProduct = data.image || data.image_url || data.thumbnail || 
+                         (data.name && data.description) ||
+                         (data.title && (data.image || data.url))
+
+        if (isProduct) {
+            const imageUrl = data.image || data.image_url || data.thumbnail || data.url
+            const name = data.name || data.title || 'Product'
+            const description = data.description || data.caption || ''
+            const price = data.price || data.cost
+            const category = data.category || data.type
+
+            return (
+                <div className="glass rounded-lg border border-border/40 overflow-hidden">
+                    {/* Product Image */}
+                    {imageUrl && (
+                        <div className="relative w-full h-48 bg-muted">
+                            <img
+                                src={imageUrl}
+                                alt={name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                    e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E'
+                                }}
+                            />
+                        </div>
+                    )}
+
+                    {/* Product Info */}
+                    <div className="p-4 space-y-2">
+                        <h4 className="font-semibold text-base">{name}</h4>
+                        
+                        {description && (
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                                {description}
+                            </p>
+                        )}
+
+                        <div className="flex items-center gap-2 flex-wrap">
+                            {price && (
+                                <span className="px-2 py-1 bg-primary/10 text-primary rounded text-sm font-medium">
+                                    {typeof price === 'number' ? `$${price}` : price}
+                                </span>
+                            )}
+                            {category && (
+                                <span className="px-2 py-1 bg-muted text-muted-foreground rounded text-xs">
+                                    {category}
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Show raw JSON in collapsible */}
+                        <details className="mt-3">
+                            <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                                View Raw JSON
+                            </summary>
+                            <pre className="mt-2 text-xs overflow-auto max-h-32 p-2 bg-muted/30 rounded">
+                                {JSON.stringify(data, null, 2)}
+                            </pre>
+                        </details>
+                    </div>
+                </div>
+            )
+        }
+
+        // 3. Default: show as JSON
+        return (
+            <pre className="glass rounded-lg px-3 py-2 border border-border/40 text-xs overflow-auto max-h-40">
+                {JSON.stringify(data, null, 2)}
+            </pre>
+        )
     }
 
     const getStatusColor = (status: string) => {
@@ -243,8 +360,8 @@ export default function ExecutionDetailPage({
                                         key={nodeExec.id}
                                         onClick={() => setSelectedNode(nodeExec)}
                                         className={`p-4 rounded-lg border cursor-pointer transition-all ${selectedNode?.id === nodeExec.id
-                                                ? 'border-primary bg-primary/5'
-                                                : 'border-border/40 hover:bg-muted/20'
+                                            ? 'border-primary bg-primary/5'
+                                            : 'border-border/40 hover:bg-muted/20'
                                             }`}
                                     >
                                         <div className="flex items-center justify-between">
@@ -354,9 +471,7 @@ export default function ExecutionDetailPage({
                                 {selectedNode.output_data && Object.keys(selectedNode.output_data).length > 0 && (
                                     <div>
                                         <label className="block text-sm font-medium mb-2">Output Data</label>
-                                        <pre className="glass rounded-lg px-3 py-2 border border-border/40 text-xs overflow-auto max-h-40">
-                                            {JSON.stringify(selectedNode.output_data, null, 2)}
-                                        </pre>
+                                        {renderOutputData(selectedNode.output_data)}
                                     </div>
                                 )}
 

@@ -15,14 +15,24 @@ import {
     FiArchive,
     FiTrash2
 } from 'react-icons/fi'
-import { Button } from '@wataomi/ui'
-import { WorkflowCard } from '@/components/workflows/workflow-card'
-import { SearchBar } from '@/components/workflows/search-bar'
-import { FilterBar } from '@/components/workflows/filter-bar'
-import { WorkflowStats } from '@/components/workflows/workflow-stats'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Spinner } from '@/components/ui/spinner'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { WorkflowCard } from '@/components/features/workflow/workflow-card'
+import { SearchBar } from '@/components/features/workflow/search-bar'
+import { WorkflowStats } from '@/components/features/workflow/workflow-stats'
 import { fetchAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
-import { N8NTemplateSelector } from '@/components/templates/N8NTemplateSelector'
+import { TemplateSelector } from '@/components/features/templates/template-selector'
+import { WorkflowRunModal } from '@/components/features/workflow/workflow-run-modal'
 
 interface Flow {
     id: number
@@ -48,11 +58,36 @@ interface ApiFlow {
     updated_at: string
     user_id: string
     flow_data: Record<string, unknown>
+    status?: string
+    version?: number
+}
+
+interface WorkflowNode {
+    type: string
+    data?: {
+        config?: {
+            inputFields?: InputField[]
+        }
+    }
+}
+
+interface InputField {
+    id: string
+    label: string
+    key: string
+    type: 'text' | 'number' | 'boolean' | 'file'
+    required: boolean
+}
+
+interface WorkflowWithNodes extends Flow {
+    flow_data: {
+        nodes?: WorkflowNode[]
+        edges?: unknown[]
+    }
 }
 
 // Dropdown Menu Component
 function FlowDropdownMenu({ flow, onAction }: { flow: Flow; onAction: () => void }) {
-    const [isOpen, setIsOpen] = useState(false)
     const router = useRouter()
 
     const handleEdit = () => {
@@ -60,7 +95,6 @@ function FlowDropdownMenu({ flow, onAction }: { flow: Flow; onAction: () => void
     }
 
     const handleDuplicate = async () => {
-        setIsOpen(false)
         const duplicatePromise = fetchAPI(`/flows/${flow.id}/duplicate`, { method: 'POST' })
             .then((dup) => {
                 router.push(`/flows/${dup.id}/edit`)
@@ -75,7 +109,6 @@ function FlowDropdownMenu({ flow, onAction }: { flow: Flow; onAction: () => void
     }
 
     const handlePublish = async () => {
-        setIsOpen(false)
         const publishPromise = fetchAPI(`/flows/${flow.id}`, {
             method: 'PATCH',
             body: JSON.stringify({ status: 'published' })
@@ -91,7 +124,6 @@ function FlowDropdownMenu({ flow, onAction }: { flow: Flow; onAction: () => void
     }
 
     const handleUnpublish = async () => {
-        setIsOpen(false)
         const unpublishPromise = fetchAPI(`/flows/${flow.id}`, {
             method: 'PATCH',
             body: JSON.stringify({ status: 'draft' })
@@ -107,7 +139,6 @@ function FlowDropdownMenu({ flow, onAction }: { flow: Flow; onAction: () => void
     }
 
     const handleArchive = async () => {
-        setIsOpen(false)
         const archivePromise = fetchAPI(`/flows/${flow.id}/archive`, { method: 'POST' })
             .then(() => {
                 onAction()
@@ -121,7 +152,6 @@ function FlowDropdownMenu({ flow, onAction }: { flow: Flow; onAction: () => void
     }
 
     const handleUnarchive = async () => {
-        setIsOpen(false)
         const unarchivePromise = fetchAPI(`/flows/${flow.id}`, {
             method: 'PATCH',
             body: JSON.stringify({ status: 'draft' })
@@ -137,12 +167,11 @@ function FlowDropdownMenu({ flow, onAction }: { flow: Flow; onAction: () => void
     }
 
     const handleDelete = async () => {
-        setIsOpen(false)
         // Custom confirmation toast
         toast((t) => (
             <div className="flex flex-col gap-3">
                 <div>
-                    <p className="font-semibold">Delete "{flow.name}"?</p>
+                    <p className="font-semibold">Delete &quot;{flow.name}&quot;?</p>
                     <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
                 </div>
                 <div className="flex gap-2">
@@ -180,95 +209,60 @@ function FlowDropdownMenu({ flow, onAction }: { flow: Flow; onAction: () => void
     }
 
     return (
-        <div className="relative">
-            <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={(e) => {
-                    e.stopPropagation()
-                    setIsOpen(!isOpen)
-                }}
-            >
-                <FiMoreVertical className="w-4 h-4" />
-            </Button>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <FiMoreVertical className="w-4 h-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleEdit}>
+                    <FiEdit className="w-4 h-4 mr-2" />
+                    Edit
+                </DropdownMenuItem>
 
-            {isOpen && (
-                <>
-                    {/* Backdrop */}
-                    <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setIsOpen(false)}
-                    />
+                {flow.status === 'draft' && (
+                    <DropdownMenuItem onClick={handlePublish} className="text-green-500">
+                        <FiPlay className="w-4 h-4 mr-2" />
+                        Publish
+                    </DropdownMenuItem>
+                )}
+                {flow.status === 'published' && (
+                    <DropdownMenuItem onClick={handleUnpublish}>
+                        <FiEdit className="w-4 h-4 mr-2" />
+                        Unpublish
+                    </DropdownMenuItem>
+                )}
 
-                    {/* Dropdown */}
-                    <div className="absolute right-0 mt-2 w-48 glass rounded-lg shadow-lg border border-border/40 z-20 overflow-hidden">
-                        <button
-                            onClick={handleEdit}
-                            className="w-full px-4 py-2 text-left hover:bg-muted/50 flex items-center gap-2 transition-colors"
-                        >
-                            <FiEdit className="w-4 h-4" />
-                            <span>Edit</span>
-                        </button>
-                        
-                        {/* Status Actions */}
-                        {flow.status === 'draft' && (
-                            <button
-                                onClick={handlePublish}
-                                className="w-full px-4 py-2 text-left hover:bg-muted/50 flex items-center gap-2 transition-colors text-green-500"
-                            >
-                                <FiPlay className="w-4 h-4" />
-                                <span>Publish</span>
-                            </button>
-                        )}
-                        {flow.status === 'published' && (
-                            <button
-                                onClick={handleUnpublish}
-                                className="w-full px-4 py-2 text-left hover:bg-muted/50 flex items-center gap-2 transition-colors"
-                            >
-                                <FiEdit className="w-4 h-4" />
-                                <span>Unpublish</span>
-                            </button>
-                        )}
-                        
-                        <button
-                            onClick={handleDuplicate}
-                            className="w-full px-4 py-2 text-left hover:bg-muted/50 flex items-center gap-2 transition-colors"
-                        >
-                            <FiCopy className="w-4 h-4" />
-                            <span>Duplicate</span>
-                        </button>
-                        
-                        {flow.status !== 'archived' ? (
-                            <button
-                                onClick={handleArchive}
-                                className="w-full px-4 py-2 text-left hover:bg-muted/50 flex items-center gap-2 transition-colors"
-                            >
-                                <FiArchive className="w-4 h-4" />
-                                <span>Archive</span>
-                            </button>
-                        ) : (
-                            <button
-                                onClick={handleUnarchive}
-                                className="w-full px-4 py-2 text-left hover:bg-muted/50 flex items-center gap-2 transition-colors text-green-500"
-                            >
-                                <FiArchive className="w-4 h-4" />
-                                <span>Unarchive</span>
-                            </button>
-                        )}
-                        
-                        <div className="border-t border-border/40" />
-                        <button
-                            onClick={handleDelete}
-                            className="w-full px-4 py-2 text-left hover:bg-red-500/10 text-red-500 flex items-center gap-2 transition-colors"
-                        >
-                            <FiTrash2 className="w-4 h-4" />
-                            <span>Delete</span>
-                        </button>
-                    </div>
-                </>
-            )}
-        </div>
+                <DropdownMenuItem onClick={handleDuplicate}>
+                    <FiCopy className="w-4 h-4 mr-2" />
+                    Duplicate
+                </DropdownMenuItem>
+
+                {flow.status !== 'archived' ? (
+                    <DropdownMenuItem onClick={handleArchive}>
+                        <FiArchive className="w-4 h-4 mr-2" />
+                        Archive
+                    </DropdownMenuItem>
+                ) : (
+                    <DropdownMenuItem onClick={handleUnarchive} className="text-green-500">
+                        <FiArchive className="w-4 h-4 mr-2" />
+                        Unarchive
+                    </DropdownMenuItem>
+                )}
+
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+                    <FiTrash2 className="w-4 h-4 mr-2" />
+                    Delete
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
     )
 }
 
@@ -280,13 +274,18 @@ export default function WorkflowsPage() {
     const [flows, setFlows] = useState<Flow[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    const [showN8NTemplates, setShowN8NTemplates] = useState(false)
+    const [showTemplateSelector, setShowTemplateSelector] = useState(false)
+
+    // Run Modal State
+    const [runModalOpen, setRunModalOpen] = useState(false)
+    const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowWithNodes | null>(null)
+    const [workflowInputFields, setWorkflowInputFields] = useState<InputField[]>([])
 
     const loadFlows = useCallback(async () => {
         try {
             setLoading(true)
             const data = await fetchAPI('/flows/')
-            const mappedData = (data as any[]).map((flow) => ({
+            const mappedData = (data as ApiFlow[]).map((flow) => ({
                 ...flow,
                 // Use status from API if available, otherwise derive from is_active
                 status: flow.status || (flow.is_active ? 'published' : 'draft'),
@@ -309,14 +308,53 @@ export default function WorkflowsPage() {
         loadFlows()
     }, [loadFlows])
 
+    const handleRunClick = async (workflow: Flow) => {
+        try {
+            // Fetch full workflow data to get nodes
+            const fullWorkflow = await fetchAPI(`/flows/${workflow.id}`) as WorkflowWithNodes
+
+            // Find Start Node
+            const nodes = fullWorkflow.flow_data?.nodes || []
+            const startNode = nodes.find((n: WorkflowNode) => n.type === 'start' || n.type === 'trigger-manual')
+
+            if (startNode && startNode.data?.config?.inputFields?.length && startNode.data.config.inputFields.length > 0) {
+                setSelectedWorkflow(fullWorkflow)
+                setWorkflowInputFields(startNode.data.config.inputFields)
+                setRunModalOpen(true)
+            } else {
+                // No inputs needed, just run
+                executeWorkflow(fullWorkflow.id, {})
+            }
+        } catch (error) {
+            console.error('Failed to prepare run:', error)
+            toast.error('Failed to load workflow details')
+        }
+    }
+
+    const executeWorkflow = async (workflowId: number, data: Record<string, unknown>) => {
+        const promise = fetchAPI('/executions/', {
+            method: 'POST',
+            body: JSON.stringify({
+                flow_id: workflowId,
+                input_data: data
+            })
+        })
+
+        toast.promise(promise, {
+            loading: 'Starting workflow...',
+            success: 'Workflow started successfully!',
+            error: (err) => `Failed to start: ${err.message}`
+        })
+    }
+
     const filteredFlows = flows.filter(flow => {
         // Search filter
         const matchesSearch = flow.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (flow.description && flow.description.toLowerCase().includes(searchQuery.toLowerCase()))
-        
+
         // Status filter
         const matchesStatus = statusFilter === 'all' || flow.status === statusFilter
-        
+
         return matchesSearch && matchesStatus
     })
 
@@ -343,14 +381,18 @@ export default function WorkflowsPage() {
                 <div className="flex items-center gap-2">
                     <Button
                         variant="outline"
-                        onClick={() => setShowN8NTemplates(true)}
+                        onClick={() => {
+                            console.log('Opening Templates modal')
+                            setShowTemplateSelector(true)
+                        }}
                     >
-                        🎬 N8N Templates
+                        <FiGrid className="w-4 h-4 mr-2" />
+                        Use Template
                     </Button>
                     <Link href="/flows/new/edit">
                         <Button>
                             <FiPlus className="w-4 h-4 mr-2" />
-                            Create Workflow
+                            Create from Scratch
                         </Button>
                     </Link>
                 </div>
@@ -369,46 +411,42 @@ export default function WorkflowsPage() {
                     <div className="glass rounded-lg p-1 flex items-center gap-1">
                         <button
                             onClick={() => setStatusFilter('all')}
-                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                                statusFilter === 'all' 
-                                    ? 'bg-primary text-white' 
-                                    : 'text-muted-foreground hover:text-foreground'
-                            }`}
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${statusFilter === 'all'
+                                ? 'bg-primary text-white'
+                                : 'text-muted-foreground hover:text-foreground'
+                                }`}
                         >
                             All ({stats.total})
                         </button>
                         <button
                             onClick={() => setStatusFilter('draft')}
-                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                                statusFilter === 'draft' 
-                                    ? 'bg-yellow-500 text-white' 
-                                    : 'text-muted-foreground hover:text-foreground'
-                            }`}
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${statusFilter === 'draft'
+                                ? 'bg-yellow-500 text-white'
+                                : 'text-muted-foreground hover:text-foreground'
+                                }`}
                         >
                             Draft ({stats.draft})
                         </button>
                         <button
                             onClick={() => setStatusFilter('published')}
-                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                                statusFilter === 'published' 
-                                    ? 'bg-green-500 text-white' 
-                                    : 'text-muted-foreground hover:text-foreground'
-                            }`}
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${statusFilter === 'published'
+                                ? 'bg-green-500 text-white'
+                                : 'text-muted-foreground hover:text-foreground'
+                                }`}
                         >
                             Published ({stats.active})
                         </button>
                         <button
                             onClick={() => setStatusFilter('archived')}
-                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                                statusFilter === 'archived' 
-                                    ? 'bg-orange-500 text-white' 
-                                    : 'text-muted-foreground hover:text-foreground'
-                            }`}
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${statusFilter === 'archived'
+                                ? 'bg-orange-500 text-white'
+                                : 'text-muted-foreground hover:text-foreground'
+                                }`}
                         >
                             Archived ({stats.archived})
                         </button>
                     </div>
-                    
+
                     {/* View Mode Toggle */}
                     <div className="glass p-1 rounded-lg flex items-center">
                         <button
@@ -430,7 +468,7 @@ export default function WorkflowsPage() {
             {/* Content */}
             {loading ? (
                 <div className="flex justify-center items-center py-20">
-                    <FiLoader className="w-8 h-8 animate-spin text-primary" />
+                    <Spinner className="size-8 text-primary" />
                 </div>
             ) : error ? (
                 <div className="text-center py-20 text-red-500">
@@ -438,7 +476,7 @@ export default function WorkflowsPage() {
                     <Button variant="outline" onClick={loadFlows} className="ml-4">Retry</Button>
                 </div>
             ) : filteredFlows.length === 0 ? (
-                <div className="text-center py-20 glass rounded-xl">
+                <Card className="text-center py-20">
                     <h3 className="text-lg font-semibold mb-2">No workflows found</h3>
                     <p className="text-muted-foreground mb-4">
                         {searchQuery ? 'Try adjusting your search terms' : 'Create your first workflow to get started'}
@@ -448,17 +486,22 @@ export default function WorkflowsPage() {
                             <Button>Create Workflow</Button>
                         </Link>
                     )}
-                </div>
+                </Card>
             ) : (
                 <>
                     {viewMode === 'grid' ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {filteredFlows.map((flow) => (
-                                <WorkflowCard key={flow.id} workflow={flow} onUpdate={loadFlows} />
+                                <WorkflowCard
+                                    key={flow.id}
+                                    workflow={flow}
+                                    onUpdate={loadFlows}
+                                    onRun={handleRunClick}
+                                />
                             ))}
                         </div>
                     ) : (
-                        <div className="glass rounded-xl overflow-hidden">
+                        <Card className="overflow-hidden">
                             <table className="w-full">
                                 <thead className="bg-muted/50">
                                     <tr>
@@ -478,22 +521,24 @@ export default function WorkflowsPage() {
                                                 </Link>
                                             </td>
                                             <td className="p-4">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${
-                                                    flow.status === 'published'
-                                                        ? 'bg-green-500/10 text-green-500'
-                                                        : flow.status === 'archived'
-                                                        ? 'bg-orange-500/10 text-orange-500'
-                                                        : 'bg-yellow-500/10 text-yellow-500'
-                                                }`}>
+                                                <Badge variant={
+                                                    flow.status === 'published' ? 'success' :
+                                                        flow.status === 'archived' ? 'warning' : 'default'
+                                                } className="capitalize">
                                                     {flow.status}
-                                                </span>
+                                                </Badge>
                                             </td>
                                             <td className="p-4 text-sm text-muted-foreground">
                                                 {flow.updated_at ? new Date(flow.updated_at).toLocaleDateString() : '-'}
                                             </td>
                                             <td className="p-4 text-right">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8"
+                                                        onClick={() => handleRunClick(flow)}
+                                                    >
                                                         <FiPlay className="w-4 h-4" />
                                                     </Button>
                                                     <FlowDropdownMenu flow={flow} onAction={loadFlows} />
@@ -503,38 +548,70 @@ export default function WorkflowsPage() {
                                     ))}
                                 </tbody>
                             </table>
-                        </div>
+                        </Card>
                     )}
                 </>
             )}
-            
-            {/* N8N Template Selector */}
-            {showN8NTemplates && (
-                <N8NTemplateSelector
-                    onSelect={(templateData) => {
+
+            {/* Template Selector */}
+            {showTemplateSelector && (
+                <TemplateSelector
+                    onSelect={async (templateData) => {
                         console.log('Template selected:', templateData)
-                        
-                        // Close modal first
-                        setShowN8NTemplates(false)
-                        
-                        // Save template data to localStorage
-                        try {
-                            localStorage.setItem('n8n_template_data', JSON.stringify(templateData))
-                            console.log('Template saved to localStorage')
-                            
-                            // Small delay to ensure localStorage is written
-                            setTimeout(() => {
-                                // Navigate to new flow editor
-                                router.push('/flows/new/edit?from=template')
-                            }, 100)
-                        } catch (e) {
-                            console.error('Failed to save template:', e)
-                            toast.error('Failed to save template')
-                        }
+
+                        // Close modal
+                        setShowTemplateSelector(false)
+
+                        // Create flow directly from template
+                        const createPromise = (async () => {
+                            const flowData = {
+                                name: templateData.name,
+                                description: templateData.description,
+                                template_id: templateData.id,
+                                status: 'draft',
+                                data: {
+                                    nodes: templateData.nodes || [],
+                                    edges: templateData.edges || []
+                                }
+                            }
+
+                            const created = await fetchAPI('/flows/', {
+                                method: 'POST',
+                                body: JSON.stringify(flowData)
+                            })
+
+                            // Reload flows list
+                            await loadFlows()
+
+                            // Navigate to edit the new flow
+                            router.push(`/flows/${created.id}/edit`)
+
+                            return created
+                        })()
+
+                        toast.promise(createPromise, {
+                            loading: 'Creating workflow from template...',
+                            success: 'Workflow created! Opening editor...',
+                            error: (err) => `Failed to create: ${err.message}`
+                        })
                     }}
-                    onClose={() => setShowN8NTemplates(false)}
+                    onClose={() => setShowTemplateSelector(false)}
                 />
             )}
+
+            {/* Run Modal */}
+            <WorkflowRunModal
+                isOpen={runModalOpen}
+                onClose={() => setRunModalOpen(false)}
+                onSubmit={(data) => {
+                    setRunModalOpen(false)
+                    if (selectedWorkflow) {
+                        executeWorkflow(selectedWorkflow.id, data)
+                    }
+                }}
+                inputFields={workflowInputFields}
+                workflowName={selectedWorkflow?.name || ''}
+            />
         </div>
     )
 }

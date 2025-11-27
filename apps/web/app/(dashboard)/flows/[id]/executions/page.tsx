@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Button } from '@wataomi/ui'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
 import toast from 'react-hot-toast'
 import {
     FiClock,
@@ -194,7 +196,7 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
 
                 <div className="glass rounded-xl p-6">
                     <div className="flex items-center justify-between mb-2">
-                        <FiClock className="w-8 h-8 text-wata-purple" />
+                        <FiClock className="w-8 h-8 text-slate-400" />
                     </div>
                     <h3 className="text-2xl font-bold mb-1">
                         {executions.length > 0

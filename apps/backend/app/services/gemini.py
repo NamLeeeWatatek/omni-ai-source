@@ -4,14 +4,17 @@ from app.core.config import settings
 class GeminiService:
     def __init__(self):
         genai.configure(api_key=settings.GOOGLE_API_KEY)
-        self.model = genai.GenerativeModel('gemini-pro')
+        self.model = genai.GenerativeModel('gemini-2.5-flash')
 
-    async def generate_content(self, prompt: str) -> str:
+    async def generate_content(self, prompt: str, model_name: str = "gemini-2.5-flash") -> str:
         try:
-            response = await self.model.generate_content_async(prompt)
+            model = genai.GenerativeModel(model_name)
+            response = await model.generate_content_async(prompt)
             return response.text
         except Exception as e:
-            print(f"Error generating content with Gemini: {e}")
+            print(f"Error generating content with Gemini (Model: {model_name}): {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
     async def suggest_next_node(self, current_node_type: str, workflow_context: str) -> dict:

@@ -1,6 +1,6 @@
 'use client'
 
-import { Button } from '@wataomi/ui'
+import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
 import {
     FiMessageSquare,
@@ -24,13 +24,13 @@ export default function LandingPage() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
                         <div className="flex items-center space-x-2">
-                            <MdAutoAwesome className="w-8 h-8 text-wata-purple" />
+                            <MdAutoAwesome className="w-8 h-8 text-slate-400" />
                             <span className="text-2xl font-bold gradient-text">WataOmi</span>
                         </div>
                         <div className="hidden md:flex items-center space-x-8">
-                            <a href="#features" className="text-sm hover:text-wata-purple transition-colors">Features</a>
-                            <a href="#pricing" className="text-sm hover:text-wata-purple transition-colors">Pricing</a>
-                            <a href="#" className="text-sm hover:text-wata-purple transition-colors">Docs</a>
+                            <a href="#features" className="text-sm hover:text-slate-400 transition-colors">Features</a>
+                            <a href="#pricing" className="text-sm hover:text-slate-400 transition-colors">Pricing</a>
+                            <a href="#" className="text-sm hover:text-slate-400 transition-colors">Docs</a>
                             <Link href="/dashboard">
                                 <Button variant="outline" size="sm">Sign In</Button>
                             </Link>
@@ -55,10 +55,10 @@ export default function LandingPage() {
                             initial={{ scale: 0.9 }}
                             animate={{ scale: 1 }}
                             transition={{ duration: 0.5 }}
-                            className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-wata-purple/10 border border-wata-purple/20 mb-8"
+                            className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-slate-700/10 border border-slate-600/30/20 mb-8"
                         >
-                            <MdAutoAwesome className="w-4 h-4 text-wata-purple" />
-                            <span className="text-sm text-wata-purple font-medium">Powered by AI & n8n</span>
+                            <MdAutoAwesome className="w-4 h-4 text-slate-400" />
+                            <span className="text-sm text-slate-400 font-medium">Powered by AI & n8n</span>
                         </motion.div> */}
 
                         <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
@@ -93,20 +93,20 @@ export default function LandingPage() {
                             transition={{ duration: 0.8, delay: 0.2 }}
                             className="mt-20 relative"
                         >
-                            <div className="glass rounded-2xl p-8 border border-border/40 shadow-2xl shadow-wata-purple/10">
+                            <div className="glass rounded-2xl p-8 border border-border/40 shadow-2xl shadow-slate-700/20/10">
                                 <div className="grid grid-cols-3 gap-4">
-                                    <div className="glass rounded-lg p-6 border border-wata-purple/20">
-                                        <FiCpu className="w-8 h-8 text-wata-purple mb-3" />
+                                    <div className="glass rounded-lg p-6 border border-slate-600/30/20">
+                                        <FiCpu className="w-8 h-8 text-slate-400 mb-3" />
                                         <h3 className="font-semibold mb-2">AI Bots</h3>
                                         <p className="text-sm text-muted-foreground">Smart conversations</p>
                                     </div>
-                                    <div className="glass rounded-lg p-6 border border-wata-blue/20">
-                                        <FiGitMerge className="w-8 h-8 text-wata-blue mb-3" />
+                                    <div className="glass rounded-lg p-6 border border-slate-600/30/20">
+                                        <FiGitMerge className="w-8 h-8 text-slate-400 mb-3" />
                                         <h3 className="font-semibold mb-2">WataFlow</h3>
                                         <p className="text-sm text-muted-foreground">Visual builder</p>
                                     </div>
-                                    <div className="glass rounded-lg p-6 border border-wata-cyan/20">
-                                        <FiInbox className="w-8 h-8 text-wata-cyan mb-3" />
+                                    <div className="glass rounded-lg p-6 border border-slate-600/30/20">
+                                        <FiInbox className="w-8 h-8 text-slate-400 mb-3" />
                                         <h3 className="font-semibold mb-2">OmniInbox</h3>
                                         <p className="text-sm text-muted-foreground">Unified messages</p>
                                     </div>
@@ -137,7 +137,7 @@ export default function LandingPage() {
                                 whileInView={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.5, delay: index * 0.1 }}
                                 viewport={{ once: true }}
-                                className="glass rounded-xl p-6 border border-border/40 hover:border-wata-purple/40 transition-all hover:shadow-lg hover:shadow-wata-purple/10"
+                                className="glass rounded-xl p-6 border border-border/40 hover:border-slate-600/30/40 transition-all hover:shadow-lg hover:shadow-slate-700/20/10"
                             >
                                 <div className="w-12 h-12 rounded-lg bg-gradient-wata flex items-center justify-center mb-4">
                                     <feature.icon className="w-6 h-6 text-white" />
@@ -171,7 +171,7 @@ export default function LandingPage() {
                                 transition={{ duration: 0.5, delay: index * 0.1 }}
                                 viewport={{ once: true }}
                                 className={`glass rounded-2xl p-8 border ${plan.featured
-                                    ? 'border-wata-purple shadow-xl shadow-wata-purple/20 scale-105'
+                                    ? 'border-slate-600/30 shadow-xl shadow-slate-700/20/20 scale-105'
                                     : 'border-border/40'
                                     }`}
                             >
@@ -195,7 +195,7 @@ export default function LandingPage() {
                                 <ul className="space-y-3">
                                     {plan.features.map((feature) => (
                                         <li key={feature} className="flex items-start">
-                                            <FiCheck className="w-5 h-5 text-wata-purple mr-2 flex-shrink-0 mt-0.5" />
+                                            <FiCheck className="w-5 h-5 text-slate-400 mr-2 flex-shrink-0 mt-0.5" />
                                             <span className="text-sm">{feature}</span>
                                         </li>
                                     ))}
@@ -214,7 +214,7 @@ export default function LandingPage() {
                         whileInView={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.6 }}
                         viewport={{ once: true }}
-                        className="glass rounded-2xl p-12 border border-wata-purple/20 text-center"
+                        className="glass rounded-2xl p-12 border border-slate-600/30/20 text-center"
                     >
                         <h2 className="text-4xl font-bold mb-4">
                             Ready to transform your <span className="gradient-text">customer engagement?</span>
@@ -238,7 +238,7 @@ export default function LandingPage() {
                     <div className="grid md:grid-cols-4 gap-8 mb-8">
                         <div>
                             <div className="flex items-center space-x-2 mb-4">
-                                <MdAutoAwesome className="w-6 h-6 text-wata-purple" />
+                                <MdAutoAwesome className="w-6 h-6 text-slate-400" />
                                 <span className="text-xl font-bold gradient-text">WataOmi</span>
                             </div>
                             <p className="text-sm text-muted-foreground">

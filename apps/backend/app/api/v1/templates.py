@@ -140,3 +140,94 @@ async def use_template(
     session.add(template)
     await session.commit()
     return {"status": "success", "usage_count": template.usage_count}
+
+@router.post("/seed")
+async def seed_templates(
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """Seed default workflow templates from workflow_templates.py"""
+    from app.data.workflow_templates import WORKFLOW_TEMPLATES
+    
+    user_id = current_user.get("id")
+    
+    # Check if templates already exist
+    result = await session.execute(select(FlowTemplate))
+    existing = result.scalars().all()
+    if len(existing) > 0:
+        return {"status": "success", "message": "Templates already seeded", "count": len(existing)}
+    
+    # Convert workflow templates to database format
+    created_templates = []
+    for template_id, template_data in WORKFLOW_TEMPLATES.items():
+        db_template = FlowTemplate(
+            name=template_data["name"],
+            description=template_data["description"],
+            category=template_data.get("category", "general"),
+            icon="FiZap",  # Default icon
+            is_public=True,
+            created_by=user_id,
+            template_data={
+                "nodes": template_data["nodes"],
+                "edges": template_data["edges"]
+            }
+        )
+        session.add(db_template)
+        created_templates.append(db_template)
+    
+    await session.commit()
+    
+    return {
+        "status": "success",
+        "message": f"Seeded {len(created_templates)} templates",
+        "count": len(created_templates)
+    }
+
+@router.post("/reseed")
+async def reseed_templates(
+    current_user: dict = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """Force re-seed all default templates (delete existing and recreate)"""
+    from app.data.workflow_templates import WORKFLOW_TEMPLATES
+    
+    user_id = current_user.get("id")
+    
+    # Delete all existing public templates
+    result = await session.execute(
+        select(FlowTemplate).where(FlowTemplate.is_public == True)
+    )
+    existing_templates = result.scalars().all()
+    
+    for template in existing_templates:
+        await session.delete(template)
+    
+    await session.commit()
+    
+    # Convert workflow templates to database format
+    created_templates = []
+    for template_id, template_data in WORKFLOW_TEMPLATES.items():
+        db_template = FlowTemplate(
+            name=template_data["name"],
+            description=template_data["description"],
+            category=template_data.get("category", "general"),
+            icon="FiZap",  # Default icon
+            is_public=True,
+            created_by=user_id,
+            template_data={
+                "nodes": template_data["nodes"],
+                "edges": template_data["edges"]
+            }
+        )
+        session.add(db_template)
+        created_templates.append(db_template)
+    
+    await session.commit()
+    
+    return {
+        "status": "success",
+        "message": f"Re-seeded {len(created_templates)} templates (deleted {len(existing_templates)} old templates)",
+        "deleted": len(existing_templates),
+        "created": len(created_templates)
+    }
+

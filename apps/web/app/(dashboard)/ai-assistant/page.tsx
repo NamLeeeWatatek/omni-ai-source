@@ -1,58 +1,71 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Button } from '@wataomi/ui'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { fetchAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
+import { useAIModels } from '@/lib/hooks/use-ai-models'
 import {
     FiSend,
     FiLoader,
-    FiSettings,
     FiTrash2,
     FiCopy,
-    FiCheck
+    FiCheck,
+    FiMessageCircle,
+    FiPlus,
+    FiEdit2,
+    FiMenu,
+    FiX
 } from 'react-icons/fi'
 
 interface Message {
+    id?: number
     role: 'user' | 'assistant'
     content: string
     timestamp: Date
+    conversation_id?: number
 }
 
-interface AIModel {
-    provider: string
-    model_name: string
-    display_name: string
-    is_available: boolean
+interface Conversation {
+    id: number
+    title: string
+    model: string
+    message_count: number
+    created_at: string
+    updated_at: string
 }
+
+
 
 export default function AIAssistantPage() {
+    const [conversations, setConversations] = useState<Conversation[]>([])
+    const [activeConversation, setActiveConversation] = useState<Conversation | null>(null)
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
     const [loading, setLoading] = useState(false)
-    const [models, setModels] = useState<AIModel[]>([])
-    const [selectedModel, setSelectedModel] = useState('gemini-pro')
+    const [loadingConversations, setLoadingConversations] = useState(true)
+    const [selectedModel, setSelectedModel] = useState('')
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+    const [sidebarOpen, setSidebarOpen] = useState(true)
+    const [editingTitle, setEditingTitle] = useState<number | null>(null)
+    const [editTitle, setEditTitle] = useState('')
     const messagesEndRef = useRef<HTMLDivElement>(null)
 
+    const { getAvailableModels } = useAIModels()
+    const models = getAvailableModels()
+
     useEffect(() => {
-        loadModels()
-        // Load conversation from localStorage
-        const saved = localStorage.getItem('ai_conversation')
-        if (saved) {
-            const parsed = JSON.parse(saved)
-            setMessages(parsed.map((m: any) => ({
-                ...m,
-                timestamp: new Date(m.timestamp)
-            })))
-        }
+        loadConversations()
     }, [])
 
     useEffect(() => {
-        // Save conversation to localStorage
-        if (messages.length > 0) {
-            localStorage.setItem('ai_conversation', JSON.stringify(messages))
+        if (models.length > 0 && !selectedModel) {
+            setSelectedModel(models[0].model_name)
         }
+    }, [models, selectedModel])
+
+    useEffect(() => {
         scrollToBottom()
     }, [messages])
 
@@ -60,29 +73,121 @@ export default function AIAssistantPage() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
 
-    const loadModels = async () => {
+    const loadConversations = async () => {
         try {
-            const data = await fetchAPI('/ai-assistant/models')
-            const allModels = data.flatMap((provider: any) => provider.models)
-            setModels(allModels.filter((m: AIModel) => m.is_available))
-            
-            // Set first available model as default
-            const firstAvailable = allModels.find((m: AIModel) => m.is_available)
-            if (firstAvailable) {
-                setSelectedModel(firstAvailable.model_name)
-            }
-        } catch (e: any) {
-            console.error('Failed to load models:', e)
+            setLoadingConversations(true)
+            const data = await fetchAPI('/ai/conversations')
+            setConversations(data)
+        } catch (error) {
+            console.error('Failed to load conversations:', error)
+        } finally {
+            setLoadingConversations(false)
         }
     }
+
+    const loadMessages = async (conversationId: number) => {
+        try {
+            const data = await fetchAPI(`/ai/conversations/${conversationId}/messages`)
+            setMessages(data.map((m: { created_at: string; role: 'user' | 'assistant'; content: string; id?: number; conversation_id?: number }) => ({
+                ...m,
+                timestamp: new Date(m.created_at)
+            })))
+        } catch (error) {
+            console.error('Failed to load messages:', error)
+        }
+    }
+
+    const createNewConversation = async () => {
+        try {
+            const data = await fetchAPI('/ai/conversations', {
+                method: 'POST',
+                body: JSON.stringify({
+                    title: 'New Chat',
+                    model: selectedModel
+                })
+            })
+            setConversations(prev => [data, ...prev])
+            setActiveConversation(data)
+            setMessages([])
+        } catch {
+            toast.error('Failed to create conversation')
+        }
+    }
+
+    const selectConversation = async (conv: Conversation) => {
+        setActiveConversation(conv)
+        setSelectedModel(conv.model || 'gemini-2.5-flash')
+        await loadMessages(conv.id)
+    }
+
+    const deleteConversation = async (convId: number, e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (!confirm('Delete this conversation?')) return
+
+        try {
+            await fetchAPI(`/ai/conversations/${convId}`, { method: 'DELETE' })
+            setConversations(prev => prev.filter(c => c.id !== convId))
+            if (activeConversation?.id === convId) {
+                setActiveConversation(null)
+                setMessages([])
+            }
+            toast.success('Conversation deleted')
+        } catch {
+            toast.error('Failed to delete conversation')
+        }
+    }
+
+    const updateConversationTitle = async (convId: number) => {
+        if (!editTitle.trim()) {
+            setEditingTitle(null)
+            return
+        }
+
+        try {
+            await fetchAPI(`/ai/conversations/${convId}?title=${encodeURIComponent(editTitle)}`, {
+                method: 'PATCH'
+            })
+            setConversations(prev => prev.map(c =>
+                c.id === convId ? { ...c, title: editTitle } : c
+            ))
+            if (activeConversation?.id === convId) {
+                setActiveConversation(prev => prev ? { ...prev, title: editTitle } : null)
+            }
+        } catch {
+            toast.error('Failed to update title')
+        }
+        setEditingTitle(null)
+    }
+
 
     const handleSend = async () => {
         if (!input.trim() || loading) return
 
+        // Create conversation if none active
+        let convId = activeConversation?.id
+        if (!convId) {
+            try {
+                const newConv = await fetchAPI('/ai/conversations', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        title: input.slice(0, 50) + (input.length > 50 ? '...' : ''),
+                        model: selectedModel
+                    })
+                })
+                setConversations(prev => [newConv, ...prev])
+                setActiveConversation(newConv)
+                convId = newConv.id
+            } catch {
+                toast.error('Failed to create conversation')
+                return
+            }
+        }
+
         const userMessage: Message = {
             role: 'user',
             content: input,
-            timestamp: new Date()
+            timestamp: new Date(),
+            conversation_id: convId
         }
 
         setMessages(prev => [...prev, userMessage])
@@ -90,7 +195,18 @@ export default function AIAssistantPage() {
         setLoading(true)
 
         try {
-            const response = await fetchAPI('/ai-assistant/chat', {
+            // Save user message
+            await fetchAPI(`/ai/conversations/${convId}/messages`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    conversation_id: convId,
+                    role: 'user',
+                    content: input
+                })
+            })
+
+            // Get AI response
+            const response = await fetchAPI('/ai/chat', {
                 method: 'POST',
                 body: JSON.stringify({
                     message: input,
@@ -105,21 +221,33 @@ export default function AIAssistantPage() {
             const assistantMessage: Message = {
                 role: 'assistant',
                 content: response.response,
-                timestamp: new Date()
+                timestamp: new Date(),
+                conversation_id: convId
             }
 
+            // Save assistant message
+            await fetchAPI(`/ai/conversations/${convId}/messages`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    conversation_id: convId,
+                    role: 'assistant',
+                    content: response.response
+                })
+            })
+
             setMessages(prev => [...prev, assistantMessage])
-        } catch (e: any) {
-            toast.error('Failed to get AI response: ' + e.message)
+
+            // Update conversation in list
+            setConversations(prev => prev.map(c =>
+                c.id === convId
+                    ? { ...c, message_count: c.message_count + 2, updated_at: new Date().toISOString() }
+                    : c
+            ))
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Unknown error'
+            toast.error('Failed to get AI response: ' + message)
         } finally {
             setLoading(false)
-        }
-    }
-
-    const handleClear = () => {
-        if (confirm('Clear all messages?')) {
-            setMessages([])
-            localStorage.removeItem('ai_conversation')
         }
     }
 
@@ -127,7 +255,7 @@ export default function AIAssistantPage() {
         navigator.clipboard.writeText(content)
         setCopiedIndex(index)
         setTimeout(() => setCopiedIndex(null), 2000)
-        toast.success('Copied to clipboard')
+        toast.success('Copied!')
     }
 
     const formatTime = (date: Date) => {
@@ -137,160 +265,253 @@ export default function AIAssistantPage() {
         })
     }
 
+    const formatDate = (dateStr: string) => {
+        const date = new Date(dateStr)
+        const today = new Date()
+        const yesterday = new Date(today)
+        yesterday.setDate(yesterday.getDate() - 1)
+
+        if (date.toDateString() === today.toDateString()) return 'Today'
+        if (date.toDateString() === yesterday.toDateString()) return 'Yesterday'
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    }
+
     return (
-        <div className="h-screen flex flex-col">
-            {/* Header */}
-            <div className="h-16 border-b border-border/40 flex items-center justify-between px-6 bg-background">
-                <div>
-                    <h1 className="text-xl font-bold">AI Assistant</h1>
-                    <p className="text-xs text-muted-foreground">
-                        Powered by {models.find(m => m.model_name === selectedModel)?.display_name || 'AI'}
-                    </p>
-                </div>
-                <div className="flex items-center gap-2">
-                    {/* Model Selector */}
-                    <select
-                        value={selectedModel}
-                        onChange={(e) => setSelectedModel(e.target.value)}
-                        className="glass rounded-lg px-3 py-2 text-sm border border-border/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
+        <div className="full-screen-page flex">
+            {/* Mobile Overlay */}
+            {sidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
+
+            {/* Sidebar */}
+            <aside className={`
+                ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+                ${sidebarOpen ? 'w-72' : 'w-0 lg:w-16'}
+                fixed lg:relative inset-y-0 left-0 z-50 lg:z-0
+                transition-all duration-300 ease-in-out
+                border-r border-border/40 bg-background flex flex-col overflow-hidden
+            `}>
+                <div className="p-3 border-b border-border/40">
+                    <Button
+                        onClick={createNewConversation}
+                        className="w-full justify-start gap-2"
+                        variant="outline"
                     >
-                        {models.map((model) => (
-                            <option key={model.model_name} value={model.model_name}>
-                                {model.display_name}
-                            </option>
-                        ))}
-                    </select>
-                    
-                    <Button variant="ghost" size="icon" onClick={handleClear}>
-                        <FiTrash2 className="w-4 h-4" />
+                        <FiPlus className="w-4 h-4" />
+                        New Chat
                     </Button>
                 </div>
-            </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                {messages.length === 0 ? (
-                    <div className="h-full flex items-center justify-center">
-                        <div className="text-center max-w-md">
-                            <div className="text-6xl mb-4">🤖</div>
-                            <h2 className="text-2xl font-bold mb-2">AI Assistant</h2>
-                            <p className="text-muted-foreground mb-6">
-                                Ask me anything! I can help you with workflows, automation, coding, and more.
-                            </p>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                                <button
-                                    onClick={() => setInput('How do I create a workflow?')}
-                                    className="p-3 glass rounded-lg hover:bg-muted/50 transition-colors text-left"
-                                >
-                                    💡 How do I create a workflow?
-                                </button>
-                                <button
-                                    onClick={() => setInput('Explain AI nodes')}
-                                    className="p-3 glass rounded-lg hover:bg-muted/50 transition-colors text-left"
-                                >
-                                    🧠 Explain AI nodes
-                                </button>
-                                <button
-                                    onClick={() => setInput('Help me with automation')}
-                                    className="p-3 glass rounded-lg hover:bg-muted/50 transition-colors text-left"
-                                >
-                                    ⚡ Help me with automation
-                                </button>
-                                <button
-                                    onClick={() => setInput('Best practices for bots')}
-                                    className="p-3 glass rounded-lg hover:bg-muted/50 transition-colors text-left"
-                                >
-                                    🤖 Best practices for bots
-                                </button>
+                <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                    {loadingConversations ? (
+                        <div className="flex items-center justify-center py-8">
+                            <FiLoader className="w-5 h-5 animate-spin text-muted-foreground" />
+                        </div>
+                    ) : conversations.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground text-sm">
+                            No conversations yet
+                        </div>
+                    ) : (
+                        conversations.map(conv => (
+                            <div
+                                key={conv.id}
+                                onClick={() => selectConversation(conv)}
+                                className={`group flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors ${activeConversation?.id === conv.id
+                                    ? 'bg-primary/10 border border-primary/20'
+                                    : 'hover:bg-muted/50'
+                                    }`}
+                            >
+                                <FiMessageCircle className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
+                                <div className="flex-1 min-w-0">
+                                    {editingTitle === conv.id ? (
+                                        <input
+                                            type="text"
+                                            value={editTitle}
+                                            onChange={(e) => setEditTitle(e.target.value)}
+                                            onBlur={() => updateConversationTitle(conv.id)}
+                                            onKeyDown={(e) => e.key === 'Enter' && updateConversationTitle(conv.id)}
+                                            className="w-full bg-transparent border-b border-primary focus:outline-none text-sm"
+                                            autoFocus
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    ) : (
+                                        <>
+                                            <div className="text-sm font-medium truncate">{conv.title}</div>
+                                            <div className="text-xs text-muted-foreground">{formatDate(conv.updated_at)}</div>
+                                        </>
+                                    )}
+                                </div>
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            setEditingTitle(conv.id)
+                                            setEditTitle(conv.title)
+                                        }}
+                                        className="p-1 hover:bg-muted rounded"
+                                    >
+                                        <FiEdit2 className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                        onClick={(e) => deleteConversation(conv.id, e)}
+                                        className="p-1 hover:bg-destructive/20 hover:text-destructive rounded"
+                                    >
+                                        <FiTrash2 className="w-3 h-3" />
+                                    </button>
+                                </div>
                             </div>
+                        ))
+                    )}
+                </div>
+            </aside>
+
+            {/* Main Chat Area */}
+            <div className="flex-1 flex flex-col min-w-0">
+                {/* Header */}
+                <header className="h-14 border-b border-border/40 flex items-center justify-between px-4 sm:px-6 bg-background flex-shrink-0">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setSidebarOpen(!sidebarOpen)}
+                            className="flex-shrink-0"
+                        >
+                            {sidebarOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
+                        </Button>
+                        <div className="min-w-0 flex-1">
+                            <h1 className="font-semibold text-base sm:text-lg truncate">
+                                {activeConversation?.title || 'AI Assistant'}
+                            </h1>
+                            <p className="text-xs text-muted-foreground truncate">
+                                {models.find(m => m.model_name === selectedModel)?.display_name || 'AI'}
+                            </p>
                         </div>
                     </div>
-                ) : (
-                    <>
-                        {messages.map((message, index) => (
-                            <div
-                                key={index}
-                                className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                            >
-                                {message.role === 'assistant' && (
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-wata-purple to-wata-pink flex items-center justify-center text-white font-bold flex-shrink-0">
-                                        AI
-                                    </div>
-                                )}
+                    <Select value={selectedModel} onValueChange={setSelectedModel}>
+                        <SelectTrigger className="glass w-[160px] sm:w-[200px] border-border/40">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {models.map((model) => (
+                                <SelectItem key={model.model_name} value={model.model_name}>
+                                    {model.display_name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </header>
+
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 space-y-4 min-h-0">
+                    {messages.length === 0 ? (
+                        <div className="h-full flex items-center justify-center">
+                            <div className="text-center max-w-lg">
+                                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-zinc-700 to-zinc-600 flex items-center justify-center">
+                                    <FiMessageCircle className="w-8 h-8 text-white" />
+                                </div>
+                                <h2 className="text-2xl font-bold mb-2">How can I help you?</h2>
+                                <p className="text-muted-foreground mb-6">
+                                    Ask me anything about workflows, automation, or coding.
+                                </p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {['How do I create a workflow?', 'Explain AI nodes', 'Help with automation', 'Best practices'].map((q) => (
+                                        <button
+                                            key={q}
+                                            onClick={() => setInput(q)}
+                                            className="p-3 glass rounded-lg hover:bg-muted/50 text-left text-sm border border-border/40 hover:border-primary/40 transition-colors"
+                                        >
+                                            {q}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            {messages.map((message, index) => (
                                 <div
-                                    className={`max-w-[70%] rounded-2xl px-4 py-3 ${
-                                        message.role === 'user'
+                                    key={index}
+                                    className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                >
+                                    {message.role === 'assistant' && (
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                            AI
+                                        </div>
+                                    )}
+                                    <div
+                                        className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${message.role === 'user'
                                             ? 'bg-primary text-white'
                                             : 'glass border border-border/40'
-                                    }`}
-                                >
-                                    <div className="whitespace-pre-wrap break-words">
-                                        {message.content}
-                                    </div>
-                                    <div className="flex items-center justify-between mt-2 gap-2">
-                                        <div className={`text-xs ${message.role === 'user' ? 'text-white/70' : 'text-muted-foreground'}`}>
-                                            {formatTime(message.timestamp)}
+                                            }`}
+                                    >
+                                        <div className="whitespace-pre-wrap break-words text-sm">
+                                            {message.content}
                                         </div>
-                                        {message.role === 'assistant' && (
-                                            <button
-                                                onClick={() => handleCopy(message.content, index)}
-                                                className="text-muted-foreground hover:text-foreground transition-colors"
-                                            >
-                                                {copiedIndex === index ? (
-                                                    <FiCheck className="w-3 h-3" />
-                                                ) : (
-                                                    <FiCopy className="w-3 h-3" />
-                                                )}
-                                            </button>
-                                        )}
+                                        <div className="flex items-center justify-between mt-1.5 gap-2">
+                                            <span className={`text-[10px] ${message.role === 'user' ? 'text-white/60' : 'text-muted-foreground'}`}>
+                                                {formatTime(message.timestamp)}
+                                            </span>
+                                            {message.role === 'assistant' && (
+                                                <button
+                                                    onClick={() => handleCopy(message.content, index)}
+                                                    className="text-muted-foreground hover:text-foreground"
+                                                >
+                                                    {copiedIndex === index ? <FiCheck className="w-3 h-3" /> : <FiCopy className="w-3 h-3" />}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {message.role === 'user' && (
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                            U
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                            {loading && (
+                                <div className="flex gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-600 flex items-center justify-center text-white text-xs font-bold">
+                                        AI
+                                    </div>
+                                    <div className="glass border border-border/40 rounded-2xl px-4 py-2.5">
+                                        <div className="flex gap-1">
+                                            <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                            <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                            <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                        </div>
                                     </div>
                                 </div>
-                                {message.role === 'user' && (
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-wata-blue to-wata-cyan flex items-center justify-center text-white font-bold flex-shrink-0">
-                                        U
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                        {loading && (
-                            <div className="flex gap-3">
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-wata-purple to-wata-pink flex items-center justify-center text-white font-bold">
-                                    AI
-                                </div>
-                                <div className="glass border border-border/40 rounded-2xl px-4 py-3">
-                                    <FiLoader className="w-5 h-5 animate-spin" />
-                                </div>
-                            </div>
-                        )}
-                        <div ref={messagesEndRef} />
-                    </>
-                )}
-            </div>
-
-            {/* Input */}
-            <div className="border-t border-border/40 p-4 bg-background">
-                <div className="max-w-4xl mx-auto flex gap-2">
-                    <input
-                        type="text"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-                        placeholder="Ask me anything..."
-                        className="flex-1 glass rounded-xl px-4 py-3 border border-border/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                        disabled={loading}
-                    />
-                    <Button
-                        onClick={handleSend}
-                        disabled={!input.trim() || loading}
-                        className="px-6"
-                    >
-                        {loading ? (
-                            <FiLoader className="w-5 h-5 animate-spin" />
-                        ) : (
-                            <FiSend className="w-5 h-5" />
-                        )}
-                    </Button>
+                            )}
+                            <div ref={messagesEndRef} />
+                        </>
+                    )}
                 </div>
+
+                {/* Input */}
+                <footer className="border-t border-border/40 p-4 sm:p-6 bg-background flex-shrink-0">
+                    <div className="max-w-4xl mx-auto flex gap-2">
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                            placeholder="Type a message..."
+                            className="flex-1 glass rounded-xl px-4 py-3 border border-border/40 focus:outline-none focus:ring-2 focus:ring-primary/20 text-base"
+                            disabled={loading}
+                        />
+                        <Button
+                            onClick={handleSend}
+                            disabled={!input.trim() || loading}
+                            size="icon"
+                            className="h-12 w-12 flex-shrink-0"
+                        >
+                            {loading ? <FiLoader className="w-5 h-5 animate-spin" /> : <FiSend className="w-5 h-5" />}
+                        </Button>
+                    </div>
+                </footer>
             </div>
         </div>
     )

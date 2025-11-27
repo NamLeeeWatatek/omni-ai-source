@@ -10,7 +10,7 @@ class AgentConfigBase(SQLModel):
     system_prompt: str
     temperature: float = 0.7
     max_tokens: int = 150
-    model: str = "gpt-4"
+    model: str = "gemini-2.5-flash"
 
 class AgentConfig(AgentConfigBase, table=True):
     __tablename__ = "agent_configs"

@@ -1,7 +1,7 @@
 'use client'
 
 import { casdoorSdk } from '@/lib/casdoor'
-import { Button } from '@wataomi/ui'
+import { Button } from '@/components/ui/button'
 import { MdAutoAwesome, MdWarning, MdInfo } from 'react-icons/md'
 import { useState, useEffect } from 'react'
 
@@ -54,15 +54,15 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5">
+        <div className="min-h-screen flex items-center justify-center bg-background">
             <div className="w-full max-w-md p-8">
                 <div className="glass rounded-2xl p-8 border border-border/40 shadow-2xl">
                     {/* Logo/Brand */}
                     <div className="text-center mb-8">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-wata mb-4">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-zinc-800 mb-4">
                             <MdAutoAwesome className="w-8 h-8 text-white" />
                         </div>
-                        <h1 className="text-3xl font-bold mb-2 bg-gradient-wata bg-clip-text text-transparent">
+                        <h1 className="text-3xl font-bold mb-2 bg-zinc-800 bg-clip-text text-transparent">
                             WataOmi
                         </h1>
                         <p className="text-muted-foreground">

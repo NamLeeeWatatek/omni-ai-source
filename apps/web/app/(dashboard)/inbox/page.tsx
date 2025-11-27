@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Button } from '@wataomi/ui'
+import { Button } from '@/components/ui/button'
 import {
     FiSend,
     FiSearch,
@@ -218,7 +218,7 @@ export default function InboxPage() {
                                                 {conv.channel_name}
                                             </span>
                                             {conv.unread_count > 0 && (
-                                                <span className="inline-block px-2 py-0.5 rounded-full bg-wata-purple text-white text-xs font-medium">
+                                                <span className="inline-block px-2 py-0.5 rounded-full bg-slate-700 text-white text-xs font-medium">
                                                     {conv.unread_count}
                                                 </span>
                                             )}
