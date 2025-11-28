@@ -35,6 +35,8 @@ import { MdAutoAwesome } from 'react-icons/md'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { usePermissions } from '@/lib/hooks/usePermissions'
+import { RoleBadge } from '@/components/auth/RoleBadge'
 import toast from '@/lib/toast'
 import { AIFloatingButton } from '@/components/features/ai-assistant/ai-floating-button'
 import { LoadingLogo } from '@/components/ui/loading-logo'
@@ -58,6 +60,7 @@ export default function DashboardLayout({
     const pathname = usePathname()
     const { theme, setTheme } = useTheme()
     const { user, isAuthenticated, isLoading, signOut } = useAuth()
+    const { capabilities, canAccessWidget } = usePermissions()
     const [workspaceName] = useState('My Workspace')
     const [expandedSections, setExpandedSections] = useState<string[]>(['workflows'])
 
@@ -292,6 +295,7 @@ export default function DashboardLayout({
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium truncate">{getUserName()}</p>
                                 <p className="text-xs text-muted-foreground truncate">{getUserEmail()}</p>
+                                {capabilities && <RoleBadge className="mt-1" />}
                             </div>
                         </div>
                         <Button

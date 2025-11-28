@@ -1,20 +1,39 @@
-import { withAuth } from "next-auth/middleware";
+import { auth } from "@/auth"
+import { NextResponse } from "next/server"
 
-export default withAuth({
-  callbacks: {
-    authorized: ({ token, req }) => {
-      // Allow access to test-auth page without authentication
-      if (req.nextUrl.pathname.startsWith('/test-auth')) {
-        return true;
-      }
-      // For other protected routes, require token
-      return !!token;
-    },
-  },
-  pages: {
-    signIn: '/login',
-  },
-});
+export default auth((req) => {
+  const { pathname } = req.nextUrl
+  const isAuthenticated = !!req.auth
+
+  // Allow access to test-auth page without authentication
+  if (pathname.startsWith('/test-auth')) {
+    return NextResponse.next()
+  }
+
+  // Protected routes
+  const protectedRoutes = [
+    '/dashboard',
+    '/flows',
+    '/templates',
+    '/inbox',
+    '/settings',
+    '/channels',
+    '/bots',
+    '/team',
+    '/archives',
+    '/analytics',
+    '/ai-assistant',
+    '/integrations',
+  ]
+
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
+
+  if (isProtectedRoute && !isAuthenticated) {
+    return NextResponse.redirect(new URL('/login', req.url))
+  }
+
+  return NextResponse.next()
+})
 
 export const config = {
   matcher: [
@@ -30,5 +49,6 @@ export const config = {
     "/analytics/:path*",
     "/ai-assistant/:path*",
     "/integrations/:path*",
+    "/test-auth",
   ],
 };

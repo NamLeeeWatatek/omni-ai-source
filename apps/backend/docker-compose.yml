@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: wataomi-backend
     ports:
-      - "${BACKEND_PORT:-8002}:8002"
+      - "${BACKEND_PORT:-8000}:8000"
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-wataomi}:${POSTGRES_PASSWORD:-wataomi}@postgres:5432/${POSTGRES_DB:-wataomi}
       - REDIS_URL=redis://redis:6379/0
@@ -20,7 +20,7 @@ services:
         condition: service_healthy   # waits until Redis is really ready
     volumes:
       - .:/app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   postgres:
     image: postgres:16-alpine

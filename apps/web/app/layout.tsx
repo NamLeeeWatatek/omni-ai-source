@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { SessionProvider } from '@/components/providers/session-provider'
+import { QueryProvider } from '@/components/providers/query-provider'
 import { ReduxProvider } from '@/lib/store/Provider'
 import './globals.css'
 
@@ -23,17 +24,19 @@ export default function RootLayout({
         <html lang="en" suppressHydrationWarning>
             <body className={inter.variable}>
                 <SessionProvider>
-                    <ThemeProvider
-                        attribute="class"
-                        defaultTheme="dark"
-                        enableSystem
-                        disableTransitionOnChange
-                    >
-                        <ReduxProvider>
-                            {children}
-                            <Toaster />
-                        </ReduxProvider>
-                    </ThemeProvider>
+                    <QueryProvider>
+                        <ThemeProvider
+                            attribute="class"
+                            defaultTheme="dark"
+                            enableSystem
+                            disableTransitionOnChange
+                        >
+                            <ReduxProvider>
+                                {children}
+                                <Toaster />
+                            </ReduxProvider>
+                        </ThemeProvider>
+                    </QueryProvider>
                 </SessionProvider>
             </body>
         </html>

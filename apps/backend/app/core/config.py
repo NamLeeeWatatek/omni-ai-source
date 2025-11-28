@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     INSTAGRAM_APP_SECRET: Optional[str] = None
     
     # Frontend URL for OAuth redirects
-    FRONTEND_URL: str = "http://localhost:3003"
+    FRONTEND_URL: str = "http://localhost:3000"
 
 
 settings = Settings()

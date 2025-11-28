@@ -28,6 +28,7 @@ function CallbackContent() {
                         code,
                         state: state || '',
                         redirect: false,
+                        callbackUrl: '/dashboard',
                     })
 
                     if (result?.error) {
@@ -36,7 +37,8 @@ function CallbackContent() {
 
                     if (result?.ok) {
                         setStatus('Login successful! Redirecting...')
-                        router.push('/dashboard')
+                        // Force a hard redirect to ensure session is loaded
+                        window.location.href = '/dashboard'
                     } else {
                         throw new Error('Authentication failed')
                     }

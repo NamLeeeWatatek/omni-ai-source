@@ -96,7 +96,7 @@ async def oauth_callback(
     try:
         async with httpx.AsyncClient() as client:
             # 1. Exchange code for token
-            redirect_uri = f"http://localhost:8002/api/v1/oauth/callback/{provider_lower}" 
+            redirect_uri = f"http://localhost:8000/api/v1/oauth/callback/{provider_lower}" 
 
             # Token exchange varies by provider
             if provider_lower == "google":
@@ -237,7 +237,7 @@ async def oauth_login(
         )
     
     # Use backend callback
-    redirect_uri = f"http://localhost:8002/api/v1/oauth/callback/{provider_lower}" 
+    redirect_uri = f"http://localhost:8000/api/v1/oauth/callback/{provider_lower}" 
     
     params = {
         "client_id": integration_config.client_id,

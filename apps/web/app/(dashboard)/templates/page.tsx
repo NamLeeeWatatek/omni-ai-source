@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePermissions } from '@/lib/hooks/usePermissions'
+import { PermissionGate, CanCreate, CanUpdate, CanDelete } from '@/components/auth/PermissionGate'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -63,6 +65,7 @@ interface Template {
 export default function TemplatesPage() {
     const router = useRouter()
     const dispatch = useAppDispatch()
+    const { canCreate, canUpdate, canDelete, isLoading: permissionsLoading } = usePermissions()
     const [templates, setTemplates] = useState<Template[]>([])
     const [filteredTemplates, setFilteredTemplates] = useState<Template[]>([])
     const [loading, setLoading] = useState(true)
@@ -216,10 +219,12 @@ export default function TemplatesPage() {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={handleCreateFromFlow}>
-                        <FiUpload className="w-4 h-4 mr-2" />
-                        Save from Workflow
-                    </Button>
+                    <CanCreate resource="template">
+                        <Button variant="outline" onClick={handleCreateFromFlow}>
+                            <FiUpload className="w-4 h-4 mr-2" />
+                            Save from Workflow
+                        </Button>
+                    </CanCreate>
                 </div>
             </div>
 
@@ -319,26 +324,34 @@ export default function TemplatesPage() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={() => handleEdit(template)}>
-                                                        <FiEdit className="w-4 h-4 mr-2" />
-                                                        Edit Info
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleDuplicate(template)}>
-                                                        <FiCopy className="w-4 h-4 mr-2" />
-                                                        Duplicate
-                                                    </DropdownMenuItem>
+                                                    {canUpdate('template') && (
+                                                        <>
+                                                            <DropdownMenuItem onClick={() => handleEdit(template)}>
+                                                                <FiEdit className="w-4 h-4 mr-2" />
+                                                                Edit Info
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleDuplicate(template)}>
+                                                                <FiCopy className="w-4 h-4 mr-2" />
+                                                                Duplicate
+                                                            </DropdownMenuItem>
+                                                        </>
+                                                    )}
                                                     <DropdownMenuItem onClick={() => handleExport(template)}>
                                                         <FiDownload className="w-4 h-4 mr-2" />
                                                         Export
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem
-                                                        onClick={() => setDeleteId(template.id)}
-                                                        className="text-destructive"
-                                                    >
-                                                        <FiTrash2 className="w-4 h-4 mr-2" />
-                                                        Delete
-                                                    </DropdownMenuItem>
+                                                    {canDelete('template') && (
+                                                        <>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem
+                                                                onClick={() => setDeleteId(template.id)}
+                                                                className="text-destructive"
+                                                            >
+                                                                <FiTrash2 className="w-4 h-4 mr-2" />
+                                                                Delete
+                                                            </DropdownMenuItem>
+                                                        </>
+                                                    )}
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </div>

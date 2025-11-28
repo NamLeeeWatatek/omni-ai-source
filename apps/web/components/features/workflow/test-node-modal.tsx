@@ -91,7 +91,7 @@ export function TestNodeModal({ node, onClose, flowId }: TestNodeModalProps) {
                 toast.success('Node tested successfully!')
             } else {
                 // Fallback to HTTP API
-                const API_URL = process.env.NEXT_PUBLIC_API_URL
+                const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
                 
                 // Get token from NextAuth session
                 const { getSession } = await import('next-auth/react')

@@ -112,7 +112,7 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
                 const formData = new FormData()
                 formData.append('file', file)
 
-                const API_URL = process.env.NEXT_PUBLIC_API_URL
+                const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
                 
                 // Get token from NextAuth session
                 const { getSession } = await import('next-auth/react')

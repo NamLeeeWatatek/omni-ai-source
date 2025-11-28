@@ -14,6 +14,8 @@ import {
     FiArchive,
     FiTrash2
 } from 'react-icons/fi'
+import { usePermissions } from '@/lib/hooks/usePermissions'
+import { PermissionGate, CanCreate, CanDelete } from '@/components/auth/PermissionGate'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -89,6 +91,23 @@ function FlowDropdownMenu({
 }) {
     const router = useRouter()
     const dispatch = useAppDispatch()
+    const { canUpdate, canDelete, isLoading } = usePermissions()
+    
+    // Show all options while loading
+    if (isLoading) {
+        return (
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                        <FiMoreVertical className="w-4 h-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        )
+    }
 
     const handleEdit = () => {
         router.push(`/flows/${flowId}/edit`)
@@ -149,46 +168,54 @@ function FlowDropdownMenu({
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleEdit}>
-                    <FiEdit className="w-4 h-4 mr-2" />
-                    Edit
-                </DropdownMenuItem>
+                {canUpdate('flow') && (
+                    <>
+                        <DropdownMenuItem onClick={handleEdit}>
+                            <FiEdit className="w-4 h-4 mr-2" />
+                            Edit
+                        </DropdownMenuItem>
 
-                {flowStatus === 'draft' && (
-                    <DropdownMenuItem onClick={handlePublish} className="text-green-500">
-                        <FiPlay className="w-4 h-4 mr-2" />
-                        Publish
-                    </DropdownMenuItem>
+                        {flowStatus === 'draft' && (
+                            <DropdownMenuItem onClick={handlePublish} className="text-green-500">
+                                <FiPlay className="w-4 h-4 mr-2" />
+                                Publish
+                            </DropdownMenuItem>
+                        )}
+                        {flowStatus === 'published' && (
+                            <DropdownMenuItem onClick={handleUnpublish}>
+                                <FiEdit className="w-4 h-4 mr-2" />
+                                Unpublish
+                            </DropdownMenuItem>
+                        )}
+
+                        <DropdownMenuItem onClick={handleDuplicate}>
+                            <FiCopy className="w-4 h-4 mr-2" />
+                            Duplicate
+                        </DropdownMenuItem>
+
+                        {flowStatus !== 'archived' ? (
+                            <DropdownMenuItem onClick={handleArchive}>
+                                <FiArchive className="w-4 h-4 mr-2" />
+                                Archive
+                            </DropdownMenuItem>
+                        ) : (
+                            <DropdownMenuItem onClick={handleUnarchive} className="text-green-500">
+                                <FiArchive className="w-4 h-4 mr-2" />
+                                Unarchive
+                            </DropdownMenuItem>
+                        )}
+                    </>
                 )}
-                {flowStatus === 'published' && (
-                    <DropdownMenuItem onClick={handleUnpublish}>
-                        <FiEdit className="w-4 h-4 mr-2" />
-                        Unpublish
-                    </DropdownMenuItem>
+
+                {canDelete('flow') && (
+                    <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => onDeleteClick(flowId, flowName)} className="text-destructive">
+                            <FiTrash2 className="w-4 h-4 mr-2" />
+                            Delete
+                        </DropdownMenuItem>
+                    </>
                 )}
-
-                <DropdownMenuItem onClick={handleDuplicate}>
-                    <FiCopy className="w-4 h-4 mr-2" />
-                    Duplicate
-                </DropdownMenuItem>
-
-                {flowStatus !== 'archived' ? (
-                    <DropdownMenuItem onClick={handleArchive}>
-                        <FiArchive className="w-4 h-4 mr-2" />
-                        Archive
-                    </DropdownMenuItem>
-                ) : (
-                    <DropdownMenuItem onClick={handleUnarchive} className="text-green-500">
-                        <FiArchive className="w-4 h-4 mr-2" />
-                        Unarchive
-                    </DropdownMenuItem>
-                )}
-
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => onDeleteClick(flowId, flowName)} className="text-destructive">
-                    <FiTrash2 className="w-4 h-4 mr-2" />
-                    Delete
-                </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
     )
@@ -328,19 +355,21 @@ export default function WorkflowsPage() {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        onClick={() => setShowTemplateSelector(true)}
-                    >
-                        <FiGrid className="w-4 h-4 mr-2" />
-                        Use Template
-                    </Button>
-                    <Link href="/flows/new/edit">
-                        <Button>
-                            <FiPlus className="w-4 h-4 mr-2" />
-                            Create from Scratch
+                    <CanCreate resource="flow">
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowTemplateSelector(true)}
+                        >
+                            <FiGrid className="w-4 h-4 mr-2" />
+                            Use Template
                         </Button>
-                    </Link>
+                        <Link href="/flows/new/edit">
+                            <Button>
+                                <FiPlus className="w-4 h-4 mr-2" />
+                                Create from Scratch
+                            </Button>
+                        </Link>
+                    </CanCreate>
                 </div>
             </div>
 

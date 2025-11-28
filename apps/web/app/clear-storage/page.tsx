@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
+import { STORAGE_KEYS } from '@/lib/constants/storage'
 
 export default function ClearStoragePage() {
   const [cleared, setCleared] = useState(false)
@@ -10,9 +11,10 @@ export default function ClearStoragePage() {
 
   useEffect(() => {
     const clearAll = async () => {
-      // Clear localStorage
-      localStorage.removeItem('wataomi_token')
-      localStorage.removeItem('wataomi_user')
+      // Clear legacy localStorage (if any)
+      Object.values(STORAGE_KEYS).forEach(key => {
+        localStorage.removeItem(key)
+      })
       
       // Clear NextAuth session
       await signOut({ redirect: false })

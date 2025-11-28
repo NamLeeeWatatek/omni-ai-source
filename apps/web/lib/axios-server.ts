@@ -1,12 +1,11 @@
 /**
- * Server-side Axios Configuration with NextAuth
+ * Server-side Axios Configuration with NextAuth v5
  * Use this in server components and API routes
  */
 import axios from 'axios'
-import { getServerSession } from 'next-auth'
-import { authOptions } from './auth'
+import { auth } from '@/auth'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8002/api/v1'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
 
 export const axiosServer = axios.create({
   baseURL: API_URL,
@@ -18,7 +17,7 @@ export const axiosServer = axios.create({
 
 // Helper function to create axios instance with auth token
 export async function getAuthenticatedAxios() {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
   
   const instance = axios.create({
     baseURL: API_URL,
