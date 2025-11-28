@@ -1,11 +1,14 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlmodel import select, func, col
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 from app.models.flow import Flow, FlowCreate, FlowUpdate, FlowResponse
 from app.db.session import get_session
-from app.core.auth import get_current_user
+from app.core.auth import get_current_user, get_current_active_user, require_permission, check_resource_ownership
+from app.core.permissions import Permission, is_admin_role
+from app.core.audit import log_action
+from app.core.utils import to_int
 
 router = APIRouter()
 
@@ -24,15 +27,23 @@ async def list_flows(
     sort_by: str = Query("created_at", description="Sort field"),
     sort_order: str = Query("desc", regex="^(asc|desc)$", description="Sort order"),
     
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_permission(Permission.FLOW_LIST.value)),
     session: AsyncSession = Depends(get_session)
 ):
     """
     Get paginated list of flows with search, filter, and sort
     ALL logic handled on backend - frontend only displays results
+    Permission: FLOW_LIST
     """
+    user_id = to_int(current_user["id"])
+    user_role = current_user.get("role", "user")
+    
     # Build base query
     query = select(Flow)
+    
+    # Non-admin users only see their own flows
+    if not is_admin_role(user_role):
+        query = query.where(Flow.owner_id == user_id)
     
     # Apply search - backend handles this
     if search:
@@ -112,27 +123,50 @@ async def list_flows(
 @router.post("/", response_model=FlowResponse)
 async def create_flow(
     flow: FlowCreate,
-    current_user: dict = Depends(get_current_user),
+    request: Request,
+    current_user: dict = Depends(require_permission(Permission.FLOW_CREATE.value)),
     session: AsyncSession = Depends(get_session)
 ):
+    """Create a new flow. Permission: FLOW_CREATE"""
+    user_id = to_int(current_user["id"])
+    
     db_flow = Flow(**flow.model_dump())
-    user_id = current_user.get("id") or current_user.get("sub")
-    db_flow.user_id = str(user_id) if user_id else None
+    db_flow.user_id = str(user_id)
+    db_flow.owner_id = user_id
     
     session.add(db_flow)
     await session.commit()
     await session.refresh(db_flow)
+    
+    # Log action
+    await log_action(
+        session=session,
+        user_id=user_id,
+        action="create",
+        resource_type="flow",
+        resource_id=db_flow.id,
+        details={"name": db_flow.name, "status": db_flow.status},
+        request=request
+    )
+    
     return db_flow
 
 @router.get("/{flow_id}", response_model=FlowResponse)
 async def get_flow(
     flow_id: int,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_permission(Permission.FLOW_READ.value)),
     session: AsyncSession = Depends(get_session)
 ):
+    """Get a flow by ID. Permission: FLOW_READ"""
     db_flow = await session.get(Flow, flow_id)
     if not db_flow:
         raise HTTPException(status_code=404, detail="Flow not found")
+    
+    # Check ownership for non-admin users
+    user_role = current_user.get("role", "user")
+    if not is_admin_role(user_role) and db_flow.owner_id:
+        await check_resource_ownership(db_flow.owner_id, current_user)
+    
     return db_flow
 
 @router.put("/{flow_id}", response_model=FlowResponse)
@@ -140,12 +174,21 @@ async def get_flow(
 async def update_flow(
     flow_id: int,
     flow: FlowUpdate,
-    current_user: dict = Depends(get_current_user),
+    request: Request,
+    current_user: dict = Depends(require_permission(Permission.FLOW_UPDATE.value)),
     session: AsyncSession = Depends(get_session)
 ):
+    """Update a flow. Permission: FLOW_UPDATE"""
+    user_id = to_int(current_user["id"])
+    
     db_flow = await session.get(Flow, flow_id)
     if not db_flow:
         raise HTTPException(status_code=404, detail="Flow not found")
+    
+    # Check ownership for non-admin users
+    user_role = current_user.get("role", "user")
+    if not is_admin_role(user_role) and db_flow.owner_id:
+        await check_resource_ownership(db_flow.owner_id, current_user)
     
     flow_data = flow.model_dump(exclude_unset=True)
     for key, value in flow_data.items():
@@ -155,19 +198,42 @@ async def update_flow(
     session.add(db_flow)
     await session.commit()
     await session.refresh(db_flow)
+    
+    # Log action
+    await log_action(
+        session=session,
+        user_id=user_id,
+        action="update",
+        resource_type="flow",
+        resource_id=db_flow.id,
+        details={"name": db_flow.name, "changes": list(flow_data.keys())},
+        request=request
+    )
+    
     return db_flow
 
 @router.delete("/{flow_id}")
 async def delete_flow(
     flow_id: int,
-    current_user: dict = Depends(get_current_user),
+    request: Request,
+    current_user: dict = Depends(require_permission(Permission.FLOW_DELETE.value)),
     session: AsyncSession = Depends(get_session)
 ):
+    """Delete a flow. Permission: FLOW_DELETE"""
     from app.models.execution import WorkflowExecution, NodeExecution
+    
+    user_id = to_int(current_user["id"])
+    user_role = current_user.get("role", "user")
     
     db_flow = await session.get(Flow, flow_id)
     if not db_flow:
         raise HTTPException(status_code=404, detail="Flow not found")
+    
+    # Check ownership for non-admin users
+    if not is_admin_role(user_role) and db_flow.owner_id:
+        await check_resource_ownership(db_flow.owner_id, current_user)
+    
+    flow_name = db_flow.name
     
     # Delete related node_executions first (via workflow_executions)
     exec_stmt = select(WorkflowExecution).where(WorkflowExecution.flow_id == flow_id)
@@ -188,6 +254,18 @@ async def delete_flow(
     # Now delete the flow
     await session.delete(db_flow)
     await session.commit()
+    
+    # Log action
+    await log_action(
+        session=session,
+        user_id=user_id,
+        action="delete",
+        resource_type="flow",
+        resource_id=flow_id,
+        details={"name": flow_name},
+        request=request
+    )
+    
     return {"status": "success", "message": "Flow deleted"}
 
 @router.post("/{flow_id}/archive")

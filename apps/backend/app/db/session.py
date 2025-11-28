@@ -14,12 +14,26 @@ async def init_db():
     from app.models.flow import Flow
     from app.models.execution import WorkflowExecution, NodeExecution
     from app.models.integration import IntegrationConfig
+    from app.models.template import WorkflowTemplate
     
     async with engine.begin() as conn:
         # await conn.run_sync(SQLModel.metadata.drop_all)
         await conn.run_sync(SQLModel.metadata.create_all)
 
 async def get_session() -> AsyncSession:
+    async_session = sessionmaker(
+        engine, class_=AsyncSession, expire_on_commit=False
+    )
+    async with async_session() as session:
+        yield session
+
+
+# Context manager for standalone scripts
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def get_session_context():
+    """Get session for standalone scripts (not FastAPI dependency)"""
     async_session = sessionmaker(
         engine, class_=AsyncSession, expire_on_commit=False
     )

@@ -18,6 +18,12 @@ class Flow(FlowBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: Optional[str] = None
     channel_id: Optional[int] = None  # Which channel this flow is for
+    
+    # RBAC fields
+    owner_id: Optional[int] = Field(default=None, foreign_key="users.id")
+    team_id: Optional[int] = None
+    visibility: str = Field(default="private", max_length=20)  # private, team, public
+    
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
@@ -40,5 +46,8 @@ class FlowResponse(FlowBase):
     user_id: Optional[str]
     channel_id: Optional[int]
     template_id: Optional[int]
+    owner_id: Optional[int]
+    team_id: Optional[int]
+    visibility: str
     created_at: datetime
     updated_at: datetime

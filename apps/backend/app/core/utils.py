@@ -19,3 +19,7 @@ def get_user_id_as_str(user_id: str | int) -> str:
     if isinstance(user_id, int):
         return str(user_id)
     return user_id
+
+# Aliases for convenience
+to_int = get_user_id_as_int
+to_str = get_user_id_as_str

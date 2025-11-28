@@ -1,4 +1,4 @@
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import SQLModel, Field, Relationship, Column, JSON
 from typing import Optional, List
 from datetime import datetime
 
@@ -11,7 +11,15 @@ class User(SQLModel, table=True):
     hashed_password: str
     name: str
     avatar: Optional[str] = None
-    is_active: bool = True
+    
+    # RBAC fields
+    role: str = Field(default="user", max_length=50)  # user, editor, viewer, manager, admin, super_admin
+    permissions: Optional[dict] = Field(default={}, sa_column=Column(JSON))  # Custom permissions
+    is_active: bool = Field(default=True)
+    last_login: Optional[datetime] = None
+    failed_login_attempts: int = Field(default=0)
+    locked_until: Optional[datetime] = None
+    
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     

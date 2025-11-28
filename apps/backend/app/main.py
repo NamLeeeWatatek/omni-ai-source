@@ -3,8 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1 import (
     auth, bots, flows, channels, conversations, executions, 
     webhooks, integrations, templates, media, agent_configs, 
-    versions, archives, stats, oauth, node_types, executions_stream, websocket
+    versions, archives, stats, oauth, node_types, executions_stream, websocket, metadata
 )
+from app.api.v1.endpoints import permissions, auth as casdoor_auth
 from app.api.v1 import ai
 from app.db.session import init_db
 from app.core.config import settings
@@ -18,6 +19,24 @@ app = FastAPI(
 @app.on_event("startup")
 async def on_startup():
     await init_db()
+    
+    # Auto-seed templates on startup
+    try:
+        from app.db.session import get_session_context
+        from app.services.template_seeder import seed_templates
+        
+        async with get_session_context() as session:
+            await seed_templates(session, force_update=False)
+    except Exception as e:
+        print(f"⚠️  Template seeding failed: {e}")
+    
+    # Sync database users on startup
+    try:
+        from app.services.simple_sync import sync_database_users, ensure_admin_exists
+        await sync_database_users()
+        await ensure_admin_exists()
+    except Exception as e:
+        print(f"⚠️  User sync failed: {e}")
 
 # CORS
 app.add_middleware(
@@ -49,6 +68,11 @@ app.include_router(media.router, prefix=f"{settings.API_V1_STR}/media", tags=["m
 app.include_router(agent_configs.router, prefix=f"{settings.API_V1_STR}/agent-configs", tags=["agent-configs"])
 app.include_router(archives.router, prefix=f"{settings.API_V1_STR}/archives", tags=["archives"])
 app.include_router(node_types.router, prefix=f"{settings.API_V1_STR}/node-types", tags=["node-types"])
+app.include_router(metadata.router, prefix=f"{settings.API_V1_STR}/metadata", tags=["metadata"])
+
+# Casdoor Auth & Permissions
+app.include_router(casdoor_auth.router, prefix=f"{settings.API_V1_STR}/casdoor/auth", tags=["casdoor-auth"])
+app.include_router(permissions.router, prefix=f"{settings.API_V1_STR}/permissions", tags=["permissions"])
 
 @app.get("/")
 async def root():

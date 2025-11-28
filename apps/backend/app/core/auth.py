@@ -112,6 +112,91 @@ async def get_current_user(
         "sub": str(user.id),  # For compatibility
         "email": user.email,
         "name": user.name,
-        "external_id": user.external_id
+        "external_id": user.external_id,
+        "role": getattr(user, 'role', 'user'),  # Default to 'user' if role not set
+        "is_active": getattr(user, 'is_active', True)
     }
+
+
+async def get_current_active_user(
+    current_user: dict = Depends(get_current_user)
+):
+    """Get current active user"""
+    if not current_user.get("is_active", True):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is inactive"
+        )
+    return current_user
+
+
+def require_permission(permission: str):
+    """
+    Dependency to require specific permission
+    Usage: current_user = Depends(require_permission(Permission.FLOW_CREATE))
+    """
+    from app.core.permissions import has_permission
+    
+    async def permission_checker(
+        current_user: dict = Depends(get_current_active_user)
+    ):
+        user_role = current_user.get("role", "user")
+        
+        if not has_permission(user_role, permission):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permission denied: {permission} required"
+            )
+        
+        return current_user
+    
+    return permission_checker
+
+
+def require_role(allowed_roles: list[str]):
+    """
+    Dependency to require specific roles
+    Usage: current_user = Depends(require_role(["admin", "super_admin"]))
+    """
+    async def role_checker(
+        current_user: dict = Depends(get_current_active_user)
+    ):
+        user_role = current_user.get("role", "user")
+        
+        if user_role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Role required: {', '.join(allowed_roles)}"
+            )
+        
+        return current_user
+    
+    return role_checker
+
+
+async def check_resource_ownership(
+    resource_owner_id: int,
+    current_user: dict = Depends(get_current_active_user)
+) -> bool:
+    """
+    Check if user owns the resource or has admin role
+    Returns True if user can access, raises HTTPException otherwise
+    """
+    from app.core.permissions import is_admin_role
+    
+    user_id = int(current_user["id"])
+    user_role = current_user.get("role", "user")
+    
+    # Admin can access all resources
+    if is_admin_role(user_role):
+        return True
+    
+    # Check ownership
+    if user_id != resource_owner_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to access this resource"
+        )
+    
+    return True
 
