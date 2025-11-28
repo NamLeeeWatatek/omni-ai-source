@@ -4,20 +4,8 @@
 import { createSlice, createAsyncThunk, type PayloadAction, type ActionReducerMapBuilder } from '@reduxjs/toolkit'
 import type { Draft } from '@reduxjs/toolkit'
 import axiosInstance from '@/lib/axios'
-import * as FiIcons from 'react-icons/fi'
-import * as SiIcons from 'react-icons/si'
-import * as MdIcons from 'react-icons/md'
-
-// Icon mapping helper
-const getIconComponent = (iconName: string) => {
-  const iconMap: Record<string, any> = {
-    ...FiIcons,
-    ...SiIcons,
-    ...MdIcons
-  }
-  // Direct lookup since backend sends exact component names (e.g. "FiZap", "SiWhatsapp")
-  return iconMap[iconName] || FiIcons.FiCircle
-}
+// Icon names are stored as strings and resolved at render time
+// See lib/icon-resolver.ts for icon resolution logic
 
 export interface NodeProperty {
   name: string

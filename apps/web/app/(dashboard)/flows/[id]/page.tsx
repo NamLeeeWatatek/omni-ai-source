@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { AlertDialogConfirm } from '@/components/ui/alert-dialog-confirm'
 import {
     Select,
     SelectContent,
@@ -17,7 +18,7 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { fetchAPI } from '@/lib/api'
-import toast from 'react-hot-toast'
+import toast from '@/lib/toast'
 import ReactFlow, { Background, Controls, MiniMap, BackgroundVariant } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { useAppSelector } from '@/lib/store/hooks'
@@ -33,7 +34,9 @@ import {
     FiClock,
     FiCheckCircle,
     FiTrendingUp,
-    FiActivity
+    FiActivity,
+    FiLoader,
+    FiSave
 } from 'react-icons/fi'
 
 function FlowPreview({ nodes, edges }: { nodes: any[], edges: any[] }) {
@@ -52,7 +55,7 @@ function FlowPreview({ nodes, edges }: { nodes: any[], edges: any[] }) {
         return nodes.map(node => {
             // Store original type in data.type for CustomNode to lookup
             const originalType = node.data?.type || node.type
-            
+
             return {
                 ...node,
                 type: 'custom', // Always use custom node component
@@ -250,7 +253,9 @@ function SettingsTab({
             loading: 'Saving settings...',
             success: 'Settings saved successfully!',
             error: (err) => `Failed to save: ${err.message}`
-        }).finally(() => setSaving(false))
+        })
+
+        savePromise.finally(() => setSaving(false))
     }
 
     const hasChanges = name !== flow.name ||
@@ -300,7 +305,12 @@ function SettingsTab({
                     <div className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                         <span className="text-sm text-amber-500">You have unsaved changes</span>
                         <Button size="sm" onClick={handleSave} disabled={saving}>
-                            {saving ? 'Saving...' : 'Save Changes'}
+                            {saving ? (
+                                <FiLoader className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                                <FiSave className="w-4 h-4 mr-2" />
+                            )}
+                            Save Changes
                         </Button>
                     </div>
                 )}
@@ -346,7 +356,8 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
     const [flow, setFlow] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+
     // Ensure nodeTypes are loaded for FlowPreview
     const { items: nodeTypes = [] } = useAppSelector((state: any) => state.nodeTypes || {})
 
@@ -381,44 +392,20 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
         })
     }
 
-    const handleDelete = async () => {
-        toast((t) => (
-            <div className="flex flex-col gap-3">
-                <div>
-                    <p className="font-semibold">Delete this workflow?</p>
-                    <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
-                </div>
-                <div className="flex gap-2">
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => toast.dismiss(t.id)}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        size="sm"
-                        className="bg-red-500 hover:bg-red-600"
-                        onClick={async () => {
-                            toast.dismiss(t.id)
-                            const deletePromise = fetchAPI(`/flows/${params.id}`, { method: 'DELETE' })
-                                .then(() => {
-                                    router.push('/flows')
-                                })
+    const handleDelete = () => {
+        setShowDeleteDialog(true)
+    }
 
-                            toast.promise(deletePromise, {
-                                loading: 'Deleting workflow...',
-                                success: 'Workflow deleted successfully!',
-                                error: (err) => `Failed to delete: ${err.message}`,
-                            })
-                        }}
-                    >
-                        Delete
-                    </Button>
-                </div>
-            </div>
-        ), {
-            duration: Infinity,
+    const confirmDelete = async () => {
+        const deletePromise = fetchAPI(`/flows/${params.id}`, { method: 'DELETE' })
+            .then(() => {
+                router.push('/flows')
+            })
+
+        toast.promise(deletePromise, {
+            loading: 'Deleting workflow...',
+            success: 'Workflow deleted successfully!',
+            error: (err) => `Failed to delete: ${err.message}`,
         })
     }
 
@@ -610,45 +597,45 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
             {/* Stats Cards */}
             <div className="content-section">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="glass rounded-xl p-6">
-                    <div className="flex items-center justify-between mb-2">
-                        <FiActivity className="w-8 h-8 text-slate-400" />
+                    <div className="glass rounded-xl p-6">
+                        <div className="flex items-center justify-between mb-2">
+                            <FiActivity className="w-8 h-8 text-slate-400" />
+                        </div>
+                        <h3 className="text-2xl font-bold mb-1">{stats.totalExecutions}</h3>
+                        <p className="text-sm text-muted-foreground">Total Executions</p>
                     </div>
-                    <h3 className="text-2xl font-bold mb-1">{stats.totalExecutions}</h3>
-                    <p className="text-sm text-muted-foreground">Total Executions</p>
-                </div>
 
-                <div className="glass rounded-xl p-6">
-                    <div className="flex items-center justify-between mb-2">
-                        <FiCheckCircle className="w-8 h-8 text-slate-400" />
-                        {stats.successRate > 0 && (
-                            <span className={`text-sm font-medium ${stats.successRate >= 80 ? 'text-green-500' : 'text-yellow-500'}`}>
-                                {stats.successRate.toFixed(0)}%
-                            </span>
-                        )}
+                    <div className="glass rounded-xl p-6">
+                        <div className="flex items-center justify-between mb-2">
+                            <FiCheckCircle className="w-8 h-8 text-slate-400" />
+                            {stats.successRate > 0 && (
+                                <span className={`text-sm font-medium ${stats.successRate >= 80 ? 'text-green-500' : 'text-yellow-500'}`}>
+                                    {stats.successRate.toFixed(0)}%
+                                </span>
+                            )}
+                        </div>
+                        <h3 className="text-2xl font-bold mb-1">{stats.successRate.toFixed(0)}%</h3>
+                        <p className="text-sm text-muted-foreground">Success Rate</p>
                     </div>
-                    <h3 className="text-2xl font-bold mb-1">{stats.successRate.toFixed(0)}%</h3>
-                    <p className="text-sm text-muted-foreground">Success Rate</p>
-                </div>
 
-                <div className="glass rounded-xl p-6">
-                    <div className="flex items-center justify-between mb-2">
-                        <FiClock className="w-8 h-8 text-slate-400" />
+                    <div className="glass rounded-xl p-6">
+                        <div className="flex items-center justify-between mb-2">
+                            <FiClock className="w-8 h-8 text-slate-400" />
+                        </div>
+                        <h3 className="text-2xl font-bold mb-1">
+                            {stats.avgDuration > 0 ? formatDuration(stats.avgDuration) : '0s'}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">Avg Duration</p>
                     </div>
-                    <h3 className="text-2xl font-bold mb-1">
-                        {stats.avgDuration > 0 ? formatDuration(stats.avgDuration) : '0s'}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">Avg Duration</p>
-                </div>
 
-                <div className="glass rounded-xl p-6">
-                    <div className="flex items-center justify-between mb-2">
-                        <FiActivity className="w-8 h-8 text-stone-400" />
+                    <div className="glass rounded-xl p-6">
+                        <div className="flex items-center justify-between mb-2">
+                            <FiActivity className="w-8 h-8 text-stone-400" />
+                        </div>
+                        <h3 className="text-2xl font-bold mb-1">v{flow.version || 1}</h3>
+                        <p className="text-sm text-muted-foreground">Current Version</p>
                     </div>
-                    <h3 className="text-2xl font-bold mb-1">v{flow.version || 1}</h3>
-                    <p className="text-sm text-muted-foreground">Current Version</p>
                 </div>
-            </div>
             </div>
 
             {/* Tabs */}
@@ -856,6 +843,18 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
                     onDelete={handleDelete}
                 />
             )}
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialogConfirm
+                open={showDeleteDialog}
+                onOpenChange={setShowDeleteDialog}
+                title="Delete this workflow?"
+                description="This workflow will be permanently deleted. This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                onConfirm={confirmDelete}
+                variant="destructive"
+            />
         </div>
     )
 }

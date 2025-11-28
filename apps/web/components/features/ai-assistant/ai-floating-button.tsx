@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { FiMessageCircle, FiX, FiSend, FiLoader } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { fetchAPI } from '@/lib/api'
-import toast from 'react-hot-toast'
+import toast from '@/lib/toast'
 
 interface Message {
     role: 'user' | 'assistant'

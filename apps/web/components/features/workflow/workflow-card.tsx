@@ -4,7 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import toast from 'react-hot-toast'
+import { AlertDialogConfirm } from '@/components/ui/alert-dialog-confirm'
+import toast from '@/lib/toast'
 import {
     FiMoreVertical,
     FiPlay,
@@ -37,6 +38,7 @@ export function WorkflowCard({ workflow, onUpdate, onRun }: WorkflowCardProps) {
     const router = useRouter()
     const dispatch = useAppDispatch()
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -73,45 +75,19 @@ export function WorkflowCard({ workflow, onUpdate, onRun }: WorkflowCardProps) {
         }
     }
 
-    const handleDelete = async () => {
-        // Custom confirmation toast
-        toast((t) => (
-            <div className="flex flex-col gap-3">
-                <div>
-                    <p className="font-semibold">Delete "{workflow.name}"?</p>
-                    <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
-                </div>
-                <div className="flex gap-2">
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => toast.dismiss(t.id)}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        size="sm"
-                        className="bg-red-500 hover:bg-red-600"
-                        onClick={async () => {
-                            toast.dismiss(t.id)
-                            setIsDropdownOpen(false)
-                            try {
-                                await dispatch(deleteFlow(workflow.id)).unwrap()
-                                toast.success('Flow deleted!')
-                                onUpdate?.()
-                            } catch (error) {
-                                toast.error('Failed to delete flow')
-                            }
-                        }}
-                    >
-                        Delete
-                    </Button>
-                </div>
-            </div>
-        ), {
-            duration: Infinity,
-        })
+    const handleDelete = () => {
         setIsDropdownOpen(false)
+        setShowDeleteDialog(true)
+    }
+
+    const confirmDelete = async () => {
+        try {
+            await dispatch(deleteFlow(workflow.id)).unwrap()
+            toast.success('Flow deleted!')
+            onUpdate?.()
+        } catch (error) {
+            toast.error('Failed to delete flow')
+        }
     }
 
     return (
@@ -227,6 +203,18 @@ export function WorkflowCard({ workflow, onUpdate, onRun }: WorkflowCardProps) {
                     </Button>
                 </div>
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialogConfirm
+                open={showDeleteDialog}
+                onOpenChange={setShowDeleteDialog}
+                title={`Delete "${workflow.name}"?`}
+                description="This workflow will be permanently deleted. This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                onConfirm={confirmDelete}
+                variant="destructive"
+            />
         </div>
     )
 }

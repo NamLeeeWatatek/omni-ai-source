@@ -16,11 +16,13 @@ router = APIRouter()
 class BotCreate(BaseModel):
     name: str
     description: Optional[str] = None
+    icon: Optional[str] = "FiMessageSquare"
     flow_id: Optional[int] = None
 
 class BotUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    icon: Optional[str] = None
     is_active: Optional[bool] = None
     flow_id: Optional[int] = None
 
@@ -90,6 +92,7 @@ async def create_bot(
     bot = Bot(
         name=bot_data.name,
         description=bot_data.description,
+        icon=bot_data.icon,
         flow_id=bot_data.flow_id,
         workspace_id=workspace_member.workspace_id
     )

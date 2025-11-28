@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
+import { AlertDialogConfirm } from '@/components/ui/alert-dialog-confirm'
+import { IconPicker } from '@/components/ui/icon-picker'
 import {
     Dialog,
     DialogContent,
@@ -25,7 +27,8 @@ import {
 import axiosInstance from '@/lib/axios'
 import { useAppDispatch, useAppSelector } from '@/lib/store/hooks'
 import { fetchFlows } from '@/lib/store/slices/flowsSlice'
-import toast from 'react-hot-toast'
+import toast from '@/lib/toast'
+import * as FiIcons from 'react-icons/fi'
 import {
     FiPlus,
     FiEdit2,
@@ -39,6 +42,7 @@ interface Bot {
     id: number
     name: string
     description?: string
+    icon?: string
     is_active: boolean
     workspace_id: number
     created_at: string
@@ -59,6 +63,7 @@ export default function BotsPage() {
     const [formData, setFormData] = useState({
         name: '',
         description: '',
+        icon: 'FiMessageSquare',
         flow_id: null as number | null
     })
     const dispatch = useAppDispatch()
@@ -87,11 +92,12 @@ export default function BotsPage() {
             setFormData({
                 name: bot.name,
                 description: bot.description || '',
+                icon: bot.icon || 'FiMessageSquare',
                 flow_id: bot.flow_id || null
             })
         } else {
             setEditingBot(null)
-            setFormData({ name: '', description: '', flow_id: null })
+            setFormData({ name: '', description: '', icon: 'FiMessageSquare', flow_id: null })
         }
         setShowModal(true)
     }
@@ -123,11 +129,17 @@ export default function BotsPage() {
         }
     }
 
+    const [deleteId, setDeleteId] = useState<number | null>(null)
+
     const deleteBot = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this bot?')) return
+        setDeleteId(id)
+    }
+
+    const confirmDelete = async () => {
+        if (!deleteId) return
 
         try {
-            await axiosInstance.delete(`/bots/${id}`)
+            await axiosInstance.delete(`/bots/${deleteId}`)
             toast.success('Bot deleted')
             loadBots()
         } catch {
@@ -189,21 +201,40 @@ export default function BotsPage() {
                 </Card>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {bots.map((bot) => (
-                        <Card key={bot.id} className="p-6">
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-xl bg-gradient-wata flex items-center justify-center">
-                                        <FiMessageSquare className="w-6 h-6 text-white" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-lg">{bot.name}</h3>
-                                        <Badge variant={bot.is_active ? 'success' : 'default'}>
-                                            {bot.is_active ? 'Active' : 'Inactive'}
-                                        </Badge>
+                    {bots.map((bot) => {
+                        const BotIcon = (FiIcons as any)[bot.icon || 'FiMessageSquare'] || FiMessageSquare
+                        return (
+                            <Card key={bot.id} className="p-6">
+                                <div className="flex items-start justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        {/* Icon Picker Button */}
+                                        <div className="relative group">
+                                            <div className="w-12 h-12 rounded-xl bg-gradient-wata flex items-center justify-center cursor-pointer">
+                                                <BotIcon className="w-6 h-6 text-white" />
+                                            </div>
+                                            <div className="absolute inset-0 rounded-xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <IconPicker
+                                                    value={bot.icon || 'FiMessageSquare'}
+                                                    onChange={async (icon) => {
+                                                        try {
+                                                            await axiosInstance.put(`/bots/${bot.id}`, { icon })
+                                                            toast.success('Icon updated!')
+                                                            loadBots()
+                                                        } catch {
+                                                            toast.error('Failed to update icon')
+                                                        }
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-lg">{bot.name}</h3>
+                                            <Badge variant={bot.is_active ? 'success' : 'default'}>
+                                                {bot.is_active ? 'Active' : 'Inactive'}
+                                            </Badge>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
                             <p className="text-sm text-muted-foreground mb-4 min-h-[40px]">
                                 {bot.description || 'No description'}
@@ -236,7 +267,8 @@ export default function BotsPage() {
                                 </Button>
                             </div>
                         </Card>
-                    ))}
+                        )
+                    })}
                 </div>
             )}
 
@@ -271,14 +303,14 @@ export default function BotsPage() {
                         <div className="space-y-2">
                             <Label htmlFor="flow">Flow</Label>
                             <Select
-                                value={formData.flow_id?.toString() || ''}
-                                onValueChange={(value) => setFormData({ ...formData, flow_id: value ? Number(value) : null })}
+                                value={formData.flow_id?.toString() || 'none'}
+                                onValueChange={(value) => setFormData({ ...formData, flow_id: value === 'none' ? null : Number(value) })}
                             >
                                 <SelectTrigger id="flow">
                                     <SelectValue placeholder="No flow (manual responses only)" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">No flow (manual responses only)</SelectItem>
+                                    <SelectItem value="none">No flow (manual responses only)</SelectItem>
                                     {flows.map((flow: any) => (
                                         <SelectItem key={flow.id} value={flow.id.toString()}>
                                             {flow.name}
@@ -301,6 +333,18 @@ export default function BotsPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialogConfirm
+                open={deleteId !== null}
+                onOpenChange={(open) => !open && setDeleteId(null)}
+                title="Delete Bot"
+                description="Are you sure you want to delete this bot? This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                onConfirm={confirmDelete}
+                variant="destructive"
+            />
         </div>
     )
 }

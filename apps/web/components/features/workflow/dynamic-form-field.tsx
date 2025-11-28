@@ -2,7 +2,7 @@
 
 import { useState, useEffect, memo } from 'react'
 import { KeyValueEditor } from './key-value-editor'
-import { FiUpload, FiX, FiLoader } from 'react-icons/fi'
+import { FiUpload, FiX } from 'react-icons/fi'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { fetchAPI } from '@/lib/api'
 import {
@@ -304,7 +304,7 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
                             >
                                 {uploadingFiles ? (
                                     <div className="flex flex-col items-center">
-                                        <FiLoader className="w-8 h-8 text-primary animate-spin mb-2" />
+                                        <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-2" />
                                         <span className="text-sm text-muted-foreground">Uploading...</span>
                                     </div>
                                 ) : (

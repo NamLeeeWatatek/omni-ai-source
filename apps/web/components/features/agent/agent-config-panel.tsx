@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { fetchAPI } from '@/lib/api'
-import toast from 'react-hot-toast'
-import { FiSave, FiX } from 'react-icons/fi'
+import toast from '@/lib/toast'
+import { FiSave, FiX, FiLoader } from 'react-icons/fi'
 import { useAIModels } from '@/lib/hooks/use-ai-models'
 
 interface AgentConfig {
@@ -279,8 +279,12 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
                         disabled={saving}
                         className="bg-slate-700 hover:bg-slate-600"
                     >
-                        <FiSave className="w-4 h-4 mr-2" />
-                        {saving ? 'Saving...' : 'Save Configuration'}
+                        {saving ? (
+                            <FiLoader className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                            <FiSave className="w-4 h-4 mr-2" />
+                        )}
+                        Save Configuration
                     </Button>
                 </div>
             </div>

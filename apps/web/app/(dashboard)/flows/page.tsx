@@ -25,6 +25,16 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { WorkflowCard } from '@/components/features/workflow/workflow-card'
 import { FlowsTable } from '@/components/features/workflow/flows-table'
 import { SearchBar } from '@/components/features/workflow/search-bar'
@@ -35,7 +45,7 @@ import { usePagination } from '@/lib/hooks/use-pagination'
 import { fetchFlows, createFlow, updateFlow, deleteFlow, duplicateFlow, archiveFlow } from '@/lib/store/slices/flowsSlice'
 import { setDraftTemplate } from '@/lib/store/slices/workflowEditorSlice'
 import axiosInstance from '@/lib/axios'
-import toast from 'react-hot-toast'
+import toast from '@/lib/toast'
 import { TemplateSelector } from '@/components/features/templates/template-selector'
 import { WorkflowRunModal } from '@/components/features/workflow/workflow-run-modal'
 
@@ -66,7 +76,17 @@ interface WorkflowWithNodes {
 }
 
 // Dropdown Menu Component
-function FlowDropdownMenu({ flowId, flowName, flowStatus }: { flowId: number; flowName: string; flowStatus: string }) {
+function FlowDropdownMenu({
+    flowId,
+    flowName,
+    flowStatus,
+    onDeleteClick
+}: {
+    flowId: number
+    flowName: string
+    flowStatus: string
+    onDeleteClick: (id: number, name: string) => void
+}) {
     const router = useRouter()
     const dispatch = useAppDispatch()
 
@@ -78,84 +98,42 @@ function FlowDropdownMenu({ flowId, flowName, flowStatus }: { flowId: number; fl
         try {
             const duplicated = await dispatch(duplicateFlow(flowId)).unwrap()
             router.push(`/flows/${duplicated.id}/edit`)
-            toast.success('Flow duplicated!')
+            // toast.success('Flow duplicated!') - Removed to reduce notifications
         } catch (error) {
             toast.error('Failed to duplicate')
         }
     }
 
     const handlePublish = async () => {
-        const promise = dispatch(updateFlow({ id: flowId, data: { status: 'published' } })).unwrap()
-        toast.promise(promise, {
-            loading: 'Publishing...',
-            success: 'Flow published!',
-            error: 'Failed to publish'
-        })
+        try {
+            await dispatch(updateFlow({ id: flowId, data: { status: 'published' } })).unwrap()
+        } catch (error) {
+            toast.error('Failed to publish')
+        }
     }
 
     const handleUnpublish = async () => {
-        const promise = dispatch(updateFlow({ id: flowId, data: { status: 'draft' } })).unwrap()
-        toast.promise(promise, {
-            loading: 'Unpublishing...',
-            success: 'Flow unpublished!',
-            error: 'Failed to unpublish'
-        })
+        try {
+            await dispatch(updateFlow({ id: flowId, data: { status: 'draft' } })).unwrap()
+        } catch (error) {
+            toast.error('Failed to unpublish')
+        }
     }
 
     const handleArchive = async () => {
-        const promise = dispatch(archiveFlow(flowId)).unwrap()
-        toast.promise(promise, {
-            loading: 'Archiving...',
-            success: 'Flow archived!',
-            error: 'Failed to archive'
-        })
+        try {
+            await dispatch(archiveFlow(flowId)).unwrap()
+        } catch (error) {
+            toast.error('Failed to archive')
+        }
     }
 
     const handleUnarchive = async () => {
-        const promise = dispatch(updateFlow({ id: flowId, data: { status: 'draft' } })).unwrap()
-        toast.promise(promise, {
-            loading: 'Unarchiving...',
-            success: 'Flow unarchived!',
-            error: 'Failed to unarchive'
-        })
-    }
-
-    const handleDelete = async () => {
-        // Custom confirmation toast
-        toast((t) => (
-            <div className="flex flex-col gap-3">
-                <div>
-                    <p className="font-semibold">Delete &quot;{flowName}&quot;?</p>
-                    <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
-                </div>
-                <div className="flex gap-2">
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => toast.dismiss(t.id)}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        size="sm"
-                        className="bg-red-500 hover:bg-red-600"
-                        onClick={async () => {
-                            toast.dismiss(t.id)
-                            const promise = dispatch(deleteFlow(flowId)).unwrap()
-                            toast.promise(promise, {
-                                loading: 'Deleting...',
-                                success: 'Flow deleted!',
-                                error: 'Failed to delete'
-                            })
-                        }}
-                    >
-                        Delete
-                    </Button>
-                </div>
-            </div>
-        ), {
-            duration: Infinity,
-        })
+        try {
+            await dispatch(updateFlow({ id: flowId, data: { status: 'draft' } })).unwrap()
+        } catch (error) {
+            toast.error('Failed to unarchive')
+        }
     }
 
     return (
@@ -207,7 +185,7 @@ function FlowDropdownMenu({ flowId, flowName, flowStatus }: { flowId: number; fl
                 )}
 
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+                <DropdownMenuItem onClick={() => onDeleteClick(flowId, flowName)} className="text-destructive">
                     <FiTrash2 className="w-4 h-4 mr-2" />
                     Delete
                 </DropdownMenuItem>
@@ -219,9 +197,9 @@ function FlowDropdownMenu({ flowId, flowName, flowStatus }: { flowId: number; fl
 export default function WorkflowsPage() {
     const router = useRouter()
     const dispatch = useAppDispatch()
-    const { 
-        items: flows = [], 
-        loading, 
+    const {
+        items: flows = [],
+        loading,
         error,
         total,
         page,
@@ -229,10 +207,14 @@ export default function WorkflowsPage() {
         totalPages,
         stats: backendStats,
     } = useAppSelector((state: any) => state.flows || {})
-    
+
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
     const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'published' | 'archived'>('all')
     const [showTemplateSelector, setShowTemplateSelector] = useState(false)
+
+    // Delete Dialog State
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+    const [flowToDelete, setFlowToDelete] = useState<{ id: number; name: string } | null>(null)
 
     // Run Modal State
     const [runModalOpen, setRunModalOpen] = useState(false)
@@ -271,7 +253,7 @@ export default function WorkflowsPage() {
             // IMPORTANT: Backend uses 'data' field, not 'flow_data'
             const flowData = fullWorkflow.data || fullWorkflow.flow_data || {}
             const nodes = flowData.nodes || []
-            
+
             const startNode = nodes.find((n: WorkflowNode) => n.type === 'start' || n.type === 'trigger-manual')
 
             if (startNode && startNode.data?.config?.inputFields?.length && startNode.data.config.inputFields.length > 0) {
@@ -299,6 +281,27 @@ export default function WorkflowsPage() {
             success: 'Workflow started successfully!',
             error: (err: any) => `Failed to start: ${err.message}`
         })
+    }
+
+    const handleDeleteClick = (id: number, name: string) => {
+        setFlowToDelete({ id, name })
+        setDeleteDialogOpen(true)
+    }
+
+    const handleDeleteConfirm = async () => {
+        if (!flowToDelete) return
+
+        // Close dialog immediately
+        setDeleteDialogOpen(false)
+        const flowId = flowToDelete.id
+        setFlowToDelete(null)
+
+        try {
+            await dispatch(deleteFlow(flowId)).unwrap()
+            // toast.success('Flow deleted!') - Removed to reduce notifications
+        } catch (error) {
+            toast.error('Failed to delete')
+        }
     }
 
     // Display flows directly from backend (no client-side filtering)
@@ -498,6 +501,22 @@ export default function WorkflowsPage() {
                 inputFields={workflowInputFields}
                 workflowName={selectedWorkflow?.name || ''}
             />
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={deleteDialogOpen} onOpenChange={(open) => {
+                setDeleteDialogOpen(open)
+                if (!open) setFlowToDelete(null)
+            }}>
+                <AlertDialogContent>
+                 
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-500 hover:bg-red-600">
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

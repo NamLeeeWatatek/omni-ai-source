@@ -1,11 +1,20 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { FiPlay, FiX, FiLoader, FiAlertCircle } from 'react-icons/fi'
+import { Spinner } from '@/components/ui/spinner'
+import { FiPlay, FiAlertCircle } from 'react-icons/fi'
 import { DynamicFormField } from './dynamic-form-field'
 import { Node } from 'reactflow'
 import { useAppSelector } from '@/lib/store/hooks'
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+    DialogDescription
+} from '@/components/ui/dialog'
 
 interface ExecuteFlowModalProps {
     isOpen: boolean
@@ -19,14 +28,14 @@ export function ExecuteFlowModal({ isOpen, onClose, onExecute, nodes, isExecutin
     const [inputData, setInputData] = useState<Record<string, any>>({})
     const [allNodesData, setAllNodesData] = useState<Record<string, any>>({})
     const { items: nodeTypes = [] } = useAppSelector((state: any) => state.nodeTypes || {})
-    
-    const getNodeType = (typeId: string) => {
+
+    const getNodeType = useCallback((typeId: string) => {
         return nodeTypes.find((nt: any) => nt.id === typeId)
-    }
+    }, [nodeTypes])
 
     useEffect(() => {
         if (isOpen && nodes.length > 0) {
-            // Initialize data for all nodes
+            // Initialize data for all nodes - START WITH CONFIGURED VALUES
             const initialData: Record<string, any> = {}
             nodes.forEach(node => {
                 const nodeType = getNodeType(node.type || '')
@@ -34,28 +43,24 @@ export function ExecuteFlowModal({ isOpen, onClose, onExecute, nodes, isExecutin
                 const inputs = (nodeType as any)?.executeInputs || nodeType?.properties || []
 
                 if (inputs.length > 0) {
-                    // Initialize with default values from inputs
-                    const nodeDefaults: Record<string, any> = {}
-                    inputs.forEach((input: any) => {
-                        // Only set default if NOT configured
-                        const configValue = node.data.config?.[input.name]
-                        const isConfigured = configValue !== undefined && configValue !== '' && configValue !== null
+                    // Start with configured values, then add defaults for unconfigured
+                    const nodeData: Record<string, any> = { ...node.data.config }
 
-                        if (!isConfigured && input.default !== undefined) {
-                            nodeDefaults[input.name] = input.default
+                    inputs.forEach((input: any) => {
+                        // If not configured and has default, use default
+                        if (nodeData[input.name] === undefined && input.default !== undefined) {
+                            nodeData[input.name] = input.default
                         }
                     })
-                    initialData[node.id] = nodeDefaults
+                    initialData[node.id] = nodeData
                 } else {
-                    initialData[node.id] = {}
+                    initialData[node.id] = { ...node.data.config }
                 }
             })
             setAllNodesData(initialData)
             setInputData({})
         }
     }, [isOpen, nodes, getNodeType])
-
-    if (!isOpen) return null
 
     // Helper to find trigger variables used in other nodes
     const findTriggerVariables = (nodes: Node[]) => {
@@ -190,25 +195,32 @@ export function ExecuteFlowModal({ isOpen, onClose, onExecute, nodes, isExecutin
             }
         }
 
-        // Other nodes that need input
+        // Other nodes that need input - SHOW EXECUTION FIELDS
         const otherNodes = nodes.filter(n => {
             if (n.type?.startsWith('trigger-')) return false
             const nodeType = getNodeType(n.type || '')
             const inputs = (nodeType as any)?.executeInputs || nodeType?.properties || []
 
-            // Filter out inputs that are already configured
-            const unconfiguredInputs = inputs.filter((input: any) => {
+            // Show important execution fields
+            const executionInputs = inputs.filter((input: any) => {
+                // Always show required fields
+                if (input.required) return true
+
+                // Show common execution fields
+                const executionFieldNames = ['content', 'prompt', 'message', 'text', 'body', 'query', 'input']
+                if (executionFieldNames.includes(input.name.toLowerCase())) return true
+
+                // Show unconfigured fields
                 const configValue = n.data.config?.[input.name]
                 const isUnconfigured = configValue === undefined || configValue === '' || configValue === null
-                // Only show if it's unconfigured AND required
-                return isUnconfigured && input.required
+                return isUnconfigured
             })
 
-            return unconfiguredInputs.length > 0
+            return executionInputs.length > 0
         })
 
         if (otherNodes.length > 0) {
-            sections.push({ title: 'Required Inputs', nodes: otherNodes })
+            sections.push({ title: 'Node Inputs', nodes: otherNodes })
         }
 
         if (sections.length === 0) {
@@ -238,16 +250,24 @@ export function ExecuteFlowModal({ isOpen, onClose, onExecute, nodes, isExecutin
                     const definedInputs = (nodeType as any)?.executeInputs || nodeType?.properties || []
                     const detectedInputs = section.customInputs?.[node.id] || []
 
-                    // Filter defined inputs to only show unconfigured ones
-                    const unconfiguredDefinedInputs = definedInputs.filter((input: any) => {
+                    // Show important fields for execution (both configured and unconfigured)
+                    // Priority: required fields + common execution fields (content, prompt, message, etc)
+                    const executionFields = definedInputs.filter((input: any) => {
+                        // Always show required fields
+                        if (input.required) return true
+
+                        // Show common execution fields even if configured
+                        const executionFieldNames = ['content', 'prompt', 'message', 'text', 'body', 'query', 'input']
+                        if (executionFieldNames.includes(input.name.toLowerCase())) return true
+
+                        // Show unconfigured optional fields
                         const configValue = node.data.config?.[input.name]
                         const isUnconfigured = configValue === undefined || configValue === '' || configValue === null
-                        // Only show if it's unconfigured AND required
-                        return isUnconfigured && input.required
+                        return isUnconfigured
                     })
 
                     // Merge inputs
-                    const allInputs = [...unconfiguredDefinedInputs, ...detectedInputs]
+                    const allInputs = [...executionFields, ...detectedInputs]
 
                     if (allInputs.length === 0) return null
 
@@ -283,47 +303,37 @@ export function ExecuteFlowModal({ isOpen, onClose, onExecute, nodes, isExecutin
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-background border border-border rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                {/* Header */}
-                <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
-                    <div>
-                        <h3 className="text-lg font-semibold flex items-center gap-2">
-                            <FiPlay className="w-4 h-4 text-primary" />
-                            Execute Workflow
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                            Configure inputs for {nodes.length} node{nodes.length !== 1 ? 's' : ''}
-                        </p>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="p-1 hover:bg-muted rounded-lg transition-colors"
-                    >
-                        <FiX className="w-5 h-5" />
-                    </button>
-                </div>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0">
+                <DialogHeader className="p-6 pb-2">
+                    <DialogTitle className="flex items-center gap-2">
+                        <FiPlay className="w-5 h-5 text-primary" />
+                        Execute Workflow
+                    </DialogTitle>
+                    <DialogDescription>
+                        Configure inputs for {nodes.length} node{nodes.length !== 1 ? 's' : ''}
+                    </DialogDescription>
+                </DialogHeader>
 
-                {/* Body */}
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-auto p-6 pt-2">
                     <form id="execute-form" onSubmit={handleSubmit} className="space-y-6">
-                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-sm text-blue-500">
-                            💡 Fill in the required fields below to test your workflow. Real actions will be performed.
+                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-sm text-blue-500 flex items-start gap-2">
+                            <FiAlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                            <span>Review and modify execution inputs below. Pre-configured values are shown and can be overridden.</span>
                         </div>
 
                         {renderNodeInputs()}
                     </form>
                 </div>
 
-                {/* Footer */}
-                <div className="p-4 border-t border-border bg-muted/30 flex justify-end gap-3">
+                <DialogFooter className="p-6 pt-2 border-t border-border/40 bg-muted/10">
                     <Button variant="ghost" onClick={onClose} disabled={isExecuting}>
                         Cancel
                     </Button>
                     <Button type="submit" form="execute-form" disabled={isExecuting}>
                         {isExecuting ? (
                             <>
-                                <FiLoader className="w-4 h-4 mr-2 animate-spin" />
+                                <Spinner className="size-4 mr-2" />
                                 Executing...
                             </>
                         ) : (
@@ -333,8 +343,8 @@ export function ExecuteFlowModal({ isOpen, onClose, onExecute, nodes, isExecutin
                             </>
                         )}
                     </Button>
-                </div>
-            </div>
-        </div>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     )
 }

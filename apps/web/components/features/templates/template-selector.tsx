@@ -2,13 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { AlertDialogConfirm } from '@/components/ui/alert-dialog-confirm'
 import { fetchAPI } from '@/lib/api'
-import toast from 'react-hot-toast'
+import toast from '@/lib/toast'
 import { FiX, FiCheck, FiGrid, FiLayers, FiBox, FiRefreshCw } from 'react-icons/fi'
-import * as FiIcons from 'react-icons/fi'
-import * as SiIcons from 'react-icons/si'
-import * as MdIcons from 'react-icons/md'
 import { useAppSelector } from '@/lib/store/hooks'
+import { resolveIcon } from '@/lib/icon-resolver'
 
 interface Template {
     id: string
@@ -125,13 +124,13 @@ export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
         }
     }
 
-    const handleUpdateTemplates = async () => {
-        const confirmed = window.confirm(
-            'This will delete all existing public templates and re-create them from code.\n\n' +
-            'Are you sure you want to update all templates?'
-        )
-        if (!confirmed) return
+    const [showUpdateConfirm, setShowUpdateConfirm] = useState(false)
 
+    const handleUpdateTemplates = async () => {
+        setShowUpdateConfirm(true)
+    }
+
+    const confirmUpdateTemplates = async () => {
         try {
             const result = await fetchAPI('/templates/reseed', { method: 'POST' })
             toast.success(`Updated! Deleted ${result.deleted}, Created ${result.created} templates`)
@@ -141,14 +140,7 @@ export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
         }
     }
 
-    const getIconComponent = (iconName: string) => {
-        const iconMap: Record<string, any> = {
-            ...FiIcons,
-            ...SiIcons,
-            ...MdIcons
-        }
-        return iconMap[iconName] || FiIcons.FiCircle
-    }
+
 
     return (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
@@ -231,7 +223,7 @@ export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
                                                 : 'bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary'
                                                 }`}>
                                                 {(() => {
-                                                    const Icon = getIconComponent(template.icon || 'FiCircle')
+                                                    const Icon = resolveIcon(template.icon || 'FiCircle')
                                                     return <Icon className="w-6 h-6" />
                                                 })()}
                                             </div>
@@ -276,6 +268,24 @@ export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
                     </Button>
                 </div>
             </div>
+
+            {/* Update Templates Confirmation Dialog */}
+            <AlertDialogConfirm
+                open={showUpdateConfirm}
+                onOpenChange={setShowUpdateConfirm}
+                title="Update All Templates"
+                description={
+                    <>
+                        This will delete all existing public templates and re-create them from code.
+                        <br /><br />
+                        Are you sure you want to update all templates?
+                    </>
+                }
+                confirmText="Update"
+                cancelText="Cancel"
+                onConfirm={confirmUpdateTemplates}
+                variant="destructive"
+            />
         </div>
     )
 }

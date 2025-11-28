@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback, memo } from 'react'
 import { Button } from '@/components/ui/button'
 import { FiSave, FiSettings } from 'react-icons/fi'
-import toast from 'react-hot-toast'
+import toast from '@/lib/toast'
 import type { Node } from 'reactflow'
 import { useAppSelector } from '@/lib/store/hooks'
 import { DynamicFormField } from './dynamic-form-field'

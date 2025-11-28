@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
+import { AlertDialogConfirm } from '@/components/ui/alert-dialog-confirm'
 import { useAppDispatch, useAppSelector } from '@/lib/store/hooks'
 import { fetchFlows, updateFlow, deleteFlow } from '@/lib/store/slices/flowsSlice'
-import toast from 'react-hot-toast'
+import toast from '@/lib/toast'
 import {
     FiArchive,
     FiTrash2,
@@ -18,6 +19,7 @@ export default function ArchivesPage() {
     const dispatch = useAppDispatch()
     const { items: allFlows = [], loading } = useAppSelector((state: any) => state.flows || {})
     const flows = allFlows.filter((f: any) => f.status === 'archived')
+    const [flowToDelete, setFlowToDelete] = useState<{ id: number; name: string } | null>(null)
 
     useEffect(() => {
         dispatch(fetchFlows())
@@ -33,41 +35,19 @@ export default function ArchivesPage() {
         })
     }
 
-    const handleDelete = async (flowId: number, flowName: string) => {
-        toast((t) => (
-            <div className="flex flex-col gap-3">
-                <div>
-                    <p className="font-semibold">Permanently delete &quot;{flowName}&quot;?</p>
-                    <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
-                </div>
-                <div className="flex gap-2">
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => toast.dismiss(t.id)}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        size="sm"
-                        className="bg-red-500 hover:bg-red-600"
-                        onClick={async () => {
-                            toast.dismiss(t.id)
-                            try {
-                                await dispatch(deleteFlow(flowId)).unwrap()
-                                toast.success('Workflow deleted permanently!')
-                            } catch (error) {
-                                toast.error('Failed to delete workflow')
-                            }
-                        }}
-                    >
-                        Delete
-                    </Button>
-                </div>
-            </div>
-        ), {
-            duration: Infinity,
-        })
+    const handleDelete = (flowId: number, flowName: string) => {
+        setFlowToDelete({ id: flowId, name: flowName })
+    }
+
+    const confirmDelete = async () => {
+        if (!flowToDelete) return
+
+        try {
+            await dispatch(deleteFlow(flowToDelete.id)).unwrap()
+            toast.success('Workflow deleted permanently!')
+        } catch (error) {
+            toast.error('Failed to delete workflow')
+        }
     }
 
     return (
@@ -138,6 +118,18 @@ export default function ArchivesPage() {
                     </table>
                 </Card>
             )}
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialogConfirm
+                open={flowToDelete !== null}
+                onOpenChange={(open) => !open && setFlowToDelete(null)}
+                title={`Permanently delete "${flowToDelete?.name}"?`}
+                description="This workflow will be permanently deleted. This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                onConfirm={confirmDelete}
+                variant="destructive"
+            />
         </div>
     )
 }

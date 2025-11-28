@@ -12,7 +12,7 @@ import {
     FiTrash2,
     FiMoreVertical
 } from 'react-icons/fi'
-import toast from 'react-hot-toast'
+import toast from '@/lib/toast'
 
 export default function TeamPage() {
     const [inviteEmail, setInviteEmail] = useState('')

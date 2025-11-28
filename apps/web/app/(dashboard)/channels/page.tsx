@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
+import { AlertDialogConfirm } from '@/components/ui/alert-dialog-confirm'
 import { fetchAPI } from '@/lib/api'
-import toast from 'react-hot-toast'
+import toast from '@/lib/toast'
 import {
     FiFacebook,
     FiInstagram,
@@ -141,11 +142,17 @@ export default function ChannelsPage() {
         }
     }
 
+    const [disconnectId, setDisconnectId] = useState<number | null>(null)
+
     const handleDisconnect = async (id: number) => {
-        if (!confirm('Are you sure you want to disconnect this channel?')) return
+        setDisconnectId(id)
+    }
+
+    const confirmDisconnect = async () => {
+        if (!disconnectId) return
 
         try {
-            await fetchAPI(`/channels/${id}`, { method: 'DELETE' })
+            await fetchAPI(`/channels/${disconnectId}`, { method: 'DELETE' })
             toast.success('Channel disconnected')
             loadData()
         } catch {
@@ -879,6 +886,18 @@ export default function ChannelsPage() {
                     </div>
                 </div>
             )}
+
+            {/* Disconnect Confirmation Dialog */}
+            <AlertDialogConfirm
+                open={disconnectId !== null}
+                onOpenChange={(open) => !open && setDisconnectId(null)}
+                title="Disconnect Channel"
+                description="Are you sure you want to disconnect this channel? This action cannot be undone."
+                confirmText="Disconnect"
+                cancelText="Cancel"
+                onConfirm={confirmDisconnect}
+                variant="destructive"
+            />
         </div>
     )
 }

@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { fetchAPI } from '@/lib/api'
-import toast from 'react-hot-toast'
+import toast from '@/lib/toast'
 import { FiUpload, FiX, FiImage, FiFile, FiCheck } from 'react-icons/fi'
 
 interface MediaUploaderProps {

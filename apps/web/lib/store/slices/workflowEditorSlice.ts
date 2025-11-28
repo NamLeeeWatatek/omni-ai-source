@@ -51,9 +51,17 @@ const workflowEditorSlice = createSlice({
       state.nodes = action.payload
       state.hasUnsavedChanges = true
     },
+    updateNodesWithoutDirty: (state, action: PayloadAction<Node[]>) => {
+      // Update nodes without marking as unsaved (for execution status, selection, etc.)
+      state.nodes = action.payload
+    },
     setEdges: (state, action: PayloadAction<Edge[]>) => {
       state.edges = action.payload
       state.hasUnsavedChanges = true
+    },
+    updateEdgesWithoutDirty: (state, action: PayloadAction<Edge[]>) => {
+      // Update edges without marking as unsaved (for selection, etc.)
+      state.edges = action.payload
     },
     addNode: (state, action: PayloadAction<Node>) => {
       state.nodes.push(action.payload)
@@ -131,7 +139,9 @@ const workflowEditorSlice = createSlice({
 
 export const {
   setNodes,
+  updateNodesWithoutDirty,
   setEdges,
+  updateEdgesWithoutDirty,
   addNode,
   updateNode,
   removeNode,

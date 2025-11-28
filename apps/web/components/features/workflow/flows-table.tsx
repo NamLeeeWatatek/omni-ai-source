@@ -31,7 +31,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useAppDispatch } from '@/lib/store/hooks'
 import { updateFlow, deleteFlow, duplicateFlow, archiveFlow } from '@/lib/store/slices/flowsSlice'
-import toast from 'react-hot-toast'
+import { AlertDialogConfirm } from '@/components/ui/alert-dialog-confirm'
+import toast from '@/lib/toast'
 
 interface Flow {
   id: number
@@ -54,6 +55,8 @@ export function FlowsTable({ flows, onUpdate, onRun }: FlowsTableProps) {
   const router = useRouter()
   const dispatch = useAppDispatch()
   const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false)
+  const [deleteFlowId, setDeleteFlowId] = useState<number | null>(null)
 
   const isAllSelected = flows.length > 0 && selectedIds.length === flows.length
   const isSomeSelected = selectedIds.length > 0 && selectedIds.length < flows.length
@@ -74,40 +77,21 @@ export function FlowsTable({ flows, onUpdate, onRun }: FlowsTableProps) {
 
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return
+    setShowBulkDeleteDialog(true)
+  }
 
-    toast((t) => (
-      <div className="flex flex-col gap-3">
-        <div>
-          <p className="font-semibold">Delete {selectedIds.length} workflow(s)?</p>
-          <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
-        </div>
-        <div className="flex gap-2">
-          <Button size="sm" variant="ghost" onClick={() => toast.dismiss(t.id)}>
-            Cancel
-          </Button>
-          <Button
-            size="sm"
-            className="bg-red-500 hover:bg-red-600"
-            onClick={async () => {
-              toast.dismiss(t.id)
-              const promises = selectedIds.map(id => dispatch(deleteFlow(id)).unwrap())
-              
-              toast.promise(Promise.all(promises), {
-                loading: `Deleting ${selectedIds.length} workflow(s)...`,
-                success: () => {
-                  setSelectedIds([])
-                  onUpdate()
-                  return `${selectedIds.length} workflow(s) deleted!`
-                },
-                error: 'Failed to delete some workflows'
-              })
-            }}
-          >
-            Delete
-          </Button>
-        </div>
-      </div>
-    ), { duration: Infinity })
+  const confirmBulkDelete = async () => {
+    const promises = selectedIds.map(id => dispatch(deleteFlow(id)).unwrap())
+    
+    toast.promise(Promise.all(promises), {
+      loading: `Deleting ${selectedIds.length} workflow(s)...`,
+      success: () => {
+        setSelectedIds([])
+        onUpdate()
+        return `${selectedIds.length} workflow(s) deleted!`
+      },
+      error: 'Failed to delete some workflows'
+    })
   }
 
   const handleBulkArchive = async () => {
@@ -270,39 +254,7 @@ export function FlowsTable({ flows, onUpdate, onRun }: FlowsTableProps) {
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          onClick={() => {
-                            toast((t) => (
-                              <div className="flex flex-col gap-3">
-                                <div>
-                                  <p className="font-semibold">Delete "{flow.name}"?</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    This action cannot be undone.
-                                  </p>
-                                </div>
-                                <div className="flex gap-2">
-                                  <Button size="sm" variant="ghost" onClick={() => toast.dismiss(t.id)}>
-                                    Cancel
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    className="bg-red-500 hover:bg-red-600"
-                                    onClick={async () => {
-                                      toast.dismiss(t.id)
-                                      try {
-                                        await dispatch(deleteFlow(flow.id)).unwrap()
-                                        toast.success('Flow deleted!')
-                                        onUpdate()
-                                      } catch {
-                                        toast.error('Failed to delete')
-                                      }
-                                    }}
-                                  >
-                                    Delete
-                                  </Button>
-                                </div>
-                              </div>
-                            ), { duration: Infinity })
-                          }}
+                          onClick={() => setDeleteFlowId(flow.id)}
                           className="text-destructive"
                         >
                           <FiTrash2 className="w-4 h-4 mr-2" />
@@ -317,6 +269,46 @@ export function FlowsTable({ flows, onUpdate, onRun }: FlowsTableProps) {
           </TableBody>
         </Table>
       </div>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialogConfirm
+        open={showBulkDeleteDialog}
+        onOpenChange={setShowBulkDeleteDialog}
+        title={`Delete ${selectedIds.length} workflow(s)?`}
+        description="All selected workflows will be permanently deleted. This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmBulkDelete}
+        variant="destructive"
+      />
+
+      {/* Single Delete Confirmation Dialog */}
+      <AlertDialogConfirm
+        open={deleteFlowId !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteFlowId(null)
+          }
+        }}
+        title="Delete workflow?"
+        description="This workflow will be permanently deleted. This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={async () => {
+          if (!deleteFlowId) return
+          const idToDelete = deleteFlowId
+          setDeleteFlowId(null) // Close dialog immediately
+          
+          try {
+            await dispatch(deleteFlow(idToDelete)).unwrap()
+            toast.success('Flow deleted!')
+            onUpdate()
+          } catch {
+            toast.error('Failed to delete')
+          }
+        }}
+        variant="destructive"
+      />
     </div>
   )
 }

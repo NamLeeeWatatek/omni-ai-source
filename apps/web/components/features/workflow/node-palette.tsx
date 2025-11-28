@@ -4,7 +4,7 @@ import { useAppDispatch, useAppSelector } from '@/lib/store/hooks'
 import { fetchNodeTypes, fetchNodeCategories } from '@/lib/store/slices/nodeTypesSlice'
 import { NodeType } from '@/lib/nodeTypes'
 import { getNodeIcon } from '@/lib/icon-resolver'
-import toast from 'react-hot-toast'
+import toast from '@/lib/toast'
 
 interface NodePaletteProps {
     onAddNode: (nodeType: NodeType) => void

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { FiX, FiUpload, FiPlay, FiCheck, FiFile } from 'react-icons/fi'
-import toast from 'react-hot-toast'
+import toast from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 
 interface InputField {

@@ -1,5 +1,8 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { Toaster } from '@/components/ui/sonner'
+import { ThemeProvider } from '@/components/providers/theme-provider'
+import { ReduxProvider } from '@/lib/store/Provider'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -16,8 +19,20 @@ export default function RootLayout({
     children: React.ReactNode
 }) {
     return (
-        <html lang="en" className="dark">
-            <body className={inter.variable}>{children}</body>
+        <html lang="en" suppressHydrationWarning>
+            <body className={inter.variable}>
+                <ThemeProvider
+                    attribute="class"
+                    defaultTheme="dark"
+                    enableSystem
+                    disableTransitionOnChange
+                >
+                    <ReduxProvider>
+                        {children}
+                        <Toaster />
+                    </ReduxProvider>
+                </ThemeProvider>
+            </body>
         </html>
     )
 }

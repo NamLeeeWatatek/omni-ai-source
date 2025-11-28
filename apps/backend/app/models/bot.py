@@ -9,6 +9,7 @@ class Bot(SQLModel, table=True):
     workspace_id: int = Field(foreign_key="workspaces.id")
     name: str
     description: Optional[str] = None
+    icon: Optional[str] = Field(default="FiMessageSquare")  # Icon name from react-icons
     is_active: bool = True
     flow_id: Optional[int] = None  # Which flow this bot executes
     created_at: datetime = Field(default_factory=datetime.utcnow)

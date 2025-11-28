@@ -11,7 +11,7 @@ import {
     FiRefreshCw
 } from 'react-icons/fi'
 import { fetchAPI } from '@/lib/api'
-import toast from 'react-hot-toast'
+import toast from '@/lib/toast'
 
 interface Message {
     id: number

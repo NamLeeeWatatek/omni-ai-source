@@ -13,7 +13,7 @@ import {
   duplicateFlow, 
   archiveFlow 
 } from '@/lib/api/flows'
-import toast from 'react-hot-toast'
+import toast from '@/lib/toast'
 
 interface FlowsContextType {
   flows: Flow[]

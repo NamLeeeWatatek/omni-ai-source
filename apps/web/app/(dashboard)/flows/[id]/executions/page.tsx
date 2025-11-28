@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
-import toast from 'react-hot-toast'
+import { AlertDialogConfirm } from '@/components/ui/alert-dialog-confirm'
+import toast from '@/lib/toast'
 import {
     FiClock,
     FiCheckCircle,
@@ -36,6 +37,7 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
     const [executions, setExecutions] = useState<Execution[]>([])
     const [loading, setLoading] = useState(true)
     const [flowName, setFlowName] = useState('')
+    const [deleteExecutionId, setDeleteExecutionId] = useState<number | null>(null)
 
     useEffect(() => {
         loadExecutions()
@@ -63,38 +65,22 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
         }
     }
 
-    const handleDelete = async (executionId: number) => {
-        toast((t) => (
-            <div className="flex flex-col gap-3">
-                <div>
-                    <p className="font-semibold">Delete this execution?</p>
-                    <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
-                </div>
-                <div className="flex gap-2">
-                    <Button size="sm" variant="ghost" onClick={() => toast.dismiss(t.id)}>
-                        Cancel
-                    </Button>
-                    <Button
-                        size="sm"
-                        className="bg-red-500 hover:bg-red-600"
-                        onClick={async () => {
-                            toast.dismiss(t.id)
-                            const deletePromise = fetchAPI(`/executions/${executionId}`, {
-                                method: 'DELETE'
-                            }).then(() => loadExecutions())
+    const handleDelete = (executionId: number) => {
+        setDeleteExecutionId(executionId)
+    }
 
-                            toast.promise(deletePromise, {
-                                loading: 'Deleting execution...',
-                                success: 'Execution deleted!',
-                                error: (err) => `Failed: ${err.message}`
-                            })
-                        }}
-                    >
-                        Delete
-                    </Button>
-                </div>
-            </div>
-        ), { duration: Infinity })
+    const confirmDelete = async () => {
+        if (!deleteExecutionId) return
+
+        const deletePromise = fetchAPI(`/executions/${deleteExecutionId}`, {
+            method: 'DELETE'
+        }).then(() => loadExecutions())
+
+        toast.promise(deletePromise, {
+            loading: 'Deleting execution...',
+            success: 'Execution deleted!',
+            error: (err) => `Failed: ${err.message}`
+        })
     }
 
     const getStatusIcon = (status: string) => {
@@ -308,6 +294,18 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
                     </table>
                 </div>
             )}
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialogConfirm
+                open={deleteExecutionId !== null}
+                onOpenChange={(open) => !open && setDeleteExecutionId(null)}
+                title="Delete this execution?"
+                description="This execution record will be permanently deleted. This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                onConfirm={confirmDelete}
+                variant="destructive"
+            />
         </div>
     )
 }

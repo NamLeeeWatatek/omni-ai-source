@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
+import { AlertDialogConfirm } from '@/components/ui/alert-dialog-confirm'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { fetchAPI } from '@/lib/api'
-import toast from 'react-hot-toast'
+import toast from '@/lib/toast'
 import { useAIModels } from '@/lib/hooks/use-ai-models'
 import {
     FiSend,
@@ -120,14 +121,20 @@ export default function AIAssistantPage() {
         await loadMessages(conv.id)
     }
 
+    const [deleteConvId, setDeleteConvId] = useState<number | null>(null)
+
     const deleteConversation = async (convId: number, e: React.MouseEvent) => {
         e.stopPropagation()
-        if (!confirm('Delete this conversation?')) return
+        setDeleteConvId(convId)
+    }
+
+    const confirmDeleteConversation = async () => {
+        if (!deleteConvId) return
 
         try {
-            await fetchAPI(`/ai/conversations/${convId}`, { method: 'DELETE' })
-            setConversations(prev => prev.filter(c => c.id !== convId))
-            if (activeConversation?.id === convId) {
+            await fetchAPI(`/ai/conversations/${deleteConvId}`, { method: 'DELETE' })
+            setConversations(prev => prev.filter(c => c.id !== deleteConvId))
+            if (activeConversation?.id === deleteConvId) {
                 setActiveConversation(null)
                 setMessages([])
             }
@@ -513,6 +520,18 @@ export default function AIAssistantPage() {
                     </div>
                 </footer>
             </div>
+
+            {/* Delete Conversation Confirmation Dialog */}
+            <AlertDialogConfirm
+                open={deleteConvId !== null}
+                onOpenChange={(open) => !open && setDeleteConvId(null)}
+                title="Delete Conversation"
+                description="Are you sure you want to delete this conversation? This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                onConfirm={confirmDeleteConversation}
+                variant="destructive"
+            />
         </div>
     )
 }
