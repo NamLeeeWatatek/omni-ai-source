@@ -2,11 +2,11 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Workspace } from '../../workspaces/domain/workspace';
 
 export class Bot {
-  @ApiProperty({ type: Number })
-  id: number;
+  @ApiProperty({ type: String })
+  id: string;
 
-  @ApiProperty({ type: Number })
-  workspaceId: number;
+  @ApiProperty({ type: String })
+  workspaceId: string;
 
   @ApiProperty({ type: String })
   name: string;
@@ -20,8 +20,8 @@ export class Bot {
   @ApiProperty({ type: Boolean, default: true })
   isActive: boolean;
 
-  @ApiPropertyOptional({ type: Number })
-  flowId?: number | null;
+  @ApiPropertyOptional({ type: String })
+  flowId?: string | null;
 
   @ApiProperty({ type: () => Workspace })
   workspace?: Workspace;
@@ -34,11 +34,11 @@ export class Bot {
 }
 
 export class FlowVersion {
-  @ApiProperty({ type: Number })
-  id: number;
+  @ApiProperty({ type: String })
+  id: string;
 
-  @ApiProperty({ type: Number })
-  botId: number;
+  @ApiProperty({ type: String })
+  botId: string;
 
   @ApiProperty({ type: Number })
   version: number;

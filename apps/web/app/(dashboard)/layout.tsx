@@ -19,6 +19,7 @@ import {
     FiRadio,
     FiBarChart2,
     FiSettings,
+    FiDatabase,
     FiChevronDown,
     FiLogOut,
     FiSun,
@@ -140,6 +141,7 @@ export default function DashboardLayout({
             name: 'Management',
             icon: FiSettings,
             children: [
+                { name: 'Nodes', href: '/nodes' },
                 { name: 'Bots', href: '/bots' },
                 { name: 'Team', href: '/team' },
                 { name: 'Archives', href: '/archives' }
@@ -147,6 +149,7 @@ export default function DashboardLayout({
         },
         { name: 'Analytics', href: '/analytics', icon: FiBarChart2 },
         { name: 'AI Assistant', href: '/ai-assistant', icon: MdAutoAwesome },
+        { name: 'Knowledge Base', href: '/knowledge-base', icon: FiDatabase },
         { name: 'Settings', href: '/settings', icon: FiSettings },
     ]
 
@@ -250,7 +253,7 @@ export default function DashboardLayout({
                                     <Link
                                         href={item.href!}
                                         className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-all ${active
-                                            ? 'bg-gradient-wata text-white shadow-lg shadow-slate-700/20/20'
+                                            ? 'bg-gradient-wata text-white shadow-lg shadow-slate-700/20'
                                             : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                                             }`}
                                     >

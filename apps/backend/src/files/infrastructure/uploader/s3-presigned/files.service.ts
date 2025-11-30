@@ -22,6 +22,8 @@ export class FilesS3PresignedService {
     private readonly fileRepository: FileRepository,
     private readonly configService: ConfigService<AllConfigType>,
   ) {
+    const minioEndpoint = configService.get('file.minioEndpoint', { infer: true });
+    
     this.s3 = new S3Client({
       region: configService.get('file.awsS3Region', { infer: true }),
       credentials: {
@@ -32,6 +34,10 @@ export class FilesS3PresignedService {
           infer: true,
         }),
       },
+      ...(minioEndpoint && {
+        endpoint: minioEndpoint,
+        forcePathStyle: true, // Required for MinIO
+      }),
     });
   }
 
@@ -47,7 +53,11 @@ export class FilesS3PresignedService {
       });
     }
 
-    if (!file.fileName.match(/\.(jpg|jpeg|png|gif)$/i)) {
+    // Allow more file types for documents
+    const isImage = file.fileName.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i);
+    const isDocument = file.fileName.match(/\.(pdf|doc|docx|txt|csv|xls|xlsx)$/i);
+    
+    if (!isImage && !isDocument) {
       throw new UnprocessableEntityException({
         status: HttpStatus.UNPROCESSABLE_ENTITY,
         errors: {
@@ -74,10 +84,13 @@ export class FilesS3PresignedService {
       .pop()
       ?.toLowerCase()}`;
 
+    // Use bucket from request or default
+    const bucket = file.bucket || this.configService.getOrThrow('file.awsDefaultS3Bucket', {
+      infer: true,
+    });
+
     const command = new PutObjectCommand({
-      Bucket: this.configService.getOrThrow('file.awsDefaultS3Bucket', {
-        infer: true,
-      }),
+      Bucket: bucket,
       Key: key,
       ContentLength: file.fileSize,
     });

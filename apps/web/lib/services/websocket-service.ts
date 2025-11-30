@@ -1,14 +1,15 @@
 /**
  * Centralized WebSocket Service
- * Manages all WebSocket connections in the application
+ * Uses Socket.IO for real-time communication
  */
+import { io, Socket } from 'socket.io-client'
 
 type MessageHandler = (data: any) => void
 type ErrorHandler = (error: any) => void
 type CloseHandler = () => void
 
 interface WebSocketConnection {
-    ws: WebSocket
+    socket: Socket
     handlers: Map<string, MessageHandler[]>
     errorHandlers: ErrorHandler[]
     closeHandlers: CloseHandler[]
@@ -20,91 +21,88 @@ class WebSocketService {
 
     constructor() {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
-        this.baseUrl = apiUrl.replace('http://', 'ws://').replace('https://', 'wss://')
+        this.baseUrl = apiUrl.replace('/api/v1', '')
     }
 
     /**
-     * Connect to a WebSocket endpoint
+     * Connect to a Socket.IO namespace
      */
-    connect(endpoint: string, onOpen?: () => void): WebSocket {
-        const url = `${this.baseUrl}${endpoint}`
+    connect(namespace: string, onOpen?: () => void): Socket {
+        const url = `${this.baseUrl}/${namespace}`
         
         // Reuse existing connection if available
-        if (this.connections.has(endpoint)) {
-            const conn = this.connections.get(endpoint)!
-            if (conn.ws.readyState === WebSocket.OPEN) {
-                console.log('♻️ Reusing existing WebSocket connection:', endpoint)
+        if (this.connections.has(namespace)) {
+            const conn = this.connections.get(namespace)!
+            if (conn.socket.connected) {
+                console.log('♻️ Reusing existing Socket.IO connection:', namespace)
                 onOpen?.()
-                return conn.ws
+                return conn.socket
             } else {
                 // Clean up stale connection
-                this.disconnect(endpoint)
+                this.disconnect(namespace)
             }
         }
 
-        console.log('🔌 Connecting to WebSocket:', url)
-        const ws = new WebSocket(url)
+        console.log('🔌 Connecting to Socket.IO:', url)
+        const socket = io(url, {
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionAttempts: 5,
+        })
 
         const connection: WebSocketConnection = {
-            ws,
+            socket,
             handlers: new Map(),
             errorHandlers: [],
             closeHandlers: []
         }
 
-        ws.onopen = () => {
-            console.log('✅ WebSocket connected:', endpoint)
+        socket.on('connect', () => {
+            console.log('✅ Socket.IO connected:', namespace)
             onOpen?.()
-        }
+        })
 
-        ws.onmessage = (event) => {
-            try {
-                const message = JSON.parse(event.data)
-                const { type, data } = message
-
-                // Call handlers for this message type
-                const handlers = connection.handlers.get(type) || []
-                handlers.forEach(handler => handler(data))
-
-                // Call wildcard handlers
-                const wildcardHandlers = connection.handlers.get('*') || []
-                wildcardHandlers.forEach(handler => handler(message))
-
-            } catch (e) {
-                console.error('⚠️ Failed to parse WebSocket message:', e)
-            }
-        }
-
-        ws.onerror = (error) => {
-            console.error('❌ WebSocket error:', error)
-            connection.errorHandlers.forEach(handler => handler(error))
-        }
-
-        ws.onclose = () => {
-            console.log('🔌 WebSocket closed:', endpoint)
+        socket.on('disconnect', () => {
+            console.log('🔌 Socket.IO disconnected:', namespace)
             connection.closeHandlers.forEach(handler => handler())
-            this.connections.delete(endpoint)
-        }
+        })
 
-        this.connections.set(endpoint, connection)
-        return ws
+        socket.on('connect_error', (error) => {
+            console.error('❌ Socket.IO connection error:', error)
+            connection.errorHandlers.forEach(handler => handler(error))
+        })
+
+        // Listen for all events
+        socket.onAny((eventName, data) => {
+            // Call handlers for this event type
+            const handlers = connection.handlers.get(eventName) || []
+            handlers.forEach(handler => handler(data))
+
+            // Call wildcard handlers
+            const wildcardHandlers = connection.handlers.get('*') || []
+            wildcardHandlers.forEach(handler => handler({ type: eventName, data }))
+        })
+
+        this.connections.set(namespace, connection)
+        return socket
     }
 
     /**
-     * Send message to WebSocket
+     * Emit event to Socket.IO
      */
-    send(endpoint: string, data: any): boolean {
-        const connection = this.connections.get(endpoint)
-        if (!connection || connection.ws.readyState !== WebSocket.OPEN) {
-            console.error('❌ WebSocket not connected:', endpoint)
+    send(namespace: string, event: string, data?: any): boolean {
+        const connection = this.connections.get(namespace)
+        if (!connection || !connection.socket.connected) {
+            console.error('❌ Socket.IO not connected:', namespace)
             return false
         }
 
         try {
-            connection.ws.send(JSON.stringify(data))
+            connection.socket.emit(event, data)
             return true
         } catch (e) {
-            console.error('❌ Failed to send WebSocket message:', e)
+            console.error('❌ Failed to emit Socket.IO event:', e)
             return false
         }
     }
@@ -172,14 +170,14 @@ class WebSocketService {
     }
 
     /**
-     * Disconnect from WebSocket
+     * Disconnect from Socket.IO
      */
-    disconnect(endpoint: string) {
-        const connection = this.connections.get(endpoint)
+    disconnect(namespace: string) {
+        const connection = this.connections.get(namespace)
         if (connection) {
-            connection.ws.close()
-            this.connections.delete(endpoint)
-            console.log('🔌 Disconnected:', endpoint)
+            connection.socket.disconnect()
+            this.connections.delete(namespace)
+            console.log('🔌 Disconnected:', namespace)
         }
     }
 
@@ -195,9 +193,9 @@ class WebSocketService {
     /**
      * Get connection status
      */
-    isConnected(endpoint: string): boolean {
-        const connection = this.connections.get(endpoint)
-        return connection?.ws.readyState === WebSocket.OPEN
+    isConnected(namespace: string): boolean {
+        const connection = this.connections.get(namespace)
+        return connection?.socket.connected || false
     }
 
     /**

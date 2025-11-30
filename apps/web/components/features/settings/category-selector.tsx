@@ -12,26 +12,11 @@ import {
 } from '@/components/ui/select';
 import * as Icons from 'react-icons/fi';
 import { FiFolder } from 'react-icons/fi';
+import { Category, CategorySelectorProps } from '@/lib/types';
 
-interface Category {
-  id: number;
-  name: string;
-  slug: string;
-  icon?: string;
-  color: string;
-  entity_type: string;
-}
-
-interface CategorySelectorProps {
-  entityType: string;
-  value?: number;
-  onChange: (categoryId: number | undefined) => void;
-  placeholder?: string;
-}
-
-export function CategorySelector({ 
-  entityType, 
-  value, 
+export function CategorySelector({
+  entityType,
+  value,
   onChange,
   placeholder = "Select category"
 }: CategorySelectorProps) {
@@ -68,12 +53,12 @@ export function CategorySelector({
           {selectedCategory && (
             <div className="flex items-center gap-2">
               {(() => {
-                const IconComponent = selectedCategory.icon 
-                  ? (Icons as any)[selectedCategory.icon] 
+                const IconComponent = selectedCategory.icon
+                  ? (Icons as any)[selectedCategory.icon]
                   : FiFolder;
                 return (
-                  <IconComponent 
-                    className="size-4" 
+                  <IconComponent
+                    className="size-4"
                     style={{ color: selectedCategory.color }}
                   />
                 );
@@ -85,15 +70,15 @@ export function CategorySelector({
       </SelectTrigger>
       <SelectContent>
         {categories.map((category) => {
-          const IconComponent = category.icon 
-            ? (Icons as any)[category.icon] 
+          const IconComponent = category.icon
+            ? (Icons as any)[category.icon]
             : FiFolder;
-          
+
           return (
             <SelectItem key={category.id} value={category.id.toString()}>
               <div className="flex items-center gap-2">
-                <IconComponent 
-                  className="size-4" 
+                <IconComponent
+                  className="size-4"
                   style={{ color: category.color }}
                 />
                 <span>{category.name}</span>

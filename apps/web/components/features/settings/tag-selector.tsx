@@ -11,18 +11,7 @@ import {
 } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { FiTag, FiSearch, FiX } from 'react-icons/fi';
-
-interface Tag {
-  id: number;
-  name: string;
-  color: string;
-}
-
-interface TagSelectorProps {
-  selectedTags: number[];
-  onChange: (tags: number[]) => void;
-  maxTags?: number;
-}
+import { Tag, TagSelectorProps } from '@/lib/types';
 
 export function TagSelector({ selectedTags, onChange, maxTags = 5 }: TagSelectorProps) {
   const [tags, setTags] = useState<Tag[]>([]);
@@ -43,7 +32,7 @@ export function TagSelector({ selectedTags, onChange, maxTags = 5 }: TagSelector
 
   const selectedTagObjects = tags.filter(t => selectedTags.includes(t.id));
   const availableTags = tags.filter(t => !selectedTags.includes(t.id));
-  
+
   const filteredTags = availableTags.filter(tag =>
     tag.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -82,7 +71,7 @@ export function TagSelector({ selectedTags, onChange, maxTags = 5 }: TagSelector
             </button>
           </Badge>
         ))}
-        
+
         {selectedTags.length < maxTags && (
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
@@ -102,7 +91,7 @@ export function TagSelector({ selectedTags, onChange, maxTags = 5 }: TagSelector
                     className="pl-7 h-8 text-sm"
                   />
                 </div>
-                
+
                 <div className="max-h-48 overflow-y-auto space-y-1">
                   {filteredTags.map(tag => (
                     <button
@@ -125,7 +114,7 @@ export function TagSelector({ selectedTags, onChange, maxTags = 5 }: TagSelector
                       </Badge>
                     </button>
                   ))}
-                  
+
                   {filteredTags.length === 0 && (
                     <p className="text-sm text-muted-foreground text-center py-2">
                       No tags found
@@ -137,7 +126,7 @@ export function TagSelector({ selectedTags, onChange, maxTags = 5 }: TagSelector
           </Popover>
         )}
       </div>
-      
+
       {selectedTags.length >= maxTags && (
         <p className="text-xs text-muted-foreground">
           Maximum {maxTags} tags reached

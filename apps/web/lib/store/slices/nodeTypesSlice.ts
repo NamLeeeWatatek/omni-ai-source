@@ -4,22 +4,11 @@
 import { createSlice, createAsyncThunk, type PayloadAction, type ActionReducerMapBuilder } from '@reduxjs/toolkit'
 import type { Draft } from '@reduxjs/toolkit'
 import axiosClient from '@/lib/axios-client'
+import type { NodeProperty, NodeCategory } from '@/lib/types/node'
 // Icon names are stored as strings and resolved at render time
 // See lib/icon-resolver.ts for icon resolution logic
 
-export interface NodeProperty {
-  name: string
-  label: string
-  type: 'text' | 'url' | 'textarea' | 'json' | 'select' | 'boolean' | 'number' | 'file' | 'image' | 'key-value' | 'multi-select' | 'dynamic-form'
-  required?: boolean
-  placeholder?: string
-  description?: string
-  options?: Array<{ value: string; label: string } | string>
-  default?: any
-  showWhen?: Record<string, any>
-  accept?: string
-  multiple?: boolean
-}
+export type { NodeProperty, NodeCategory }
 
 export interface NodeType {
   id: string
@@ -33,12 +22,6 @@ export interface NodeType {
   description: string
   isPremium?: boolean
   properties?: NodeProperty[]
-}
-
-export interface NodeCategory {
-  id: string
-  label: string
-  color: string
 }
 
 interface NodeTypesState {

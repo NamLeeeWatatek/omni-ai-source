@@ -1,9 +1,18 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { NodeType, NodeCategory } from './domain/node-type';
+import { NodeTypeEntity } from './infrastructure/persistence/relational/entities/node-type.entity';
 
 @Injectable()
 export class NodeTypesService {
-  private readonly nodeTypes: NodeType[] = [
+  constructor(
+    @InjectRepository(NodeTypeEntity)
+    private readonly nodeTypeRepository: Repository<NodeTypeEntity>,
+  ) {}
+
+  // Keep hardcoded data as fallback for now
+  private readonly fallbackNodeTypes: NodeType[] = [
     // Triggers
     {
       id: 'webhook',
@@ -143,12 +152,7 @@ export class NodeTypesService {
           label: 'AI Model',
           type: 'select',
           required: true,
-          options: [
-            'gpt-4',
-            'gpt-3.5-turbo',
-            'claude-3',
-            'gemini-pro',
-          ],
+          options: ['gpt-4', 'gpt-3.5-turbo', 'claude-3', 'gemini-pro'],
           default: 'gpt-3.5-turbo',
         },
         {
@@ -373,18 +377,101 @@ export class NodeTypesService {
     { id: 'transform', label: 'Transform', color: '#3F51B5' },
   ];
 
-  findAll(category?: string): NodeType[] {
-    if (category) {
-      return this.nodeTypes.filter((node) => node.category === category);
+  async findAll(category?: string): Promise<NodeType[]> {
+    try {
+      const query = this.nodeTypeRepository
+        .createQueryBuilder('nodeType')
+        .where('nodeType.isActive = :isActive', { isActive: true })
+        .orderBy('nodeType.sortOrder', 'ASC')
+        .addOrderBy('nodeType.label', 'ASC');
+
+      if (category) {
+        query.andWhere('nodeType.category = :category', { category });
+      }
+
+      const entities = await query.getMany();
+
+      // If no data in database, return fallback
+      if (entities.length === 0) {
+        console.warn('⚠️  No node types in database, using fallback data');
+        return category
+          ? this.fallbackNodeTypes.filter((node) => node.category === category)
+          : this.fallbackNodeTypes;
+      }
+
+      return entities;
+    } catch (error) {
+      console.error('Error fetching node types:', error);
+      // Return fallback on error
+      return category
+        ? this.fallbackNodeTypes.filter((node) => node.category === category)
+        : this.fallbackNodeTypes;
     }
-    return this.nodeTypes;
   }
 
-  findOne(id: string): NodeType | undefined {
-    return this.nodeTypes.find((node) => node.id === id);
+  async findOne(id: string): Promise<NodeType | null> {
+    try {
+      const entity = await this.nodeTypeRepository.findOne({
+        where: { id, isActive: true },
+      });
+
+      if (!entity) {
+        // Try fallback
+        return this.fallbackNodeTypes.find((node) => node.id === id) || null;
+      }
+
+      return entity;
+    } catch (error) {
+      console.error(`Error fetching node type ${id}:`, error);
+      return this.fallbackNodeTypes.find((node) => node.id === id) || null;
+    }
   }
 
-  getCategories(): NodeCategory[] {
-    return this.categories;
+  async getCategories(): Promise<NodeCategory[]> {
+    try {
+      const result = await this.nodeTypeRepository
+        .createQueryBuilder('nodeType')
+        .select('nodeType.category', 'id')
+        .addSelect('nodeType.category', 'label')
+        .where('nodeType.isActive = :isActive', { isActive: true })
+        .groupBy('nodeType.category')
+        .getRawMany();
+
+      if (result.length === 0) {
+        return this.categories;
+      }
+
+      // Add colors from categories mapping
+      return result.map((cat) => ({
+        ...cat,
+        color: this.categories.find((c) => c.id === cat.id)?.color || '#607D8B',
+      }));
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      return this.categories;
+    }
+  }
+
+  // Admin methods for CRUD
+  async create(data: Partial<NodeTypeEntity>): Promise<NodeTypeEntity> {
+    const nodeType = this.nodeTypeRepository.create(data);
+    return this.nodeTypeRepository.save(nodeType);
+  }
+
+  async update(
+    id: string,
+    data: Partial<NodeTypeEntity>,
+  ): Promise<NodeTypeEntity> {
+    await this.nodeTypeRepository.update(id, data);
+    const updated = await this.nodeTypeRepository.findOne({ where: { id } });
+    if (!updated) {
+      throw new Error(`Node type ${id} not found`);
+    }
+    return updated;
+  }
+
+  async remove(id: string): Promise<void> {
+    // Soft delete by setting isActive = false
+    await this.nodeTypeRepository.update(id, { isActive: false });
   }
 }

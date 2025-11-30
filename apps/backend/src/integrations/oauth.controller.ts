@@ -24,7 +24,7 @@ export class OAuthController {
 
     // Get credential by ID if provided, otherwise get first one for provider
     const credential = configId
-      ? await this.integrationsService.findById(+configId)
+      ? await this.integrationsService.findById(configId)
       : await this.integrationsService.findOne(provider);
 
     if (!credential) {
@@ -79,7 +79,7 @@ export class OAuthController {
           const tokenData = await this.oauthService.exchangeFacebookCode(
             credential.clientId,
             credential.clientSecret,
-            code
+            code,
           );
           accessToken = tokenData.accessToken;
           expiresIn = tokenData.expiresIn;
@@ -92,7 +92,7 @@ export class OAuthController {
           const tokenData = await this.oauthService.exchangeGoogleCode(
             credential.clientId,
             credential.clientSecret,
-            code
+            code,
           );
           accessToken = tokenData.accessToken;
           refreshToken = tokenData.refreshToken;
@@ -142,7 +142,10 @@ export class OAuthController {
       console.error('OAuth callback error:', error.response?.data || error);
       return {
         status: 'error',
-        message: error.response?.data?.error?.message || error.message || 'Failed to connect channel',
+        message:
+          error.response?.data?.error?.message ||
+          error.message ||
+          'Failed to connect channel',
       };
     }
   }

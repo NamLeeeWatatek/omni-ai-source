@@ -64,7 +64,7 @@ export function useAIModels(): UseAIModelsReturn {
 
     // Get only available models
     const getAvailableModels = (): AIModel[] => {
-        return models.filter(m => m.is_available)
+        return models.filter(m => m?.is_available === true)
     }
 
     // Get models as select options

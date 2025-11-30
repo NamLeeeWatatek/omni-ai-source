@@ -39,19 +39,19 @@ import {
 } from 'react-icons/fi'
 
 interface Bot {
-    id: number
+    id: string
     name: string
     description?: string
     icon?: string
     is_active: boolean
-    workspace_id: number
+    workspace_id: string
     created_at: string
     updated_at: string
-    flow_id?: number | null
+    flow_id?: string | null
 }
 
 interface Flow {
-    id: number
+    id: string
     name: string
 }
 
@@ -64,7 +64,7 @@ export default function BotsPage() {
         name: '',
         description: '',
         icon: 'FiMessageSquare',
-        flow_id: null as number | null
+        flow_id: null as string | null
     })
     const dispatch = useAppDispatch()
     const { items: flows = [] } = useAppSelector((state: any) => state.flows || {})
@@ -78,7 +78,7 @@ export default function BotsPage() {
         try {
             setLoading(true)
             const data: any = await axiosClient.get('/bots/')
-            setBots(data.bots || [])
+            setBots(Array.isArray(data) ? data : data.bots || [])
         } catch {
             toast.error('Failed to load bots')
         } finally {
@@ -105,7 +105,7 @@ export default function BotsPage() {
     const closeModal = () => {
         setShowModal(false)
         setEditingBot(null)
-        setFormData({ name: '', description: '', flow_id: null })
+        setFormData({ name: '', description: '', icon: 'FiMessageSquare', flow_id: null })
     }
 
     const saveBot = async () => {
@@ -116,7 +116,7 @@ export default function BotsPage() {
 
         try {
             if (editingBot) {
-                await axiosClient.put(`/bots/${editingBot.id}`, formData)
+                await axiosClient.patch(`/bots/${editingBot.id}`, formData)
                 toast.success('Bot updated')
             } else {
                 await axiosClient.post('/bots/', formData)
@@ -129,9 +129,9 @@ export default function BotsPage() {
         }
     }
 
-    const [deleteId, setDeleteId] = useState<number | null>(null)
+    const [deleteId, setDeleteId] = useState<string | null>(null)
 
-    const deleteBot = async (id: number) => {
+    const deleteBot = async (id: string) => {
         setDeleteId(id)
     }
 
@@ -149,7 +149,7 @@ export default function BotsPage() {
 
     const toggleStatus = async (bot: Bot) => {
         try {
-            await axiosClient.put(`/bots/${bot.id}`, {
+            await axiosClient.patch(`/bots/${bot.id}`, {
                 is_active: !bot.is_active
             })
             toast.success('Bot status updated')
@@ -216,7 +216,7 @@ export default function BotsPage() {
                                                     value={bot.icon || 'FiMessageSquare'}
                                                     onChange={async (icon) => {
                                                         try {
-                                                            await axiosClient.put(`/bots/${bot.id}`, { icon })
+                                                            await axiosClient.patch(`/bots/${bot.id}`, { icon })
                                                             toast.success('Icon updated!')
                                                             loadBots()
                                                         } catch {
@@ -235,37 +235,37 @@ export default function BotsPage() {
                                     </div>
                                 </div>
 
-                            <p className="text-sm text-muted-foreground mb-4 min-h-[40px]">
-                                {bot.description || 'No description'}
-                            </p>
+                                <p className="text-sm text-muted-foreground mb-4 min-h-[40px]">
+                                    {bot.description || 'No description'}
+                                </p>
 
-                            <div className="flex items-center gap-2 pt-4 border-t border-border/40">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="flex-1"
-                                    onClick={() => toggleStatus(bot)}
-                                >
-                                    <FiActivity className="w-4 h-4 mr-2" />
-                                    {bot.is_active ? 'Deactivate' : 'Activate'}
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => openModal(bot)}
-                                >
-                                    <FiEdit2 className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => deleteBot(bot.id)}
-                                    className="text-red-500 hover:bg-red-500/10"
-                                >
-                                    <FiTrash2 className="w-4 h-4" />
-                                </Button>
-                            </div>
-                        </Card>
+                                <div className="flex items-center gap-2 pt-4 border-t border-border/40">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-1"
+                                        onClick={() => toggleStatus(bot)}
+                                    >
+                                        <FiActivity className="w-4 h-4 mr-2" />
+                                        {bot.is_active ? 'Deactivate' : 'Activate'}
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => openModal(bot)}
+                                    >
+                                        <FiEdit2 className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => deleteBot(bot.id)}
+                                        className="text-destructive hover:bg-destructive/10"
+                                    >
+                                        <FiTrash2 className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            </Card>
                         )
                     })}
                 </div>
@@ -302,8 +302,8 @@ export default function BotsPage() {
                         <div className="space-y-2">
                             <Label htmlFor="flow">Flow</Label>
                             <Select
-                                value={formData.flow_id?.toString() || 'none'}
-                                onValueChange={(value) => setFormData({ ...formData, flow_id: value === 'none' ? null : Number(value) })}
+                                value={formData.flow_id || 'none'}
+                                onValueChange={(value) => setFormData({ ...formData, flow_id: value === 'none' ? null : value })}
                             >
                                 <SelectTrigger id="flow">
                                     <SelectValue placeholder="No flow (manual responses only)" />
@@ -311,7 +311,7 @@ export default function BotsPage() {
                                 <SelectContent>
                                     <SelectItem value="none">No flow (manual responses only)</SelectItem>
                                     {flows.map((flow: any) => (
-                                        <SelectItem key={flow.id} value={flow.id.toString()}>
+                                        <SelectItem key={flow.id} value={flow.id}>
                                             {flow.name}
                                         </SelectItem>
                                     ))}

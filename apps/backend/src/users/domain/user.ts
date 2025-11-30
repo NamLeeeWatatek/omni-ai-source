@@ -6,9 +6,9 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class User {
   @ApiProperty({
-    type: Number,
+    type: String,
   })
-  id: number;
+  id: string;
 
   @ApiProperty({
     type: String,

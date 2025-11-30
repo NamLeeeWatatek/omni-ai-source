@@ -18,6 +18,7 @@ import { AIChatExecutor } from './execution/executors/ai-chat.executor';
 import { ConditionExecutor } from './execution/executors/condition.executor';
 import { SendMessageExecutor } from './execution/executors/send-message.executor';
 import { ChannelsModule } from '../channels/channels.module';
+import { TemplatesModule } from '../templates/templates.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { ChannelsModule } from '../channels/channels.module';
       NodeExecutionEntity,
     ]),
     ChannelsModule,
+    TemplatesModule,
   ],
   controllers: [FlowsController, ExecutionsController],
   providers: [
@@ -41,7 +43,7 @@ import { ChannelsModule } from '../channels/channels.module';
     ConditionExecutor,
     SendMessageExecutor,
   ],
-  exports: [FlowsService, ExecutionGateway],
+  exports: [FlowsService, ExecutionService, ExecutionGateway],
 })
 export class FlowsModule implements OnModuleInit {
   constructor(
@@ -51,7 +53,7 @@ export class FlowsModule implements OnModuleInit {
     private readonly aiChatExecutor: AIChatExecutor,
     private readonly conditionExecutor: ConditionExecutor,
     private readonly sendMessageExecutor: SendMessageExecutor,
-  ) { }
+  ) {}
 
   onModuleInit() {
     this.strategy.register('http-request', this.httpExecutor);
@@ -60,6 +62,8 @@ export class FlowsModule implements OnModuleInit {
     this.strategy.register('condition', this.conditionExecutor);
     this.strategy.register('send-message', this.sendMessageExecutor);
     // Simple pass-through for webhook trigger
-    this.strategy.register('webhook', { execute: async (input) => ({ success: true, output: input.input }) });
+    this.strategy.register('webhook', {
+      execute: async (input) => ({ success: true, output: input.input }),
+    });
   }
 }

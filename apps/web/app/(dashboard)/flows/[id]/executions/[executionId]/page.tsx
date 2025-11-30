@@ -56,11 +56,11 @@ export default function ExecutionDetailPage({
     params: { id: string; executionId: string }
 }) {
     const { items: nodeTypes = [] } = useAppSelector((state: any) => state.nodeTypes || {})
-    
+
     const getNodeType = (typeId: string) => {
         return nodeTypes.find((nt: any) => nt.id === typeId)
     }
-    
+
     const [execution, setExecution] = useState<Execution | null>(null)
     const [loading, setLoading] = useState(true)
     const [selectedNode, setSelectedNode] = useState<NodeExecution | null>(null)
@@ -107,7 +107,7 @@ export default function ExecutionDetailPage({
                             {data.response}
                         </p>
                     </div>
-                    
+
                     {/* Show metadata if exists */}
                     {(data.model || data.tokens_used) && (
                         <div className="mt-3 pt-3 border-t border-border/40 flex items-center gap-3 text-xs text-muted-foreground">
@@ -138,9 +138,9 @@ export default function ExecutionDetailPage({
         }
 
         // 2. Check if it's a product (has image/name/description)
-        const isProduct = data.image || data.image_url || data.thumbnail || 
-                         (data.name && data.description) ||
-                         (data.title && (data.image || data.url))
+        const isProduct = data.image || data.image_url || data.thumbnail ||
+            (data.name && data.description) ||
+            (data.title && (data.image || data.url))
 
         if (isProduct) {
             const imageUrl = data.image || data.image_url || data.thumbnail || data.url
@@ -168,7 +168,7 @@ export default function ExecutionDetailPage({
                     {/* Product Info */}
                     <div className="p-4 space-y-2">
                         <h4 className="font-semibold text-base">{name}</h4>
-                        
+
                         {description && (
                             <p className="text-sm text-muted-foreground line-clamp-2">
                                 {description}
@@ -280,7 +280,7 @@ export default function ExecutionDetailPage({
     }
 
     return (
-        <div className="p-8">
+        <div className="p-4 space-y-6">
             {/* Header */}
             <div className="mb-8">
                 <div className="flex items-center justify-between mb-4">

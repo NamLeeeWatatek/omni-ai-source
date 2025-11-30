@@ -1,8 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ConversationEntity, MessageEntity } from './infrastructure/persistence/relational/entities/conversation.entity';
-import { CreateConversationDto, CreateMessageDto } from './dto/create-conversation.dto';
+import {
+  ConversationEntity,
+  MessageEntity,
+} from './infrastructure/persistence/relational/entities/conversation.entity';
+import {
+  CreateConversationDto,
+  CreateMessageDto,
+} from './dto/create-conversation.dto';
 
 @Injectable()
 export class ConversationsService {
@@ -22,17 +28,18 @@ export class ConversationsService {
     return this.conversationRepository.save(conversation);
   }
 
-  async findAll(botId?: number) {
-    const query = this.conversationRepository.createQueryBuilder('conversation');
-    
+  async findAll(botId?: string) {
+    const query =
+      this.conversationRepository.createQueryBuilder('conversation');
+
     if (botId) {
       query.where('conversation.botId = :botId', { botId });
     }
-    
+
     return query.getMany();
   }
 
-  async findOne(id: number) {
+  async findOne(id: string) {
     const conversation = await this.conversationRepository.findOne({
       where: { id },
       relations: ['messages'],
@@ -45,9 +52,9 @@ export class ConversationsService {
     return conversation;
   }
 
-  async addMessage(conversationId: number, createDto: CreateMessageDto) {
+  async addMessage(conversationId: string, createDto: CreateMessageDto) {
     const conversation = await this.findOne(conversationId);
-    
+
     const message = this.messageRepository.create({
       conversationId,
       ...createDto,
@@ -57,7 +64,7 @@ export class ConversationsService {
     return this.messageRepository.save(message);
   }
 
-  async getMessages(conversationId: number) {
+  async getMessages(conversationId: string) {
     return this.messageRepository.find({
       where: { conversationId },
       order: { createdAt: 'ASC' },

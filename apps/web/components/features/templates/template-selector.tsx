@@ -8,29 +8,15 @@ import toast from '@/lib/toast'
 import { FiX, FiCheck, FiGrid, FiLayers, FiBox, FiRefreshCw } from 'react-icons/fi'
 import { useAppSelector } from '@/lib/store/hooks'
 import { resolveIcon } from '@/lib/icon-resolver'
-
-interface Template {
-    id: string
-    name: string
-    description: string
-    category: string
-    icon: string
-    template_data?: any
-    usage_count: number
-}
-
-interface TemplateSelectorProps {
-    onSelect: (templateData: any) => void
-    onClose: () => void
-}
+import { Template, TemplateSelectorProps } from '@/lib/types'
 
 export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
     const { items: nodeTypes = [] } = useAppSelector((state: any) => state.nodeTypes || {})
-    
+
     const getNodeType = (typeId: string) => {
         return nodeTypes.find((nt: any) => nt.id === typeId)
     }
-    
+
     // const [activeTab, setActiveTab] = useState<'n8n' | 'standard'>('n8n')
     const [templates, setTemplates] = useState<Template[]>([])
     const [loading, setLoading] = useState(true)

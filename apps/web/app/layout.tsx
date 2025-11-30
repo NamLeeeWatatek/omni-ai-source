@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { SessionProvider } from '@/components/providers/session-provider'
+import { TokenRefreshProvider } from '@/components/providers/token-refresh-provider'
 import { QueryProvider } from '@/components/providers/query-provider'
 import { ReduxProvider } from '@/lib/store/Provider'
 import './globals.css'
@@ -28,19 +29,21 @@ export default function RootLayout({
         <html lang="en" suppressHydrationWarning>
             <body className={`${inter.className} font-sans antialiased`}>
                 <SessionProvider>
-                    <QueryProvider>
-                        <ThemeProvider
-                            attribute="class"
-                            defaultTheme="system"
-                            enableSystem
-                            disableTransitionOnChange
-                        >
-                            <ReduxProvider>
-                                {children}
-                                <Toaster />
-                            </ReduxProvider>
-                        </ThemeProvider>
-                    </QueryProvider>
+                    <TokenRefreshProvider>
+                        <QueryProvider>
+                            <ThemeProvider
+                                attribute="class"
+                                defaultTheme="system"
+                                enableSystem
+                                disableTransitionOnChange
+                            >
+                                <ReduxProvider>
+                                    {children}
+                                    <Toaster />
+                                </ReduxProvider>
+                            </ThemeProvider>
+                        </QueryProvider>
+                    </TokenRefreshProvider>
                 </SessionProvider>
             </body>
         </html>

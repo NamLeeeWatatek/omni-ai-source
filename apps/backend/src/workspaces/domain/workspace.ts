@@ -2,8 +2,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { User } from '../../users/domain/user';
 
 export class Workspace {
-  @ApiProperty({ type: Number })
-  id: number;
+  @ApiProperty({ type: String })
+  id: string;
 
   @ApiProperty({ type: String })
   name: string;
@@ -11,8 +11,8 @@ export class Workspace {
   @ApiProperty({ type: String })
   slug: string;
 
-  @ApiProperty({ type: Number })
-  ownerId: number;
+  @ApiProperty({ type: String })
+  ownerId: string;
 
   @ApiProperty({ type: () => User })
   owner?: User;
@@ -25,14 +25,14 @@ export class Workspace {
 }
 
 export class WorkspaceMember {
-  @ApiProperty({ type: Number })
-  id: number;
+  @ApiProperty({ type: String })
+  id: string;
 
-  @ApiProperty({ type: Number })
-  workspaceId: number;
+  @ApiProperty({ type: String })
+  workspaceId: string;
 
-  @ApiProperty({ type: Number })
-  userId: number;
+  @ApiProperty({ type: String })
+  userId: string;
 
   @ApiProperty({ type: String, enum: ['owner', 'admin', 'member'] })
   role: string;

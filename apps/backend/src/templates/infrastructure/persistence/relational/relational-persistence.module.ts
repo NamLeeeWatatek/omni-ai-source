@@ -1,0 +1,11 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { TemplateEntity } from './entities/template.entity';
+import { TemplateRepository } from './repositories/template.repository';
+
+@Module({
+  imports: [TypeOrmModule.forFeature([TemplateEntity])],
+  providers: [TemplateRepository],
+  exports: [TemplateRepository],
+})
+export class RelationalTemplatePersistenceModule {}

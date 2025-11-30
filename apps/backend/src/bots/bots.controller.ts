@@ -9,7 +9,12 @@ import {
   UseGuards,
   Query,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { BotsService } from './bots.service';
 import { CreateBotDto } from './dto/create-bot.dto';
@@ -32,36 +37,39 @@ export class BotsController {
   @ApiOperation({ summary: 'Get all bots' })
   @ApiQuery({ name: 'workspaceId', required: false })
   findAll(@Query('workspaceId') workspaceId?: string) {
-    return this.botsService.findAll(workspaceId ? +workspaceId : undefined);
+    return this.botsService.findAll(workspaceId);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get bot by ID' })
   findOne(@Param('id') id: string) {
-    return this.botsService.findOne(+id);
+    return this.botsService.findOne(id);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update bot' })
   update(@Param('id') id: string, @Body() updateDto: UpdateBotDto) {
-    return this.botsService.update(+id, updateDto);
+    return this.botsService.update(id, updateDto);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete bot' })
   remove(@Param('id') id: string) {
-    return this.botsService.remove(+id);
+    return this.botsService.remove(id);
   }
 
   @Post(':id/versions')
   @ApiOperation({ summary: 'Create flow version' })
-  createVersion(@Param('id') id: string, @Body() body: { flow: Record<string, any> }) {
-    return this.botsService.createFlowVersion(+id, body.flow);
+  createVersion(
+    @Param('id') id: string,
+    @Body() body: { flow: Record<string, any> },
+  ) {
+    return this.botsService.createFlowVersion(id, body.flow);
   }
 
   @Post('versions/:versionId/publish')
   @ApiOperation({ summary: 'Publish flow version' })
   publishVersion(@Param('versionId') versionId: string) {
-    return this.botsService.publishFlowVersion(+versionId);
+    return this.botsService.publishFlowVersion(versionId);
   }
 }

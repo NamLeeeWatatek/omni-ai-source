@@ -8,6 +8,8 @@ import { RoleSeedModule } from './role/role-seed.module';
 import { StatusSeedModule } from './status/status-seed.module';
 import { UserSeedModule } from './user/user-seed.module';
 import { PermissionSeedModule } from './permission/permission-seed.module';
+import { NodeTypeSeedModule } from './node-type/node-type-seed.module';
+import { TemplateSeedModule } from './template/template-seed.module';
 import databaseConfig from '../../config/database.config';
 import appConfig from '../../../config/app.config';
 
@@ -17,6 +19,8 @@ import appConfig from '../../../config/app.config';
     RoleSeedModule,
     StatusSeedModule,
     UserSeedModule,
+    NodeTypeSeedModule,
+    TemplateSeedModule,
     ConfigModule.forRoot({
       isGlobal: true,
       load: [databaseConfig, appConfig],

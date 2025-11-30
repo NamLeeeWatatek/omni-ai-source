@@ -1,11 +1,11 @@
 import {
-    Column,
-    CreateDateColumn,
-    Entity,
-    PrimaryGeneratedColumn,
-    UpdateDateColumn,
-    Index,
-    OneToMany,
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+  Index,
+  OneToMany,
 } from 'typeorm';
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 import { NodeExecutionEntity } from './node-execution.entity';
@@ -15,43 +15,43 @@ import { NodeExecutionEntity } from './node-execution.entity';
  */
 @Entity({ name: 'flow_execution' })
 export class FlowExecutionEntity extends EntityRelationalHelper {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    @Index()
-    @Column({ type: String, unique: true })
-    executionId: string; // exec-timestamp-random
+  @Index()
+  @Column({ type: String, unique: true })
+  executionId: string; // exec-timestamp-random
 
-    @Index()
-    @Column({ type: 'int' })
-    flowId: number;
+  @Index()
+  @Column({ type: 'uuid' })
+  flowId: string;
 
-    @Column({ type: String })
-    status: string; // running, completed, failed
+  @Column({ type: String })
+  status: string; // running, completed, failed
 
-    @Column({ type: 'bigint' })
-    startTime: number;
+  @Column({ type: 'bigint' })
+  startTime: number;
 
-    @Column({ type: 'bigint', nullable: true })
-    endTime?: number | null;
+  @Column({ type: 'bigint', nullable: true })
+  endTime?: number | null;
 
-    @Column({ type: 'jsonb', nullable: true })
-    result?: Record<string, any> | null;
+  @Column({ type: 'jsonb', nullable: true })
+  result?: Record<string, any> | null;
 
-    @Column({ type: String, nullable: true })
-    error?: string | null;
+  @Column({ type: String, nullable: true })
+  error?: string | null;
 
-    @Column({ type: 'int', nullable: true })
-    workspaceId?: number | null;
+  @Column({ type: 'uuid', nullable: true })
+  workspaceId?: string | null;
 
-    @OneToMany(() => NodeExecutionEntity, (node) => node.execution, {
-        cascade: true,
-    })
-    nodeExecutions?: NodeExecutionEntity[];
+  @OneToMany(() => NodeExecutionEntity, (node) => node.execution, {
+    cascade: true,
+  })
+  nodeExecutions?: NodeExecutionEntity[];
 
-    @CreateDateColumn()
-    createdAt: Date;
+  @CreateDateColumn()
+  createdAt: Date;
 
-    @UpdateDateColumn()
-    updatedAt: Date;
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

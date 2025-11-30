@@ -2,8 +2,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { User } from '../../users/domain/user';
 
 export class Flow {
-  @ApiProperty({ type: Number })
-  id: number;
+  @ApiProperty({ type: String })
+  id: string;
 
   @ApiProperty({ type: String })
   name: string;
@@ -17,8 +17,8 @@ export class Flow {
   @ApiProperty({ type: Number, default: 1 })
   version: number;
 
-  @ApiPropertyOptional({ type: Number })
-  templateId?: number | null;
+  @ApiPropertyOptional({ type: String })
+  templateId?: string | null;
 
   @ApiProperty({ type: Object })
   data: Record<string, any>;
@@ -26,14 +26,14 @@ export class Flow {
   @ApiPropertyOptional({ type: String })
   userId?: string | null;
 
-  @ApiPropertyOptional({ type: Number })
-  channelId?: number | null;
+  @ApiPropertyOptional({ type: String })
+  channelId?: string | null;
 
-  @ApiPropertyOptional({ type: Number })
-  ownerId?: number | null;
+  @ApiPropertyOptional({ type: String })
+  ownerId?: string | null;
 
-  @ApiPropertyOptional({ type: Number })
-  teamId?: number | null;
+  @ApiPropertyOptional({ type: String })
+  teamId?: string | null;
 
   @ApiProperty({ type: String, default: 'private' })
   visibility: string;

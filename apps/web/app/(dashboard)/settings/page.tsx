@@ -58,34 +58,42 @@ export default function AIModelsPage() {
             </header>
 
             {error && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg mb-8">
+                <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-lg mb-8">
                     {error}
                 </div>
             )}
 
             <div className="grid gap-6">
-                {providers.map((providerGroup) => (
-                    <Card key={providerGroup.provider} className="overflow-hidden">
-                        <div className="px-6 py-4 border-b border-border/40 flex justify-between items-center">
-                            <h3 className="text-lg font-medium capitalize flex items-center gap-2">
-                                {providerGroup.provider === 'gemini' && (
-                                    <span className="text-blue-400">Google Gemini</span>
-                                )}
-                                {providerGroup.provider === 'openai' && (
-                                    <span className="text-green-400">OpenAI</span>
-                                )}
-                                {providerGroup.provider === 'anthropic' && (
-                                    <span className="text-orange-400">Anthropic</span>
-                                )}
-                                {!['gemini', 'openai', 'anthropic'].includes(providerGroup.provider) && providerGroup.provider}
-                            </h3>
-                            <Badge variant="default">
-                                {providerGroup.models.length} Models
-                            </Badge>
-                        </div>
+                {providers.length === 0 ? (
+                    <Card className="p-8 text-center">
+                        <p className="text-muted-foreground">No AI models configured yet.</p>
+                        <p className="text-sm text-muted-foreground mt-2">
+                            Configure API keys in your environment variables to enable AI models.
+                        </p>
+                    </Card>
+                ) : (
+                    providers.map((providerGroup) => (
+                        <Card key={providerGroup.provider} className="overflow-hidden">
+                            <div className="px-6 py-4 border-b border-border/40 flex justify-between items-center">
+                                <h3 className="text-lg font-medium capitalize flex items-center gap-2">
+                                    {providerGroup.provider === 'google' && (
+                                        <span className="text-blue-500 dark:text-blue-400">Google Gemini</span>
+                                    )}
+                                    {providerGroup.provider === 'openai' && (
+                                        <span className="text-green-500 dark:text-green-400">OpenAI</span>
+                                    )}
+                                    {providerGroup.provider === 'anthropic' && (
+                                        <span className="text-orange-500 dark:text-orange-400">Anthropic</span>
+                                    )}
+                                    {!['google', 'openai', 'anthropic'].includes(providerGroup.provider) && providerGroup.provider}
+                                </h3>
+                                <Badge variant="default">
+                                    {providerGroup.models?.length || 0} Models
+                                </Badge>
+                            </div>
 
-                        <div className="divide-y divide-border/40">
-                            {providerGroup.models.map((model) => (
+                            <div className="divide-y divide-border/40">
+                                {(providerGroup.models || []).map((model) => (
                                 <div key={model.model_name} className="p-6 hover:bg-muted/30 transition-colors group">
                                     <div className="flex items-start justify-between mb-4">
                                         <div>
@@ -93,9 +101,9 @@ export default function AIModelsPage() {
                                                 <h4 className="text-base font-medium group-hover:text-primary transition-colors">
                                                     {model.display_name}
                                                 </h4>
-                                                {model.model_name === 'gemini-2.5-flash' && (
-                                                    <Badge variant="info" className="text-[10px] font-bold">
-                                                        NEW
+                                                {(model.model_name === 'gemini-2.5-flash' || model.model_name === 'gemini-2.5-pro') && (
+                                                    <Badge variant="default" className="text-[10px] font-bold bg-blue-500/10 text-blue-500 border-blue-500/20">
+                                                        RECOMMENDED
                                                     </Badge>
                                                 )}
                                             </div>
@@ -109,20 +117,85 @@ export default function AIModelsPage() {
                                     </div>
 
                                     <div className="flex flex-wrap gap-2 mt-4">
-                                        {model.capabilities.map((cap) => (
-                                            <Badge key={cap} variant="default">
+                                        {(model.capabilities || []).map((cap) => (
+                                            <Badge key={cap} variant="outline" className="text-xs">
                                                 {cap}
                                             </Badge>
                                         ))}
-                                        <Badge variant="default">
-                                            {model.max_tokens.toLocaleString()} tokens
+                                        <Badge variant="outline" className="text-xs">
+                                            {(model.max_tokens || 0).toLocaleString()} tokens
                                         </Badge>
                                     </div>
+                                    
+                                    {!model.is_available && (
+                                        <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                                            <p className="text-xs text-amber-600 dark:text-amber-400">
+                                                <strong>Setup Required:</strong> Configure {providerGroup.provider.toUpperCase()}_API_KEY in environment variables
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
                     </Card>
-                ))}
+                    ))
+                )}
+            </div>
+
+            {/* Additional Settings Section */}
+            <div className="mt-8 grid gap-6">
+                <Card className="p-6">
+                    <h2 className="text-xl font-semibold mb-4">System Information</h2>
+                    <div className="grid gap-4">
+                        <div className="flex justify-between items-center py-2 border-b border-border/40">
+                            <span className="text-sm text-muted-foreground">Platform</span>
+                            <span className="text-sm font-medium">WataOmi - One AI. Every Channel. Zero Code.</span>
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-border/40">
+                            <span className="text-sm text-muted-foreground">Version</span>
+                            <Badge variant="default">v1.0.0</Badge>
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-border/40">
+                            <span className="text-sm text-muted-foreground">API Status</span>
+                            <Badge variant="success">Connected</Badge>
+                        </div>
+                        <div className="flex justify-between items-center py-2">
+                            <span className="text-sm text-muted-foreground">Active Models</span>
+                            <Badge variant="default">
+                                {providers.reduce((acc, p) => acc + (p.models?.filter(m => m.is_available).length || 0), 0)} Available
+                            </Badge>
+                        </div>
+                    </div>
+                </Card>
+
+                <Card className="p-6">
+                    <h2 className="text-xl font-semibold mb-4">Quick Links</h2>
+                    <div className="grid gap-3">
+                        <a 
+                            href="/api/docs" 
+                            target="_blank"
+                            className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors group"
+                        >
+                            <span className="text-sm font-medium group-hover:text-primary">API Documentation</span>
+                            <span className="text-xs text-muted-foreground">→</span>
+                        </a>
+                        <a 
+                            href="https://github.com/wataomi/wataomi" 
+                            target="_blank"
+                            className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors group"
+                        >
+                            <span className="text-sm font-medium group-hover:text-primary">GitHub Repository</span>
+                            <span className="text-xs text-muted-foreground">→</span>
+                        </a>
+                        <a 
+                            href="/knowledge-base" 
+                            className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors group"
+                        >
+                            <span className="text-sm font-medium group-hover:text-primary">Knowledge Base</span>
+                            <span className="text-xs text-muted-foreground">→</span>
+                        </a>
+                    </div>
+                </Card>
             </div>
         </div>
     );

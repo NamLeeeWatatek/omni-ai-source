@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { FiChevronDown, FiChevronRight, FiRefreshCw } from 'react-icons/fi'
 import { useAppDispatch, useAppSelector } from '@/lib/store/hooks'
-import { fetchNodeTypes, fetchNodeCategories } from '@/lib/store/slices/nodeTypesSlice'
-import { NodeType } from '@/lib/nodeTypes'
+import { fetchNodeTypes, fetchNodeCategories, type NodeType } from '@/lib/store/slices/nodeTypesSlice'
 import { getNodeIcon } from '@/lib/icon-resolver'
 import toast from '@/lib/toast'
 

@@ -12,10 +12,10 @@ export class TemplatesController {
   @ApiOperation({ summary: 'Get all workflow templates' })
   @ApiQuery({ name: 'category', required: false })
   @ApiQuery({ name: 'search', required: false })
-  findAll(
+  async findAll(
     @Query('category') category?: string,
     @Query('search') search?: string,
-  ): Template[] {
+  ): Promise<Template[]> {
     if (search) {
       return this.templatesService.search(search);
     }
@@ -30,7 +30,7 @@ export class TemplatesController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get template by ID' })
-  findOne(@Param('id') id: string): Template | undefined {
+  async findOne(@Param('id') id: string): Promise<Template | null> {
     return this.templatesService.findOne(id);
   }
 }

@@ -21,7 +21,7 @@ export function AIFloatingButton() {
     const router = useRouter()
 
     useEffect(() => {
-        // Fetch default model
+        // Fetch default model from backend
         fetchAPI('/ai/models').then(data => {
             const allModels = data.flatMap((provider: any) => provider.models)
             const available = allModels.find((m: any) => m.is_available)

@@ -1,16 +1,22 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsString, IsOptional, IsObject } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsUUID,
+  IsString,
+  IsOptional,
+  IsObject,
+} from 'class-validator';
 
 export class CreateConversationDto {
-  @ApiProperty({ example: 1 })
+  @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
   @IsNotEmpty()
-  @IsNumber()
-  botId: number;
+  @IsUUID()
+  botId: string;
 
-  @ApiPropertyOptional({ example: 1 })
+  @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000' })
   @IsOptional()
-  @IsNumber()
-  channelId?: number;
+  @IsUUID()
+  channelId?: string;
 
   @ApiProperty({ example: 'user-123' })
   @IsNotEmpty()

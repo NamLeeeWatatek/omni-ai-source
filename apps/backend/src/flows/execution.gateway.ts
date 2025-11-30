@@ -8,11 +8,10 @@ import { Server } from 'socket.io';
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.FRONTEND_DOMAIN || 'http://localhost:3000',
+    origin: '*', // Allow all origins for development
     credentials: true,
   },
-  namespace: /^\/ws\/execute\/\d+$/,
-  path: '/api/v1/socket.io',
+  namespace: 'executions', // Simple namespace
 })
 export class ExecutionGateway
   implements OnGatewayConnection, OnGatewayDisconnect
@@ -30,7 +29,7 @@ export class ExecutionGateway
 
   // Emit execution events
   emitExecutionStart(executionId: string, flowId: string) {
-    this.server.emit(`execution:${executionId}:start`, {
+    this.server.emit('execution:start', {
       executionId,
       flowId,
       timestamp: Date.now(),
@@ -43,7 +42,7 @@ export class ExecutionGateway
     status: string,
     data?: any,
   ) {
-    this.server.emit(`execution:${executionId}:progress`, {
+    this.server.emit('execution:progress', {
       executionId,
       nodeId,
       status,
@@ -53,7 +52,7 @@ export class ExecutionGateway
   }
 
   emitExecutionComplete(executionId: string, result: any) {
-    this.server.emit(`execution:${executionId}:complete`, {
+    this.server.emit('execution:complete', {
       executionId,
       result,
       timestamp: Date.now(),
@@ -61,7 +60,7 @@ export class ExecutionGateway
   }
 
   emitExecutionError(executionId: string, error: any) {
-    this.server.emit(`execution:${executionId}:error`, {
+    this.server.emit('execution:error', {
       executionId,
       error,
       timestamp: Date.now(),
@@ -69,7 +68,7 @@ export class ExecutionGateway
   }
 
   emitNodeExecutionStart(executionId: string, nodeId: string) {
-    this.server.emit(`execution:${executionId}:node:${nodeId}:start`, {
+    this.server.emit('execution:node:start', {
       executionId,
       nodeId,
       timestamp: Date.now(),
@@ -77,7 +76,7 @@ export class ExecutionGateway
   }
 
   emitNodeExecutionComplete(executionId: string, nodeId: string, output: any) {
-    this.server.emit(`execution:${executionId}:node:${nodeId}:complete`, {
+    this.server.emit('execution:node:complete', {
       executionId,
       nodeId,
       output,
@@ -86,7 +85,7 @@ export class ExecutionGateway
   }
 
   emitNodeExecutionError(executionId: string, nodeId: string, error: any) {
-    this.server.emit(`execution:${executionId}:node:${nodeId}:error`, {
+    this.server.emit('execution:node:error', {
       executionId,
       nodeId,
       error,

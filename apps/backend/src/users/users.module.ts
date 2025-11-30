@@ -1,7 +1,10 @@
 import {
   // common
   Module,
+  forwardRef,
+  OnModuleInit,
 } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 import { UsersController } from './users.controller';
 
@@ -24,9 +27,25 @@ const infrastructurePersistenceModule = (databaseConfig() as DatabaseConfig)
     // import modules, etc.
     infrastructurePersistenceModule,
     FilesModule,
+    forwardRef(() => import('../auth-casdoor/auth-casdoor.module').then(m => m.AuthCasdoorModule)),
   ],
   controllers: [UsersController],
   providers: [UsersService],
   exports: [UsersService, infrastructurePersistenceModule],
 })
-export class UsersModule {}
+export class UsersModule implements OnModuleInit {
+  constructor(private moduleRef: ModuleRef) {}
+
+  async onModuleInit() {
+    // Inject CasdoorSyncService after module initialization to avoid circular dependency
+    try {
+      const { CasdoorSyncService } = await import('../auth-casdoor/casdoor-sync.service');
+      const casdoorSyncService = this.moduleRef.get(CasdoorSyncService, { strict: false });
+      const usersService = this.moduleRef.get(UsersService);
+      usersService.setCasdoorSyncService(casdoorSyncService);
+    } catch (error) {
+      // CasdoorSyncService might not be available in all environments
+      console.log('CasdoorSyncService not available');
+    }
+  }
+}

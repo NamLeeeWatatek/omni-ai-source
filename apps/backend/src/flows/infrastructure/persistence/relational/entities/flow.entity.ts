@@ -11,8 +11,8 @@ import { UserEntity } from '../../../../../users/infrastructure/persistence/rela
 
 @Entity({ name: 'flow' })
 export class FlowEntity extends EntityRelationalHelper {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column({ type: String })
   name: string;
@@ -26,8 +26,8 @@ export class FlowEntity extends EntityRelationalHelper {
   @Column({ type: 'int', default: 1 })
   version: number;
 
-  @Column({ type: 'int', nullable: true })
-  templateId?: number | null;
+  @Column({ type: String, nullable: true })
+  templateId?: string | null;
 
   @Column({ type: 'jsonb', default: {} })
   data: Record<string, any>;
@@ -35,14 +35,14 @@ export class FlowEntity extends EntityRelationalHelper {
   @Column({ type: String, nullable: true })
   userId?: string | null;
 
-  @Column({ type: 'int', nullable: true })
-  channelId?: number | null;
+  @Column({ type: 'uuid', nullable: true })
+  channelId?: string | null;
 
-  @Column({ type: 'int', nullable: true })
-  ownerId?: number | null;
+  @Column({ type: 'uuid', nullable: true })
+  ownerId?: string | null;
 
-  @Column({ type: 'int', nullable: true })
-  teamId?: number | null;
+  @Column({ type: 'uuid', nullable: true })
+  teamId?: string | null;
 
   @Column({ type: String, default: 'private' })
   visibility: string;

@@ -2,29 +2,29 @@
  * Input for node execution
  */
 export interface NodeExecutionInput {
-    nodeId: string;
-    nodeType: string;
-    data: Record<string, any>;
-    input: any;
-    context: {
-        executionId: string;
-        flowId: string;
-        workspaceId?: number;
-    };
+  nodeId: string;
+  nodeType: string;
+  data: Record<string, any>;
+  input: any;
+  context: {
+    executionId: string;
+    flowId: string;
+    workspaceId?: string;
+  };
 }
 
 /**
  * Output from node execution
  */
 export interface NodeExecutionOutput {
-    success: boolean;
-    output: any;
-    error?: string;
+  success: boolean;
+  output: any;
+  error?: string;
 }
 
 /**
  * Interface for node executors
  */
 export interface NodeExecutor {
-    execute(input: NodeExecutionInput): Promise<NodeExecutionOutput>;
+  execute(input: NodeExecutionInput): Promise<NodeExecutionOutput>;
 }

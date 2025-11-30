@@ -26,7 +26,8 @@ export class AuthCasdoorService {
     private readonly sessionService: SessionService,
     private readonly jwtService: JwtService,
   ) {
-    this.casdoorEndpoint = process.env.CASDOOR_ENDPOINT || 'http://localhost:8030';
+    this.casdoorEndpoint =
+      process.env.CASDOOR_ENDPOINT || 'http://localhost:8030';
     this.clientId = process.env.CASDOOR_CLIENT_ID || '';
     this.clientSecret = process.env.CASDOOR_CLIENT_SECRET || '';
     this.appName = process.env.CASDOOR_APP_NAME || 'wataomi-app';
@@ -38,7 +39,9 @@ export class AuthCasdoorService {
   ): Promise<LoginResponseDto> {
     const { code, state } = casdoorCallbackDto;
 
-    this.logger.log(`Received Casdoor callback with code: ${code?.substring(0, 10)}...`);
+    this.logger.log(
+      `Received Casdoor callback with code: ${code?.substring(0, 10)}...`,
+    );
 
     if (!code) {
       throw new UnauthorizedException('Authorization code is required');
@@ -50,7 +53,9 @@ export class AuthCasdoorService {
       this.logger.log('Successfully exchanged code for token');
 
       // 2. Get user info from Casdoor
-      const casdoorUser = await this.getCasdoorUserInfo(tokenResponse.access_token);
+      const casdoorUser = await this.getCasdoorUserInfo(
+        tokenResponse.access_token,
+      );
       this.logger.log(`Retrieved user info for: ${casdoorUser.name}`);
 
       // 3. Create or update user in database
@@ -117,7 +122,7 @@ export class AuthCasdoorService {
 
   private async exchangeCodeForToken(code: string): Promise<any> {
     const tokenUrl = `${this.casdoorEndpoint}/api/login/oauth/access_token`;
-    
+
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
       client_id: this.clientId,
@@ -165,11 +170,16 @@ export class AuthCasdoorService {
     // The userinfo returns 'name' field which is the username, and 'preferred_username' which is owner/name
     // We need to use owner and name separately, or use the preferred_username if available
     let getUserUrl: string;
-    
-    if (userInfo.preferred_username && userInfo.preferred_username.includes('/')) {
+
+    if (
+      userInfo.preferred_username &&
+      userInfo.preferred_username.includes('/')
+    ) {
       // Use preferred_username if it's in owner/name format
       getUserUrl = `${this.casdoorEndpoint}/api/get-user?id=${encodeURIComponent(userInfo.preferred_username)}`;
-      this.logger.log(`Using preferred_username: ${userInfo.preferred_username}`);
+      this.logger.log(
+        `Using preferred_username: ${userInfo.preferred_username}`,
+      );
     } else if (userInfo.name) {
       // Use owner and name parameters separately
       // Owner is the organization name from config
@@ -213,25 +223,31 @@ export class AuthCasdoorService {
     // Find or create user based on Casdoor ID or email
     // Casdoor user object structure: { owner, name, displayName, email, isAdmin, tag, type, roles, ... }
     const userName = casdoorUser.name || casdoorUser.id;
-    const email = casdoorUser.email || `${userName}@${casdoorUser.owner || 'wataomi'}.local`;
-    
-    this.logger.log(`Syncing user: ${email} (Casdoor ID: ${casdoorUser.owner}/${casdoorUser.name})`);
-    
+    const email =
+      casdoorUser.email ||
+      `${userName}@${casdoorUser.owner || 'wataomi'}.local`;
+
+    this.logger.log(
+      `Syncing user: ${email} (Casdoor ID: ${casdoorUser.owner}/${casdoorUser.name})`,
+    );
+
     // Debug: Log the fields we're checking
     this.logger.log(`Checking admin status:`);
     this.logger.log(`  - casdoorUser.isAdmin: ${casdoorUser.isAdmin}`);
     this.logger.log(`  - casdoorUser.tag: ${casdoorUser.tag}`);
     this.logger.log(`  - casdoorUser.type: ${casdoorUser.type}`);
-    this.logger.log(`  - casdoorUser.roles: ${JSON.stringify(casdoorUser.roles)}`);
-    
+    this.logger.log(
+      `  - casdoorUser.roles: ${JSON.stringify(casdoorUser.roles)}`,
+    );
+
     // Map Casdoor role to backend role
-    // Priority: 
+    // Priority:
     // 1. isAdmin field (boolean)
     // 2. tag field (string) - this is what you set in Casdoor UI
     // 3. roles array
     // 4. type field
     let isAdmin = false;
-    
+
     if (casdoorUser.isAdmin === true) {
       isAdmin = true;
       this.logger.log(`User is admin via isAdmin field`);
@@ -239,21 +255,33 @@ export class AuthCasdoorService {
       // Tag is the role you set in Casdoor UI (super_admin, admin, manager, etc.)
       const tag = casdoorUser.tag.toLowerCase();
       isAdmin = tag === 'super_admin' || tag === 'admin';
-      this.logger.log(`User role from tag: ${casdoorUser.tag}, isAdmin: ${isAdmin}`);
-    } else if (Array.isArray(casdoorUser.roles) && casdoorUser.roles.length > 0) {
+      this.logger.log(
+        `User role from tag: ${casdoorUser.tag}, isAdmin: ${isAdmin}`,
+      );
+    } else if (
+      Array.isArray(casdoorUser.roles) &&
+      casdoorUser.roles.length > 0
+    ) {
       // Check roles array
-      const roleNames = casdoorUser.roles.map((r: any) => (typeof r === 'string' ? r : r.name).toLowerCase());
-      isAdmin = roleNames.includes('admin') || roleNames.includes('super_admin');
-      this.logger.log(`User roles: ${roleNames.join(', ')}, isAdmin: ${isAdmin}`);
+      const roleNames = casdoorUser.roles.map((r: any) =>
+        (typeof r === 'string' ? r : r.name).toLowerCase(),
+      );
+      isAdmin =
+        roleNames.includes('admin') || roleNames.includes('super_admin');
+      this.logger.log(
+        `User roles: ${roleNames.join(', ')}, isAdmin: ${isAdmin}`,
+      );
     } else if (casdoorUser.type) {
       isAdmin = casdoorUser.type.toLowerCase() === 'admin';
       this.logger.log(`User type: ${casdoorUser.type}, isAdmin: ${isAdmin}`);
     }
-    
+
     const roleId = isAdmin ? 1 : 2; // 1 = admin, 2 = user (from RoleEnum)
-    
-    this.logger.log(`Final determination - isAdmin: ${isAdmin}, roleId: ${roleId}`);
-    
+
+    this.logger.log(
+      `Final determination - isAdmin: ${isAdmin}, roleId: ${roleId}`,
+    );
+
     let user = await this.usersService.findByEmail(email);
 
     if (!user) {
@@ -267,8 +295,11 @@ export class AuthCasdoorService {
         socialId: casdoorUser.id || `${casdoorUser.owner}/${casdoorUser.name}`,
         role: { id: roleId },
         status: { id: 1 }, // 1 = active
+        photo: null, // Don't set photo to avoid FK constraint error
       });
-      this.logger.log(`Created new user: ${email} with role: ${isAdmin ? 'admin' : 'user'}`);
+      this.logger.log(
+        `Created new user: ${email} with role: ${isAdmin ? 'admin' : 'user'}`,
+      );
     } else {
       // Update existing user role if changed
       if (user.role?.id !== roleId) {

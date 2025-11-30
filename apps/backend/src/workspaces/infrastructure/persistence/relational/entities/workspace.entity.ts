@@ -14,8 +14,8 @@ import { BotEntity } from '../../../../../bots/infrastructure/persistence/relati
 
 @Entity({ name: 'workspace' })
 export class WorkspaceEntity extends EntityRelationalHelper {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column({ type: String })
   name: string;
@@ -24,8 +24,8 @@ export class WorkspaceEntity extends EntityRelationalHelper {
   @Column({ type: String, unique: true })
   slug: string;
 
-  @Column({ type: 'int' })
-  ownerId: number;
+  @Column({ type: 'uuid' })
+  ownerId: string;
 
   @ManyToOne(() => UserEntity)
   owner?: UserEntity;
@@ -45,14 +45,14 @@ export class WorkspaceEntity extends EntityRelationalHelper {
 
 @Entity({ name: 'workspace_member' })
 export class WorkspaceMemberEntity extends EntityRelationalHelper {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column({ type: 'int' })
-  workspaceId: number;
+  @Column({ type: 'uuid' })
+  workspaceId: string;
 
-  @Column({ type: 'int' })
-  userId: number;
+  @Column({ type: 'uuid' })
+  userId: string;
 
   @Column({ type: String, default: 'member' })
   role: string;

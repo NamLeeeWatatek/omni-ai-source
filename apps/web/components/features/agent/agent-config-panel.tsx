@@ -38,13 +38,6 @@ const tones = [
     { value: 'informal', label: 'Informal' }
 ]
 
-// Fallback models if API fails to load
-const models = [
-    { value: 'gpt-4o', label: 'GPT-4o' },
-    { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-    { value: 'claude-3-sonnet', label: 'Claude 3 Sonnet' }
-]
-
 export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelProps) {
     const [config, setConfig] = useState<AgentConfig>({
         flow_id: flowId,
@@ -85,7 +78,7 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
             if (config.id) {
                 // Update existing
                 await fetchAPI(`/agent-configs/${flowId}`, {
-                    method: 'PUT',
+                    method: 'PATCH',
                     body: JSON.stringify(config)
                 })
             } else {

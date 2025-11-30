@@ -1,4 +1,4 @@
-import { Module, OnModuleInit } from '@nestjs/common';
+import { Module, OnModuleInit, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ChannelsController } from './channels.controller';
 import { ChannelsService } from './channels.service';
@@ -11,13 +11,17 @@ import {
   ChannelConnectionEntity,
   ChannelCredentialEntity,
 } from '../integrations/infrastructure/persistence/relational/entities';
+import { ConversationEntity } from '../conversations/infrastructure/persistence/relational/entities/conversation.entity';
+import { BotsModule } from '../bots/bots.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       ChannelConnectionEntity,
       ChannelCredentialEntity,
+      ConversationEntity,
     ]),
+    forwardRef(() => BotsModule),
   ],
   controllers: [ChannelsController, WebhooksController],
   providers: [
@@ -35,7 +39,7 @@ export class ChannelsModule implements OnModuleInit {
     private readonly facebookProvider: FacebookProvider,
     private readonly googleProvider: GoogleProvider,
     private readonly omiProvider: OmiProvider,
-  ) { }
+  ) {}
 
   onModuleInit() {
     // Register all channel providers

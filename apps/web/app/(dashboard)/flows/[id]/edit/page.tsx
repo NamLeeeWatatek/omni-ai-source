@@ -58,7 +58,7 @@ import CustomNode from '@/components/features/workflow/custom-node'
 import { TestNodePanel } from '@/components/features/workflow/test-node-panel'
 import { NodeContextMenu } from '@/components/features/workflow/node-context-menu'
 import { ExecuteFlowModal } from '@/components/features/workflow/execute-flow-modal'
-import { NodeType } from '@/lib/nodeTypes'
+import type { NodeType } from '@/lib/store/slices/nodeTypesSlice'
 import { useExecutionWebSocket } from '@/lib/hooks/use-execution-websocket'
 
 const nodeTypes = {

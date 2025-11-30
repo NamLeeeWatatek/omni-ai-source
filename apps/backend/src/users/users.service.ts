@@ -2,6 +2,8 @@ import {
   HttpStatus,
   Injectable,
   UnprocessableEntityException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { NullableType } from '../utils/types/nullable.type';
@@ -21,10 +23,19 @@ import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
+  private casdoorSyncService: any;
+
   constructor(
     private readonly usersRepository: UserRepository,
     private readonly filesService: FilesService,
   ) {}
+
+  /**
+   * Set Casdoor sync service (to avoid circular dependency)
+   */
+  setCasdoorSyncService(service: any) {
+    this.casdoorSyncService = service;
+  }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     // Do not remove comment below.
@@ -113,7 +124,7 @@ export class UsersService {
       };
     }
 
-    return this.usersRepository.create({
+    const user = await this.usersRepository.create({
       // Do not remove comment below.
       // <creating-property-payload />
       firstName: createUserDto.firstName,
@@ -126,6 +137,18 @@ export class UsersService {
       provider: createUserDto.provider ?? AuthProvidersEnum.email,
       socialId: createUserDto.socialId,
     });
+
+    // Sync to Casdoor if not from Casdoor
+    if (this.casdoorSyncService && createUserDto.provider !== 'casdoor') {
+      try {
+        await this.casdoorSyncService.syncUserToCasdoor(user);
+      } catch (error) {
+        // Log but don't fail user creation
+        console.error('Failed to sync user to Casdoor:', error);
+      }
+    }
+
+    return user;
   }
 
   findManyWithPagination({
@@ -267,7 +290,7 @@ export class UsersService {
       };
     }
 
-    return this.usersRepository.update(id, {
+    const updatedUser = await this.usersRepository.update(id, {
       // Do not remove comment below.
       // <updating-property-payload />
       firstName: updateUserDto.firstName,
@@ -280,9 +303,34 @@ export class UsersService {
       provider: updateUserDto.provider,
       socialId: updateUserDto.socialId,
     });
+
+    // Sync to Casdoor if role changed
+    if (this.casdoorSyncService && updatedUser && role) {
+      try {
+        await this.casdoorSyncService.syncUserToCasdoor(updatedUser);
+      } catch (error) {
+        // Log but don't fail user update
+        console.error('Failed to sync user to Casdoor:', error);
+      }
+    }
+
+    return updatedUser;
   }
 
   async remove(id: User['id']): Promise<void> {
+    // Get user email before deletion
+    const user = await this.usersRepository.findById(id);
+    
     await this.usersRepository.remove(id);
+
+    // Sync deletion to Casdoor
+    if (this.casdoorSyncService && user?.email) {
+      try {
+        await this.casdoorSyncService.deleteUserFromCasdoor(user.email);
+      } catch (error) {
+        // Log but don't fail user deletion
+        console.error('Failed to delete user from Casdoor:', error);
+      }
+    }
   }
 }

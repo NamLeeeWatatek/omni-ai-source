@@ -42,7 +42,11 @@ export class ExecutionService {
     private nodeExecutionRepository: Repository<NodeExecutionEntity>,
   ) { }
 
-  async executeFlow(flowId: string, flowData: any, inputData?: any): Promise<string> {
+  async executeFlow(
+    flowId: string,
+    flowData: any,
+    inputData?: any,
+  ): Promise<string> {
     const executionId = `exec-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     const execution: FlowExecution = {
@@ -72,7 +76,11 @@ export class ExecutionService {
     return executionId;
   }
 
-  private async executeNodes(executionId: string, flowData: any, inputData: any) {
+  private async executeNodes(
+    executionId: string,
+    flowData: any,
+    inputData: any,
+  ) {
     const execution = this.executions.get(executionId)!;
     const { nodes, edges } = flowData;
 
@@ -107,7 +115,7 @@ export class ExecutionService {
           nodeType: node.type,
           data: node.data,
           input: currentInput,
-          context: { executionId, flowId: execution.flowId }
+          context: { executionId, flowId: execution.flowId },
         });
 
         if (!output.success) {
@@ -119,17 +127,24 @@ export class ExecutionService {
         nodeExecution.endTime = Date.now();
 
         // Emit node complete
-        this.executionGateway.emitNodeExecutionComplete(executionId, nodeId, output.output);
+        this.executionGateway.emitNodeExecutionComplete(
+          executionId,
+          nodeId,
+          output.output,
+        );
 
         currentInput = output.output;
-
       } catch (error) {
         nodeExecution.error = error.message;
         nodeExecution.status = 'error';
         nodeExecution.endTime = Date.now();
 
         // Emit node error
-        this.executionGateway.emitNodeExecutionError(executionId, nodeId, error.message);
+        this.executionGateway.emitNodeExecutionError(
+          executionId,
+          nodeId,
+          error.message,
+        );
 
         // Stop execution on error
         throw error;
@@ -155,12 +170,15 @@ export class ExecutionService {
     await this.saveExecutionToDatabase(execution, execution.flowId);
   }
 
-  private async saveExecutionToDatabase(execution: FlowExecution, flowId: string) {
+  private async saveExecutionToDatabase(
+    execution: FlowExecution,
+    flowId: string,
+  ) {
     try {
       // Create flow execution entity
       const flowExecution = this.flowExecutionRepository.create({
         executionId: execution.executionId,
-        flowId: parseInt(flowId),
+        flowId: flowId,
         status: execution.status,
         startTime: execution.startTime,
         endTime: execution.endTime,
@@ -168,7 +186,8 @@ export class ExecutionService {
         error: execution.error,
       });
 
-      const savedExecution = await this.flowExecutionRepository.save(flowExecution);
+      const savedExecution =
+        await this.flowExecutionRepository.save(flowExecution);
 
       // Create node execution entities
       if (execution.nodes.length > 0) {
@@ -248,7 +267,10 @@ export class ExecutionService {
   }
 
   // New methods for database queries
-  async findAll(flowId?: number, limit: number = 100): Promise<FlowExecutionEntity[]> {
+  async findAll(
+    flowId?: string,
+    limit: number = 100,
+  ): Promise<FlowExecutionEntity[]> {
     const where: any = {};
     if (flowId) {
       where.flowId = flowId;
@@ -262,14 +284,16 @@ export class ExecutionService {
     });
   }
 
-  async findOne(id: number): Promise<FlowExecutionEntity | null> {
+  async findOne(id: string): Promise<FlowExecutionEntity | null> {
     return this.flowExecutionRepository.findOne({
       where: { id },
       relations: ['nodeExecutions'],
     });
   }
 
-  async findByExecutionId(executionId: string): Promise<FlowExecutionEntity | null> {
+  async findByExecutionId(
+    executionId: string,
+  ): Promise<FlowExecutionEntity | null> {
     return this.flowExecutionRepository.findOne({
       where: { executionId },
       relations: ['nodeExecutions'],

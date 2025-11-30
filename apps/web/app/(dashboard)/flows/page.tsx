@@ -92,7 +92,7 @@ function FlowDropdownMenu({
     const router = useRouter()
     const dispatch = useAppDispatch()
     const { canUpdate, canDelete, isLoading } = usePermissions()
-    
+
     // Show all options while loading
     if (isLoading) {
         return (
@@ -176,7 +176,7 @@ function FlowDropdownMenu({
                         </DropdownMenuItem>
 
                         {flowStatus === 'draft' && (
-                            <DropdownMenuItem onClick={handlePublish} className="text-green-500">
+                            <DropdownMenuItem onClick={handlePublish} className="text-success">
                                 <FiPlay className="w-4 h-4 mr-2" />
                                 Publish
                             </DropdownMenuItem>
@@ -199,7 +199,7 @@ function FlowDropdownMenu({
                                 Archive
                             </DropdownMenuItem>
                         ) : (
-                            <DropdownMenuItem onClick={handleUnarchive} className="text-green-500">
+                            <DropdownMenuItem onClick={handleUnarchive} className="text-success">
                                 <FiArchive className="w-4 h-4 mr-2" />
                                 Unarchive
                             </DropdownMenuItem>
@@ -396,7 +396,7 @@ export default function WorkflowsPage() {
                         <button
                             onClick={() => setStatusFilter('draft')}
                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${statusFilter === 'draft'
-                                ? 'bg-yellow-500 text-white'
+                                ? 'bg-warning text-warning-foreground'
                                 : 'text-muted-foreground hover:text-foreground'
                                 }`}
                         >
@@ -405,7 +405,7 @@ export default function WorkflowsPage() {
                         <button
                             onClick={() => setStatusFilter('published')}
                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${statusFilter === 'published'
-                                ? 'bg-green-500 text-white'
+                                ? 'bg-success text-success-foreground'
                                 : 'text-muted-foreground hover:text-foreground'
                                 }`}
                         >
@@ -414,7 +414,7 @@ export default function WorkflowsPage() {
                         <button
                             onClick={() => setStatusFilter('archived')}
                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${statusFilter === 'archived'
-                                ? 'bg-orange-500 text-white'
+                                ? 'bg-destructive text-destructive-foreground'
                                 : 'text-muted-foreground hover:text-foreground'
                                 }`}
                         >
@@ -437,85 +437,89 @@ export default function WorkflowsPage() {
                             <FiList className="w-4 h-4" />
                         </button>
                     </div>
-                </div>
-            </div>
+                </div >
+            </div >
 
             {/* Content */}
-            {loading ? (
-                <div className="flex justify-center items-center py-20">
-                    <Spinner className="size-8 text-primary" />
-                </div>
-            ) : error ? (
-                <div className="text-center py-20 text-red-500">
-                    {error}
-                    <Button variant="outline" onClick={() => dispatch(fetchFlows())} className="ml-4">Retry</Button>
-                </div>
-            ) : displayFlows.length === 0 ? (
-                <Card className="text-center py-20">
-                    <h3 className="text-lg font-semibold mb-2">No workflows found</h3>
-                    <p className="text-muted-foreground mb-4">
-                        {pagination.search ? 'Try adjusting your search terms' : 'Create your first workflow to get started'}
-                    </p>
-                    {!pagination.search && (
-                        <Link href="/flows/new/edit">
-                            <Button>Create Workflow</Button>
-                        </Link>
-                    )}
-                </Card>
-            ) : (
-                <div className="space-y-4">
-                    {viewMode === 'grid' ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {displayFlows.map((flow: any) => (
-                                <WorkflowCard
-                                    key={flow.id}
-                                    workflow={flow}
-                                    onUpdate={() => dispatch(fetchFlows(pagination.buildParams()))}
-                                    onRun={() => handleRunClick(flow.id)}
-                                />
-                            ))}
-                        </div>
-                    ) : (
-                        <FlowsTable
-                            flows={displayFlows}
-                            onUpdate={() => dispatch(fetchFlows(pagination.buildParams()))}
-                            onRun={handleRunClick}
-                        />
-                    )}
+            {
+                loading ? (
+                    <div className="flex justify-center items-center py-20">
+                        <Spinner className="size-8 text-primary" />
+                    </div>
+                ) : error ? (
+                    <div className="text-center py-20 text-destructive">
+                        {error}
+                        <Button variant="outline" onClick={() => dispatch(fetchFlows())} className="ml-4">Retry</Button>
+                    </div>
+                ) : displayFlows.length === 0 ? (
+                    <Card className="text-center py-20">
+                        <h3 className="text-lg font-semibold mb-2">No workflows found</h3>
+                        <p className="text-muted-foreground mb-4">
+                            {pagination.search ? 'Try adjusting your search terms' : 'Create your first workflow to get started'}
+                        </p>
+                        {!pagination.search && (
+                            <Link href="/flows/new/edit">
+                                <Button>Create Workflow</Button>
+                            </Link>
+                        )}
+                    </Card>
+                ) : (
+                    <div className="space-y-4">
+                        {viewMode === 'grid' ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {displayFlows.map((flow: any) => (
+                                    <WorkflowCard
+                                        key={flow.id}
+                                        workflow={flow}
+                                        onUpdate={() => dispatch(fetchFlows(pagination.buildParams()))}
+                                        onRun={() => handleRunClick(flow.id)}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <FlowsTable
+                                flows={displayFlows}
+                                onUpdate={() => dispatch(fetchFlows(pagination.buildParams()))}
+                                onRun={handleRunClick}
+                            />
+                        )}
 
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                        <Pagination
-                            currentPage={page || pagination.page}
-                            totalPages={totalPages || 1}
-                            pageSize={pageSize || pagination.pageSize}
-                            total={total || 0}
-                            onPageChange={pagination.handlePageChange}
-                            onPageSizeChange={pagination.handlePageSizeChange}
-                        />
-                    )}
-                </div>
-            )}
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                            <Pagination
+                                currentPage={page || pagination.page}
+                                totalPages={totalPages || 1}
+                                pageSize={pageSize || pagination.pageSize}
+                                total={total || 0}
+                                onPageChange={pagination.handlePageChange}
+                                onPageSizeChange={pagination.handlePageSizeChange}
+                            />
+                        )}
+                    </div>
+                )
+            }
 
             {/* Template Selector */}
-            {showTemplateSelector && (
-                <TemplateSelector
-                    onSelect={async (templateData) => {
-                        setShowTemplateSelector(false)
+            {
+                showTemplateSelector && (
+                    <TemplateSelector
+                        onSelect={async (templateData) => {
+                            setShowTemplateSelector(false)
 
-                        // Store template in Redux instead of localStorage
-                        dispatch(setDraftTemplate({
-                            name: templateData.name,
-                            nodes: templateData.nodes || [],
-                            edges: templateData.edges || []
-                        }))
+                            // Store template in Redux instead of localStorage
+                            dispatch(setDraftTemplate({
+                                name: templateData.name,
+                                nodes: templateData.nodes || [],
+                                edges: templateData.edges || []
+                            }))
 
-                        // Redirect to create new flow
-                        router.push('/flows/new/edit')
-                    }}
-                    onClose={() => setShowTemplateSelector(false)}
-                />
-            )}
+                            // Redirect to create new flow
+                            router.push('/flows/new/edit')
+                        }}
+                        onClose={() => setShowTemplateSelector(false)}
+                    />
+                )
+            }
 
             {/* Run Modal */}
             <WorkflowRunModal
@@ -537,15 +541,15 @@ export default function WorkflowsPage() {
                 if (!open) setFlowToDelete(null)
             }}>
                 <AlertDialogContent>
-                 
+
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-500 hover:bg-red-600">
+                        <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive hover:bg-destructive/90">
                             Delete
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </div>
+        </div >
     )
 }

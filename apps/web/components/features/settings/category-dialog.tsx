@@ -14,37 +14,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { IconPicker } from './icon-picker';
-
-interface Category {
-  id: number;
-  name: string;
-  slug: string;
-  icon?: string;
-  color: string;
-  description?: string;
-  entity_type: string;
-  order: number;
-}
-
-interface CategoryDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  category: Category | null;
-  entityType: string;
-  onSave: () => void;
-}
+import { Category, CategoryDialogProps } from '@/lib/types';
 
 const PRESET_COLORS = [
-  '#ef4444', '#f59e0b', '#10b981', '#3b82f6', 
+  '#ef4444', '#f59e0b', '#10b981', '#3b82f6',
   '#8b5cf6', '#ec4899', '#06b6d4', '#6366f1'
 ];
 
-export function CategoryDialog({ 
-  open, 
-  onOpenChange, 
-  category, 
+export function CategoryDialog({
+  open,
+  onOpenChange,
+  category,
   entityType,
-  onSave 
+  onSave
 }: CategoryDialogProps) {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -85,16 +67,16 @@ export function CategoryDialog({
     setLoading(true);
 
     try {
-      const data = { 
-        name, 
-        slug, 
-        icon, 
-        color, 
+      const data = {
+        name,
+        slug,
+        icon,
+        color,
         description: description || undefined,
         entity_type: entityType,
         order
       };
-      
+
       if (category) {
         await fetchAPI(`/metadata/categories/${category.id}`, {
           method: 'PATCH',
@@ -106,7 +88,7 @@ export function CategoryDialog({
           body: JSON.stringify(data)
         });
       }
-      
+
       onSave();
     } catch (error) {
       console.error('Failed to save category:', error);
@@ -122,7 +104,7 @@ export function CategoryDialog({
         <DialogHeader>
           <DialogTitle>{category ? 'Edit Category' : 'Create Category'}</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -162,9 +144,8 @@ export function CategoryDialog({
                     key={presetColor}
                     type="button"
                     onClick={() => setColor(presetColor)}
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${
-                      color === presetColor ? 'border-white scale-110' : 'border-transparent'
-                    }`}
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${color === presetColor ? 'border-white scale-110' : 'border-transparent'
+                      }`}
                     style={{ backgroundColor: presetColor }}
                   />
                 ))}

@@ -11,8 +11,8 @@ import { RoleEntity } from '../../../../../roles/infrastructure/persistence/rela
 
 @Entity({ name: 'permission' })
 export class PermissionEntity extends EntityRelationalHelper {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column({ unique: true })
   name: string; // Format: "resource:action" (e.g., "flow:create")

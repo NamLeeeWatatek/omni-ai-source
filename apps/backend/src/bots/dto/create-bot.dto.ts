@@ -1,11 +1,20 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsBoolean, IsOptional, IsNumber } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsBoolean,
+  IsOptional,
+  IsUUID,
+} from 'class-validator';
 
 export class CreateBotDto {
-  @ApiPropertyOptional({ example: 1, description: 'Workspace ID (optional for global bots)' })
+  @ApiPropertyOptional({
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    description: 'Workspace ID (optional for global bots)',
+  })
   @IsOptional()
-  @IsNumber()
-  workspaceId?: number;
+  @IsUUID()
+  workspaceId?: string;
 
   @ApiProperty({ example: 'Customer Support Bot' })
   @IsNotEmpty()
@@ -27,8 +36,8 @@ export class CreateBotDto {
   @IsBoolean()
   isActive?: boolean;
 
-  @ApiPropertyOptional({ example: 1 })
+  @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000' })
   @IsOptional()
-  @IsNumber()
-  flowId?: number;
+  @IsUUID()
+  flowId?: string;
 }

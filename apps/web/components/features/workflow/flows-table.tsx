@@ -33,17 +33,7 @@ import { useAppDispatch } from '@/lib/store/hooks'
 import { updateFlow, deleteFlow, duplicateFlow, archiveFlow } from '@/lib/store/slices/flowsSlice'
 import { AlertDialogConfirm } from '@/components/ui/alert-dialog-confirm'
 import toast from '@/lib/toast'
-
-interface Flow {
-  id: number
-  name: string
-  description?: string
-  status: string
-  updated_at?: string
-  version?: number
-  executions?: number
-  successRate?: number
-}
+import { Flow } from '@/lib/types'
 
 interface FlowsTableProps {
   flows: Flow[]
@@ -82,7 +72,7 @@ export function FlowsTable({ flows, onUpdate, onRun }: FlowsTableProps) {
 
   const confirmBulkDelete = async () => {
     const promises = selectedIds.map(id => dispatch(deleteFlow(id)).unwrap())
-    
+
     toast.promise(Promise.all(promises), {
       loading: `Deleting ${selectedIds.length} workflow(s)...`,
       success: () => {
@@ -98,7 +88,7 @@ export function FlowsTable({ flows, onUpdate, onRun }: FlowsTableProps) {
     if (selectedIds.length === 0) return
 
     const promises = selectedIds.map(id => dispatch(archiveFlow(id)).unwrap())
-    
+
     toast.promise(Promise.all(promises), {
       loading: `Archiving ${selectedIds.length} workflow(s)...`,
       success: () => {
@@ -298,7 +288,7 @@ export function FlowsTable({ flows, onUpdate, onRun }: FlowsTableProps) {
           if (!deleteFlowId) return
           const idToDelete = deleteFlowId
           setDeleteFlowId(null) // Close dialog immediately
-          
+
           try {
             await dispatch(deleteFlow(idToDelete)).unwrap()
             toast.success('Flow deleted!')

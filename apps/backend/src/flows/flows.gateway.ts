@@ -26,9 +26,7 @@ interface FlowUpdate {
   },
   namespace: '/flows',
 })
-export class FlowsGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
-{
+export class FlowsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
@@ -168,11 +166,7 @@ export class FlowsGateway
     });
   }
 
-  emitFlowExecutionCompleted(
-    flowId: string,
-    executionId: string,
-    result: any,
-  ) {
+  emitFlowExecutionCompleted(flowId: string, executionId: string, result: any) {
     this.server.to(`flow-${flowId}`).emit('execution-completed', {
       flowId,
       executionId,

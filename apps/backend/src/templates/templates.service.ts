@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { Template, TemplateCategory } from './domain/template';
+import { TemplateRepository } from './infrastructure/persistence/relational/repositories/template.repository';
 
 @Injectable()
 export class TemplatesService {
+  constructor(private readonly templateRepository: TemplateRepository) {}
+
   private readonly templates: Template[] = [
     {
       id: 'welcome-message',
@@ -67,7 +70,8 @@ export class TemplatesService {
           data: {
             label: 'AI Response',
             model: 'gpt-4',
-            prompt: 'You are a helpful customer support agent. Answer the following question: {{input.message}}',
+            prompt:
+              'You are a helpful customer support agent. Answer the following question: {{input.message}}',
           },
         },
         {
@@ -185,7 +189,8 @@ export class TemplatesService {
           data: {
             label: 'Check Content',
             model: 'gpt-4',
-            prompt: 'Analyze if this content is appropriate: {{input.content}}. Return JSON with {safe: boolean, reason: string}',
+            prompt:
+              'Analyze if this content is appropriate: {{input.content}}. Return JSON with {safe: boolean, reason: string}',
           },
         },
         {
@@ -296,7 +301,8 @@ export class TemplatesService {
           position: { x: 1300, y: 100 },
           data: {
             label: 'Save to CRM',
-            query: 'INSERT INTO leads (email, company, social) VALUES (?, ?, ?)',
+            query:
+              'INSERT INTO leads (email, company, social) VALUES (?, ?, ?)',
           },
         },
       ],
@@ -350,7 +356,8 @@ export class TemplatesService {
           position: { x: 400, y: 100 },
           data: {
             label: 'Get Scheduled Posts',
-            query: 'SELECT * FROM scheduled_posts WHERE post_date = CURRENT_DATE',
+            query:
+              'SELECT * FROM scheduled_posts WHERE post_date = CURRENT_DATE',
           },
         },
         {
@@ -427,28 +434,23 @@ export class TemplatesService {
     },
   ];
 
-  findAll(category?: string): Template[] {
-    if (category) {
-      return this.templates.filter((t) => t.category === category);
-    }
-    return this.templates;
+  async findAll(category?: string): Promise<Template[]> {
+    return this.templateRepository.findAll(category);
   }
 
-  findOne(id: string): Template | undefined {
-    return this.templates.find((t) => t.id === id);
+  async findOne(id: string): Promise<Template | null> {
+    return this.templateRepository.findOne(id);
   }
 
   getCategories(): TemplateCategory[] {
     return this.categories;
   }
 
-  search(query: string): Template[] {
-    const lowerQuery = query.toLowerCase();
-    return this.templates.filter(
-      (t) =>
-        t.name.toLowerCase().includes(lowerQuery) ||
-        t.description.toLowerCase().includes(lowerQuery) ||
-        t.tags.some((tag) => tag.toLowerCase().includes(lowerQuery)),
-    );
+  async search(query: string): Promise<Template[]> {
+    return this.templateRepository.search(query);
+  }
+
+  async useTemplate(id: string): Promise<void> {
+    await this.templateRepository.incrementUsage(id);
   }
 }

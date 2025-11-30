@@ -1,5 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsOptional, IsNumber, IsObject } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsObject,
+} from 'class-validator';
 
 export class CreateFlowDto {
   @ApiProperty({ example: 'Welcome Flow' })
@@ -17,20 +23,20 @@ export class CreateFlowDto {
   @IsString()
   status?: string;
 
-  @ApiPropertyOptional({ example: 1 })
+  @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000' })
   @IsOptional()
-  @IsNumber()
-  templateId?: number;
+  @IsString()
+  templateId?: string;
 
   @ApiProperty({ example: {} })
   @IsOptional()
   @IsObject()
   data?: Record<string, any>;
 
-  @ApiPropertyOptional({ example: 1 })
+  @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000' })
   @IsOptional()
-  @IsNumber()
-  channelId?: number;
+  @IsString()
+  channelId?: string;
 
   @ApiPropertyOptional({ example: 'private' })
   @IsOptional()

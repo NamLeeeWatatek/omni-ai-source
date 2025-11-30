@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import type { Node } from 'reactflow'
+import { useSession } from 'next-auth/react'
 import { wsService } from '@/lib/services/websocket-service'
 
 interface UseExecutionWebSocketReturn {
@@ -15,6 +16,7 @@ interface UseExecutionWebSocketReturn {
 export function useExecutionWebSocket(
     setNodes: (updater: (nodes: Node[]) => Node[]) => void
 ): UseExecutionWebSocketReturn {
+    const { data: session } = useSession()
     const [isExecuting, setIsExecuting] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -39,7 +41,7 @@ export function useExecutionWebSocket(
     }, [setNodes])
 
     const execute = useCallback(async (flowId: number, inputData: any = {}) => {
-        return new Promise<void>((resolve, reject) => {
+        return new Promise<void>(async (resolve, reject) => {
             setIsExecuting(true)
             setError(null)
 
@@ -56,74 +58,98 @@ export function useExecutionWebSocket(
                 }))
             )
 
-            const endpoint = `/ws/execute/${flowId}`
+            const namespace = 'executions'
 
-            // Connect to WebSocket and start execution
-            wsService.connect(endpoint, () => {
-                console.log('🔌 Connected to WebSocket, sending start command...')
-                wsService.send(endpoint, {
-                    action: 'start',
-                    input_data: inputData
-                })
-            })
+            // Connect to Socket.IO first
+            wsService.connect(namespace, async () => {
+                console.log('🔌 Connected to Socket.IO')
+                
+                // Now trigger execution via HTTP API
+                try {
+                    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+                    const response = await fetch(`${API_URL}/flows/${flowId}/execute`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(session?.accessToken ? { 'Authorization': `Bearer ${session.accessToken}` } : {}),
+                        },
+                        body: JSON.stringify(inputData || {}),
+                    })
 
-            // Subscribe to events (match backend event types exactly)
-            const unsubscribeStarted = wsService.on(endpoint, 'executionStarted', (data) => {
-                console.log('🎬 Execution started:', data)
-            })
+                    if (!response.ok) {
+                        throw new Error('Failed to start execution')
+                    }
 
-            const unsubscribeBefore = wsService.on(endpoint, 'nodeExecutionBefore', (data) => {
-                console.log('⏳ Node starting:', data.nodeName)
-                updateNodeStatus(data.nodeName, 'running')
-            })
-
-            const unsubscribeAfter = wsService.on(endpoint, 'nodeExecutionAfter', (data) => {
-                if (data.error) {
-                    console.log('❌ Node failed:', data.nodeName, data.error)
-                    updateNodeStatus(data.nodeName, 'error', data)
-                } else {
-                    console.log('✅ Node completed:', data.nodeName)
-                    updateNodeStatus(data.nodeName, 'success', data)
+                    const result = await response.json()
+                    console.log('✅ Execution started:', result.executionId)
+                } catch (error) {
+                    console.error('❌ Failed to start execution:', error)
+                    setError('Failed to start execution')
+                    setIsExecuting(false)
+                    wsService.disconnect(namespace)
+                    reject(error)
                 }
             })
 
-            const unsubscribeFinished = wsService.on(endpoint, 'executionFinished', (data) => {
+            // Subscribe to events (match backend event types exactly)
+            const unsubscribeStart = wsService.on(namespace, 'execution:start', (data) => {
+                console.log('🎬 Execution started:', data)
+            })
+
+            const unsubscribeNodeStart = wsService.on(namespace, 'execution:node:start', (data) => {
+                console.log('⏳ Node starting:', data.nodeId)
+                updateNodeStatus(data.nodeId, 'running')
+            })
+
+            const unsubscribeNodeComplete = wsService.on(namespace, 'execution:node:complete', (data) => {
+                console.log('✅ Node completed:', data.nodeId)
+                updateNodeStatus(data.nodeId, 'success', data)
+            })
+
+            const unsubscribeNodeError = wsService.on(namespace, 'execution:node:error', (data) => {
+                console.log('❌ Node failed:', data.nodeId, data.error)
+                updateNodeStatus(data.nodeId, 'error', data)
+            })
+
+            const unsubscribeComplete = wsService.on(namespace, 'execution:complete', (data) => {
                 console.log('🏁 Execution finished:', data)
                 setIsExecuting(false)
                 
                 // Cleanup
-                unsubscribeStarted()
-                unsubscribeBefore()
-                unsubscribeAfter()
-                unsubscribeFinished()
+                unsubscribeStart()
+                unsubscribeNodeStart()
+                unsubscribeNodeComplete()
+                unsubscribeNodeError()
+                unsubscribeComplete()
                 unsubscribeError()
                 
-                wsService.disconnect(endpoint)
+                wsService.disconnect(namespace)
                 resolve()
             })
 
-            const unsubscribeError = wsService.on(endpoint, 'executionError', (data) => {
+            const unsubscribeError = wsService.on(namespace, 'execution:error', (data) => {
                 console.log('💥 Execution error:', data.error)
                 setError(data.error)
                 setIsExecuting(false)
                 
                 // Cleanup
-                unsubscribeStarted()
-                unsubscribeBefore()
-                unsubscribeAfter()
-                unsubscribeFinished()
+                unsubscribeStart()
+                unsubscribeNodeStart()
+                unsubscribeNodeComplete()
+                unsubscribeNodeError()
+                unsubscribeComplete()
                 unsubscribeError()
                 
-                wsService.disconnect(endpoint)
+                wsService.disconnect(namespace)
                 reject(new Error(data.error))
             })
 
             // Handle connection errors
-            wsService.onError(endpoint, (error) => {
-                console.error('❌ WebSocket connection error:', error)
-                setError('WebSocket connection error')
+            wsService.onError(namespace, (error) => {
+                console.error('❌ Socket.IO connection error:', error)
+                setError('Socket.IO connection error')
                 setIsExecuting(false)
-                reject(new Error('WebSocket connection error'))
+                reject(new Error('Socket.IO connection error'))
             })
         })
     }, [setNodes, updateNodeStatus])

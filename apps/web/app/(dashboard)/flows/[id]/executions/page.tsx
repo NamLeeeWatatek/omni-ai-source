@@ -15,9 +15,11 @@ import {
     FiXCircle,
     FiEye,
     FiTrash2,
-    FiRefreshCw
+    FiRefreshCw,
+    FiActivity
 } from 'react-icons/fi'
 import { fetchAPI } from '@/lib/api'
+import { useExecutionSocket } from '@/lib/hooks/useExecutionSocket'
 
 interface Execution {
     id: number
@@ -39,10 +41,34 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
     const [flowName, setFlowName] = useState('')
     const [deleteExecutionId, setDeleteExecutionId] = useState<number | null>(null)
 
+    // WebSocket for real-time updates
+    const { connected, subscribeToFlow } = useExecutionSocket({
+        flowId: params.id,
+        onUpdate: (update) => {
+            // Update execution in list when status changes
+            setExecutions((prev) =>
+                prev.map((exec) =>
+                    exec.id.toString() === update.executionId
+                        ? { ...exec, status: update.status }
+                        : exec
+                )
+            )
+        },
+        onComplete: () => {
+            // Reload executions when one completes
+            loadExecutions()
+        },
+    })
+
     useEffect(() => {
         loadExecutions()
         loadFlow()
-    }, [params.id])
+        
+        // Subscribe to flow executions
+        if (connected) {
+            subscribeToFlow(params.id)
+        }
+    }, [params.id, connected])
 
     const loadFlow = async () => {
         try {

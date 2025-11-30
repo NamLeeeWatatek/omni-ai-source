@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { BotEntity, FlowVersionEntity } from './infrastructure/persistence/relational/entities/bot.entity';
+import {
+  BotEntity,
+  FlowVersionEntity,
+} from './infrastructure/persistence/relational/entities/bot.entity';
 import { CreateBotDto } from './dto/create-bot.dto';
 import { UpdateBotDto } from './dto/update-bot.dto';
 
@@ -19,18 +22,20 @@ export class BotsService {
     return this.botRepository.save(bot);
   }
 
-  async findAll(workspaceId?: number) {
+  async findAll(workspaceId?: string) {
     const query = this.botRepository.createQueryBuilder('bot');
-    
+
     if (workspaceId) {
       // Get bots for specific workspace + global bots (workspaceId is null)
-      query.where('bot.workspaceId = :workspaceId OR bot.workspaceId IS NULL', { workspaceId });
+      query.where('bot.workspaceId = :workspaceId OR bot.workspaceId IS NULL', {
+        workspaceId,
+      });
     }
-    
+
     return query.getMany();
   }
 
-  async findOne(id: number) {
+  async findOne(id: string) {
     const bot = await this.botRepository.findOne({
       where: { id },
       relations: ['workspace', 'flowVersions'],
@@ -43,20 +48,20 @@ export class BotsService {
     return bot;
   }
 
-  async update(id: number, updateDto: UpdateBotDto) {
+  async update(id: string, updateDto: UpdateBotDto) {
     const bot = await this.findOne(id);
     Object.assign(bot, updateDto);
     return this.botRepository.save(bot);
   }
 
-  async remove(id: number) {
+  async remove(id: string) {
     const bot = await this.findOne(id);
     await this.botRepository.remove(bot);
   }
 
-  async createFlowVersion(botId: number, flow: Record<string, any>) {
+  async createFlowVersion(botId: string, flow: Record<string, any>) {
     const bot = await this.findOne(botId);
-    
+
     const latestVersion = await this.flowVersionRepository
       .createQueryBuilder('version')
       .where('version.botId = :botId', { botId })
@@ -73,7 +78,7 @@ export class BotsService {
     return this.flowVersionRepository.save(version);
   }
 
-  async publishFlowVersion(versionId: number) {
+  async publishFlowVersion(versionId: string) {
     const version = await this.flowVersionRepository.findOne({
       where: { id: versionId },
     });

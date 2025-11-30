@@ -4,7 +4,6 @@ import {
   Post,
   Body,
   Patch,
-  Put,
   Param,
   Delete,
   UseGuards,
@@ -16,6 +15,7 @@ import { FlowsService } from './flows.service';
 import { ExecutionService } from './execution.service';
 import { CreateFlowDto } from './dto/create-flow.dto';
 import { UpdateFlowDto } from './dto/update-flow.dto';
+import { CreateFlowFromTemplateDto } from './dto/create-flow-from-template.dto';
 
 @ApiTags('Flows')
 @ApiBearerAuth()
@@ -33,6 +33,15 @@ export class FlowsController {
     return this.flowsService.create(createDto, req.user.id);
   }
 
+  @Post('from-template')
+  @ApiOperation({ summary: 'Create flow from template' })
+  createFromTemplate(
+    @Body() createDto: CreateFlowFromTemplateDto,
+    @Request() req,
+  ) {
+    return this.flowsService.createFromTemplate(createDto, req.user.id);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all flows' })
   findAll(@Request() req) {
@@ -42,31 +51,25 @@ export class FlowsController {
   @Get(':id')
   @ApiOperation({ summary: 'Get flow by ID' })
   findOne(@Param('id') id: string) {
-    return this.flowsService.findOne(+id);
+    return this.flowsService.findOne(id);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update flow (partial)' })
+  @ApiOperation({ summary: 'Update flow' })
   update(@Param('id') id: string, @Body() updateDto: UpdateFlowDto) {
-    return this.flowsService.update(+id, updateDto);
-  }
-
-  @Put(':id')
-  @ApiOperation({ summary: 'Update flow (full)' })
-  replace(@Param('id') id: string, @Body() updateDto: UpdateFlowDto) {
-    return this.flowsService.update(+id, updateDto);
+    return this.flowsService.update(id, updateDto);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete flow' })
   remove(@Param('id') id: string) {
-    return this.flowsService.remove(+id);
+    return this.flowsService.remove(id);
   }
 
   @Post(':id/execute')
   @ApiOperation({ summary: 'Execute flow' })
   async execute(@Param('id') id: string, @Body() input?: any) {
-    const flow = await this.flowsService.findOne(+id);
+    const flow = await this.flowsService.findOne(id);
     const executionId = await this.executionService.executeFlow(
       id,
       flow.data,

@@ -78,7 +78,7 @@ export default function AIAssistantPage() {
         try {
             setLoadingConversations(true)
             const data = await fetchAPI('/ai/conversations')
-            setConversations(data)
+            setConversations(Array.isArray(data) ? data : [])
         } catch (error) {
             console.error('Failed to load conversations:', error)
         } finally {
@@ -117,7 +117,7 @@ export default function AIAssistantPage() {
 
     const selectConversation = async (conv: Conversation) => {
         setActiveConversation(conv)
-        setSelectedModel(conv.model || 'gemini-2.5-flash')
+        setSelectedModel(conv.model || models[0]?.model_name || 'gemini-2.5-flash')
         await loadMessages(conv.id)
     }
 
@@ -145,14 +145,15 @@ export default function AIAssistantPage() {
     }
 
     const updateConversationTitle = async (convId: number) => {
-        if (!editTitle.trim()) {
+        if (!editTitle.trim() || !convId) {
             setEditingTitle(null)
             return
         }
 
         try {
-            await fetchAPI(`/ai/conversations/${convId}?title=${encodeURIComponent(editTitle)}`, {
-                method: 'PATCH'
+            await fetchAPI(`/ai/conversations/${convId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ title: editTitle })
             })
             setConversations(prev => prev.map(c =>
                 c.id === convId ? { ...c, title: editTitle } : c

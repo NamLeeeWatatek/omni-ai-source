@@ -13,23 +13,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-
-interface Tag {
-  id: number;
-  name: string;
-  color: string;
-  description?: string;
-}
-
-interface TagDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  tag: Tag | null;
-  onSave: () => void;
-}
+import { Tag, TagDialogProps } from '@/lib/types';
 
 const PRESET_COLORS = [
-  '#ef4444', '#f59e0b', '#10b981', '#3b82f6', 
+  '#ef4444', '#f59e0b', '#10b981', '#3b82f6',
   '#8b5cf6', '#ec4899', '#06b6d4', '#6366f1'
 ];
 
@@ -57,7 +44,7 @@ export function TagDialog({ open, onOpenChange, tag, onSave }: TagDialogProps) {
 
     try {
       const data = { name, color, description: description || undefined };
-      
+
       if (tag) {
         await fetchAPI(`/metadata/tags/${tag.id}`, {
           method: 'PATCH',
@@ -69,7 +56,7 @@ export function TagDialog({ open, onOpenChange, tag, onSave }: TagDialogProps) {
           body: JSON.stringify(data)
         });
       }
-      
+
       onSave();
     } catch (error) {
       console.error('Failed to save tag:', error);
@@ -85,7 +72,7 @@ export function TagDialog({ open, onOpenChange, tag, onSave }: TagDialogProps) {
         <DialogHeader>
           <DialogTitle>{tag ? 'Edit Tag' : 'Create Tag'}</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="name">Name</Label>
@@ -106,9 +93,8 @@ export function TagDialog({ open, onOpenChange, tag, onSave }: TagDialogProps) {
                   key={presetColor}
                   type="button"
                   onClick={() => setColor(presetColor)}
-                  className={`w-8 h-8 rounded-full border-2 transition-all ${
-                    color === presetColor ? 'border-white scale-110' : 'border-transparent'
-                  }`}
+                  className={`w-8 h-8 rounded-full border-2 transition-all ${color === presetColor ? 'border-white scale-110' : 'border-transparent'
+                    }`}
                   style={{ backgroundColor: presetColor }}
                 />
               ))}

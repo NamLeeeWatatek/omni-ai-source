@@ -1,10 +1,4 @@
-import {
-  Column,
-  Entity,
-  PrimaryColumn,
-  ManyToMany,
-  JoinTable,
-} from 'typeorm';
+import { Column, Entity, PrimaryColumn, ManyToMany, JoinTable } from 'typeorm';
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 import { PermissionEntity } from '../../../../../permissions/infrastructure/persistence/relational/entities/permission.entity';
 

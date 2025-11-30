@@ -12,27 +12,7 @@ import {
 } from 'react-icons/fi'
 import { fetchAPI } from '@/lib/api'
 import toast from '@/lib/toast'
-
-interface Message {
-    id: number
-    conversation_id: number
-    sender_type: string
-    sender_id: string
-    content: string
-    created_at: string
-}
-
-interface Conversation {
-    id: number
-    customer_name: string
-    customer_id: string
-    channel_name: string
-    channel_icon?: string
-    last_message_content: string
-    last_message_at: string
-    unread_count: number
-    status: string
-}
+import { InboxMessage as Message, InboxConversation as Conversation } from '@/lib/types/inbox'
 
 export default function InboxPage() {
     const [conversations, setConversations] = useState<Conversation[]>([])
@@ -64,7 +44,7 @@ export default function InboxPage() {
             if (searchQuery) params.append('search', searchQuery)
 
             const data = await fetchAPI(`/conversations/?${params}`)
-            setConversations(data.conversations || [])
+            setConversations(Array.isArray(data) ? data : data.conversations || [])
 
             // Auto-select first conversation
             if (data.conversations?.length > 0 && !selectedConv) {
@@ -77,10 +57,10 @@ export default function InboxPage() {
         }
     }
 
-    const loadMessages = async (convId: number) => {
+    const loadMessages = async (convId: string) => {
         try {
             const data = await fetchAPI(`/conversations/${convId}/messages`)
-            setMessages(data.messages || [])
+            setMessages(Array.isArray(data) ? data : data.messages || [])
 
             // Mark as read
             await fetchAPI(`/conversations/${convId}/read`, { method: 'POST' })
@@ -140,7 +120,7 @@ export default function InboxPage() {
     }
 
     return (
-        <div className="h-[calc(100vh-4rem)] flex">
+        <div className="h-full flex">
             {/* Conversations List */}
             <div className="w-80 border-r border-border/40 flex flex-col">
                 <div className="p-4 border-b border-border/40 space-y-3">
@@ -267,8 +247,8 @@ export default function InboxPage() {
                             >
                                 <div
                                     className={`max-w-md px-4 py-2 rounded-2xl ${msg.sender_type === 'customer'
-                                            ? 'bg-muted'
-                                            : 'bg-gradient-wata text-white'
+                                        ? 'bg-muted'
+                                        : 'bg-gradient-wata text-white'
                                         }`}
                                 >
                                     <p className="text-sm">{msg.content}</p>

@@ -182,7 +182,7 @@ export default function ChannelsPage() {
         }
 
         try {
-            const method = configForm.id ? 'PUT' : 'POST'
+            const method = configForm.id ? 'PATCH' : 'POST'
             const url = configForm.id ? `/integrations/${configForm.id}` : '/integrations/'
 
             await fetchAPI(url, {

@@ -12,11 +12,11 @@ import { WorkspaceEntity } from '../../../../../workspaces/infrastructure/persis
 
 @Entity({ name: 'bot' })
 export class BotEntity extends EntityRelationalHelper {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column({ type: 'int', nullable: true })
-  workspaceId?: number | null;
+  @Column({ type: 'uuid', nullable: true })
+  workspaceId?: string | null;
 
   @Column({ type: String })
   name: string;
@@ -30,8 +30,8 @@ export class BotEntity extends EntityRelationalHelper {
   @Column({ type: Boolean, default: true })
   isActive: boolean;
 
-  @Column({ type: 'int', nullable: true })
-  flowId?: number | null;
+  @Column({ type: 'uuid', nullable: true })
+  flowId?: string | null;
 
   @ManyToOne(() => WorkspaceEntity, (workspace) => workspace.bots)
   workspace?: WorkspaceEntity;
@@ -48,11 +48,11 @@ export class BotEntity extends EntityRelationalHelper {
 
 @Entity({ name: 'flow_version' })
 export class FlowVersionEntity extends EntityRelationalHelper {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column({ type: 'int' })
-  botId: number;
+  @Column({ type: 'uuid' })
+  botId: string;
 
   @Column({ type: 'int' })
   version: number;

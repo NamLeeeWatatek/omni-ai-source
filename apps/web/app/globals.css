@@ -133,7 +133,7 @@
 
   /* Page Layout */
   .page-container {
-    @apply px-4 max-w-7xl mx-auto;
+    @apply px-4 py-6 max-w-7xl mx-auto;
   }
 
   .page-header {

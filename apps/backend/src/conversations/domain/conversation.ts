@@ -1,14 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class Conversation {
-  @ApiProperty({ type: Number })
-  id: number;
+  @ApiProperty({ type: String })
+  id: string;
 
-  @ApiProperty({ type: Number })
-  botId: number;
+  @ApiProperty({ type: String })
+  botId: string;
 
-  @ApiPropertyOptional({ type: Number })
-  channelId?: number | null;
+  @ApiPropertyOptional({ type: String })
+  channelId?: string | null;
 
   @ApiProperty({ type: String })
   externalId: string;
@@ -27,11 +27,11 @@ export class Conversation {
 }
 
 export class Message {
-  @ApiProperty({ type: Number })
-  id: number;
+  @ApiProperty({ type: String })
+  id: string;
 
-  @ApiProperty({ type: Number })
-  conversationId: number;
+  @ApiProperty({ type: String })
+  conversationId: string;
 
   @ApiProperty({ type: String })
   content: string;

@@ -45,7 +45,7 @@ export class Template {
   category: string;
 
   @ApiPropertyOptional()
-  thumbnail?: string;
+  thumbnail?: string | null;
 
   @ApiProperty({ type: [String] })
   tags: string[];

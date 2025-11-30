@@ -1,50 +1,25 @@
 /**
  * Node Types API
  * Fetch node types from backend
+ * @deprecated Use lib/api/nodes.ts and lib/types/node.ts instead
  */
 import { fetchAPI } from '../api'
+import type { NodeType, NodeCategory, NodeProperty } from '../types/node'
 
-export interface NodeProperty {
-    name: string
-    label: string
-    type: 'text' | 'url' | 'textarea' | 'json' | 'select' | 'boolean' | 'number' | 'file' | 'image' | 'key-value' | 'multi-select' | 'dynamic-form'
-    required?: boolean
-    placeholder?: string
-    description?: string
-    options?: Array<{ value: string; label: string } | string>
-    default?: any
-    showWhen?: Record<string, any>
-    accept?: string // For file/image upload
-    multiple?: boolean // For multiple file upload
-}
-
-export interface NodeTypeAPI {
-    id: string
-    label: string
-    category: string
-    icon: string
-    color: string
-    description: string
-    isPremium?: boolean
-    properties?: NodeProperty[]
-}
-
-export interface NodeCategory {
-    id: string
-    label: string
-    color: string
-}
+export type { NodeProperty, NodeType as NodeTypeAPI, NodeCategory }
 
 /**
  * Fetch all node types from backend
+ * @deprecated Use getNodeTypes from lib/api/nodes.ts
  */
-export async function fetchNodeTypes(category?: string): Promise<NodeTypeAPI[]> {
+export async function fetchNodeTypes(category?: string): Promise<NodeType[]> {
     const url = category ? `/node-types/?category=${category}` : '/node-types/'
     return fetchAPI(url)
 }
 
 /**
  * Fetch node categories
+ * @deprecated Use getNodeCategories from lib/api/nodes.ts
  */
 export async function fetchNodeCategories(): Promise<NodeCategory[]> {
     return fetchAPI('/node-types/categories')
@@ -52,7 +27,8 @@ export async function fetchNodeCategories(): Promise<NodeCategory[]> {
 
 /**
  * Fetch specific node type
+ * @deprecated Use getNodeType from lib/api/nodes.ts
  */
-export async function fetchNodeType(nodeId: string): Promise<NodeTypeAPI> {
+export async function fetchNodeType(nodeId: string): Promise<NodeType> {
     return fetchAPI(`/node-types/${nodeId}`)
 }

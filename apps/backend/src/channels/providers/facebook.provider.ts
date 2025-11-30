@@ -3,10 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import * as crypto from 'crypto';
 import {
-    ChannelProvider,
-    ChannelMessage,
-    ChannelMessageResponse,
-    IncomingMessage,
+  ChannelProvider,
+  ChannelMessage,
+  ChannelMessageResponse,
+  IncomingMessage,
 } from '../interfaces/channel-provider.interface';
 
 /**
@@ -14,85 +14,85 @@ import {
  */
 @Injectable()
 export class FacebookProvider implements ChannelProvider {
-    readonly channelType = 'facebook';
-    private pageAccessToken: string;
-    private appSecret: string;
-    private readonly apiVersion = 'v18.0';
+  readonly channelType = 'facebook';
+  private pageAccessToken: string;
+  private appSecret: string;
+  private readonly apiVersion = 'v18.0';
 
-    constructor(private configService: ConfigService) {
-        // Default to environment variables
-        this.pageAccessToken = this.configService.get<string>(
-            'FACEBOOK_PAGE_ACCESS_TOKEN',
-            '',
-        );
-        this.appSecret = this.configService.get<string>('FACEBOOK_APP_SECRET', '');
-    }
+  constructor(private configService: ConfigService) {
+    // Default to environment variables
+    this.pageAccessToken = this.configService.get<string>(
+      'FACEBOOK_PAGE_ACCESS_TOKEN',
+      '',
+    );
+    this.appSecret = this.configService.get<string>('FACEBOOK_APP_SECRET', '');
+  }
 
-    /**
-     * Set credentials dynamically (for database-stored credentials)
-     */
-    setCredentials(pageAccessToken: string, appSecret: string): void {
-        this.pageAccessToken = pageAccessToken;
-        this.appSecret = appSecret;
-    }
+  /**
+   * Set credentials dynamically (for database-stored credentials)
+   */
+  setCredentials(pageAccessToken: string, appSecret: string): void {
+    this.pageAccessToken = pageAccessToken;
+    this.appSecret = appSecret;
+  }
 
-    async sendMessage(message: ChannelMessage): Promise<ChannelMessageResponse> {
-        try {
-            if (!this.pageAccessToken) {
-                return {
-                    success: false,
-                    error: 'Facebook Page Access Token not configured',
-                };
-            }
-
-            const url = `https://graph.facebook.com/${this.apiVersion}/me/messages`;
-            const payload = {
-                recipient: { id: message.to },
-                message: { text: message.content },
-            };
-
-            const response = await axios.post(url, payload, {
-                params: { access_token: this.pageAccessToken },
-            });
-
-            return {
-                success: true,
-                messageId: response.data.message_id,
-            };
-        } catch (error) {
-            return {
-                success: false,
-                error: error.message,
-            };
-        }
-    }
-
-    verifyWebhook(payload: any, signature: string): boolean {
-        if (!this.appSecret) {
-            return false;
-        }
-
-        const expectedSignature = crypto
-            .createHmac('sha256', this.appSecret)
-            .update(JSON.stringify(payload))
-            .digest('hex');
-
-        return `sha256=${expectedSignature}` === signature;
-    }
-
-    parseIncomingMessage(payload: any): IncomingMessage {
-        const entry = payload.entry?.[0];
-        const messaging = entry?.messaging?.[0];
-
+  async sendMessage(message: ChannelMessage): Promise<ChannelMessageResponse> {
+    try {
+      if (!this.pageAccessToken) {
         return {
-            from: messaging?.sender?.id || '',
-            content: messaging?.message?.text || '',
-            timestamp: new Date(messaging?.timestamp || Date.now()),
-            channelType: this.channelType,
-            metadata: {
-                pageId: entry?.id,
-                messageId: messaging?.message?.mid,
-            },
+          success: false,
+          error: 'Facebook Page Access Token not configured',
         };
+      }
+
+      const url = `https://graph.facebook.com/${this.apiVersion}/me/messages`;
+      const payload = {
+        recipient: { id: message.to },
+        message: { text: message.content },
+      };
+
+      const response = await axios.post(url, payload, {
+        params: { access_token: this.pageAccessToken },
+      });
+
+      return {
+        success: true,
+        messageId: response.data.message_id,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
     }
+  }
+
+  verifyWebhook(payload: any, signature: string): boolean {
+    if (!this.appSecret) {
+      return false;
+    }
+
+    const expectedSignature = crypto
+      .createHmac('sha256', this.appSecret)
+      .update(JSON.stringify(payload))
+      .digest('hex');
+
+    return `sha256=${expectedSignature}` === signature;
+  }
+
+  parseIncomingMessage(payload: any): IncomingMessage {
+    const entry = payload.entry?.[0];
+    const messaging = entry?.messaging?.[0];
+
+    return {
+      from: messaging?.sender?.id || '',
+      content: messaging?.message?.text || '',
+      timestamp: new Date(messaging?.timestamp || Date.now()),
+      channelType: this.channelType,
+      metadata: {
+        pageId: entry?.id,
+        messageId: messaging?.message?.mid,
+      },
+    };
+  }
 }

@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { WorkspaceEntity, WorkspaceMemberEntity } from './infrastructure/persistence/relational/entities/workspace.entity';
+import {
+  WorkspaceEntity,
+  WorkspaceMemberEntity,
+} from './infrastructure/persistence/relational/entities/workspace.entity';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 
@@ -14,12 +17,12 @@ export class WorkspacesService {
     private memberRepository: Repository<WorkspaceMemberEntity>,
   ) {}
 
-  async create(createDto: CreateWorkspaceDto, ownerId: number) {
+  async create(createDto: CreateWorkspaceDto, ownerId: string) {
     const workspace = this.workspaceRepository.create({
       ...createDto,
       ownerId,
     });
-    
+
     const saved = await this.workspaceRepository.save(workspace);
 
     // Add owner as member
@@ -32,7 +35,7 @@ export class WorkspacesService {
     return saved;
   }
 
-  async findAll(userId: number) {
+  async findAll(userId: string) {
     return this.workspaceRepository
       .createQueryBuilder('workspace')
       .leftJoin('workspace.members', 'member')
@@ -40,7 +43,7 @@ export class WorkspacesService {
       .getMany();
   }
 
-  async findOne(id: number) {
+  async findOne(id: string) {
     const workspace = await this.workspaceRepository.findOne({
       where: { id },
       relations: ['owner', 'members', 'members.user'],
@@ -53,18 +56,22 @@ export class WorkspacesService {
     return workspace;
   }
 
-  async update(id: number, updateDto: UpdateWorkspaceDto) {
+  async update(id: string, updateDto: UpdateWorkspaceDto) {
     const workspace = await this.findOne(id);
     Object.assign(workspace, updateDto);
     return this.workspaceRepository.save(workspace);
   }
 
-  async remove(id: number) {
+  async remove(id: string) {
     const workspace = await this.findOne(id);
     await this.workspaceRepository.remove(workspace);
   }
 
-  async addMember(workspaceId: number, userId: number, role: string = 'member') {
+  async addMember(
+    workspaceId: string,
+    userId: string,
+    role: string = 'member',
+  ) {
     const member = this.memberRepository.create({
       workspaceId,
       userId,
@@ -73,7 +80,7 @@ export class WorkspacesService {
     return this.memberRepository.save(member);
   }
 
-  async removeMember(workspaceId: number, userId: number) {
+  async removeMember(workspaceId: string, userId: string) {
     await this.memberRepository.delete({ workspaceId, userId });
   }
 }

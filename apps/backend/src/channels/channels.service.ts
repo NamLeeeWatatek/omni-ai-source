@@ -6,62 +6,69 @@ import { CreateConnectionDto } from '../integrations/dto/create-connection.dto';
 
 @Injectable()
 export class ChannelsService {
-    constructor(
-        @InjectRepository(ChannelConnectionEntity)
-        private connectionRepository: Repository<ChannelConnectionEntity>,
-    ) { }
+  constructor(
+    @InjectRepository(ChannelConnectionEntity)
+    private connectionRepository: Repository<ChannelConnectionEntity>,
+  ) { }
 
-    async findAll(workspaceId?: number): Promise<ChannelConnectionEntity[]> {
-        const where: any = {};
-        if (workspaceId) {
-            where.workspaceId = workspaceId;
-        }
-        return this.connectionRepository.find({
-            where,
-            relations: ['credential'],
-        });
+  async findAll(userId?: string): Promise<ChannelConnectionEntity[]> {
+    const where: any = {};
+    if (userId) {
+      where.workspaceId = userId; // Use workspaceId field
     }
+    return this.connectionRepository.find({
+      where,
+      relations: ['credential'],
+      order: { connectedAt: 'DESC' },
+    });
+  }
 
-    async findOne(
-        id: number,
-        workspaceId?: number,
-    ): Promise<ChannelConnectionEntity | null> {
-        const where: any = { id };
-        if (workspaceId) {
-            where.workspaceId = workspaceId;
-        }
-        return this.connectionRepository.findOne({
-            where,
-            relations: ['credential'],
-        });
+  async findOne(
+    id: string,
+    workspaceId?: string,
+  ): Promise<ChannelConnectionEntity | null> {
+    const where: any = { id };
+    if (workspaceId) {
+      where.workspaceId = workspaceId;
     }
+    return this.connectionRepository.findOne({
+      where,
+      relations: ['credential'],
+    });
+  }
 
-    async findByType(
-        type: string,
-        workspaceId?: number,
-    ): Promise<ChannelConnectionEntity | null> {
-        const where: any = { type, status: 'active' };
-        if (workspaceId) {
-            where.workspaceId = workspaceId;
-        }
-        return this.connectionRepository.findOne({
-            where,
-            relations: ['credential'],
-        });
+  async findByType(
+    type: string,
+    workspaceId?: string,
+  ): Promise<ChannelConnectionEntity | null> {
+    const where: any = { type, status: 'active' };
+    if (workspaceId) {
+      where.workspaceId = workspaceId;
     }
+    return this.connectionRepository.findOne({
+      where,
+      relations: ['credential'],
+    });
+  }
 
-    async create(
-        dto: CreateConnectionDto,
-        workspaceId?: number,
-    ): Promise<ChannelConnectionEntity> {
-        const connection = this.connectionRepository.create({
-            ...dto,
-            workspaceId,
-        });
-        return this.connectionRepository.save(connection);
-    }
+  async create(
+    dto: CreateConnectionDto,
+    userId?: string,
+  ): Promise<ChannelConnectionEntity> {
+    const connection = this.connectionRepository.create({
+      ...dto,
+      workspaceId: userId, // Use workspaceId field instead of userId
+      status: 'active',
+      connectedAt: new Date(),
+    });
+    return this.connectionRepository.save(connection);
+  }
 
-    async delete(id: number): Promise<void> {
-        await this.connectionRepository.delete(id);
+  async delete(id: string, userId?: string): Promise<void> {
+    const where: any = { id };
+    if (userId) {
+      where.workspaceId = userId; // Use workspaceId field
     }
+    await this.connectionRepository.delete(where);
+  }
 }

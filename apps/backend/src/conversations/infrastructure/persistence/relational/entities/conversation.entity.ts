@@ -12,14 +12,14 @@ import { BotEntity } from '../../../../../bots/infrastructure/persistence/relati
 
 @Entity({ name: 'conversation' })
 export class ConversationEntity extends EntityRelationalHelper {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column({ type: 'int' })
-  botId: number;
+  @Column({ type: 'uuid' })
+  botId: string;
 
-  @Column({ type: 'int', nullable: true })
-  channelId?: number | null;
+  @Column({ type: 'uuid', nullable: true })
+  channelId?: string | null;
 
   @Column({ type: String })
   externalId: string;
@@ -45,11 +45,11 @@ export class ConversationEntity extends EntityRelationalHelper {
 
 @Entity({ name: 'message' })
 export class MessageEntity extends EntityRelationalHelper {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column({ type: 'int' })
-  conversationId: number;
+  @Column({ type: 'uuid' })
+  conversationId: string;
 
   @Column({ type: 'text' })
   content: string;
