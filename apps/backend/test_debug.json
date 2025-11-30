@@ -1,0 +1,40 @@
+{
+  "executionId": "exec-1764417162232-6i98tdy1n",
+  "flowId": "test-flow",
+  "status": "completed",
+  "startTime": 1764417162232,
+  "nodes": [
+    {
+      "nodeId": "1",
+      "nodeName": "1",
+      "type": "webhook",
+      "input": {
+        "value": 5
+      },
+      "startTime": 1764417162232,
+      "status": "success",
+      "output": {
+        "value": 5
+      },
+      "endTime": 1764417162232
+    },
+    {
+      "nodeId": "2",
+      "nodeName": "2",
+      "type": "code",
+      "input": {
+        "value": 5
+      },
+      "startTime": 1764417162232,
+      "status": "success",
+      "output": {
+        "result": 10
+      },
+      "endTime": 1764417162232
+    }
+  ],
+  "endTime": 1764417162232,
+  "result": {
+    "result": 10
+  }
+}

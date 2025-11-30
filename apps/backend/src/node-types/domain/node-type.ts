@@ -35,7 +35,7 @@ export class NodeProperty {
   description?: string;
 
   @ApiPropertyOptional({ type: [Object] })
-  options?: Array<{ value: string; label: string } | string>;
+  options?: Array<{ value: string; label: string } | string> | string;
 
   @ApiPropertyOptional()
   default?: any;

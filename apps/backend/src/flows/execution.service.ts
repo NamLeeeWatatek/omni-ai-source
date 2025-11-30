@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { ExecutionGateway } from './execution.gateway';
+import { NodeExecutorStrategy } from './execution/node-executor.strategy';
+import { FlowExecutionEntity } from './infrastructure/persistence/relational/entities/flow-execution.entity';
+import { NodeExecutionEntity } from './infrastructure/persistence/relational/entities/node-execution.entity';
 
 export interface NodeExecution {
   nodeId: string;
@@ -28,7 +33,14 @@ export interface FlowExecution {
 export class ExecutionService {
   private executions = new Map<string, FlowExecution>();
 
-  constructor(private readonly executionGateway: ExecutionGateway) {}
+  constructor(
+    private readonly executionGateway: ExecutionGateway,
+    private readonly nodeExecutorStrategy: NodeExecutorStrategy,
+    @InjectRepository(FlowExecutionEntity)
+    private flowExecutionRepository: Repository<FlowExecutionEntity>,
+    @InjectRepository(NodeExecutionEntity)
+    private nodeExecutionRepository: Repository<NodeExecutionEntity>,
+  ) { }
 
   async executeFlow(flowId: string, flowData: any, inputData?: any): Promise<string> {
     const executionId = `exec-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -52,6 +64,9 @@ export class ExecutionService {
       execution.error = error.message;
       execution.endTime = Date.now();
       this.executionGateway.emitExecutionError(executionId, error.message);
+
+      // Save failed execution to database
+      this.saveExecutionToDatabase(execution, flowId).catch(console.error);
     });
 
     return executionId;
@@ -65,6 +80,8 @@ export class ExecutionService {
     const executionOrder = this.buildExecutionOrder(nodes, edges);
 
     // Execute nodes in order
+    let currentInput = inputData;
+
     for (const nodeId of executionOrder) {
       const node = nodes.find((n: any) => n.id === nodeId);
       if (!node) continue;
@@ -73,7 +90,7 @@ export class ExecutionService {
         nodeId: node.id,
         nodeName: node.data?.label || node.id,
         type: node.type,
-        input: inputData,
+        input: currentInput,
         startTime: Date.now(),
         status: 'running',
       };
@@ -84,18 +101,28 @@ export class ExecutionService {
       this.executionGateway.emitNodeExecutionStart(executionId, nodeId);
 
       try {
-        // Execute node
-        const output = await this.executeNode(node, inputData);
+        // Execute node using Strategy
+        const output = await this.nodeExecutorStrategy.execute({
+          nodeId: node.id,
+          nodeType: node.type,
+          data: node.data,
+          input: currentInput,
+          context: { executionId, flowId: execution.flowId }
+        });
 
-        nodeExecution.output = output;
+        if (!output.success) {
+          throw new Error(output.error || 'Unknown execution error');
+        }
+
+        nodeExecution.output = output.output;
         nodeExecution.status = 'success';
         nodeExecution.endTime = Date.now();
 
         // Emit node complete
-        this.executionGateway.emitNodeExecutionComplete(executionId, nodeId, output);
+        this.executionGateway.emitNodeExecutionComplete(executionId, nodeId, output.output);
 
-        // Pass output to next node
-        inputData = output;
+        currentInput = output.output;
+
       } catch (error) {
         nodeExecution.error = error.message;
         nodeExecution.status = 'error';
@@ -120,104 +147,51 @@ export class ExecutionService {
     // All nodes completed
     execution.status = 'completed';
     execution.endTime = Date.now();
-    execution.result = inputData;
+    execution.result = currentInput;
 
     this.executionGateway.emitExecutionComplete(executionId, execution.result);
+
+    // Save successful execution to database
+    await this.saveExecutionToDatabase(execution, execution.flowId);
   }
 
-  private async executeNode(node: any, input: any): Promise<any> {
-    const nodeType = node.type;
-    const nodeData = node.data;
+  private async saveExecutionToDatabase(execution: FlowExecution, flowId: string) {
+    try {
+      // Create flow execution entity
+      const flowExecution = this.flowExecutionRepository.create({
+        executionId: execution.executionId,
+        flowId: parseInt(flowId),
+        status: execution.status,
+        startTime: execution.startTime,
+        endTime: execution.endTime,
+        result: execution.result,
+        error: execution.error,
+      });
 
-    // Simulate execution time
-    await new Promise((resolve) => setTimeout(resolve, 500 + Math.random() * 1000));
+      const savedExecution = await this.flowExecutionRepository.save(flowExecution);
 
-    // Execute based on node type
-    switch (nodeType) {
-      case 'webhook':
-        return this.executeWebhook(nodeData, input);
-      case 'send-message':
-        return this.executeSendMessage(nodeData, input);
-      case 'ai-chat':
-        return this.executeAIChat(nodeData, input);
-      case 'http-request':
-        return this.executeHttpRequest(nodeData, input);
-      case 'condition':
-        return this.executeCondition(nodeData, input);
-      case 'code':
-        return this.executeCode(nodeData, input);
-      default:
-        return {
-          success: true,
-          message: `Executed ${nodeType}`,
-          input,
-          output: `Mock output from ${nodeType}`,
-        };
+      // Create node execution entities
+      if (execution.nodes.length > 0) {
+        const nodeExecutions = execution.nodes.map((node) =>
+          this.nodeExecutionRepository.create({
+            executionId: savedExecution.id,
+            nodeId: node.nodeId,
+            nodeName: node.nodeName,
+            type: node.type,
+            input: node.input,
+            output: node.output,
+            error: node.error,
+            startTime: node.startTime,
+            endTime: node.endTime,
+            status: node.status,
+          }),
+        );
+
+        await this.nodeExecutionRepository.save(nodeExecutions);
+      }
+    } catch (error) {
+      console.error('Failed to save execution to database:', error);
     }
-  }
-
-  private async executeWebhook(nodeData: any, input: any) {
-    return {
-      success: true,
-      type: 'webhook',
-      data: input,
-      timestamp: Date.now(),
-    };
-  }
-
-  private async executeSendMessage(nodeData: any, input: any) {
-    return {
-      success: true,
-      type: 'send-message',
-      message: nodeData.message || 'Default message',
-      channelId: nodeData.channelId,
-      sentAt: Date.now(),
-    };
-  }
-
-  private async executeAIChat(nodeData: any, input: any) {
-    // Mock AI response
-    return {
-      success: true,
-      type: 'ai-chat',
-      model: nodeData.model || 'gpt-3.5-turbo',
-      prompt: nodeData.prompt,
-      response: `Mock AI response for: ${nodeData.prompt}`,
-      tokens: 150,
-    };
-  }
-
-  private async executeHttpRequest(nodeData: any, input: any) {
-    // Mock HTTP request
-    return {
-      success: true,
-      type: 'http-request',
-      method: nodeData.method || 'GET',
-      url: nodeData.url,
-      status: 200,
-      data: { mock: 'response' },
-    };
-  }
-
-  private async executeCondition(nodeData: any, input: any) {
-    // Mock condition evaluation
-    const result = Math.random() > 0.5;
-    return {
-      success: true,
-      type: 'condition',
-      result,
-      branch: result ? 'true' : 'false',
-    };
-  }
-
-  private async executeCode(nodeData: any, input: any) {
-    // Mock code execution
-    return {
-      success: true,
-      type: 'code',
-      code: nodeData.code,
-      result: { executed: true, input },
-    };
   }
 
   private buildExecutionOrder(nodes: any[], edges: any[]): string[] {
@@ -271,5 +245,34 @@ export class ExecutionService {
       return executions.filter((e) => e.flowId === flowId);
     }
     return executions;
+  }
+
+  // New methods for database queries
+  async findAll(flowId?: number, limit: number = 100): Promise<FlowExecutionEntity[]> {
+    const where: any = {};
+    if (flowId) {
+      where.flowId = flowId;
+    }
+
+    return this.flowExecutionRepository.find({
+      where,
+      relations: ['nodeExecutions'],
+      order: { createdAt: 'DESC' },
+      take: limit,
+    });
+  }
+
+  async findOne(id: number): Promise<FlowExecutionEntity | null> {
+    return this.flowExecutionRepository.findOne({
+      where: { id },
+      relations: ['nodeExecutions'],
+    });
+  }
+
+  async findByExecutionId(executionId: string): Promise<FlowExecutionEntity | null> {
+    return this.flowExecutionRepository.findOne({
+      where: { executionId },
+      relations: ['nodeExecutions'],
+    });
   }
 }

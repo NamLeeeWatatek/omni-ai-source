@@ -7,11 +7,13 @@ import { TypeOrmConfigService } from '../../typeorm-config.service';
 import { RoleSeedModule } from './role/role-seed.module';
 import { StatusSeedModule } from './status/status-seed.module';
 import { UserSeedModule } from './user/user-seed.module';
+import { PermissionSeedModule } from './permission/permission-seed.module';
 import databaseConfig from '../../config/database.config';
 import appConfig from '../../../config/app.config';
 
 @Module({
   imports: [
+    PermissionSeedModule, // Must be first - roles depend on permissions
     RoleSeedModule,
     StatusSeedModule,
     UserSeedModule,

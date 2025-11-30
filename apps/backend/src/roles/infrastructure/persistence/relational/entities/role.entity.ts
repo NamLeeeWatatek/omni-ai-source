@@ -1,5 +1,12 @@
-import { Column, Entity, PrimaryColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  PrimaryColumn,
+  ManyToMany,
+  JoinTable,
+} from 'typeorm';
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
+import { PermissionEntity } from '../../../../../permissions/infrastructure/persistence/relational/entities/permission.entity';
 
 @Entity({
   name: 'role',
@@ -10,4 +17,19 @@ export class RoleEntity extends EntityRelationalHelper {
 
   @Column()
   name?: string;
+
+  @Column({ nullable: true })
+  description?: string;
+
+  // Casdoor integration
+  @Column({ nullable: true, name: 'casdoor_role_name' })
+  casdoorRoleName?: string; // Map to Casdoor role name
+
+  @ManyToMany(() => PermissionEntity, (permission) => permission.roles)
+  @JoinTable({
+    name: 'role_permission',
+    joinColumn: { name: 'role_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'permission_id', referencedColumnName: 'id' },
+  })
+  permissions: PermissionEntity[];
 }

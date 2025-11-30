@@ -36,19 +36,21 @@ import { PermissionsModule } from './permissions/permissions.module';
 import { NodeTypesModule } from './node-types/node-types.module';
 import { TemplatesModule } from './templates/templates.module';
 import { ChannelsModule } from './channels/channels.module';
+import { IntegrationsModule } from './integrations/integrations.module';
+import { AiModule } from './ai/ai.module';
 
 // <database-block>
 const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
   .isDocumentDatabase
   ? MongooseModule.forRootAsync({
-      useClass: MongooseConfigService,
-    })
+    useClass: MongooseConfigService,
+  })
   : TypeOrmModule.forRootAsync({
-      useClass: TypeOrmConfigService,
-      dataSourceFactory: async (options: DataSourceOptions) => {
-        return new DataSource(options).initialize();
-      },
-    });
+    useClass: TypeOrmConfigService,
+    dataSourceFactory: async (options: DataSourceOptions) => {
+      return new DataSource(options).initialize();
+    },
+  });
 // </database-block>
 
 @Module({
@@ -110,6 +112,8 @@ const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
     NodeTypesModule,
     TemplatesModule,
     ChannelsModule,
+    IntegrationsModule,
+    AiModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }

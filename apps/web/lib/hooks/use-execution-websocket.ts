@@ -58,82 +58,14 @@ export function useExecutionWebSocket(
 
             const endpoint = `/ws/execute/${flowId}`
 
-            // TODO: Implement real WebSocket execution
-            // For now, simulate execution node by node like n8n
-            console.log('🎬 Simulating execution for flow:', flowId)
-            
-            // Get all nodes to execute
-            let currentNodes: Node[] = []
-            setNodes((nds) => {
-                currentNodes = [...nds]
-                return nds
-            })
-
-            // Execute nodes sequentially
-            const executeNodesSequentially = async () => {
-                for (let i = 0; i < currentNodes.length; i++) {
-                    const node = currentNodes[i]
-                    const nodeId = node.id
-                    const nodeName = node.data?.label || nodeId
-
-                    // Start node execution
-                    console.log(`⏳ Executing node: ${nodeName}`)
-                    updateNodeStatus(nodeId, 'running')
-
-                    // Simulate node execution time (500ms - 1500ms)
-                    const executionTime = 500 + Math.random() * 1000
-                    await new Promise(resolve => setTimeout(resolve, executionTime))
-
-                    // Randomly succeed or fail (90% success rate)
-                    const success = Math.random() > 0.1
-
-                    if (success) {
-                        console.log(`✅ Node completed: ${nodeName}`)
-                        updateNodeStatus(nodeId, 'success', {
-                            data: {
-                                output: `Mock output from ${nodeName}`,
-                                executionTime: Math.round(executionTime),
-                            }
-                        })
-                    } else {
-                        console.log(`❌ Node failed: ${nodeName}`)
-                        updateNodeStatus(nodeId, 'error', {
-                            error: {
-                                message: `Mock error in ${nodeName}`,
-                            }
-                        })
-                        setError(`Execution failed at node: ${nodeName}`)
-                        setIsExecuting(false)
-                        reject(new Error(`Execution failed at node: ${nodeName}`))
-                        return
-                    }
-                }
-
-                // All nodes completed successfully
-                console.log('🏁 Execution completed successfully')
-                setIsExecuting(false)
-                resolve()
-            }
-
-            executeNodesSequentially().catch((err) => {
-                console.error('💥 Execution error:', err)
-                setError(err.message)
-                setIsExecuting(false)
-                reject(err)
-            })
-
-            return
-
-            // Original WebSocket code (disabled for now)
-            /*
+            // Connect to WebSocket and start execution
             wsService.connect(endpoint, () => {
-                console.log('🔌 Connected, sending start command...')
+                console.log('🔌 Connected to WebSocket, sending start command...')
                 wsService.send(endpoint, {
                     action: 'start',
                     input_data: inputData
                 })
             })
-            */
 
             // Subscribe to events (match backend event types exactly)
             const unsubscribeStarted = wsService.on(endpoint, 'executionStarted', (data) => {

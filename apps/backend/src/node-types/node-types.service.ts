@@ -82,11 +82,19 @@ export class NodeTypesService {
       description: 'Send message to channel',
       properties: [
         {
-          name: 'channelId',
+          name: 'channel',
           label: 'Channel',
           type: 'select',
           required: true,
-          options: [], // Dynamic from channels
+          options: 'dynamic:channels', // Load from /channels/ API
+          description: 'Select which connected channel to send through',
+        },
+        {
+          name: 'to',
+          label: 'Recipient',
+          type: 'text',
+          required: true,
+          placeholder: 'User ID or phone number',
         },
         {
           name: 'message',
