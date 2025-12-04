@@ -31,7 +31,7 @@ axiosClient.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Response interceptor - Handle errors
+// Response interceptor - Handle errors only (keep response structure intact)
 axiosClient.interceptors.response.use(
   (response) => response,
   (error) => {

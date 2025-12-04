@@ -21,8 +21,8 @@ const botFormSchema = z.object({
     name: z.string().min(1, 'Name is required'),
     description: z.string().optional(),
     workspaceId: z.string(),
-    defaultLanguage: z.string().default('en'),
-    timezone: z.string().default('UTC'),
+    defaultLanguage: z.string(),
+    timezone: z.string(),
 })
 
 interface BotDialogProps {

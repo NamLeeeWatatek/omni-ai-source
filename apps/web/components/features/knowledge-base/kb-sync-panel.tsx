@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { FiRefreshCw, FiAlertTriangle, FiCheckCircle } from 'react-icons/fi'
-import { fetchAPI } from '@/lib/api'
+import { axiosClient } from '@/lib/axios-client'
 import { toast } from 'sonner'
 
 interface SyncPanelProps {
@@ -25,7 +25,7 @@ export function KBSyncPanel({ knowledgeBaseId }: SyncPanelProps) {
     const handleVerify = async () => {
         setVerifying(true)
         try {
-            const result = await fetchAPI(`/knowledge-bases/${knowledgeBaseId}/verify-collection`)
+            const result = await (await axiosClient.get(`/knowledge-bases/${knowledgeBaseId}/verify-collection`)).data
             setVerifyResult(result)
 
             if (result.missingVectors === 0 && result.failedEmbeddings === 0) {
@@ -44,11 +44,11 @@ export function KBSyncPanel({ knowledgeBaseId }: SyncPanelProps) {
     const handleSyncMissing = async () => {
         setSyncing(true)
         try {
-            const result = await fetchAPI(`/knowledge-bases/${knowledgeBaseId}/sync-missing`, {
+            const result = await axiosClient(`/knowledge-bases/${knowledgeBaseId}/sync-missing`, {
                 method: 'POST',
             })
 
-            toast.success(`Synced ${result.synced} vectors (${result.errors} errors)`)
+            toast.success(`Synced ${result.data.synced} vectors (${result.data.errors} errors)`)
 
             // Refresh verify result
             handleVerify()
@@ -67,11 +67,11 @@ export function KBSyncPanel({ knowledgeBaseId }: SyncPanelProps) {
 
         setRebuilding(true)
         try {
-            const result = await fetchAPI(`/knowledge-bases/${knowledgeBaseId}/rebuild-collection`, {
+            const result = await axiosClient(`/knowledge-bases/${knowledgeBaseId}/rebuild-collection`, {
                 method: 'POST',
             })
 
-            toast.success(`Rebuilt ${result.chunksProcessed} chunks (${result.errors} errors)`)
+            toast.success(`Rebuilt ${result.data.chunksProcessed} chunks (${result.data.errors} errors)`)
 
             // Refresh verify result
             handleVerify()

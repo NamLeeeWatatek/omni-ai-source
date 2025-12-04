@@ -49,11 +49,13 @@ import type {
 
 /**
  * Get all knowledge bases
+ * @param workspaceId - Optional workspace ID to filter knowledge bases
  */
 export async function getKnowledgeBases(workspaceId?: string): Promise<GetKnowledgeBasesResponse> {
-  return axiosClient.get('/knowledge-bases', {
+  const response = await axiosClient.get('/knowledge-bases', {
     params: workspaceId ? { workspaceId } : undefined
   })
+  return response.data
 }
 
 /**

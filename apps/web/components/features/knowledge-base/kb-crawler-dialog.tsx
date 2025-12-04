@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { FiGlobe, FiFileText, FiAlertCircle } from 'react-icons/fi'
 import { toast } from 'sonner'
-import { fetchAPI } from '@/lib/api'
+import { axiosClient } from '@/lib/axios-client'
 
 const websiteFormSchema = z.object({
     url: z.string().url('Please enter a valid URL'),
@@ -69,13 +69,11 @@ export function KBCrawlerDialog({
     const handleCrawlWebsite = async (values: z.infer<typeof websiteFormSchema>) => {
         setLoading(true)
         try {
-            const result = await fetchAPI('/knowledge-bases/crawl/website', {
-                method: 'POST',
-                body: JSON.stringify({
-                    ...values,
-                    knowledgeBaseId,
-                }),
+            const response = await axiosClient.post('/knowledge-bases/crawl/website', {
+                ...values,
+                knowledgeBaseId,
             })
+            const result = response.data || response
 
             toast.success(`Crawled ${result.documentsCreated} pages successfully!`)
             
@@ -96,13 +94,11 @@ export function KBCrawlerDialog({
     const handleCrawlSitemap = async (values: z.infer<typeof sitemapFormSchema>) => {
         setLoading(true)
         try {
-            const result = await fetchAPI('/knowledge-bases/crawl/sitemap', {
-                method: 'POST',
-                body: JSON.stringify({
-                    ...values,
-                    knowledgeBaseId,
-                }),
+            const response = await axiosClient.post('/knowledge-bases/crawl/sitemap', {
+                ...values,
+                knowledgeBaseId,
             })
+            const result = response.data || response
 
             toast.success(`Crawled ${result.documentsCreated} pages from sitemap!`)
             

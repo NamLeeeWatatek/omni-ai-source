@@ -2,17 +2,15 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react'
 import {
-  Flow,
-  FlowCreateData,
-  FlowUpdateData,
   fetchFlows,
   fetchFlow,
   createFlow,
   updateFlow,
-  deleteFlow,
-  duplicateFlow,
-  archiveFlow
+  deleteFlow
 } from '@/lib/api/flows'
+import type { Flow, CreateFlowDto, UpdateFlowDto } from '@/lib/types/flow'
+type FlowCreateData = CreateFlowDto
+type FlowUpdateData = UpdateFlowDto
 import toast from '@/lib/toast'
 
 interface FlowsContextType {
@@ -21,17 +19,17 @@ interface FlowsContextType {
   error: string | null
 
   // Read operations
-  getFlow: (id: number) => Flow | undefined
+  getFlow: (id: string) => Flow | undefined
   getFlowsByStatus: (status: string) => Flow[]
   refreshFlows: () => Promise<void>
-  refreshSingleFlow: (id: number) => Promise<Flow>
+  refreshSingleFlow: (id: string) => Promise<Flow>
 
   // Write operations
   createNewFlow: (data: FlowCreateData) => Promise<Flow>
-  updateExistingFlow: (id: number, data: FlowUpdateData) => Promise<Flow>
-  deleteExistingFlow: (id: number) => Promise<void>
-  duplicateExistingFlow: (id: number) => Promise<Flow>
-  archiveExistingFlow: (id: number) => Promise<Flow>
+  updateExistingFlow: (id: string, data: FlowUpdateData) => Promise<Flow>
+  deleteExistingFlow: (id: string) => Promise<void>
+  duplicateExistingFlow: (id: string) => Promise<Flow>
+  archiveExistingFlow: (id: string) => Promise<Flow>
 }
 
 const FlowsContext = createContext<FlowsContextType | undefined>(undefined)
@@ -58,7 +56,7 @@ export function FlowsProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // Get single flow from cache
-  const getFlow = useCallback((id: number) => {
+  const getFlow = useCallback((id: string) => {
     return flows.find(f => f.id === id)
   }, [flows])
 
@@ -68,7 +66,7 @@ export function FlowsProvider({ children }: { children: ReactNode }) {
   }, [flows])
 
   // Refresh single flow (fetch from API and update cache)
-  const refreshSingleFlow = useCallback(async (id: number) => {
+  const refreshSingleFlow = useCallback(async (id: string) => {
     try {
       const updated = await fetchFlow(id)
       setFlows(prev => {
@@ -101,7 +99,7 @@ export function FlowsProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // Update flow with optimistic update
-  const updateExistingFlow = useCallback(async (id: number, data: FlowUpdateData) => {
+  const updateExistingFlow = useCallback(async (id: string, data: FlowUpdateData) => {
     // Optimistic update
     const previousFlows = flows
     setFlows(prev => prev.map(f => f.id === id ? { ...f, ...data } : f))
@@ -121,7 +119,7 @@ export function FlowsProvider({ children }: { children: ReactNode }) {
   }, [flows])
 
   // Delete flow
-  const deleteExistingFlow = useCallback(async (id: number) => {
+  const deleteExistingFlow = useCallback(async (id: string) => {
     // Optimistic delete
     const previousFlows = flows
     setFlows(prev => prev.filter(f => f.id !== id))
@@ -139,26 +137,23 @@ export function FlowsProvider({ children }: { children: ReactNode }) {
   }, [flows])
 
   // Duplicate flow
-  const duplicateExistingFlow = useCallback(async (id: number) => {
+  const duplicateExistingFlow = useCallback(async (id: string) => {
     try {
-      const duplicated = await duplicateFlow(id)
-      setFlows(prev => [...prev, duplicated])
-      toast.success('Workflow duplicated successfully')
-      return duplicated
+      // TODO: Implement duplicate API endpoint
+      toast.error('Duplicate feature not yet implemented')
+      throw new Error('Not implemented')
     } catch (err: any) {
-
       toast.error(err.message || 'Failed to duplicate workflow')
       throw err
     }
   }, [])
 
   // Archive flow
-  const archiveExistingFlow = useCallback(async (id: number) => {
+  const archiveExistingFlow = useCallback(async (id: string) => {
     try {
-      const archived = await archiveFlow(id)
-      setFlows(prev => prev.map(f => f.id === id ? archived : f))
-      toast.success('Workflow archived successfully')
-      return archived
+      // TODO: Implement archive API endpoint
+      toast.error('Archive feature not yet implemented')
+      throw new Error('Not implemented')
     } catch (err: any) {
 
       toast.error(err.message || 'Failed to archive workflow')

@@ -2,9 +2,9 @@
 
 import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-import { fetchAPI } from '@/lib/api'
 import toast from '@/lib/toast'
 import { FiUpload, FiX, FiImage, FiFile, FiCheck } from 'react-icons/fi'
+import axiosClient from '@/lib/axios-client'
 
 interface MediaUploaderProps {
     onUploadComplete: (url: string, publicId: string) => void
@@ -89,20 +89,20 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
 
             const endpoint = type === 'image' ? '/media/upload/image' : '/media/upload/file'
 
-            // Simulate progress (since we can't track actual upload progress with fetchAPI)
             const progressInterval = setInterval(() => {
                 setProgress(prev => Math.min(prev + 10, 90))
             }, 200)
 
-            const result = await fetchAPI(endpoint, {
-                method: 'POST',
-                body: formData,
-                headers: {} // Let browser set Content-Type for FormData
+            const response = await axiosClient.post(endpoint, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
             })
 
             clearInterval(progressInterval)
             setProgress(100)
 
+            const result = response.data || response
             toast.success('Upload successful!')
             onUploadComplete(result.secure_url, result.public_id)
             onClose()

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { FiMessageCircle, FiX, FiSend, FiLoader } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
-import { fetchAPI } from '@/lib/api'
+import { axiosClient } from '@/lib/axios-client'
 import toast from '@/lib/toast'
 import type { Message } from '@/lib/types'
 import { useAIModels } from '@/lib/hooks/use-ai-models'
@@ -43,14 +43,7 @@ export function AIFloatingButton() {
         setLoading(true)
 
         try {
-            const response = await fetchAPI('/ai/chat', {
-                method: 'POST',
-                body: JSON.stringify({
-                    message: userMessage,
-                    model: model,
-                    conversation_history: messages
-                })
-            })
+            const response = await axiosClient.post('', ).then(r => r.data)
 
             setMessages(prev => [...prev, {
                 id: (Date.now() + 1).toString(),

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { fetchAPI } from '@/lib/api';
+import { axiosClient } from '@/lib/axios-client';
 import { Card } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { Badge } from '@/components/ui/badge';
@@ -32,7 +32,7 @@ export default function AIModelsPage() {
     useEffect(() => {
         const loadModels = async () => {
             try {
-                const data = await fetchAPI('/ai-providers/models');
+                const data = await axiosClient.get('/ai-providers/models').then(r => r.data);
                 setProviders(data);
             } catch (err) {
 
@@ -54,8 +54,8 @@ export default function AIModelsPage() {
     }
 
     return (
-        <div className="p-8">
-            <header className="mb-8">
+        <div className="h-full">
+            <header className="page-header">
                 <h1 className="text-2xl font-bold">AI Models</h1>
                 <p className="text-muted-foreground mt-1">Configure AI model providers and settings</p>
             </header>

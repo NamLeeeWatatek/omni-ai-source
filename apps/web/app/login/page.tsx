@@ -1,12 +1,12 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { MdAutoAwesome, MdWarning, MdInfo, MdCheckCircle } from 'react-icons/md'
+import { AlertBanner } from '@/components/ui/alert-banner'
+import { MdAutoAwesome, MdCheckCircle } from 'react-icons/md'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { LoadingLogo } from '@/components/ui/loading-logo'
-import { motion } from 'framer-motion'
 
 export default function LoginPage() {
     const router = useRouter()
@@ -86,53 +86,33 @@ export default function LoginPage() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="w-full max-w-md p-6 relative z-10"
-            >
-                <div className="glass rounded-3xl p-8 shadow-2xl">
+            <div className="w-full max-w-md p-6 relative z-10">
+                <div className="glass rounded-xl p-8">
                     {/* Logo/Brand */}
                     <div className="text-center mb-10">
-                        <motion.div
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ delay: 0.2, duration: 0.5 }}
-                            className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-600 to-purple-600 mb-6 shadow-lg shadow-blue-500/20"
-                        >
-                            <MdAutoAwesome className="w-10 h-10 text-white" />
-                        </motion.div>
-                        <h1 className="text-4xl font-bold mb-3 gradient-text">
+                        <div className="inline-flex items-center justify-center w-20 h-20 rounded-lg bg-primary mb-6">
+                            <MdAutoAwesome className="w-10 h-10 text-primary-foreground" />
+                        </div>
+                        <h1 className="text-3xl font-bold mb-2">
                             WataOmi
                         </h1>
-                        <p className="text-muted-foreground text-lg">
+                        <p className="text-muted-foreground">
                             AI-Powered Omnichannel Platform
                         </p>
                     </div>
 
                     {/* Error Message */}
                     {configError && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/20"
-                        >
-                            <div className="flex items-start gap-3">
-                                <MdWarning className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
-                                <div className="flex-1">
-                                    <h3 className="font-semibold text-destructive mb-1">Configuration Error</h3>
-                                    <p className="text-sm text-destructive/80">{configError}</p>
-                                </div>
-                            </div>
-                        </motion.div>
+                        <AlertBanner variant="error" title="Configuration Error" className="mb-6">
+                            {configError}
+                        </AlertBanner>
                     )}
 
                     {/* Login Button */}
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         <Button
                             onClick={handleLogin}
-                            className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 border-0 shadow-lg shadow-blue-500/25 transition-all duration-300 hover:scale-[1.02]"
+                            className="w-full h-12 text-base font-semibold"
                             disabled={!!configError}
                         >
                             Sign in with Casdoor
@@ -144,28 +124,25 @@ export default function LoginPage() {
                     </div>
 
                     {/* Features */}
-                    <div className="mt-10 pt-8 border-t border-border/50">
+                    <div className="mt-8 pt-6 border-t border-border/40">
                         <div className="grid gap-3">
                             {[
                                 'AI-powered workflow automation',
                                 'Omnichannel messaging',
                                 'Advanced analytics & insights'
                             ].map((feature, i) => (
-                                <motion.div
+                                <div
                                     key={i}
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.4 + (i * 0.1) }}
                                     className="flex items-center gap-3 text-sm text-muted-foreground"
                                 >
-                                    <MdCheckCircle className="w-5 h-5 text-primary" />
+                                    <MdCheckCircle className="w-5 h-5 text-success" />
                                     {feature}
-                                </motion.div>
+                                </div>
                             ))}
                         </div>
                     </div>
                 </div>
-            </motion.div>
+            </div>
         </div>
     )
 }

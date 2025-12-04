@@ -21,14 +21,27 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             
             const userName = data.user.name || data.user.firstName || data.user.email
             
+            // Only store essential workspace info to minimize session size
             return {
               id: String(data.user.id),
               email: data.user.email,
               name: userName,
               accessToken: data.token,
               refreshToken: data.refreshToken,
-              workspace: data.workspace,
-              workspaces: data.workspaces,
+              workspace: data.workspace ? {
+                id: data.workspace.id,
+                name: data.workspace.name,
+                slug: data.workspace.slug,
+                plan: data.workspace.plan,
+                avatarUrl: data.workspace.avatarUrl || null,
+              } : null,
+              workspaces: data.workspaces?.map((ws: any) => ({
+                id: ws.id,
+                name: ws.name,
+                slug: ws.slug,
+                plan: ws.plan,
+                avatarUrl: ws.avatarUrl || null,
+              })) || [],
             }
           }
 
@@ -56,14 +69,27 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           const data = await response.json()
           const userName = data.user.name || data.user.firstName || data.user.email
 
+          // Only store essential workspace info to minimize session size
           return {
             id: String(data.user.id),
             email: data.user.email,
             name: userName,
             accessToken: data.token,
             refreshToken: data.refreshToken,
-            workspace: data.workspace,
-            workspaces: data.workspaces,
+            workspace: data.workspace ? {
+              id: data.workspace.id,
+              name: data.workspace.name,
+              slug: data.workspace.slug,
+              plan: data.workspace.plan,
+              avatarUrl: data.workspace.avatarUrl || null,
+            } : null,
+            workspaces: data.workspaces?.map((ws: any) => ({
+              id: ws.id,
+              name: ws.name,
+              slug: ws.slug,
+              plan: ws.plan,
+              avatarUrl: ws.avatarUrl || null,
+            })) || [],
           }
         } catch (error) {
           console.error('Authorize error:', error)

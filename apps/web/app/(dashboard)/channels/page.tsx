@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { AlertDialogConfirm } from '@/components/ui/alert-dialog-confirm'
+import { AlertBanner, CodeBlock } from '@/components/ui/alert-banner'
 import { useWorkspace } from '@/lib/hooks/useWorkspace'
-import { fetchAPI } from '@/lib/api'
+import { axiosClient } from '@/lib/axios-client'
 import toast from '@/lib/toast'
 import {
     FiFacebook,
@@ -37,7 +37,7 @@ export default function ChannelsPage() {
     const [configs, setConfigs] = useState<IntegrationConfig[]>([])
     const [loading, setLoading] = useState(true)
     const [connecting, setConnecting] = useState<string | null>(null)
-    
+
     // Facebook pages selector
     const [facebookPages, setFacebookPages] = useState<any[]>([])
     const [facebookTempToken, setFacebookTempToken] = useState('')
@@ -66,14 +66,15 @@ export default function ChannelsPage() {
         try {
             setLoading(true)
             const [channelsData, configsData] = await Promise.all([
-                fetchAPI('/channels/'),
-                fetchAPI('/integrations/')
+                axiosClient.get('/channels').then(r => r.data),
+                axiosClient.get('/integrations').then(r => r.data)
             ])
             setChannels(channelsData)
             setConfigs(configsData)
 
         } catch (error) {
-
+            console.error('Failed to load channels:', error)
+            toast.error('Failed to load channels')
         } finally {
             setLoading(false)
         }
@@ -87,11 +88,11 @@ export default function ChannelsPage() {
                 toast.error('No workspace selected. Please refresh the page.')
                 return
             }
-            
+
             console.log('Fetching bots for workspace:', currentWorkspace.id)
-            const response = await fetchAPI(`/bots?workspaceId=${currentWorkspace.id}`)
+            const response = await (await axiosClient.get(`/bots?workspaceId=${currentWorkspace.id}`)).data
             console.log('Bots API response:', response)
-            
+
             // Handle different response formats
             let botsList = []
             if (Array.isArray(response)) {
@@ -101,10 +102,10 @@ export default function ChannelsPage() {
             } else if (response?.data && Array.isArray(response.data)) {
                 botsList = response.data
             }
-            
+
             console.log('Parsed bots list:', botsList, 'length:', botsList.length)
             setBots(botsList)
-            
+
             // Auto-select first bot
             if (botsList.length > 0) {
                 setSelectedBotId(botsList[0].id)
@@ -128,15 +129,15 @@ export default function ChannelsPage() {
 
             // For Facebook, use new backend API
             if (provider === 'facebook' || provider === 'messenger' || provider === 'instagram') {
-                const response = await fetchAPI('/channels/facebook/oauth/url')
-                
+                const response = await axiosClient.get('/channels/facebook/oauth/url').then(r => r.data)
+
                 if (!response.url) {
                     toast.error('Please configure Facebook App settings first')
                     openConfig(undefined, 'facebook')
                     setConnecting(null)
                     return
                 }
-                
+
                 oauthUrl = response.url
             } else {
                 // For other providers, check if configured
@@ -150,7 +151,7 @@ export default function ChannelsPage() {
 
                 // Get OAuth URL from old API
                 const configParam = configId ? `?configId=${configId}` : ''
-                const response = await fetchAPI(`/oauth/login/${provider}${configParam}`)
+                const response = await (await axiosClient.get(`/oauth/login/${provider}${configParam}`)).data
 
                 if (response.error || !response.url) {
                     toast.error(response.error || 'Failed to get OAuth URL')
@@ -187,7 +188,7 @@ export default function ChannelsPage() {
                         setFacebookPages(event.data.pages)
                         setFacebookTempToken(event.data.tempToken)
                         toast.success(`Found ${event.data.pages.length} Facebook page(s)`)
-                        
+
                         // Load bots for selection
                         loadBots()
                         popup?.close()
@@ -241,7 +242,7 @@ export default function ChannelsPage() {
         if (!disconnectId) return
 
         try {
-            await fetchAPI(`/channels/${disconnectId}`, { method: 'DELETE' })
+            await await axiosClient.delete(`/channels/${disconnectId}`)
             toast.success('Channel disconnected')
             loadData()
         } catch {
@@ -276,32 +277,30 @@ export default function ChannelsPage() {
         try {
             // For Facebook, use new backend API
             if (configForm.provider === 'facebook' || configForm.provider === 'messenger' || configForm.provider === 'instagram') {
-                await fetchAPI('/channels/facebook/setup', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        appId: configForm.client_id,
-                        appSecret: configForm.client_secret,
-                        verifyToken: configForm.verify_token || 'wataomi_verify_token'
-                    })
-                })
+                await axiosClient.post('/channels/facebook/setup', {
+                    appId: configForm.client_id,
+                    appSecret: configForm.client_secret,
+                    verifyToken: configForm.verify_token || 'wataomi_verify_token'
+                }).then(r => r.data)
             } else {
                 // For other providers, use old API
-                const method = configForm.id ? 'PATCH' : 'POST'
                 const url = configForm.id ? `/integrations/${configForm.id}` : '/integrations/'
+                const data = {
+                    provider: configForm.provider,
+                    name: configForm.name,
+                    clientId: configForm.client_id,
+                    clientSecret: configForm.client_secret,
+                    scopes: configForm.scopes,
+                    isActive: true
+                }
 
-                await fetchAPI(url, {
-                    method,
-                    body: JSON.stringify({
-                        provider: configForm.provider,
-                        name: configForm.name,
-                        clientId: configForm.client_id,
-                        clientSecret: configForm.client_secret,
-                        scopes: configForm.scopes,
-                        isActive: true
-                    })
-                })
+                if (configForm.id) {
+                    await axiosClient.patch(url, data)
+                } else {
+                    await axiosClient.post(url, data)
+                }
             }
-            
+
             toast.success('Configuration saved successfully!')
             setConfigForm(prev => ({ ...prev, provider: '' })) // Close modal
             loadData()
@@ -318,25 +317,22 @@ export default function ChannelsPage() {
         }
 
         setConnectingPage(true)
-        
+
         try {
-            await fetchAPI('/channels/facebook/connect', {
-                method: 'POST',
-                body: JSON.stringify({
-                    pageId: page.id,
-                    pageName: page.name,
-                    userAccessToken: facebookTempToken,
-                    category: page.category,
-                    botId: selectedBotId,
-                })
-            })
-            
+            await axiosClient.post('/channels/facebook/connect', {
+                pageId: page.id,
+                pageName: page.name,
+                userAccessToken: facebookTempToken,
+                category: page.category,
+                botId: selectedBotId
+            }).then(r => r.data)
+
             const selectedBot = bots.find(b => b.id === selectedBotId)
             toast.success(`Connected ${page.name} to bot "${selectedBot?.name}"`)
-            
+
             // Remove connected page from list
             setFacebookPages(prev => prev.filter(p => p.id !== page.id))
-            
+
             // Reload connections
             await loadData()
         } catch (error: any) {
@@ -352,7 +348,7 @@ export default function ChannelsPage() {
         if (!deleteConfigId) return
 
         try {
-            await fetchAPI(`/integrations/${deleteConfigId}`, { method: 'DELETE' })
+            await await axiosClient.delete(`/integrations/${deleteConfigId}`)
             toast.success('Configuration deleted')
             loadData()
         } catch {
@@ -479,17 +475,13 @@ export default function ChannelsPage() {
     );
 
     return (
-        <div className="h-full relative p-6 space-y-8">
-            <div className="flex items-center justify-between">
+        <div className="h-full space-y-8">
+            <div className="page-header flex items-center justify-between">
                 <div>
-                    <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
-                        Channels & Integrations
-                    </h1>
-                    <p className="text-muted-foreground text-lg">
-                        Connect your communication channels to start automating
-                    </p>
+                    <h1 className="text-3xl font-bold">Channels & Integrations</h1>
+                    <p className="text-muted-foreground mt-1">Connect your communication channels to start automating</p>
                 </div>
-                <Button variant="outline" onClick={loadData} disabled={loading} className="hover:bg-primary/10 hover:text-primary transition-colors">
+                <Button variant="outline" onClick={loadData} disabled={loading}>
                     {loading ? (
                         <Spinner className="size-4 mr-2" />
                     ) : (
@@ -500,31 +492,31 @@ export default function ChannelsPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 border-b border-white/10 pb-4">
+            <div className="flex gap-2 border-b border-border/40 pb-4">
                 <button
                     onClick={() => setActiveTab('connected')}
-                    className={`px-6 py-2.5 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 ${activeTab === 'connected'
-                        ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105'
-                        : 'bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-foreground'
+                    className={`px-6 py-2.5 rounded-lg font-medium transition-all flex items-center gap-2 ${activeTab === 'connected'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                         }`}
                 >
                     <FiCheckCircle className="w-4 h-4" />
                     Connections
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${activeTab === 'connected' ? 'bg-white/20' : 'bg-white/5'
+                    <span className={`px-2 py-0.5 text-xs rounded-full ${activeTab === 'connected' ? 'bg-white/20' : 'bg-muted'
                         }`}>
                         {channels.length}
                     </span>
                 </button>
                 <button
                     onClick={() => setActiveTab('configurations')}
-                    className={`px-6 py-2.5 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 ${activeTab === 'configurations'
-                        ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105'
-                        : 'bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-foreground'
+                    className={`px-6 py-2.5 rounded-lg font-medium transition-all flex items-center gap-2 ${activeTab === 'configurations'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                         }`}
                 >
                     <FiSettings className="w-4 h-4" />
                     Configurations
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${activeTab === 'configurations' ? 'bg-white/20' : 'bg-white/5'
+                    <span className={`px-2 py-0.5 text-xs rounded-full ${activeTab === 'configurations' ? 'bg-white/20' : 'bg-muted'
                         }`}>
                         {configuredCount}
                     </span>
@@ -533,21 +525,17 @@ export default function ChannelsPage() {
 
             {/* Connected Tab */}
             {activeTab === 'connected' && (
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                >
+                <div>
                     {channels.length === 0 && configuredCount === 0 ? (
                         <div className="text-center py-20">
-                            <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center">
+                            <div className="w-24 h-24 mx-auto mb-6 rounded-lg bg-muted flex items-center justify-center">
                                 <FiMessageCircle className="w-12 h-12 text-muted-foreground" />
                             </div>
                             <h3 className="text-2xl font-semibold mb-3">No connections yet</h3>
                             <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                                 Configure your first integration to start connecting channels and automating your workflow
                             </p>
-                            <Button onClick={() => setActiveTab('configurations')} size="lg" className="rounded-xl">
+                            <Button onClick={() => setActiveTab('configurations')} size="lg">
                                 Go to Configurations
                             </Button>
                         </div>
@@ -558,40 +546,37 @@ export default function ChannelsPage() {
                                 <div>
                                     <div className="flex items-center justify-between mb-6">
                                         <h2 className="text-xl font-semibold flex items-center gap-3">
-                                            <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]"></span>
+                                            <span className="w-2 h-2 bg-success rounded-full"></span>
                                             Connected ({channels.length})
                                         </h2>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {channels.map((channel, index) => {
+                                        {channels.map((channel) => {
                                             const channelInfo = allChannels.find(c => c.id === channel.type)
                                             const sameTypeCount = channels.filter(c => c.type === channel.type).length
 
                                             return (
-                                                <motion.div
+                                                <div
                                                     key={channel.id}
-                                                    initial={{ opacity: 0, y: 20 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ delay: index * 0.05 }}
-                                                    className="glass rounded-2xl p-6 border border-white/10 bg-white/5 hover:bg-white/10 transition-all duration-300 group hover:shadow-xl hover:shadow-green-500/5 hover:-translate-y-1"
+                                                    className="glass rounded-xl p-6"
                                                 >
-                                                    <div className="flex items-start justify-between mb-5">
-                                                        <div className={`p-3.5 rounded-2xl border ${getColor(channel.type)} shadow-sm`}>
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div className={`p-3 rounded-lg ${getColor(channel.type)}`}>
                                                             {getIcon(channel.type)}
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             {sameTypeCount > 1 && (
-                                                                <span className="text-xs font-medium bg-blue-500/10 text-blue-500 px-2.5 py-1 rounded-full border border-blue-500/10">
+                                                                <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                                                                     {sameTypeCount} accounts
                                                                 </span>
                                                             )}
-                                                            <span className="flex items-center text-xs font-medium text-green-500 bg-green-500/10 px-2.5 py-1 rounded-full border border-green-500/10">
-                                                                <FiCheckCircle className="w-3 h-3 mr-1.5" />
+                                                            <span className="flex items-center text-xs font-medium text-success bg-success/10 px-2 py-0.5 rounded-full">
+                                                                <FiCheckCircle className="w-3 h-3 mr-1" />
                                                                 Active
                                                             </span>
                                                         </div>
                                                     </div>
-                                                    <h3 className="font-semibold text-xl mb-1.5">{channel.name}</h3>
+                                                    <h3 className="font-semibold text-lg mb-1">{channel.name}</h3>
                                                     <p className="text-sm text-muted-foreground capitalize mb-4">
                                                         {channelInfo?.name || channel.type}
                                                     </p>
@@ -607,7 +592,7 @@ export default function ChannelsPage() {
                                                             Disconnect
                                                         </button>
                                                     </div>
-                                                </motion.div>
+                                                </div>
                                             )
                                         })}
                                     </div>
@@ -619,42 +604,39 @@ export default function ChannelsPage() {
                                 <div>
                                     <div className="flex items-center justify-between mb-6">
                                         <h2 className="text-xl font-semibold flex items-center gap-3">
-                                            <span className="w-2.5 h-2.5 bg-amber-500 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.5)]"></span>
+                                            <span className="w-2 h-2 bg-warning rounded-full"></span>
                                             Ready to Connect ({configuredNotConnected.length})
                                         </h2>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {configuredNotConnected.map((provider, index) => {
+                                        {configuredNotConnected.map((provider) => {
                                             const channelInfo = allChannels.find(c => c.id === provider)
 
                                             return (
-                                                <motion.div
+                                                <div
                                                     key={provider}
-                                                    initial={{ opacity: 0, y: 20 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ delay: index * 0.05 }}
-                                                    className="glass rounded-2xl p-6 border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/5 hover:-translate-y-1"
+                                                    className="glass rounded-xl p-6 border-warning/20"
                                                 >
-                                                    <div className="flex items-start justify-between mb-5">
-                                                        <div className={`p-3.5 rounded-2xl border ${getColor(provider)} shadow-sm`}>
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div className={`p-3 rounded-lg ${getColor(provider)}`}>
                                                             {getIcon(provider)}
                                                         </div>
-                                                        <span className="text-xs font-medium text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/10">
+                                                        <span className="text-xs font-medium text-warning bg-warning/10 px-2 py-0.5 rounded-full">
                                                             Ready
                                                         </span>
                                                     </div>
-                                                    <h3 className="font-semibold text-xl mb-1.5">{channelInfo?.name || provider}</h3>
+                                                    <h3 className="font-semibold text-lg mb-1">{channelInfo?.name || provider}</h3>
                                                     <p className="text-sm text-muted-foreground mb-5">
                                                         {channelInfo?.description || 'Configured and ready to connect'}
                                                     </p>
                                                     <Button
-                                                        className="w-full rounded-xl shadow-lg shadow-amber-500/10"
+                                                        className="w-full"
                                                         onClick={() => handleConnect(provider)}
                                                         disabled={connecting === provider}
                                                     >
                                                         {connecting === provider ? 'Connecting...' : 'Connect Now'}
                                                     </Button>
-                                                </motion.div>
+                                                </div>
                                             )
                                         })}
                                     </div>
@@ -666,43 +648,39 @@ export default function ChannelsPage() {
                                 <div>
                                     <div className="flex items-center justify-between mb-6">
                                         <h2 className="text-xl font-semibold flex items-center gap-3">
-                                            <span className="w-2.5 h-2.5 bg-gray-500 rounded-full"></span>
+                                            <span className="w-2 h-2 bg-muted-foreground rounded-full"></span>
                                             Not Configured ({notConfigured.length})
                                         </h2>
                                         <Button
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => setActiveTab('configurations')}
-                                            className="text-muted-foreground hover:text-foreground"
                                         >
                                             Go to Configurations
                                         </Button>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {notConfigured.map((channel, index) => (
-                                            <motion.div
+                                        {notConfigured.map((channel) => (
+                                            <div
                                                 key={channel.id}
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ delay: index * 0.05 }}
-                                                className="glass rounded-2xl p-6 border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+                                                className="glass rounded-xl p-6"
                                             >
-                                                <div className="flex items-start justify-between mb-5">
-                                                    <div className={`p-3.5 rounded-2xl border ${getColor(channel.id)} opacity-80 grayscale group-hover:grayscale-0 transition-all`}>
+                                                <div className="flex items-start justify-between mb-4">
+                                                    <div className={`p-3 rounded-lg ${getColor(channel.id)} opacity-60`}>
                                                         {getIcon(channel.id)}
                                                     </div>
-                                                    <span className="text-xs font-medium text-muted-foreground bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
+                                                    <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                                                         Not Configured
                                                     </span>
                                                 </div>
-                                                <h3 className="font-semibold text-xl mb-1.5">{channel.name}</h3>
+                                                <h3 className="font-semibold text-lg mb-1">{channel.name}</h3>
                                                 <p className="text-sm text-muted-foreground mb-5">
                                                     {channel.description || 'Configure API credentials to connect'}
                                                 </p>
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
-                                                    className="w-full rounded-xl border-white/10 hover:bg-white/5"
+                                                    className="w-full"
                                                     onClick={() => {
                                                         setActiveTab('configurations')
                                                         openConfig(undefined, channel.id)
@@ -710,37 +688,26 @@ export default function ChannelsPage() {
                                                 >
                                                     Configure Now
                                                 </Button>
-                                            </motion.div>
+                                            </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
                         </div>
                     )}
-                </motion.div>
+                </div>
             )}
 
             {/* Configurations Tab */}
             {activeTab === 'configurations' && (
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="space-y-10"
-                >
-                    <div className="flex items-center justify-between p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
-                        <div className="flex gap-3">
-                            <div className="p-2 bg-blue-500/10 rounded-lg h-fit">
-                                <FiSettings className="w-5 h-5 text-blue-400" />
-                            </div>
-                            <div>
-                                <h3 className="font-medium text-blue-100">Configuration Management</h3>
-                                <p className="text-sm text-blue-200/60 mt-1">
-                                    Configure API credentials for each integration. One configuration can be used to connect multiple accounts.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                <div className="space-y-10">
+                    <AlertBanner
+                        variant="info"
+                        title="Configuration Management"
+                        icon={<FiSettings className="w-5 h-5" />}
+                    >
+                        Configure API credentials for each integration. One configuration can be used to connect multiple accounts.
+                    </AlertBanner>
 
                     <div className="space-y-10">
                         {/* Configured Integrations */}
@@ -748,63 +715,60 @@ export default function ChannelsPage() {
                             <div>
                                 <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
                                     Configured Integrations
-                                    <span className="text-sm font-normal text-muted-foreground bg-white/5 px-2 py-0.5 rounded-full">
+                                    <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                                         {configuredCount}
                                     </span>
                                 </h2>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {configs.map((config, index) => {
+                                    {configs.map((config) => {
                                         const provider = config.provider
                                         const channelInfo = allChannels.find(c => c.id === provider)
                                         const connectedCount = channels.filter(c => c.type === provider).length
 
                                         return (
-                                            <motion.div
+                                            <div
                                                 key={config.id}
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ delay: index * 0.05 }}
-                                                className="glass rounded-2xl p-6 border border-white/10 bg-white/5 hover:bg-white/10 transition-all duration-300 group hover:shadow-xl hover:-translate-y-1"
+                                                className="glass rounded-xl p-6"
                                             >
-                                                <div className="flex items-start justify-between mb-5">
-                                                    <div className={`p-3.5 rounded-2xl border ${getColor(provider)} shadow-sm`}>
+                                                <div className="flex items-start justify-between mb-4">
+                                                    <div className={`p-3 rounded-lg ${getColor(provider)}`}>
                                                         {getIcon(provider)}
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         {connectedCount > 0 && (
-                                                            <span className="text-xs font-medium text-green-500 bg-green-500/10 px-2.5 py-1 rounded-full border border-green-500/10">
+                                                            <span className="text-xs font-medium text-success bg-success/10 px-2 py-0.5 rounded-full">
                                                                 {connectedCount} connected
                                                             </span>
                                                         )}
                                                         <button
                                                             onClick={() => openConfig(config.id)}
-                                                            className="p-2 rounded-lg hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
+                                                            className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                                                             title="Edit Configuration"
                                                         >
                                                             <FiSettings className="w-4 h-4" />
                                                         </button>
                                                         <button
                                                             onClick={() => setDeleteConfigId(config.id)}
-                                                            className="p-2 rounded-lg hover:bg-red-500/10 transition-colors text-muted-foreground hover:text-red-500"
+                                                            className="p-2 rounded-lg hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
                                                             title="Delete Configuration"
                                                         >
                                                             <FiTrash2 className="w-4 h-4" />
                                                         </button>
                                                     </div>
                                                 </div>
-                                                <h3 className="font-semibold text-xl mb-1.5">{config.name || channelInfo?.name || provider}</h3>
+                                                <h3 className="font-semibold text-lg mb-1">{config.name || channelInfo?.name || provider}</h3>
                                                 <p className="text-sm text-muted-foreground mb-5">
                                                     {channelInfo?.description || 'API configured'}
                                                 </p>
-                                                <div className="space-y-3 text-xs mb-6">
-                                                    <div className="flex items-center justify-between p-2.5 bg-black/20 rounded-lg border border-white/5">
+                                                <div className="space-y-2 text-xs mb-6">
+                                                    <div className="flex items-center justify-between p-2 bg-muted rounded-lg">
                                                         <span className="text-muted-foreground">Client ID</span>
-                                                        <span className="font-mono text-foreground/80">{config.client_id.slice(0, 12)}...</span>
+                                                        <span className="font-mono">{config.client_id.slice(0, 12)}...</span>
                                                     </div>
-                                                    <div className="flex items-center justify-between p-2.5 bg-black/20 rounded-lg border border-white/5">
+                                                    <div className="flex items-center justify-between p-2 bg-muted rounded-lg">
                                                         <span className="text-muted-foreground">Status</span>
-                                                        <span className={`flex items-center gap-1.5 ${config.is_active ? 'text-green-400' : 'text-red-400'}`}>
-                                                            <span className={`w-1.5 h-1.5 rounded-full ${config.is_active ? 'bg-green-400' : 'bg-red-400'}`}></span>
+                                                        <span className={`flex items-center gap-1.5 ${config.is_active ? 'text-success' : 'text-destructive'}`}>
+                                                            <span className={`w-1.5 h-1.5 rounded-full ${config.is_active ? 'bg-success' : 'bg-destructive'}`}></span>
                                                             {config.is_active ? 'Active' : 'Inactive'}
                                                         </span>
                                                     </div>
@@ -812,7 +776,7 @@ export default function ChannelsPage() {
                                                 <div className="flex gap-3">
                                                     <Button
                                                         size="sm"
-                                                        className="flex-1 rounded-xl shadow-lg shadow-primary/10"
+                                                        className="flex-1"
                                                         onClick={() => handleConnect(provider, config.id)}
                                                         disabled={connecting === provider}
                                                     >
@@ -821,13 +785,12 @@ export default function ChannelsPage() {
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
-                                                        className="rounded-xl border-white/10 hover:bg-white/5"
                                                         onClick={() => openConfig(config.id)}
                                                     >
                                                         Edit
                                                     </Button>
                                                 </div>
-                                            </motion.div>
+                                            </div>
                                         )
                                     })}
                                 </div>
@@ -848,16 +811,16 @@ export default function ChannelsPage() {
                                         <button
                                             key={channel.id}
                                             onClick={() => openConfig(undefined, channel.id)}
-                                            className="glass rounded-xl p-4 border border-white/5 bg-white/[0.02] hover:bg-white/[0.08] hover:border-white/10 transition-all duration-300 text-left group hover:-translate-y-0.5"
+                                            className="glass rounded-lg p-4 hover:scale-[1.02] transition-transform text-left group"
                                         >
                                             <div className="flex items-start justify-between mb-3">
-                                                <div className={`p-2.5 rounded-xl border ${getColor(channel.id)} group-hover:scale-110 transition-transform duration-300`}>
+                                                <div className={`p-2.5 rounded-lg ${getColor(channel.id)}`}>
                                                     {getIcon(channel.id)}
                                                 </div>
-                                                <FiSettings className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0" />
+                                                <FiSettings className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                                             </div>
-                                            <h3 className="font-semibold mb-1 text-foreground/90 group-hover:text-foreground transition-colors">{channel.name}</h3>
-                                            <p className="text-xs text-muted-foreground line-clamp-2 group-hover:text-muted-foreground/80 transition-colors">
+                                            <h3 className="font-semibold mb-1">{channel.name}</h3>
+                                            <p className="text-xs text-muted-foreground line-clamp-2">
                                                 {channel.description}
                                             </p>
                                         </button>
@@ -873,18 +836,18 @@ export default function ChannelsPage() {
                                         <button
                                             key={integration.id}
                                             onClick={() => openConfig(undefined, integration.id)}
-                                            className="glass rounded-xl p-4 border border-white/5 bg-white/[0.02] hover:bg-white/[0.08] hover:border-white/10 transition-all duration-300 text-left group hover:-translate-y-0.5"
+                                            className="glass rounded-lg p-4 hover:scale-[1.02] transition-transform text-left group"
                                         >
                                             <div className="flex items-start justify-between mb-3">
-                                                <div className={`p-2.5 rounded-xl border ${getColor(integration.id)} group-hover:scale-110 transition-transform duration-300`}>
+                                                <div className={`p-2.5 rounded-lg ${getColor(integration.id)}`}>
                                                     {getIcon(integration.id)}
                                                 </div>
-                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-muted-foreground capitalize border border-white/5 group-hover:border-white/10 transition-colors">
+                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
                                                     {integration.category}
                                                 </span>
                                             </div>
-                                            <h3 className="font-semibold mb-1 text-foreground/90 group-hover:text-foreground transition-colors">{integration.name}</h3>
-                                            <p className="text-xs text-muted-foreground line-clamp-2 group-hover:text-muted-foreground/80 transition-colors">
+                                            <h3 className="font-semibold mb-1">{integration.name}</h3>
+                                            <p className="text-xs text-muted-foreground line-clamp-2">
                                                 {integration.description}
                                             </p>
                                         </button>
@@ -893,24 +856,17 @@ export default function ChannelsPage() {
                             </div>
                         </div>
                     </div>
-                </motion.div>
+                </div>
             )}
 
             {/* Configuration Modal */}
             {configForm.provider && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="bg-[#0B0F19] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl relative overflow-hidden"
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
+                    <div className="bg-card border border-border rounded-xl p-6 w-full max-w-md shadow-2xl relative overflow-hidden"
                     >
-                        {/* Background Gradients */}
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
-                        <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl -ml-32 -mb-32 pointer-events-none"></div>
-
-                        <div className="relative z-10">
+                        <div>
                             <div className="flex items-center gap-4 mb-8">
-                                <div className={`p-3 rounded-2xl border ${getColor(configForm.provider)} shadow-lg`}>
+                                <div className={`p-3 rounded-lg ${getColor(configForm.provider)}`}>
                                     {getIcon(configForm.provider)}
                                 </div>
                                 <div className="flex-1">
@@ -925,49 +881,46 @@ export default function ChannelsPage() {
                             </div>
 
                             {/* Info Banner */}
-                            <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex gap-3 items-start">
-                                <span className="text-lg">💡</span>
-                                <p className="text-xs text-blue-200/80 leading-relaxed">
-                                    You need to create an app in the <span className="font-semibold text-blue-200">{configForm.provider} developer portal</span> to get these credentials.
-                                </p>
-                            </div>
+                            <AlertBanner variant="tip" className="mb-6">
+                                You need to create an app in the <span className="font-semibold">{configForm.provider} developer portal</span> to get these credentials.
+                            </AlertBanner>
 
                             <div className="space-y-5">
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-foreground/90">
+                                    <label className="block text-sm font-medium mb-2">
                                         Configuration Name <span className="text-muted-foreground font-normal">(Optional)</span>
                                     </label>
                                     <input
                                         type="text"
                                         value={configForm.name || ''}
                                         onChange={(e) => setConfigForm({ ...configForm, name: e.target.value })}
-                                        className="w-full bg-white/5 rounded-xl px-4 py-3 border border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all placeholder:text-muted-foreground/50"
+                                        className="w-full bg-input rounded-lg px-4 py-3 border border-border focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
                                         placeholder="e.g. My Main Page"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-foreground/90">
-                                        App ID / Client ID <span className="text-red-400">*</span>
+                                    <label className="block text-sm font-medium mb-2">
+                                        App ID / Client ID <span className="text-destructive">*</span>
                                     </label>
                                     <input
                                         type="text"
                                         value={configForm.client_id}
                                         onChange={(e) => setConfigForm({ ...configForm, client_id: e.target.value })}
-                                        className="w-full bg-white/5 rounded-xl px-4 py-3 border border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all placeholder:text-muted-foreground/50"
+                                        className="w-full bg-input rounded-lg px-4 py-3 border border-border focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
                                         placeholder="Enter App ID"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-foreground/90">
-                                        App Secret / Client Secret <span className="text-red-400">*</span>
+                                    <label className="block text-sm font-medium mb-2">
+                                        App Secret / Client Secret <span className="text-destructive">*</span>
                                     </label>
                                     <input
                                         type="password"
                                         value={configForm.client_secret}
                                         onChange={(e) => setConfigForm({ ...configForm, client_secret: e.target.value })}
-                                        className="w-full bg-white/5 rounded-xl px-4 py-3 border border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all placeholder:text-muted-foreground/50"
+                                        className="w-full bg-input rounded-lg px-4 py-3 border border-border focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
                                         placeholder="Enter App Secret"
                                     />
                                 </div>
@@ -975,14 +928,14 @@ export default function ChannelsPage() {
                                 {/* Verify Token for Facebook */}
                                 {(configForm.provider === 'facebook' || configForm.provider === 'messenger' || configForm.provider === 'instagram') && (
                                     <div>
-                                        <label className="block text-sm font-medium mb-2 text-foreground/90">
+                                        <label className="block text-sm font-medium mb-2">
                                             Webhook Verify Token
                                         </label>
                                         <input
                                             type="text"
                                             value={configForm.verify_token}
                                             onChange={(e) => setConfigForm({ ...configForm, verify_token: e.target.value })}
-                                            className="w-full bg-white/5 rounded-xl px-4 py-3 border border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all placeholder:text-muted-foreground/50"
+                                            className="w-full bg-input rounded-lg px-4 py-3 border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all placeholder:text-muted-foreground/50"
                                             placeholder="wataomi_verify_token"
                                         />
                                         <p className="text-xs text-muted-foreground mt-2">
@@ -994,14 +947,14 @@ export default function ChannelsPage() {
                                 {/* Scopes for other providers */}
                                 {configForm.provider !== 'facebook' && configForm.provider !== 'messenger' && configForm.provider !== 'instagram' && (
                                     <div>
-                                        <label className="block text-sm font-medium mb-2 text-foreground/90">
+                                        <label className="block text-sm font-medium mb-2">
                                             Scopes <span className="text-muted-foreground font-normal">(Optional)</span>
                                         </label>
                                         <input
                                             type="text"
                                             value={configForm.scopes}
                                             onChange={(e) => setConfigForm({ ...configForm, scopes: e.target.value })}
-                                            className="w-full bg-white/5 rounded-xl px-4 py-3 border border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all placeholder:text-muted-foreground/50"
+                                            className="w-full bg-input rounded-lg px-4 py-3 border border-border focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
                                             placeholder="email, public_profile"
                                         />
                                     </div>
@@ -1009,14 +962,9 @@ export default function ChannelsPage() {
 
                                 {/* Webhook URL for Facebook */}
                                 {(configForm.provider === 'facebook' || configForm.provider === 'messenger' || configForm.provider === 'instagram') && (
-                                    <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                                        <p className="text-xs text-blue-200/80 mb-2">
-                                            <strong>Webhook URL:</strong>
-                                        </p>
-                                        <code className="text-xs text-blue-200 break-all">
-                                            {process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}/api/v1/webhooks/facebook
-                                        </code>
-                                    </div>
+                                    <CodeBlock label="Webhook URL">
+                                        {process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}/api/v1/webhooks/facebook
+                                    </CodeBlock>
                                 )}
 
                                 <div className="flex justify-end gap-3 mt-8 pt-2">
@@ -1025,31 +973,26 @@ export default function ChannelsPage() {
                                         onClick={() => {
                                             setConfigForm(prev => ({ ...prev, provider: '' }))
                                         }}
-                                        className="rounded-xl hover:bg-white/5"
                                     >
                                         Cancel
                                     </Button>
                                     <Button
                                         onClick={saveConfig}
                                         disabled={!configForm.client_id || !configForm.client_secret}
-                                        className="rounded-xl shadow-lg shadow-primary/20"
                                     >
                                         {configForm.id ? 'Update Configuration' : 'Save Configuration'}
                                     </Button>
                                 </div>
                             </div>
                         </div>
-                    </motion.div>
+                    </div>
                 </div>
             )}
 
             {/* Facebook Pages Selector Modal */}
             {facebookPages.length > 0 && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="bg-[#0B0F19] border border-white/10 rounded-2xl p-6 w-full max-w-2xl shadow-2xl relative overflow-hidden max-h-[80vh] overflow-y-auto"
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
+                    <div className="bg-card border border-border rounded-xl p-6 w-full max-w-2xl shadow-2xl relative overflow-hidden max-h-[80vh] overflow-y-auto"
                     >
                         <div className="flex items-center justify-between mb-6">
                             <div>
@@ -1072,17 +1015,14 @@ export default function ChannelsPage() {
                         </div>
 
                         {/* Bot Selector */}
-                        <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                            <label className="block text-sm font-medium mb-3">
-                                Select Bot <span className="text-red-400">*</span>
-                            </label>
+                        <AlertBanner variant="info" title="Select Bot" className="mb-6">
                             {loadingBots ? (
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-2">
                                     <Spinner className="w-4 h-4" />
                                     <span>Loading bots...</span>
                                 </div>
                             ) : bots.length === 0 ? (
-                                <div className="text-sm text-muted-foreground">
+                                <div>
                                     <p className="mb-2">No bots found. Please create a bot first.</p>
                                     <Button
                                         size="sm"
@@ -1093,22 +1033,24 @@ export default function ChannelsPage() {
                                     </Button>
                                 </div>
                             ) : (
-                                <select
-                                    value={selectedBotId}
-                                    onChange={(e) => setSelectedBotId(e.target.value)}
-                                    className="w-full bg-white/5 rounded-xl px-4 py-3 border border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
-                                >
-                                    {bots.map((bot) => (
-                                        <option key={bot.id} value={bot.id} className="bg-[#0B0F19]">
-                                            {bot.name}
-                                        </option>
-                                    ))}
-                                </select>
+                                <>
+                                    <select
+                                        value={selectedBotId}
+                                        onChange={(e) => setSelectedBotId(e.target.value)}
+                                        className="w-full bg-input rounded-lg px-4 py-3 border border-border focus:outline-none focus:ring-2 focus:ring-ring mb-2"
+                                    >
+                                        {bots.map((bot) => (
+                                            <option key={bot.id} value={bot.id} className="bg-card">
+                                                {bot.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="text-xs">
+                                        Messages from these pages will be handled by the selected bot
+                                    </p>
+                                </>
                             )}
-                            <p className="text-xs text-blue-200/60 mt-2">
-                                Messages from these pages will be handled by the selected bot
-                            </p>
-                        </div>
+                        </AlertBanner>
 
                         {/* Pages List */}
                         <div className="space-y-3">
@@ -1116,11 +1058,11 @@ export default function ChannelsPage() {
                             {facebookPages.map((page) => (
                                 <div
                                     key={page.id}
-                                    className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all"
+                                    className="flex items-center justify-between p-4 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
                                 >
                                     <div className="flex items-center gap-3">
-                                        <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                                            <FiFacebook className="w-5 h-5 text-blue-400" />
+                                        <div className="p-2.5 rounded-lg bg-primary/10">
+                                            <FiFacebook className="w-5 h-5 text-primary" />
                                         </div>
                                         <div>
                                             <h4 className="font-semibold">{page.name}</h4>
@@ -1128,7 +1070,7 @@ export default function ChannelsPage() {
                                             {page.tasks && page.tasks.length > 0 && (
                                                 <div className="flex gap-1 mt-1">
                                                     {page.tasks.slice(0, 3).map((task: string) => (
-                                                        <span key={task} className="text-[10px] px-1.5 py-0.5 bg-white/5 rounded border border-white/5">
+                                                        <span key={task} className="text-[10px] px-1.5 py-0.5 bg-muted rounded">
                                                             {task}
                                                         </span>
                                                     ))}
@@ -1140,14 +1082,13 @@ export default function ChannelsPage() {
                                         size="sm"
                                         onClick={() => handleConnectFacebookPage(page)}
                                         disabled={connectingPage || !selectedBotId || bots.length === 0}
-                                        className="rounded-xl"
                                     >
                                         {connectingPage ? 'Connecting...' : 'Connect'}
                                     </Button>
                                 </div>
                             ))}
                         </div>
-                    </motion.div>
+                    </div>
                 </div>
             )}
 

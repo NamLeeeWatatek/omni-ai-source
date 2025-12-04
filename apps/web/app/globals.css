@@ -131,13 +131,19 @@
     @apply text-base leading-relaxed;
   }
 
-  /* Page Layout */
+  /* Page Layout - 10px base spacing */
   .page-container {
-    @apply px-4 py-6 max-w-7xl mx-auto;
+    padding: 5px;
+    max-width: 1400px;
+    margin: 0 auto;
   }
 
   .page-header {
-    @apply mb-4;
+    margin-bottom: 10px;
+  }
+
+  .content-section {
+    margin-bottom: 10px;
   }
 
   .full-screen-page {

@@ -3,7 +3,7 @@
  * Fetch node types from backend
  * @deprecated Use lib/api/nodes.ts and lib/types/node.ts instead
  */
-import { fetchAPI } from '../api'
+import { axiosClient } from '../axios-client'
 import type { NodeType, NodeCategory, NodeProperty } from '../types/node'
 
 export type { NodeProperty, NodeType as NodeTypeAPI, NodeCategory }
@@ -14,7 +14,8 @@ export type { NodeProperty, NodeType as NodeTypeAPI, NodeCategory }
  */
 export async function fetchNodeTypes(category?: string): Promise<NodeType[]> {
     const url = category ? `/node-types/?category=${category}` : '/node-types/'
-    return fetchAPI(url)
+    const response = await axiosClient.get(url)
+    return response.data
 }
 
 /**
@@ -22,7 +23,8 @@ export async function fetchNodeTypes(category?: string): Promise<NodeType[]> {
  * @deprecated Use getNodeCategories from lib/api/nodes.ts
  */
 export async function fetchNodeCategories(): Promise<NodeCategory[]> {
-    return fetchAPI('/node-types/categories')
+    const response = await axiosClient.get('/node-types/categories')
+    return response.data
 }
 
 /**
@@ -30,5 +32,6 @@ export async function fetchNodeCategories(): Promise<NodeCategory[]> {
  * @deprecated Use getNodeType from lib/api/nodes.ts
  */
 export async function fetchNodeType(nodeId: string): Promise<NodeType> {
-    return fetchAPI(`/node-types/${nodeId}`)
+    const response = await axiosClient.get(`/node-types/${nodeId}`)
+    return response.data
 }

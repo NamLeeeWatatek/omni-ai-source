@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { AlertDialogConfirm } from '@/components/ui/alert-dialog-confirm'
-import { fetchAPI } from '@/lib/api'
+import { axiosClient } from '@/lib/axios-client'
 import toast from '@/lib/toast'
 import { FiX, FiCheck, FiGrid, FiLayers, FiBox, FiRefreshCw } from 'react-icons/fi'
 import { useAppSelector } from '@/lib/store/hooks'
-import { resolveIcon } from '@/lib/icon-resolver'
+import { resolveIcon } from '@/lib/utils/icon-resolver'
 import { Template, TemplateSelectorProps } from '@/lib/types'
 
 export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
@@ -31,7 +31,7 @@ export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
         try {
             setLoading(true)
 
-            const data = await fetchAPI('/templates/')
+            const data = await axiosClient.get('/templates').then(r => r.data)
 
             setTemplates(data)
 
@@ -50,7 +50,7 @@ export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
         if (!selectedId) return
 
         try {
-            const template = await fetchAPI(`/templates/${selectedId}`)
+            const template = await (await axiosClient.get(`/templates/${selectedId}`)).data
 
 
             // Enrich nodes with node type definition
@@ -119,7 +119,8 @@ export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
 
     const confirmUpdateTemplates = async () => {
         try {
-            const result = await fetchAPI('/templates/reseed', { method: 'POST' })
+            const response = await axiosClient.post('/templates/reseed')
+            const result = response.data || response
             toast.success(`Updated! Deleted ${result.deleted}, Created ${result.created} templates`)
             loadTemplates()
         } catch (e: any) {
@@ -167,7 +168,7 @@ export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
                             <Button
                                 onClick={async () => {
                                     try {
-                                        await fetchAPI('/templates/seed', { method: 'POST' })
+                                        await axiosClient.post('/templates/seed')
                                         toast.success('Templates seeded!')
                                         loadTemplates()
                                     } catch (e: any) {

@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Spinner } from '@/components/ui/spinner';
-import { fetchAPI } from '@/lib/api';
+import axiosClient from '@/lib/axios-client';
 
 export default function ChannelCallbackPage() {
   const searchParams = useSearchParams();
@@ -45,9 +44,10 @@ export default function ChannelCallbackPage() {
 
       // For Facebook
       if (provider === 'facebook') {
-        const response = await fetchAPI(
+        const res = await axiosClient.get(
           `/channels/facebook/oauth/callback?code=${code}&workspace_id=${wsId}`
         );
+        const response = res.data || res;
 
         if (response.success && response.pages && response.pages.length > 0) {
           setStatus('success');
@@ -95,9 +95,7 @@ export default function ChannelCallbackPage() {
       <div className="max-w-md w-full bg-white/5 backdrop-blur-xl rounded-2xl shadow-2xl p-8 text-center border border-white/10">
         {status === 'loading' && (
           <>
-            <Spinner className="w-16 h-16 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Processing...</h2>
-            <p className="text-gray-400">{message}</p>
+           
           </>
         )}
 

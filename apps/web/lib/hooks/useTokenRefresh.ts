@@ -1,7 +1,5 @@
-
 import { useEffect, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
-import { fetchAPI } from '@/lib/api'
 
 const REFRESH_INTERVAL = 4 * 60 * 1000
 const TOKEN_EXPIRY_BUFFER = 5 * 60 * 1000

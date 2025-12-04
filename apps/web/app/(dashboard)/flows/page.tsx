@@ -256,7 +256,7 @@ export default function WorkflowsPage() {
         }))
     }, [dispatch, pagination.page, pagination.pageSize, pagination.search, statusFilter])
 
-    const handleRunClick = async (workflowId: number) => {
+    const handleRunClick = async (workflowId: string) => {
         try {
             // Fetch full workflow data to get nodes
             const fullWorkflow = await axiosClient.get(`/flows/${workflowId}`) as any

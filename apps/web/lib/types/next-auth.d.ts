@@ -1,10 +1,21 @@
 import { DefaultSession } from "next-auth"
 
+// Minimal workspace info stored in session
+export interface SessionWorkspace {
+  id: string
+  name: string
+  slug: string
+  plan: string
+  avatarUrl?: string | null
+}
+
 declare module "next-auth" {
   interface Session {
     accessToken?: string
     refreshToken?: string
     tokenExpires?: number
+    workspace?: SessionWorkspace | null
+    workspaces?: SessionWorkspace[]
     user: {
       id: string
     } & DefaultSession["user"]
@@ -16,6 +27,8 @@ declare module "next-auth" {
     name?: string | null
     accessToken?: string
     refreshToken?: string
+    workspace?: SessionWorkspace | null
+    workspaces?: SessionWorkspace[]
   }
 }
 
@@ -24,5 +37,7 @@ declare module "@auth/core/jwt" {
     accessToken?: string
     refreshToken?: string
     id?: string
+    workspace?: SessionWorkspace | null
+    workspaces?: SessionWorkspace[]
   }
 }

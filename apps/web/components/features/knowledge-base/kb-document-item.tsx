@@ -22,7 +22,7 @@ export function KBDocumentItem({ document, onDelete }: KBDocumentItemProps) {
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'completed':
-                return <Badge variant="success" className="gap-1"><FiCheckCircle className="w-3 h-3" /> Ready</Badge>
+                return <Badge variant="default" className="gap-1"><FiCheckCircle className="w-3 h-3" /> Ready</Badge>
             case 'processing':
                 return <Badge variant="default" className="gap-1"><FiClock className="w-3 h-3" /> Processing</Badge>
             case 'failed':

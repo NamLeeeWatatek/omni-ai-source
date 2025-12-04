@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { fetchAPI } from '@/lib/api'
+import axiosClient from '@/lib/axios-client'
 import toast from '@/lib/toast'
 import { FiSave, FiX, FiLoader } from 'react-icons/fi'
 import { useAIModels } from '@/lib/hooks/use-ai-models'
@@ -67,7 +67,8 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
     const loadConfig = async () => {
         try {
             setLoading(true)
-            const data = await fetchAPI(`/agent-configs/${flowId}`)
+            const response = await axiosClient.get(`/agent-configs/${flowId}`)
+            const data = response.data || response
             setConfig(data)
         } catch (e: any) {
             // Config doesn't exist yet, use defaults
@@ -83,16 +84,10 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
 
             if (config.id) {
                 // Update existing
-                await fetchAPI(`/agent-configs/${flowId}`, {
-                    method: 'PATCH',
-                    body: JSON.stringify(config)
-                })
+                await axiosClient.patch(`/agent-configs/${flowId}`, config)
             } else {
                 // Create new
-                await fetchAPI('/agent-configs/', {
-                    method: 'POST',
-                    body: JSON.stringify(config)
-                })
+                await axiosClient.post('/agent-configs/', config)
             }
 
             toast.success('Agent configuration saved!')

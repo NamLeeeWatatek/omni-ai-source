@@ -53,7 +53,7 @@ import { useWorkspace } from '@/lib/hooks/useWorkspace'
 
 export default function KnowledgeBaseCollectionsPage() {
     const router = useRouter()
-    const { currentWorkspace } = useWorkspace()
+    const { workspace, workspaceId } = useWorkspace()
     const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([])
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
@@ -65,19 +65,25 @@ export default function KnowledgeBaseCollectionsPage() {
     const [showBulkDelete, setShowBulkDelete] = useState(false)
 
     useEffect(() => {
-        if (currentWorkspace?.id) {
+        if (workspaceId) {
             loadKnowledgeBases()
+        } else {
+            setLoading(false)
         }
-    }, [currentWorkspace?.id])
+    }, [workspaceId])
 
     const loadKnowledgeBases = async () => {
+        if (!workspaceId) {
+            console.log('[KB] No workspace ID available')
+            setLoading(false)
+            return
+        }
+
         try {
             setLoading(true)
-            const response = await getKnowledgeBases(currentWorkspace?.id)
-            // Handle both direct array and response.data
-            const data = response?.data || response
-            setKnowledgeBases(Array.isArray(data) ? data : [])
-            console.log('Loaded knowledge bases:', data)
+            const response = await getKnowledgeBases(workspaceId)
+            setKnowledgeBases(Array.isArray(response) ? response : [])
+            console.log('Loaded knowledge bases:', response)
         } catch (error) {
             console.error('Failed to load knowledge bases:', error)
             toast.error('Failed to load knowledge bases')
@@ -94,7 +100,7 @@ export default function KnowledgeBaseCollectionsPage() {
             } else {
                 await createKnowledgeBase({
                     ...data,
-                    workspaceId: currentWorkspace?.id,
+                    workspaceId: workspaceId,
                 } as CreateKnowledgeBaseDto)
                 toast.success('Knowledge Base created')
             }

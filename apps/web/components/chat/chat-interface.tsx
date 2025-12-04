@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { axiosClient } from '@/lib/axios-client';
 
 interface Message {
     id: string;
@@ -53,12 +54,18 @@ export function ChatInterface({
         try {
             setLoading(true);
             setError(null);
-            const response = await fetch(`/api/v1/conversations/${conversationId}/messages?limit=50`);
             
-            if (!response.ok) throw new Error('Failed to load messages');
+            console.log('📨 Loading messages for conversation:', conversationId);
             
-            const data = await response.json();
-            const msgs = Array.isArray(data) ? data : data.messages || [];
+            const response = await axiosClient.get(`/conversations/${conversationId}/messages`, {
+                params: { limit: 50 }
+            });
+            
+            console.log('📨 Messages data:', response.data);
+            
+            const msgs = Array.isArray(response.data) ? response.data : response.data.messages || [];
+            
+            console.log('📨 Loaded messages:', msgs.length);
             
             setMessages(msgs.reverse()); // Reverse to show oldest first
             setHasMore(msgs.length >= 50);
@@ -67,6 +74,7 @@ export function ChatInterface({
                 lastMessageIdRef.current = msgs[0].id;
             }
         } catch (err) {
+            console.error('❌ Error loading messages:', err);
             setError('Failed to load conversation');
             toast.error('Failed to load messages');
         } finally {

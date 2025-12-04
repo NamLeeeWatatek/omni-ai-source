@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { fetchAPI } from '@/lib/api';
+import axiosClient from '@/lib/axios-client';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -26,7 +26,8 @@ export function CategorySelector({
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const data = await fetchAPI(`/metadata/categories?entity_type=${entityType}`);
+        const response = await axiosClient.get(`/metadata/categories?entity_type=${entityType}`);
+        const data = response.data || response;
         setCategories(data);
       } catch (error) {
 

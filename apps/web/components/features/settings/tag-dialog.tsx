@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { fetchAPI } from '@/lib/api';
+import axiosClient from '@/lib/axios-client';
 import {
   Dialog,
   DialogContent,
@@ -46,15 +46,9 @@ export function TagDialog({ open, onOpenChange, tag, onSave }: TagDialogProps) {
       const data = { name, color, description: description || undefined };
 
       if (tag) {
-        await fetchAPI(`/metadata/tags/${tag.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify(data)
-        });
+        await axiosClient.patch(`/metadata/tags/${tag.id}`, data);
       } else {
-        await fetchAPI('/metadata/tags', {
-          method: 'POST',
-          body: JSON.stringify(data)
-        });
+        await axiosClient.post('/metadata/tags', data);
       }
 
       onSave();

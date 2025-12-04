@@ -2,73 +2,69 @@
  * Channels API
  * API calls for managing channels and integrations
  */
-import { fetchAPI } from '../api'
+import { axiosClient } from '../axios-client'
 import type { Channel, ChannelType, IntegrationConfig, CreateIntegrationDto, UpdateIntegrationDto } from '../types/channel'
 
 /**
  * Get all available channel types
  */
 export async function getChannelTypes(): Promise<ChannelType[]> {
-  return fetchAPI('/channels/types')
+  const response = await axiosClient.get('/channels/types')
+  return response.data
 }
 
 /**
  * Get channel type categories
  */
 export async function getChannelCategories(): Promise<string[]> {
-  return fetchAPI('/channels/types/categories')
+  const response = await axiosClient.get('/channels/types/categories')
+  return response.data
 }
 
 /**
  * Get all connected channels
  */
 export async function getChannels(): Promise<Channel[]> {
-  return fetchAPI('/channels/')
+  const response = await axiosClient.get('/channels/')
+  return response.data
 }
 
 /**
  * Disconnect a channel
  */
 export async function disconnectChannel(id: number): Promise<void> {
-  return fetchAPI(`/channels/${id}`, {
-    method: 'DELETE'
-  })
+  await axiosClient.delete(`/channels/${id}`)
 }
 
 /**
  * Get all integration configurations
  */
 export async function getIntegrations(): Promise<IntegrationConfig[]> {
-  return fetchAPI('/integrations/')
+  const response = await axiosClient.get('/integrations/')
+  return response.data
 }
 
 /**
  * Create integration configuration
  */
 export async function createIntegration(data: CreateIntegrationDto): Promise<IntegrationConfig> {
-  return fetchAPI('/integrations/', {
-    method: 'POST',
-    body: JSON.stringify(data)
-  })
+  const response = await axiosClient.post('/integrations/', data)
+  return response.data
 }
 
 /**
  * Update integration configuration
  */
 export async function updateIntegration(id: number, data: UpdateIntegrationDto): Promise<IntegrationConfig> {
-  return fetchAPI(`/integrations/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(data)
-  })
+  const response = await axiosClient.patch(`/integrations/${id}`, data)
+  return response.data
 }
 
 /**
  * Delete integration configuration
  */
 export async function deleteIntegration(id: number): Promise<void> {
-  return fetchAPI(`/integrations/${id}`, {
-    method: 'DELETE'
-  })
+  await axiosClient.delete(`/integrations/${id}`)
 }
 
 /**
@@ -76,5 +72,6 @@ export async function deleteIntegration(id: number): Promise<void> {
  */
 export async function getOAuthUrl(provider: string, configId?: number): Promise<{ url: string }> {
   const configParam = configId ? `?configId=${configId}` : ''
-  return fetchAPI(`/oauth/login/${provider}${configParam}`)
+  const response = await axiosClient.get(`/oauth/login/${provider}${configParam}`)
+  return response.data
 }

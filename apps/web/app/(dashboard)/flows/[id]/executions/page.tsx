@@ -18,7 +18,7 @@ import {
     FiRefreshCw,
     FiActivity
 } from 'react-icons/fi'
-import { fetchAPI } from '@/lib/api'
+import axiosClient from '@/lib/axios-client'
 import { useExecutionSocket } from '@/lib/hooks/useExecutionSocket'
 import type { Execution } from '@/lib/types'
 
@@ -60,7 +60,7 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
 
     const loadFlow = async () => {
         try {
-            const data = await fetchAPI(`/flows/${params.id}`)
+            const data = await (await axiosClient.get(`/flows/${params.id}`)).data
             setFlowName(data.name)
         } catch (e: any) {
             toast.error('Failed to load flow')
@@ -70,7 +70,7 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
     const loadExecutions = async () => {
         try {
             setLoading(true)
-            const data = await fetchAPI(`/executions/?flow_id=${params.id}`)
+            const data = await (await axiosClient.get(`/executions/?flow_id=${params.id}`)).data
             setExecutions(data)
         } catch (e: any) {
             toast.error('Failed to load executions')
@@ -86,9 +86,7 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
     const confirmDelete = async () => {
         if (!deleteExecutionId) return
 
-        const deletePromise = fetchAPI(`/executions/${deleteExecutionId}`, {
-            method: 'DELETE'
-        }).then(() => loadExecutions())
+        const deletePromise = axiosClient.delete(`/executions/${deleteExecutionId}`).then(() => loadExecutions())
 
         toast.promise(deletePromise, {
             loading: 'Deleting execution...',

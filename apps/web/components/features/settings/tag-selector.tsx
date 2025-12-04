@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { fetchAPI } from '@/lib/api';
+import axiosClient from '@/lib/axios-client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,7 +21,8 @@ export function TagSelector({ selectedTags, onChange, maxTags = 5 }: TagSelector
   useEffect(() => {
     const loadTags = async () => {
       try {
-        const data = await fetchAPI('/metadata/tags');
+        const response = await axiosClient.get('/metadata/tags');
+        const data = response.data || response;
         setTags(data);
       } catch (error) {
 

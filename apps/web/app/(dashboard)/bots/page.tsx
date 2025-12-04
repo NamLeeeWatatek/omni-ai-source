@@ -58,32 +58,33 @@ export default function BotsPage() {
     })
     const dispatch = useAppDispatch()
     const { items: flows = [] } = useAppSelector((state: any) => state.flows || {})
-    const { currentWorkspace } = useWorkspace()
+    const { workspace, workspaceId } = useWorkspace()
 
     const loadBots = useCallback(async () => {
-        if (!currentWorkspace) {
-            toast.error('No workspace selected')
+        if (!workspaceId) {
+            console.log('[Bots] No workspace ID available')
+            setLoading(false)
             return
         }
 
         try {
             setLoading(true)
-            const data = await botsApi.getAll(currentWorkspace.id)
+            const data = await botsApi.getAll(workspaceId)
             setBots(Array.isArray(data) ? data : [])
         } catch (error: any) {
             toast.error(error?.response?.data?.message || 'Failed to load bots')
         } finally {
             setLoading(false)
         }
-    }, [currentWorkspace])
+    }, [workspaceId])
 
     useEffect(() => {
-        if (currentWorkspace) {
+        if (workspaceId) {
             loadBots()
             dispatch(fetchFlows())
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentWorkspace?.id])
+    }, [workspaceId])
 
     const openModal = (bot?: Bot) => {
         if (bot) {
@@ -113,7 +114,7 @@ export default function BotsPage() {
             return
         }
 
-        if (!currentWorkspace) {
+        if (!workspaceId) {
             toast.error('No workspace selected')
             return
         }
@@ -125,7 +126,7 @@ export default function BotsPage() {
             } else {
                 await botsApi.create({
                     ...formData,
-                    workspaceId: currentWorkspace.id
+                    workspaceId: workspaceId
                 })
                 toast.success('Bot created')
             }

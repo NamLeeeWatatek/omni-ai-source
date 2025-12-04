@@ -1,26 +1,26 @@
 /**
  * Execution Utilities
- * Helper functions for execution display and formatting
+ * Helper functions for workflow execution display and formatting
  */
 
 /**
- * Generate execution reference ID
- * Format: FLOW_ID-EXEC_ID (e.g., "WF-123-EX-456")
+ * Generate execution reference string
+ * @example "WF-123-EX-456"
  */
 export function getExecutionReference(flowId: number, executionId: number): string {
   return `WF-${flowId}-EX-${executionId}`
 }
 
 /**
- * Get short execution reference
- * Format: EX-456
+ * Generate short execution reference
+ * @example "EX-456"
  */
 export function getShortExecutionReference(executionId: number): string {
   return `EX-${executionId}`
 }
 
 /**
- * Format execution duration
+ * Format execution duration in human-readable format
  */
 export function formatExecutionDuration(durationMs?: number | null): string {
   if (!durationMs) return 'N/A'
@@ -40,7 +40,7 @@ export function formatExecutionDuration(durationMs?: number | null): string {
 }
 
 /**
- * Get execution status color
+ * Get Tailwind classes for execution status badge
  */
 export function getExecutionStatusColor(status: string): string {
   switch (status.toLowerCase()) {
@@ -61,7 +61,7 @@ export function getExecutionStatusColor(status: string): string {
 }
 
 /**
- * Get execution status icon
+ * Get icon for execution status
  */
 export function getExecutionStatusIcon(status: string): string {
   switch (status.toLowerCase()) {
@@ -82,7 +82,7 @@ export function getExecutionStatusIcon(status: string): string {
 }
 
 /**
- * Calculate execution success rate
+ * Calculate success rate percentage
  */
 export function calculateSuccessRate(completedNodes: number, totalNodes: number): number {
   if (totalNodes === 0) return 0
@@ -90,7 +90,7 @@ export function calculateSuccessRate(completedNodes: number, totalNodes: number)
 }
 
 /**
- * Format execution date
+ * Format execution date in relative time
  */
 export function formatExecutionDate(date: string | Date): string {
   const d = typeof date === 'string' ? new Date(date) : date

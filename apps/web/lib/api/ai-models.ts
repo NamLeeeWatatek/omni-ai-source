@@ -3,7 +3,7 @@
  * API client for AI provider management
  */
 
-import { fetchAPI } from '../api'
+import { axiosClient } from '../axios-client'
 import type {
   GetModelsResponse,
   GetDefaultModelResponse,
@@ -17,32 +17,30 @@ import type {
  * Get all available AI models grouped by provider
  */
 export async function getAIModels(): Promise<GetModelsResponse> {
-  return fetchAPI('/ai-models/models')
+  const response = await axiosClient.get('/ai-models/models')
+  return response.data
 }
 
 /**
  * Get default AI model
  */
 export async function getDefaultAIModel(): Promise<GetDefaultModelResponse> {
-  return fetchAPI('/ai-models/models/default')
+  const response = await axiosClient.get('/ai-models/models/default')
+  return response.data
 }
 
 /**
  * Chat with AI model
  */
 export async function chatWithAI(data: ChatRequest): Promise<PostChatResponse> {
-  return fetchAPI('/ai-models/chat', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  })
+  const response = await axiosClient.post('/ai-models/chat', data)
+  return response.data
 }
 
 /**
  * Chat with conversation history
  */
 export async function chatWithAIHistory(data: ChatWithHistoryRequest): Promise<PostChatWithHistoryResponse> {
-  return fetchAPI('/ai-models/chat/history', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  })
+  const response = await axiosClient.post('/ai-models/chat/history', data)
+  return response.data
 }

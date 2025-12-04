@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { fetchAPI } from '@/lib/api';
+import axiosClient from '@/lib/axios-client';
 import {
   Dialog,
   DialogContent,
@@ -78,15 +78,9 @@ export function CategoryDialog({
       };
 
       if (category) {
-        await fetchAPI(`/metadata/categories/${category.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify(data)
-        });
+        await axiosClient.patch(`/metadata/categories/${category.id}`, data);
       } else {
-        await fetchAPI('/metadata/categories', {
-          method: 'POST',
-          body: JSON.stringify(data)
-        });
+        await axiosClient.post('/metadata/categories', data);
       }
 
       onSave();

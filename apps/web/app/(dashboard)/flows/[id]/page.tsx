@@ -17,7 +17,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { fetchAPI } from '@/lib/api'
+import axiosClient from '@/lib/axios-client'
 import toast from '@/lib/toast'
 import ReactFlow, { Background, Controls, MiniMap, BackgroundVariant } from 'reactflow'
 import 'reactflow/dist/style.css'
@@ -106,7 +106,7 @@ function VersionsTab({ flowId, onUpdate }: { flowId: number, onUpdate: () => voi
     const loadVersions = async () => {
         try {
             setLoading(true)
-            const data = await fetchAPI(`/flows/${flowId}/versions`)
+            const data = await (await axiosClient.get(`/flows/${flowId}/versions`)).data
             setVersions(data)
         } catch (e: any) {
 
@@ -117,13 +117,10 @@ function VersionsTab({ flowId, onUpdate }: { flowId: number, onUpdate: () => voi
     }
 
     const handleCreateVersion = async () => {
-        const createPromise = fetchAPI(`/flows/${flowId}/versions`, {
-            method: 'POST',
-            body: JSON.stringify({
+        const createPromise = (await axiosClient.post(`/flows/${flowId}/versions`, {
                 name: `Version ${versions.length + 1}`,
                 description: 'Manual version snapshot'
-            })
-        }).then(() => {
+            })).data.then(() => {
             loadVersions()
             onUpdate()
         })
@@ -238,13 +235,10 @@ function SettingsTab({
     const handleSave = async () => {
         const savePromise = (async () => {
             setSaving(true)
-            await fetchAPI(`/flows/${flow.id}`, {
-                method: 'PATCH',
-                body: JSON.stringify({
-                    name,
-                    description,
-                    status
-                })
+            await axiosClient.patch(`/flows/${flow.id}`, {
+                name,
+                description,
+                status
             })
             onUpdate()
         })()
@@ -368,7 +362,7 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
     const loadFlow = async () => {
         try {
             setLoading(true)
-            const data = await fetchAPI(`/flows/${params.id}`)
+            const data = await (await axiosClient.get(`/flows/${params.id}`)).data
             setFlow(data)
         } catch (e: any) {
             setError(e.message)
@@ -378,12 +372,12 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
     }
 
     const handleDuplicate = async () => {
-        const duplicatePromise = fetchAPI(`/flows/${params.id}/duplicate`, {
-            method: 'POST',
-        }).then((dup) => {
-            router.push(`/flows/${dup.id}/edit`)
-            return dup
-        })
+        const duplicatePromise = axiosClient.post(`/flows/${params.id}/duplicate`)
+            .then((response) => {
+                const dup = response.data || response
+                router.push(`/flows/${dup.id}/edit`)
+                return dup
+            })
 
         toast.promise(duplicatePromise, {
             loading: 'Duplicating workflow...',
@@ -397,7 +391,7 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
     }
 
     const confirmDelete = async () => {
-        const deletePromise = fetchAPI(`/flows/${params.id}`, { method: 'DELETE' })
+        const deletePromise = axiosClient.delete(`/flows/${params.id}`)
             .then(() => {
                 router.push('/flows')
             })
@@ -410,7 +404,7 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
     }
 
     const handleArchive = async () => {
-        const archivePromise = fetchAPI(`/flows/${params.id}/archive`, { method: 'POST' })
+        const archivePromise = axiosClient.post(`/flows/${params.id}/archive`)
             .then(() => {
                 router.push('/flows')
             })
@@ -460,7 +454,7 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
     const loadRecentExecutions = async () => {
         try {
             setExecutionsLoading(true)
-            const data = await fetchAPI(`/executions/?flow_id=${params.id}&limit=5`)
+            const data = await (await axiosClient.get(`/executions/?flow_id=${params.id}&limit=5`)).data
             setRecentExecutions(data)
         } catch (e: any) {
 
@@ -471,7 +465,7 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
 
     const loadStats = async () => {
         try {
-            const allExecutions = await fetchAPI(`/executions/?flow_id=${params.id}&limit=100`)
+            const allExecutions = await (await axiosClient.get(`/executions/?flow_id=${params.id}&limit=100`)).data
 
             const totalExecutions = allExecutions.length
             const completedExecutions = allExecutions.filter((e: any) => e.status === 'completed')

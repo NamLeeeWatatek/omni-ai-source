@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { FiActivity, FiMessageSquare, FiUsers, FiZap, FiTrendingUp, FiTrendingDown } from "react-icons/fi"
-import { fetchAPI } from "@/lib/api"
+import axiosClient from "@/lib/axios-client"
 import type { DashboardStats } from "@/lib/types"
 
 export default function DashboardPage() {
@@ -14,7 +14,7 @@ export default function DashboardPage() {
     useEffect(() => {
         const loadStats = async () => {
             try {
-                const data = await fetchAPI("/stats/dashboard")
+                const data = await axiosClient.get("/stats/dashboard").then(r => r.data)
                 setStats(data)
 
             } catch (error) {

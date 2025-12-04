@@ -62,7 +62,7 @@ export default function BotDetailPage() {
                 systemPrompt: data.systemPrompt || '',
                 aiProviderId: data.aiProviderId || undefined,
                 aiModelName: data.aiModelName || 'gemini-2.0-flash',
-                aiParameters: data.aiParameters || { temperature: 0.7, max_tokens: 1000 },
+                aiParameters: (data.aiParameters as { temperature: number; max_tokens: number }) || { temperature: 0.7, max_tokens: 1000 },
                 enableAutoLearn: data.enableAutoLearn || false,
             });
         } catch {

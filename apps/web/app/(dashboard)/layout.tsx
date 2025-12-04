@@ -128,6 +128,7 @@ export default function DashboardLayout({
 
     const navigation = [
         { name: 'Dashboard', href: '/dashboard', icon: FiLayout },
+        { name: 'Conversations', href: '/conversations', icon: FiMessageCircle },
         {
             name: 'Workflows',
             icon: FiGitMerge,
@@ -206,7 +207,7 @@ export default function DashboardLayout({
             `}>
                 {/* Logo */}
                 <div className="h-16 border-b border-border/40 flex items-center px-6">
-                    <MdAutoAwesome className="w-6 h-6 text-slate-400 mr-2" />
+                    <MdAutoAwesome className="w-6 h-6 text-muted-foreground mr-2" />
                     <span className="text-xl font-bold gradient-text">WataOmi</span>
                 </div>
 
@@ -261,7 +262,7 @@ export default function DashboardLayout({
                                                     key={child.name}
                                                     href={child.href}
                                                     className={`block px-3 py-2 rounded-lg text-sm transition-all ${isChildActive
-                                                        ? 'text-slate-400 bg-slate-700/10 font-medium'
+                                                        ? 'text-primary bg-primary/10 font-medium'
                                                         : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
                                                         }`}
                                                 >
@@ -318,20 +319,6 @@ export default function DashboardLayout({
                             className="lg:hidden"
                         >
                             <FiMenu className="w-6 h-6" />
-                        </Button>
-
-                        {/* Desktop Sidebar Toggle */}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setSidebarOpen(!sidebarOpen)}
-                            className="hidden lg:flex"
-                        >
-                            {sidebarOpen ? (
-                                <FiChevronsLeft className="w-5 h-5" />
-                            ) : (
-                                <FiChevronsRight className="w-5 h-5" />
-                            )}
                         </Button>
 
                         <Breadcrumb>
@@ -470,7 +457,7 @@ export default function DashboardLayout({
                             >
                                 <FiBell className="w-5 h-5" />
                                 {unreadCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
                                         {unreadCount}
                                     </span>
                                 )}
@@ -505,10 +492,10 @@ export default function DashboardLayout({
                                                         }`}
                                                 >
                                                     <div className="flex items-start gap-3">
-                                                        <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${notification.type === 'success' ? 'bg-green-500' :
-                                                            notification.type === 'warning' ? 'bg-yellow-500' :
-                                                                notification.type === 'error' ? 'bg-red-500' :
-                                                                    'bg-blue-500'
+                                                        <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${notification.type === 'success' ? 'bg-green-500 dark:bg-green-400' :
+                                                            notification.type === 'warning' ? 'bg-yellow-500 dark:bg-yellow-400' :
+                                                                notification.type === 'error' ? 'bg-red-500 dark:bg-red-400' :
+                                                                    'bg-blue-500 dark:bg-blue-400'
                                                             }`} />
                                                         <div className="flex-1 min-w-0">
                                                             <p className="text-sm font-medium">{notification.title}</p>

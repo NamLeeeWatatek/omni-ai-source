@@ -55,6 +55,7 @@ export interface CreateBotDto {
   knowledgeBaseIds?: string[]
   enableAutoLearn?: boolean
   icon?: string
+  isActive?: boolean
 }
 
 export interface UpdateBotDto extends Partial<CreateBotDto> { }
@@ -200,3 +201,6 @@ export const botsApi = {
     }
   },
 }
+
+// Export individual functions for backward compatibility
+export const executeBotFunction = botsApi.executeFunction.bind(botsApi)

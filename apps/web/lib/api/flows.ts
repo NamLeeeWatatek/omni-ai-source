@@ -4,7 +4,7 @@
  * Synced with backend: apps/backend/src/flows/flows.controller.ts
  */
 
-import { fetchAPI } from '../api'
+import { axiosClient } from '../axios-client'
 import type {
   Flow,
   CreateFlowDto,
@@ -23,53 +23,47 @@ import type {
  * Get all flows for current user
  */
 export async function getFlows(): Promise<Flow[]> {
-  return fetchAPI('/flows')
+  const response = await axiosClient.get('/flows')
+  return response.data
 }
 
 /**
  * Get flow by ID
  */
 export async function getFlow(id: string): Promise<Flow> {
-  return fetchAPI(`/flows/${id}`)
+  const response = await axiosClient.get(`/flows/${id}`)
+  return response.data
 }
 
 /**
  * Create new flow
  */
 export async function createFlow(data: CreateFlowDto): Promise<Flow> {
-  return fetchAPI('/flows', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  })
+  const response = await axiosClient.post('/flows', data)
+  return response.data
 }
 
 /**
  * Create flow from template
  */
 export async function createFlowFromTemplate(data: CreateFlowFromTemplateDto): Promise<Flow> {
-  return fetchAPI('/flows/from-template', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  })
+  const response = await axiosClient.post('/flows/from-template', data)
+  return response.data
 }
 
 /**
  * Update flow
  */
 export async function updateFlow(id: string, data: UpdateFlowDto): Promise<Flow> {
-  return fetchAPI(`/flows/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(data),
-  })
+  const response = await axiosClient.patch(`/flows/${id}`, data)
+  return response.data
 }
 
 /**
  * Delete flow
  */
 export async function deleteFlow(id: string): Promise<void> {
-  return fetchAPI(`/flows/${id}`, {
-    method: 'DELETE',
-  })
+  await axiosClient.delete(`/flows/${id}`)
 }
 
 // ============================================================================
@@ -83,24 +77,24 @@ export async function executeFlow(
   id: string,
   data?: ExecuteFlowDto
 ): Promise<ExecuteFlowResponse> {
-  return fetchAPI(`/flows/${id}/execute`, {
-    method: 'POST',
-    body: data ? JSON.stringify(data) : undefined,
-  })
+  const response = await axiosClient.post(`/flows/${id}/execute`, data)
+  return response.data
 }
 
 /**
  * Get all executions for a flow
  */
 export async function getFlowExecutions(flowId: string): Promise<FlowExecution[]> {
-  return fetchAPI(`/flows/${flowId}/executions`)
+  const response = await axiosClient.get(`/flows/${flowId}/executions`)
+  return response.data
 }
 
 /**
  * Get execution details
  */
 export async function getFlowExecution(executionId: string): Promise<FlowExecution> {
-  return fetchAPI(`/flows/executions/${executionId}`)
+  const response = await axiosClient.get(`/flows/executions/${executionId}`)
+  return response.data
 }
 
 // ============================================================================

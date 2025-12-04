@@ -21,8 +21,8 @@ const FUNCTION_COLORS: Record<string, string> = {
 }
 
 export function BotFunctionCard({ botFunction, onEdit, onDelete }: BotFunctionCardProps) {
-    const Icon = FUNCTION_ICONS[botFunction.function_type] || FiCode
-    const colorClass = FUNCTION_COLORS[botFunction.function_type] || 'bg-gray-500'
+    const Icon = FUNCTION_ICONS[botFunction.functionType] || FiCode
+    const colorClass = FUNCTION_COLORS[botFunction.functionType] || 'bg-gray-500'
 
     return (
         <Card className="p-4">
@@ -33,8 +33,8 @@ export function BotFunctionCard({ botFunction, onEdit, onDelete }: BotFunctionCa
                     </div>
                     <div>
                         <h4 className="font-semibold">{botFunction.name}</h4>
-                        <Badge variant={botFunction.is_enabled ? 'success' : 'default'} className="mt-1">
-                            {botFunction.is_enabled ? 'Enabled' : 'Disabled'}
+                        <Badge variant={botFunction.isEnabled ? 'default' : 'secondary'} className="mt-1">
+                            {botFunction.isEnabled ? 'Enabled' : 'Disabled'}
                         </Badge>
                     </div>
                 </div>

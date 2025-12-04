@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { fetchAPI } from '@/lib/api'
+import { axiosClient } from '@/lib/axios-client'
 
 export interface AIModel {
     provider: string
@@ -47,18 +47,17 @@ export function useAIModels(): UseAIModelsReturn {
         try {
             setLoading(true)
             setError(null)
-            const data = await fetchAPI('/ai-providers/models')
-            setProviders(data)
+            const response = await axiosClient.get('/ai-providers/models')
+            setProviders(response.data || [])
         } catch (err) {
-
             setError(err instanceof Error ? err.message : 'Failed to load models')
         } finally {
             setLoading(false)
         }
     }
 
-    // Flatten all models from all providers
-    const models = providers.flatMap(p => p.models)
+    // Flatten all models from all providers (with safety check)
+    const models = providers?.flatMap(p => p.models) || []
 
     // Get models by specific provider
     const getModelsByProvider = (provider: string): AIModel[] => {
@@ -80,6 +79,7 @@ export function useAIModels(): UseAIModelsReturn {
     }
 
     const getDefaultModel = () => {
+        if (!providers || providers.length === 0) return 'gemini-2.5-flash'
         const allModels = providers.flatMap(p => p.models)
         const defaultModel = allModels.find(m => m.is_default)
         return defaultModel?.model_name || allModels[0]?.model_name || 'gemini-2.5-flash'

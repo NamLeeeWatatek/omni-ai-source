@@ -5,7 +5,7 @@ import { KeyValueEditor } from './key-value-editor'
 import { FiUpload, FiX } from 'react-icons/fi'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
-import { fetchAPI } from '@/lib/api'
+import { axiosClient } from '@/lib/axios-client'
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -71,7 +71,7 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
             // Handle ai-models:provider format
             if (optionsConfig.startsWith('ai-models:')) {
                 const provider = optionsConfig.split(':')[1]
-                const data = await fetchAPI('/ai-providers/models')
+                const data = await axiosClient.get('/ai-providers/models').then(r => r.data)
                 const providerData = data.find((p: any) => p.provider === provider)
 
                 if (providerData) {
@@ -86,7 +86,7 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
             }
             // Handle channels format
             else if (optionsConfig === 'channels') {
-                const data = await fetchAPI('/channels/')
+                const data = await axiosClient.get('/channels').then(r => r.data)
                 const options = data.map((c: any) => ({
                     value: c.id.toString(),
                     label: c.name
