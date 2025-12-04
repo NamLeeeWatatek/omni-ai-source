@@ -33,7 +33,7 @@ export default function WidgetPage({ params }: { params: { id: string } }) {
         try {
             const response = await axiosClient.get(`/bots/${params.id}/widget/appearance`);
             setBotSettings(response.data);
-        } catch (error) {
+        } catch {
         }
     };
 

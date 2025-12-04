@@ -43,7 +43,7 @@ export function KBFolderDialog({ open, onOpenChange, onSubmit }: KBFolderDialogP
             })
             form.reset()
             onOpenChange(false)
-        } catch (error) {
+        } catch {
         }
     }
 

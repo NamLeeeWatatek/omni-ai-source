@@ -41,7 +41,7 @@ export function KBDocumentDialog({ open, onOpenChange, onSubmit }: KBDocumentDia
             await onSubmit(values)
             form.reset()
             onOpenChange(false)
-        } catch (error) {
+        } catch {
         }
     }
 

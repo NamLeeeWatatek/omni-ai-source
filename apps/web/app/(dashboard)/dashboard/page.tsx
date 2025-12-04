@@ -18,7 +18,7 @@ export default function DashboardPage() {
                 const data = await axiosClient.get("/stats/dashboard").then(r => r.data)
                 setStats(data)
 
-            } catch (error) {
+            } catch {
 
                 setStats(null)
             } finally {

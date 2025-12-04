@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Tag, TagDialogProps } from '@/lib/types';
+import { TagDialogProps } from '@/lib/types';
 
 const PRESET_COLORS = [
   '#ef4444', '#f59e0b', '#10b981', '#3b82f6',
@@ -52,7 +52,7 @@ export function TagDialog({ open, onOpenChange, tag, onSave }: TagDialogProps) {
       }
 
       onSave();
-    } catch (error) {
+    } catch {
 
       alert('Failed to save tag');
     } finally {

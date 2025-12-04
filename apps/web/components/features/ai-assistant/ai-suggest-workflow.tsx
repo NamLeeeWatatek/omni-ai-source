@@ -47,7 +47,7 @@ export function AISuggestWorkflow({ onSuggest }: AISuggestProps) {
             const data = await response.json()
             onSuggest(data)
             setDescription('')
-        } catch (err) {
+        } catch {
 
             setError('Failed to generate suggestion. Please try again.')
         } finally {

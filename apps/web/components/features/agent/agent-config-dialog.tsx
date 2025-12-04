@@ -68,7 +68,7 @@ export function AgentConfigDialog({
         try {
             await onSubmit(values)
             onOpenChange(false)
-        } catch (error) {
+        } catch {
         }
     }
 

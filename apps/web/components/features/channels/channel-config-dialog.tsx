@@ -77,7 +77,7 @@ export function ChannelConfigDialog({
             await onSubmit(values)
             form.reset()
             onOpenChange(false)
-        } catch (error) {
+        } catch {
         }
     }
 

@@ -70,7 +70,7 @@ export function KBSettingsDialog({ open, onOpenChange, knowledgeBase, onSave }: 
                 description: values.description || '',
             })
             onOpenChange(false)
-        } catch (error) {
+        } catch {
         }
     }
 

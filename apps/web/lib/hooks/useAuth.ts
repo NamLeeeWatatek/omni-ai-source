@@ -39,7 +39,7 @@ export function useAuth() {
       if (allWs && Array.isArray(allWs)) {
         dispatch(setWorkspaces(allWs));
       }
-    } catch (error) {
+    } catch {
 
     }
   }, [accessToken, dispatch]);

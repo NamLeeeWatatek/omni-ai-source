@@ -167,11 +167,12 @@ export const botsApi = {
     conversationHistory?: Array<{ role: string; content: string }>,
     knowledgeBaseIds?: string[]
   ): Promise<{ response: string; sources?: any[] }> {
+    console.log('[Bot Chat]', {
       botId,
       message: message.substring(0, 50),
       knowledgeBaseIds,
       historyLength: conversationHistory?.length || 0,
-    })
+    });
 
     const response = await axiosClient.post(`/knowledge-bases/chat`, {
       message,
@@ -181,17 +182,18 @@ export const botsApi = {
         role: m.role as 'user' | 'assistant',
         content: m.content
       })),
-    })
+    });
 
-    const data = response.data || response
+    const data = response.data || response;
+    console.log('[Bot Chat Response]', {
       answerLength: data.answer?.length || 0,
       sourcesCount: data.sources?.length || 0,
-    })
+    });
 
     return {
       response: data.answer,
       sources: data.sources || []
-    }
+    };
   },
 }
 

@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { FiPlus, FiTrash2 } from 'react-icons/fi'
-import { Button } from '@/components/ui/button'
 import type { KeyValuePair, KeyValueEditorProps } from '@/lib/types'
 
 export function KeyValueEditor({ value, onChange, placeholder }: KeyValueEditorProps) {

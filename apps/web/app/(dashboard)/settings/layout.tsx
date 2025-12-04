@@ -19,7 +19,7 @@ const settingsSections = [
   {
     title: 'General',
     items: [
-      { name: 'AI Models', href: '/settings', icon: FiCpu, description: 'Configure AI providers' },
+      { name: 'AI Models', href: '/settings', icon: FiCpu, description: 'Manage AI providers and models' },
       { name: 'Profile', href: '/settings/profile', icon: FiUser, description: 'Your account settings' },
       { name: 'Notifications', href: '/settings/notifications', icon: FiBell, description: 'Notification preferences' },
     ]

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { Save, AlertCircle, Plus } from 'lucide-react';
+import { Save, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { botsApi } from '@/lib/api/bots';
 import axiosClient from '@/lib/axios-client';
@@ -37,7 +37,7 @@ export default function BotDetailPage() {
         description: '',
         systemPrompt: '',
         aiProviderId: undefined as string | undefined,
-        aiModelName: 'gemini-2.0-flash',
+        aiModelName: '',
         aiParameters: {
             temperature: 0.7,
             max_tokens: 1000,
@@ -61,7 +61,7 @@ export default function BotDetailPage() {
                 description: data.description || '',
                 systemPrompt: data.systemPrompt || '',
                 aiProviderId: data.aiProviderId || undefined,
-                aiModelName: data.aiModelName || 'gemini-2.0-flash',
+                aiModelName: data.aiModelName || '',
                 aiParameters: (data.aiParameters as { temperature: number; max_tokens: number }) || { temperature: 0.7, max_tokens: 1000 },
                 enableAutoLearn: data.enableAutoLearn || false,
             });

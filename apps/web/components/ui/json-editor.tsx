@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 
 interface JsonEditorProps {
     value: any
@@ -33,7 +33,7 @@ export function JsonEditor({ value, onChange, placeholder, rows = 4 }: JsonEdito
             const parsed = JSON.parse(newText)
             onChange(parsed)
             setError(null)
-        } catch (err) {
+        } catch {
             onChange(newText)
         }
     }
@@ -44,7 +44,7 @@ export function JsonEditor({ value, onChange, placeholder, rows = 4 }: JsonEdito
                 JSON.parse(text)
             }
             setError(null)
-        } catch (err) {
+        } catch {
             setError('Invalid JSON format')
         }
     }

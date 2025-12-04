@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { MdCheck, MdExpandMore, MdAdd, MdBusiness } from 'react-icons/md';
-import { cn } from '@/lib/utils';
 
 export function WorkspaceSwitcher() {
   const { currentWorkspace, workspaces, switchWorkspace } = useWorkspace();

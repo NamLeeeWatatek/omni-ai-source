@@ -32,10 +32,8 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
 
       options.onSuccess?.(fileUrl, result.file);
       return { fileUrl, fileData: result.file };
-    } catch (err) {
-      const error = err as Error;
-      setError(error);
-      options.onError?.(error);
+    } catch {
+     
       throw error;
     } finally {
       setUploading(false);
@@ -58,10 +56,8 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
       }));
 
       return filesData;
-    } catch (err) {
-      const error = err as Error;
-      setError(error);
-      options.onError?.(error);
+    } catch {
+   
       throw error;
     } finally {
       setUploading(false);

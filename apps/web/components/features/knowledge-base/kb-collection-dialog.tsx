@@ -80,7 +80,7 @@ export function KBCollectionDialog({
             })
             form.reset()
             onOpenChange(false)
-        } catch (error) {
+        } catch {
         }
     }
 

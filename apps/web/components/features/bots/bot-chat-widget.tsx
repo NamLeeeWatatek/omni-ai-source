@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { executeBotFunction } from '@/lib/api/bots'
 import { cn } from '@/lib/utils'
 
 interface Message {
@@ -63,7 +62,7 @@ export function BotChatWidget({
       }
       
       setMessages((prev) => [...prev, botMessage])
-    } catch (error) {
+    } catch {
 
       const errorMessage: Message = {
         id: `msg-${Date.now()}-error`,

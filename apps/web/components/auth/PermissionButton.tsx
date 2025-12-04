@@ -1,6 +1,5 @@
 'use client'
 
-import { ReactNode } from 'react'
 import { usePermissions } from '@/lib/hooks/usePermissions'
 import type { ResourceType, PermissionButtonProps } from '@/lib/types'
 

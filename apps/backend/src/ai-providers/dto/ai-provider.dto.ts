@@ -24,7 +24,11 @@ export class CreateUserAiProviderDto {
   @IsString()
   apiKey: string;
 
-  @ApiPropertyOptional({ type: [String], example: ['gpt-4', 'gpt-3.5-turbo'] })
+  @ApiPropertyOptional({ 
+    type: [String], 
+    example: ['gpt-4', 'gpt-3.5-turbo', 'gemini-2.5-flash'],
+    description: 'List of model names supported by this provider'
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })

@@ -43,7 +43,7 @@ export function AIFloatingButton() {
         setLoading(true)
 
         try {
-            const response = await axiosClient.post('', ).then(r => r.data)
+            const response = await axiosClient.post('',).then(r => r.data)
 
             setMessages(prev => [...prev, {
                 id: (Date.now() + 1).toString(),
@@ -51,8 +51,8 @@ export function AIFloatingButton() {
                 content: response.response,
                 timestamp: new Date().toISOString()
             }])
-        } catch (e: any) {
-            toast.error('Failed to get response: ' + e.message)
+        } catch {
+            toast.error('Failed to get response: ')
         } finally {
             setLoading(false)
         }
@@ -60,7 +60,7 @@ export function AIFloatingButton() {
 
     return (
         <>
-            {}
+            { }
             <div className="fixed bottom-6 right-6 z-50">
                 {!isOpen ? (
                     <button
@@ -72,7 +72,7 @@ export function AIFloatingButton() {
                     </button>
                 ) : (
                     <div className="glass rounded-2xl shadow-2xl border border-border/40 w-96 overflow-hidden flex flex-col max-h-[600px]">
-                        {}
+                        { }
                         <div className="bg-slate-700 p-4 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
@@ -91,7 +91,7 @@ export function AIFloatingButton() {
                             </button>
                         </div>
 
-                        {}
+                        { }
                         <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-[300px]">
                             {messages.length === 0 ? (
                                 <div className="space-y-2">
@@ -145,7 +145,7 @@ export function AIFloatingButton() {
                             )}
                         </div>
 
-                        {}
+                        { }
                         <div className="p-4 border-t border-border/40 space-y-2">
                             <div className="flex gap-2">
                                 <input

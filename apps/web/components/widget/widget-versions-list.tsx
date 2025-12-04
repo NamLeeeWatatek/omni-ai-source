@@ -63,7 +63,7 @@ export function WidgetVersionsList({ botId, versions, isLoading, onRefresh }: Pr
         try {
             await publishVersion(versionId);
             onRefresh();
-        } catch (error) {
+        } catch {
         }
     };
 
@@ -78,7 +78,7 @@ export function WidgetVersionsList({ botId, versions, isLoading, onRefresh }: Pr
             setRollbackVersion(null);
             setRollbackReason('');
             onRefresh();
-        } catch (error) {
+        } catch {
         }
     };
 
@@ -86,7 +86,7 @@ export function WidgetVersionsList({ botId, versions, isLoading, onRefresh }: Pr
         try {
             await archiveVersion(versionId);
             onRefresh();
-        } catch (error) {
+        } catch {
         }
     };
 
@@ -97,7 +97,7 @@ export function WidgetVersionsList({ botId, versions, isLoading, onRefresh }: Pr
             await doDelete(deleteVersion.id);
             setDeleteVersion(null);
             onRefresh();
-        } catch (error) {
+        } catch {
         }
     };
 

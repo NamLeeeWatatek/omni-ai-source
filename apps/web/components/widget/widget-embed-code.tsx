@@ -50,7 +50,7 @@ export function WidgetEmbedCode({ botId, activeVersion }: Props) {
                 setTimeout(() => setCopiedIframe(false), 2000);
             }
             toast.success('Copied to clipboard!');
-        } catch (err) {
+        } catch {
             toast.error('Failed to copy');
         }
     };

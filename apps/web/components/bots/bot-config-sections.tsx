@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Bot, Settings, Zap, MessageSquare, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import React from 'react';
 
 interface BotConfigData {
     name: string;
@@ -173,7 +174,7 @@ Always ask clarifying questions to understand the issue better.`,
                         <span>{systemPrompt.length} characters</span>
                         <span>Recommended: 100-500 characters</span>
                     </div>
-                </div> 
+                </div>
             </CardContent>
         </Card>
     );
@@ -185,13 +186,27 @@ interface AIConfigSectionProps {
 }
 
 export function AIConfigSection({ data, onChange }: AIConfigSectionProps) {
-    const models = [
-        { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash', provider: 'Google', badge: 'Fast' },
-        { value: 'gpt-4', label: 'GPT-4', provider: 'OpenAI', badge: 'Advanced' },
-        { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo', provider: 'OpenAI', badge: 'Fast' },
-        { value: 'claude-3-opus', label: 'Claude 3 Opus', provider: 'Anthropic', badge: 'Advanced' },
-        { value: 'claude-3-sonnet', label: 'Claude 3 Sonnet', provider: 'Anthropic', badge: 'Balanced' },
-    ];
+    const [models, setModels] = React.useState<any[]>([]);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        const loadModels = async () => {
+            try {
+                const response = await fetch('/api/v1/ai-providers/models', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    },
+                });
+                const data = await response.json();
+                const allModels = data.flatMap((p: any) => p.models);
+                setModels(allModels);
+            } catch {
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadModels();
+    }, []);
 
     return (
         <Card>
@@ -210,25 +225,37 @@ export function AIConfigSection({ data, onChange }: AIConfigSectionProps) {
                     <Select
                         value={data.aiModelName}
                         onValueChange={(value) => onChange({ aiModelName: value })}
+                        disabled={loading}
                     >
                         <SelectTrigger id="ai-model">
-                            <SelectValue />
+                            <SelectValue placeholder={loading ? "Loading models..." : "Select a model"} />
                         </SelectTrigger>
                         <SelectContent>
                             {models.map((model) => (
-                                <SelectItem key={model.value} value={model.value}>
+                                <SelectItem
+                                    key={model.model_name}
+                                    value={model.model_name}
+                                    disabled={!model.is_available}
+                                >
                                     <div className="flex items-center gap-2">
-                                        <span>{model.label}</span>
-                                        <Badge variant="secondary" className="text-xs">
-                                            {model.badge}
-                                        </Badge>
+                                        <span>{model.display_name}</span>
+                                        {model.is_recommended && (
+                                            <Badge variant="secondary" className="text-xs">
+                                                Recommended
+                                            </Badge>
+                                        )}
+                                        {!model.is_available && (
+                                            <Badge variant="outline" className="text-xs">
+                                                Not Available
+                                            </Badge>
+                                        )}
                                     </div>
                                 </SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                        Choose the AI model that best fits your needs
+                        Choose the AI model that best fits your needs. Configure API keys in Settings.
                     </p>
                 </div>
 

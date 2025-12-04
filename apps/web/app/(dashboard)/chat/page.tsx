@@ -90,7 +90,7 @@ export default function ChatWithAIPage() {
             const data = await botsApi.getAll(currentWorkspace.id, 'active')
             const activeBots = Array.isArray(data) ? data.filter((b: Bot) => b.status === 'active') : []
             setBots(activeBots)
-        } catch (error) {
+        } catch {
             toast.error('Failed to load bots')
         }
     }
@@ -105,7 +105,7 @@ export default function ChatWithAIPage() {
             setKnowledgeBases(kbList)
             if (kbList.length === 0) {
             }
-        } catch (error) {
+        } catch {
             setKnowledgeBases([])
         }
     }
@@ -118,7 +118,7 @@ export default function ChatWithAIPage() {
                 ? data.filter((c: any) => c && c.id)
                 : []
             setConversations(convList)
-        } catch (error) {
+        } catch {
             setConversations([])
         } finally {
             setLoadingConversations(false)
@@ -144,7 +144,7 @@ export default function ChatWithAIPage() {
             setMessages([])
 
             toast.success('New conversation created')
-        } catch (error) {
+        } catch {
             toast.error('Failed to create conversation')
         } finally {
             setCreatingConversation(false)
@@ -152,11 +152,12 @@ export default function ChatWithAIPage() {
     }
 
     const selectConversation = (conv: AiConversation) => {
+        console.log('[Select Conversation]', {
             id: conv.id,
             botId: conv.botId,
             useKnowledgeBase: conv.useKnowledgeBase,
             metadata: conv.metadata,
-        })
+        });
 
         setCurrentConversation(conv)
         setMessages(conv.messages || [])
@@ -198,7 +199,7 @@ export default function ChatWithAIPage() {
         try {
             await updateAIConversation(id, { title })
             toast.success('Title updated')
-        } catch (error) {
+        } catch {
             setConversations(oldConversations)
             setCurrentConversation(oldCurrentConversation)
             toast.error('Failed to update title')
@@ -228,7 +229,7 @@ export default function ChatWithAIPage() {
         try {
             await deleteAIConversation(id)
             toast.success('Conversation deleted')
-        } catch (error) {
+        } catch {
             setConversations(oldConversations)
             setCurrentConversation(oldCurrentConversation)
             setMessages(oldMessages)
@@ -258,7 +259,7 @@ export default function ChatWithAIPage() {
                 setConversations((prev) => [newConv, ...prev])
                 setCurrentConversation(newConv)
                 setCreatingConversation(false)
-            } catch (error) {
+            } catch {
                 toast.error('Failed to create conversation')
                 setCreatingConversation(false)
                 return
@@ -280,12 +281,15 @@ export default function ChatWithAIPage() {
         try {
             let responseText = ''
             let sources: any[] = []
-            let modelName = 'gemini-2.5-flash'
+            let modelName = selectedBot !== 'none' 
+                ? bots.find(b => b.id === selectedBot)?.aiModelName || 'gemini-2.5-flash'
+                : 'gemini-2.5-flash'
 
+            console.log('[Sending Message]', {
                 selectedBot,
                 useKnowledgeBase,
                 knowledgeBaseIds: selectedKnowledgeBases,
-            })
+            });
 
             if (selectedBot !== 'none') {
                 const bot = bots.find((b) => b.id === selectedBot)
@@ -327,7 +331,7 @@ export default function ChatWithAIPage() {
                 await updateConversationMessages(conversationId, finalMessages)
             }
 
-        } catch (error) {
+        } catch {
             toast.error('Failed to get AI response')
         } finally {
             setLoading(false)
@@ -340,7 +344,7 @@ export default function ChatWithAIPage() {
             setConversations((prev) =>
                 prev.map((c) => (c.id === id ? { ...c, messages, updatedAt: new Date().toISOString() } : c))
             )
-        } catch (error) {
+        } catch {
         }
     }
 
@@ -352,10 +356,11 @@ export default function ChatWithAIPage() {
 
         try {
             setSavingSettings(true)
+            console.log('[Updating Settings]', {
                 botId: selectedBot !== 'none' ? selectedBot : null,
                 useKnowledgeBase,
                 knowledgeBaseIds: selectedKnowledgeBases,
-            })
+            });
 
             await updateAIConversation(currentConversation.id, {
                 botId: selectedBot !== 'none' ? selectedBot : undefined,
@@ -396,7 +401,7 @@ export default function ChatWithAIPage() {
             )
 
             toast.success('Settings saved successfully')
-        } catch (error) {
+        } catch {
             toast.error('Failed to save settings')
         } finally {
             setSavingSettings(false)
@@ -808,7 +813,7 @@ export default function ChatWithAIPage() {
                                             </div>
                                             <div>
                                                 <p className="text-muted-foreground text-xs">AI Model</p>
-                                                <p className="font-medium">{selectedBotData.aiModelName || 'gemini-2.5-flash'}</p>
+                                                <p className="font-medium">{selectedBotData.aiModelName || 'Default'}</p>
                                             </div>
                                             <div>
                                                 <p className="text-muted-foreground text-xs">Knowledge Base</p>

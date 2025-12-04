@@ -5,7 +5,7 @@
 import { io, Socket } from 'socket.io-client'
 
 type MessageHandler = (data: any) => void
-type ErrorHandler = (error: any) => void
+type ErrorHandler = (_error: any) => void
 type CloseHandler = () => void
 
 interface WebSocketConnection {
@@ -59,8 +59,8 @@ class WebSocketService {
             connection.closeHandlers.forEach(handler => handler())
         })
 
-        socket.on('connect_error', (error) => {
-            connection.errorHandlers.forEach(handler => handler(error))
+        socket.on('connect_error', (_error) => {
+            connection.errorHandlers.forEach(handler => handler(_error))
         })
 
         socket.onAny((eventName, data) => {
@@ -84,7 +84,7 @@ class WebSocketService {
         try {
             connection.socket.emit(event, data)
             return true
-        } catch (e) {
+        } catch {
             return false
         }
     }

@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { IconPicker } from './icon-picker';
-import { Category, CategoryDialogProps } from '@/lib/types';
+import { CategoryDialogProps } from '@/lib/types';
 
 const PRESET_COLORS = [
   '#ef4444', '#f59e0b', '#10b981', '#3b82f6',
@@ -83,7 +83,7 @@ export function CategoryDialog({
       }
 
       onSave();
-    } catch (error) {
+    } catch {
 
       alert('Failed to save category');
     } finally {

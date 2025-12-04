@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import axiosClient from '@/lib/axios-client';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -29,7 +28,7 @@ export function CategorySelector({
         const response = await axiosClient.get(`/metadata/categories?entity_type=${entityType}`);
         const data = response.data || response;
         setCategories(data);
-      } catch (error) {
+      } catch {
 
       } finally {
         setLoading(false);

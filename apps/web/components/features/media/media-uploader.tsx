@@ -24,7 +24,7 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     const maxSize = type === 'image' ? MAX_IMAGE_SIZE : MAX_FILE_SIZE
-    const acceptedTypes = type === 'image' ? 'image*'
+    const acceptedTypes = type === 'image' ? 'image/*' : '*/*'
 
     const handleDrag = (e: React.DragEvent) => {
         e.preventDefault()

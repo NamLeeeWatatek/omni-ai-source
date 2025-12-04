@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { usePermissions } from '@/lib/hooks/usePermissions'
-import { PermissionGate, CanCreate, CanUpdate, CanDelete } from '@/components/auth/PermissionGate'
+import { CanCreate } from '@/components/auth/PermissionGate'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -65,7 +65,7 @@ interface Template {
 export default function TemplatesPage() {
     const router = useRouter()
     const dispatch = useAppDispatch()
-    const { canCreate, canUpdate, canDelete, isLoading: permissionsLoading } = usePermissions()
+    const { canUpdate, canDelete, isLoading: permissionsLoading } = usePermissions()
     const [templates, setTemplates] = useState<Template[]>([])
     const [filteredTemplates, setFilteredTemplates] = useState<Template[]>([])
     const [loading, setLoading] = useState(true)
@@ -103,7 +103,7 @@ export default function TemplatesPage() {
             setLoading(true)
             const data = await axiosClient.get('/templates/')
             setTemplates(Array.isArray(data) ? data : [])
-        } catch (error: any) {
+        } catch {
 
             toast.error('Failed to load templates')
             setTemplates([])
@@ -127,7 +127,7 @@ export default function TemplatesPage() {
 
             router.push('/flows/new/edit')
             toast.success('Template loaded! Customize and save your workflow.')
-        } catch (error) {
+        } catch {
 
             toast.error('Failed to load template')
         }
@@ -159,7 +159,7 @@ export default function TemplatesPage() {
             setEditingTemplate(null)
             setFormData({ name: '', description: '', category: 'general' })
             loadTemplates()
-        } catch (error) {
+        } catch {
             toast.error('Failed to save template')
         }
     }
@@ -172,7 +172,7 @@ export default function TemplatesPage() {
             toast.success('Template deleted!')
             setDeleteId(null)
             loadTemplates()
-        } catch (error) {
+        } catch {
             toast.error('Failed to delete template')
         }
     }
@@ -188,7 +188,7 @@ export default function TemplatesPage() {
             })
             toast.success('Template duplicated!')
             loadTemplates()
-        } catch (error) {
+        } catch {
             toast.error('Failed to duplicate template')
         }
     }

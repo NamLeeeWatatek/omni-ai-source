@@ -59,7 +59,7 @@ export function WorkflowCard({ workflow, onUpdate, onRun }: WorkflowCardProps) {
             const dup = await dispatch(duplicateFlow(workflow.id)).unwrap()
             toast.success('Flow duplicated!')
             router.push(`/flows/${dup.id}/edit`)
-        } catch (error) {
+        } catch {
             toast.error('Failed to duplicate flow')
         }
     }
@@ -70,7 +70,7 @@ export function WorkflowCard({ workflow, onUpdate, onRun }: WorkflowCardProps) {
             await dispatch(archiveFlow(workflow.id)).unwrap()
             toast.success('Flow archived!')
             onUpdate?.()
-        } catch (error) {
+        } catch {
             toast.error('Failed to archive flow')
         }
     }
@@ -85,7 +85,7 @@ export function WorkflowCard({ workflow, onUpdate, onRun }: WorkflowCardProps) {
             await dispatch(deleteFlow(workflow.id)).unwrap()
             toast.success('Flow deleted!')
             onUpdate?.()
-        } catch (error) {
+        } catch {
             toast.error('Failed to delete flow')
         }
     }

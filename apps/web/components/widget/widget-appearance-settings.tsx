@@ -92,7 +92,7 @@ export function WidgetAppearanceSettings({ botId, currentSettings, onSave }: Pro
             await onSave(settings);
             toast.success('Widget appearance updated successfully!');
             setHasChanges(false);
-        } catch (error) {
+        } catch {
             toast.error('Failed to update widget appearance');
         } finally {
             setSaving(false);

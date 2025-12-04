@@ -24,7 +24,7 @@ export function TagSelector({ selectedTags, onChange, maxTags = 5 }: TagSelector
         const response = await axiosClient.get('/metadata/tags');
         const data = response.data || response;
         setTags(data);
-      } catch (error) {
+      } catch {
 
       }
     };

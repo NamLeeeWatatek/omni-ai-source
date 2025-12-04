@@ -53,7 +53,7 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
                 content: m.content,
                 createdAt: m.createdAt,
             })))
-        } catch (error) {
+        } catch {
 
             toast.error('Failed to start conversation')
         } finally {
@@ -120,9 +120,9 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
                 content: m.content,
                 createdAt: m.createdAt || m.timestamp,
             })))
-        } catch (error: any) {
+        } catch {
 
-            toast.error(error?.message || 'Failed to send message')
+            toast.error('Failed to send message')
             setMessages(prev => prev.filter(m => m.id !== tempUserMsg.id))
         } finally {
             setLoading(false)
@@ -135,7 +135,7 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
         try {
             await initConversation()
             toast.success('Conversation cleared')
-        } catch (error) {
+        } catch {
             toast.error('Failed to clear conversation')
         }
     }
@@ -173,8 +173,8 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
                                 <Card
                                     key={msg.id}
                                     className={`p-4 ${msg.role === 'user'
-                                            ? 'bg-muted ml-8'
-                                            : 'bg-primary/5 border-primary/20 mr-8'
+                                        ? 'bg-muted ml-8'
+                                        : 'bg-primary/5 border-primary/20 mr-8'
                                         }`}
                                 >
                                     <div className="flex items-start gap-2">

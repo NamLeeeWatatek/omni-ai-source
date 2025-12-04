@@ -68,7 +68,7 @@ export function KBProcessingStatus({ knowledgeBaseId }: KBProcessingStatusProps)
             })
         })
 
-        socket.on('connect_error', (error) => {
+        socket.on('connect_error', (_error) => {
 
         })
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams, usePathname, useRouter } from 'next/navigation'
-import { FiSettings, FiCode, FiZap, FiFileText, FiShare2, FiArrowLeft } from 'react-icons/fi'
+import { FiSettings, FiCode, FiArrowLeft } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 
 const tabs = [

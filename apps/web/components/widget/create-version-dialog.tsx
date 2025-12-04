@@ -73,7 +73,7 @@ export function CreateVersionDialog({ botId, open, onOpenChange, onSuccess }: Pr
             });
             reset();
             onSuccess();
-        } catch (error) {
+        } catch {
         }
     };
 

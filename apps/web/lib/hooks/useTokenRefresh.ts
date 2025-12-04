@@ -40,7 +40,7 @@ export function useTokenRefresh() {
         tokenExpires: data.tokenExpires,
       })
 
-    } catch (error) {
+    } catch {
 
     }
   }, [session, update])

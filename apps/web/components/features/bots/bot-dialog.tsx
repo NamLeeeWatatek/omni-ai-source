@@ -70,7 +70,7 @@ export function BotDialog({ open, onOpenChange, bot, workspaceId, onSubmit }: Bo
             await onSubmit(values)
             form.reset()
             onOpenChange(false)
-        } catch (error) {
+        } catch {
         }
     }
 

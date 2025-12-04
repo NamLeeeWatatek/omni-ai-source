@@ -39,7 +39,7 @@ export default function PublicBotPage() {
                     timestamp: new Date().toISOString()
                 }])
             }
-        } catch (error) {
+        } catch {
         }
     }
 
@@ -58,7 +58,7 @@ export default function PublicBotPage() {
             if (!response.ok) throw new Error('Failed to create conversation')
             const data = await response.json()
             setConversationId(data.conversationId)
-        } catch (error) {
+        } catch {
         }
     }
 
@@ -86,7 +86,7 @@ export default function PublicBotPage() {
                 timestamp: data.timestamp,
                 metadata: data.metadata,
             }])
-        } catch (error) {
+        } catch {
             setMessages(prev => [...prev, {
                 role: 'assistant',
                 content: 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại.',

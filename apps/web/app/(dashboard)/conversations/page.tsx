@@ -175,6 +175,7 @@ export default function ConversationsPage() {
         }
       }
       
+      console.log('[Loading Conversations]', {
         statusFilter,
         selectedChannel,
         params: params.toString(),
@@ -195,6 +196,7 @@ export default function ConversationsPage() {
       
       const mappedConversations = rawConversations.map(mapConversation);
       
+      console.log('[Conversations Loaded]', {
         total: data?.total || rawConversations.length,
         loaded: mappedConversations.length,
         conversations: mappedConversations,

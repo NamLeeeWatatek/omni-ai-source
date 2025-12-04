@@ -2,7 +2,7 @@
 import type { Socket } from 'socket.io-client'
 
 export type MessageHandler = (data: any) => void
-export type ErrorHandler = (error: any) => void
+export type ErrorHandler = (_error: any) => void
 export type CloseHandler = () => void
 
 export interface WebSocketConnection {
@@ -17,7 +17,7 @@ export interface UseExecutionSocketOptions {
   executionId?: string
   onUpdate?: (data: any) => void
   onComplete?: (data: any) => void
-  onError?: (error: any) => void
+  onError?: (_error: any) => void
 }
 
 export interface UseExecutionWebSocketReturn {

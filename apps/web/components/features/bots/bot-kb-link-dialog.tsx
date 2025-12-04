@@ -47,7 +47,7 @@ export function BotKBLinkDialog({
             await onSubmit(values)
             form.reset()
             onOpenChange(false)
-        } catch (error) {
+        } catch {
         }
     }
 

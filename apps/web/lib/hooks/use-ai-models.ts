@@ -75,10 +75,11 @@ export function useAIModels(): UseAIModelsReturn {
     }
 
     const getDefaultModel = () => {
-        if (!providers || providers.length === 0) return 'gemini-2.5-flash'
+        if (!providers || providers.length === 0) return ''
         const allModels = providers.flatMap(p => p.models)
         const defaultModel = allModels.find(m => m.is_default)
-        return defaultModel?.model_name || allModels[0]?.model_name || 'gemini-2.5-flash'
+        const availableModel = allModels.find(m => m.is_available)
+        return defaultModel?.model_name || availableModel?.model_name || allModels[0]?.model_name || ''
     }
 
     return {

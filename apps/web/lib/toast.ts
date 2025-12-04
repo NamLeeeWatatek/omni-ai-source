@@ -26,7 +26,7 @@ export const toast = {
     msgs: {
       loading: string
       success: string | ((data: T) => string)
-      error: string | ((error: any) => string)
+      error: string | ((_error: any) => string)
     },
     options?: any
   ) => {

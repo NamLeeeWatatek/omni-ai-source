@@ -5,7 +5,6 @@ import { Sparkles, Loader2, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { executeBotFunction } from '@/lib/api/bots'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -39,7 +38,7 @@ export function AutoFillInput({
     try {
       toast.error('This feature needs to be updated to use the new API')
       
-    } catch (error) {
+    } catch {
       toast.error('Đã xảy ra lỗi khi tạo gợi ý')
     } finally {
       setLoading(false)

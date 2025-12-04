@@ -30,7 +30,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useAppDispatch } from '@/lib/store/hooks'
-import { updateFlow, deleteFlow, duplicateFlow, archiveFlow } from '@/lib/store/slices/flowsSlice'
+import { deleteFlow, duplicateFlow, archiveFlow } from '@/lib/store/slices/flowsSlice'
 import { AlertDialogConfirm } from '@/components/ui/alert-dialog-confirm'
 import toast from '@/lib/toast'
 import { Flow } from '@/lib/types'

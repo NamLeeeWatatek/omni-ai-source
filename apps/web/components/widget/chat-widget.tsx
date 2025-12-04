@@ -61,7 +61,7 @@ export function ChatWidget({ botId, apiUrl = '/api/v1' }: ChatWidgetProps) {
                 const data = await response.json()
                 setConfig(data)
             }
-        } catch (error) {
+        } catch {
         }
     }
 
@@ -90,7 +90,7 @@ export function ChatWidget({ botId, apiUrl = '/api/v1' }: ChatWidgetProps) {
                     }])
                 }
             }
-        } catch (error) {
+        } catch {
         }
     }
 
@@ -126,7 +126,7 @@ export function ChatWidget({ botId, apiUrl = '/api/v1' }: ChatWidgetProps) {
             } else {
                 throw new Error('Failed to send message')
             }
-        } catch (error) {
+        } catch {
             setMessages(prev => [...prev, {
                 role: 'assistant',
                 content: 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại.',

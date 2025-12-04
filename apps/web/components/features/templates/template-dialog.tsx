@@ -72,7 +72,7 @@ export function TemplateDialog({
             await onSubmit(data)
             form.reset()
             onOpenChange(false)
-        } catch (error) {
+        } catch {
         }
     }
 

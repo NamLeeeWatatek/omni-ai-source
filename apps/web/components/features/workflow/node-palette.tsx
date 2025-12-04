@@ -47,7 +47,7 @@ export function NodePalette({ onAddNode }: NodePaletteProps) {
             await dispatch(fetchNodeTypes()).unwrap()
             await dispatch(fetchNodeCategories()).unwrap()
             toast.success('Node types refreshed!')
-        } catch (error) {
+        } catch {
             toast.error('Failed to refresh node types')
         } finally {
             setRefreshing(false)

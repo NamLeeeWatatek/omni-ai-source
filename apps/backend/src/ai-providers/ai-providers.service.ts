@@ -331,14 +331,71 @@ export class AiProvidersService {
     const key = envKeys[provider];
     if (!key) {
       throw new BadRequestException(
-        `API key not configured for provider: ${provider}. Please set ${provider.toUpperCase()}_API_KEY in .env`,
+        `API key not configured for provider: ${provider}. Please set ${provider.toUpperCase()}_API_KEY in .env or add it in Settings > AI Providers`,
       );
     }
     return key;
   }
 
-  async chat(prompt: string, model?: string): Promise<string> {
+  private async getApiKeyForModel(
+    model: string,
+    userId?: string,
+    workspaceId?: string,
+  ): Promise<string | null> {
+    const provider = this.getProviderFromModel(model);
+
+    // Try workspace provider first
+    if (workspaceId) {
+      const workspaceProviders = await this.workspaceProviderRepo.find({
+        where: { 
+          workspaceId, 
+          provider: provider as any,
+          isActive: true,
+        },
+      });
+
+      for (const wp of workspaceProviders) {
+        if (!wp.modelList || wp.modelList.length === 0 || wp.modelList.includes(model)) {
+          if (wp.apiKeyEncrypted) {
+            return this.decrypt(wp.apiKeyEncrypted);
+          }
+        }
+      }
+    }
+
+    // Try user provider
+    if (userId) {
+      const userProviders = await this.userProviderRepo.find({
+        where: { 
+          userId, 
+          provider: provider as any,
+          isActive: true,
+        },
+      });
+
+      for (const up of userProviders) {
+        if (!up.modelList || up.modelList.length === 0 || up.modelList.includes(model)) {
+          if (up.apiKeyEncrypted) {
+            return this.decrypt(up.apiKeyEncrypted);
+          }
+        }
+      }
+    }
+
+    // Fallback to environment variable
+    return null;
+  }
+
+  async chat(
+    prompt: string, 
+    model?: string,
+    userId?: string,
+    workspaceId?: string
+  ): Promise<string> {
     const modelName = model || 'gemini-2.0-flash';
+    
+    // Try to get user/workspace provider first
+    const apiKey = await this.getApiKeyForModel(modelName, userId, workspaceId);
     const provider = this.getProviderFromModel(modelName);
 
     this.logger.log(
@@ -347,11 +404,11 @@ export class AiProvidersService {
 
     switch (provider) {
       case 'google':
-        return this.chatWithGoogle(prompt, modelName);
+        return this.chatWithGoogle(prompt, modelName, apiKey);
       case 'openai':
-        return this.chatWithOpenAI(prompt, modelName);
+        return this.chatWithOpenAI(prompt, modelName, apiKey);
       case 'anthropic':
-        return this.chatWithAnthropic(prompt, modelName);
+        return this.chatWithAnthropic(prompt, modelName, apiKey);
       default:
         throw new BadRequestException(`Unsupported provider: ${provider}`);
     }
@@ -360,8 +417,11 @@ export class AiProvidersService {
   async chatWithHistory(
     messages: ChatMessage[],
     model?: string,
+    userId?: string,
+    workspaceId?: string,
   ): Promise<string> {
     const modelName = model || 'gemini-2.0-flash';
+    const apiKey = await this.getApiKeyForModel(modelName, userId, workspaceId);
     const provider = this.getProviderFromModel(modelName);
 
     this.logger.log(
@@ -370,11 +430,11 @@ export class AiProvidersService {
 
     switch (provider) {
       case 'google':
-        return this.chatWithGoogleHistory(messages, modelName);
+        return this.chatWithGoogleHistory(messages, modelName, apiKey);
       case 'openai':
-        return this.chatWithOpenAIHistory(messages, modelName);
+        return this.chatWithOpenAIHistory(messages, modelName, apiKey);
       case 'anthropic':
-        return this.chatWithAnthropicHistory(messages, modelName);
+        return this.chatWithAnthropicHistory(messages, modelName, apiKey);
       default:
         throw new BadRequestException(`Unsupported provider: ${provider}`);
     }
@@ -420,9 +480,9 @@ export class AiProvidersService {
     return 'google';
   }
 
-  private async chatWithGoogle(prompt: string, model: string): Promise<string> {
-    const apiKey = this.getApiKey('google');
-    const genAI = new GoogleGenerativeAI(apiKey);
+  private async chatWithGoogle(prompt: string, model: string, apiKey?: string | null): Promise<string> {
+    const key = apiKey || this.getApiKey('google');
+    const genAI = new GoogleGenerativeAI(key);
     const genModel = genAI.getGenerativeModel({ model });
     const result = await genModel.generateContent(prompt);
     return result.response.text();
@@ -431,9 +491,10 @@ export class AiProvidersService {
   private async chatWithGoogleHistory(
     messages: ChatMessage[],
     model: string,
+    apiKey?: string | null,
   ): Promise<string> {
-    const apiKey = this.getApiKey('google');
-    const genAI = new GoogleGenerativeAI(apiKey);
+    const key = apiKey || this.getApiKey('google');
+    const genAI = new GoogleGenerativeAI(key);
     
     const systemMessage = messages.find((m) => m.role === 'system');
     const chatMessages = messages.filter((m) => m.role !== 'system');
@@ -493,9 +554,9 @@ export class AiProvidersService {
     return result.embedding.values;
   }
 
-  private async chatWithOpenAI(prompt: string, model: string): Promise<string> {
-    const apiKey = this.getApiKey('openai');
-    const openai = new OpenAI({ apiKey });
+  private async chatWithOpenAI(prompt: string, model: string, apiKey?: string | null): Promise<string> {
+    const key = apiKey || this.getApiKey('openai');
+    const openai = new OpenAI({ apiKey: key });
     const response = await openai.chat.completions.create({
       model,
       messages: [{ role: 'user', content: prompt }],
@@ -506,9 +567,10 @@ export class AiProvidersService {
   private async chatWithOpenAIHistory(
     messages: ChatMessage[],
     model: string,
+    apiKey?: string | null,
   ): Promise<string> {
-    const apiKey = this.getApiKey('openai');
-    const openai = new OpenAI({ apiKey });
+    const key = apiKey || this.getApiKey('openai');
+    const openai = new OpenAI({ apiKey: key });
     const response = await openai.chat.completions.create({
       model,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
@@ -532,9 +594,10 @@ export class AiProvidersService {
   private async chatWithAnthropic(
     prompt: string,
     model: string,
+    apiKey?: string | null,
   ): Promise<string> {
-    const apiKey = this.getApiKey('anthropic');
-    const anthropic = new Anthropic({ apiKey });
+    const key = apiKey || this.getApiKey('anthropic');
+    const anthropic = new Anthropic({ apiKey: key });
     const response = await anthropic.messages.create({
       model,
       max_tokens: 4096,
@@ -547,9 +610,10 @@ export class AiProvidersService {
   private async chatWithAnthropicHistory(
     messages: ChatMessage[],
     model: string,
+    apiKey?: string | null,
   ): Promise<string> {
-    const apiKey = this.getApiKey('anthropic');
-    const anthropic = new Anthropic({ apiKey });
+    const key = apiKey || this.getApiKey('anthropic');
+    const anthropic = new Anthropic({ apiKey: key });
 
     const systemMessage = messages.find((m) => m.role === 'system');
     const chatMessages = messages

@@ -52,7 +52,7 @@ export interface IconPickerProps {
   className?: string
 }
 
-export interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> { }
+export type CheckboxProps = React.InputHTMLAttributes<HTMLInputElement>
 
 export interface FileUploadProps {
   onUploadComplete?: (fileUrl: string, fileData: any) => void

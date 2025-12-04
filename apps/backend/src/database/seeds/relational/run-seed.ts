@@ -22,9 +22,6 @@ const runSeed = async () => {
 
   await app.get(UserSeedService).run();
 
-    '   - Can be managed via /api/v1/node-types and /api/v1/templates endpoints',
-  );
-
   await app.close();
 };
 

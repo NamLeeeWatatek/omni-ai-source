@@ -39,7 +39,7 @@ export function AlertDialogConfirm({
       if (open) {
         onOpenChange(false)
       }
-    } catch (error) {
+    } catch {
 
     }
   }

@@ -27,7 +27,7 @@ export async function downloadDocument(documentId: string, documentName?: string
     window.URL.revokeObjectURL(blobUrl)
 
     toast.success('Download started')
-  } catch (error) {
+  } catch {
     toast.error('Failed to download document')
   }
 }
@@ -42,7 +42,7 @@ export async function previewDocument(documentId: string) {
     window.open(url, '_blank')
 
     toast.success('Opening preview')
-  } catch (error) {
+  } catch {
     toast.error('Failed to preview document')
   }
 }

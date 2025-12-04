@@ -59,7 +59,7 @@ export function KBItemEditDialog({
                 icon: icon || undefined,
             })
             onOpenChange(false)
-        } catch (error) {
+        } catch {
 
         } finally {
             setLoading(false)

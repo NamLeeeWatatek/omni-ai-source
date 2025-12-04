@@ -70,7 +70,7 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
             const response = await axiosClient.get(`/agent-configs/${flowId}`)
             const data = response.data || response
             setConfig(data)
-        } catch (e: any) {
+        } catch {
 
         } finally {
             setLoading(false)
@@ -90,7 +90,7 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
             toast.success('Agent configuration saved!')
             onSave?.()
             onClose()
-        } catch (e: any) {
+        } catch {
             toast.error('Failed to save configuration')
 
         } finally {

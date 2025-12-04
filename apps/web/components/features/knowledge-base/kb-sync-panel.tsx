@@ -33,7 +33,7 @@ export function KBSyncPanel({ knowledgeBaseId }: SyncPanelProps) {
             } else {
                 toast.warning(`Found ${result.missingVectors} missing vectors and ${result.failedEmbeddings} failed embeddings`)
             }
-        } catch (error) {
+        } catch {
             toast.error('Failed to verify collection')
 
         } finally {
@@ -51,7 +51,7 @@ export function KBSyncPanel({ knowledgeBaseId }: SyncPanelProps) {
             toast.success(`Synced ${result.data.synced} vectors (${result.data.errors} errors)`)
 
             handleVerify()
-        } catch (error) {
+        } catch {
             toast.error('Failed to sync missing vectors')
 
         } finally {
@@ -73,7 +73,7 @@ export function KBSyncPanel({ knowledgeBaseId }: SyncPanelProps) {
             toast.success(`Rebuilt ${result.data.chunksProcessed} chunks (${result.data.errors} errors)`)
 
             handleVerify()
-        } catch (error) {
+        } catch {
             toast.error('Failed to rebuild collection')
 
         } finally {

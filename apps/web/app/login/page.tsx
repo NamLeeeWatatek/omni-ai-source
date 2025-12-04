@@ -113,7 +113,7 @@ export default function LoginPage() {
                     window.removeEventListener('message', handleMessage)
                 }
             }, 500)
-        } catch (error) {
+        } catch {
             setConfigError('Failed to initialize Casdoor login. Please check the console for details.')
             setShowSetupGuide(true)
         }

@@ -87,7 +87,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               avatarUrl: ws.avatarUrl || null,
             })) || [],
           }
-        } catch (error) {
+        } catch {
           return null
         }
       },
