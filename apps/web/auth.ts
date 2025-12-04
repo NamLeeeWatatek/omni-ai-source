@@ -15,13 +15,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       async authorize(credentials) {
         try {
-          // If we have backendData, it means callback already exchanged the code
           if (credentials?.backendData) {
             const data = JSON.parse(credentials.backendData as string)
             
             const userName = data.user.name || data.user.firstName || data.user.email
             
-            // Only store essential workspace info to minimize session size
             return {
               id: String(data.user.id),
               email: data.user.email,
@@ -45,7 +43,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             }
           }
 
-          // Otherwise, exchange code with backend
           if (!credentials?.code) {
             return null
           }
@@ -69,7 +66,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           const data = await response.json()
           const userName = data.user.name || data.user.firstName || data.user.email
 
-          // Only store essential workspace info to minimize session size
           return {
             id: String(data.user.id),
             email: data.user.email,
@@ -92,7 +88,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             })) || [],
           }
         } catch (error) {
-          console.error('Authorize error:', error)
           return null
         }
       },
@@ -100,7 +95,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user }) {
-      // Lưu token vào JWT khi user đăng nhập
       if (user) {
         token.accessToken = (user as any).accessToken;
         token.refreshToken = (user as any).refreshToken;
@@ -111,7 +105,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      // Thêm token vào session để client có thể sử dụng
       if (session.user) {
         session.user.id = token.id as string;
       }
@@ -128,10 +121,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: true,
 });
-
-
+

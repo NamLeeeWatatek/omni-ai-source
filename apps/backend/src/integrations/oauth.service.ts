@@ -6,9 +6,6 @@ import axios from 'axios';
 export class OAuthService {
   constructor(private configService: ConfigService) {}
 
-  /**
-   * Generate OAuth URL for Facebook
-   */
   getFacebookAuthUrl(clientId: string, state?: string): string {
     const redirectUri =
       this.configService.get<string>('FACEBOOK_REDIRECT_URI', {
@@ -36,9 +33,6 @@ export class OAuthService {
     return `https://www.facebook.com/v18.0/dialog/oauth?${params.toString()}`;
   }
 
-  /**
-   * Exchange Facebook code for access token
-   */
   async exchangeFacebookCode(
     clientId: string,
     clientSecret: string,
@@ -69,9 +63,6 @@ export class OAuthService {
     };
   }
 
-  /**
-   * Get Facebook user pages
-   */
   async getFacebookPages(accessToken: string): Promise<any[]> {
     const response = await axios.get(
       `https://graph.facebook.com/v18.0/me/accounts`,
@@ -83,9 +74,6 @@ export class OAuthService {
     return response.data.data || [];
   }
 
-  /**
-   * Generate OAuth URL for Google
-   */
   getGoogleAuthUrl(clientId: string, state?: string): string {
     const redirectUri =
       this.configService.get<string>('GOOGLE_REDIRECT_URI', { infer: true }) ||
@@ -108,9 +96,6 @@ export class OAuthService {
     return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   }
 
-  /**
-   * Exchange Google code for access token
-   */
   async exchangeGoogleCode(
     clientId: string,
     clientSecret: string,

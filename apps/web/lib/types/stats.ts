@@ -1,7 +1,3 @@
-/**
- * Dashboard Statistics Types
- * Matching backend DTOs from /stats/dashboard endpoint
- */
 
 export interface TimeSeriesDataPoint {
     date: string

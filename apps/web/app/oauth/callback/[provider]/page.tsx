@@ -30,12 +30,10 @@ export default function OAuthCallbackPage() {
             return
         }
 
-        // Send code to backend
         const handleCallback = async () => {
             try {
                 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
 
-                // Get token from NextAuth session
                 const { getSession } = await import('next-auth/react')
                 const session = await getSession()
                 const token = session?.accessToken
@@ -77,7 +75,6 @@ export default function OAuthCallbackPage() {
             }, '*')
         }
 
-        // Close popup after 2 seconds
         setTimeout(() => {
             window.close()
         }, 2000)

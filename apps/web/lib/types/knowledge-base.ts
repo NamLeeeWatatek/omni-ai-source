@@ -1,11 +1,3 @@
-/**
- * Knowledge Base Types
- * Types for knowledge base management, documents, folders, and RAG
- */
-
-// ============================================================================
-// Knowledge Base
-// ============================================================================
 
 export interface KnowledgeBase {
   id: string;
@@ -28,7 +20,7 @@ export interface KnowledgeBase {
   folders?: KBFolder[];
   documents?: KBDocument[];
   agentMappings?: AgentKnowledgeBase[];
-  botMappings?: any[]; // Bot assignments
+  botMappings?: any[];
 }
 
 export interface CreateKnowledgeBaseDto {
@@ -68,15 +60,11 @@ export interface KnowledgeBaseStats {
   updatedAt: string;
 }
 
-// ============================================================================
-// Folders
-// ============================================================================
-
 export interface KBFolder {
   id: string;
   knowledgeBaseId: string;
   parentId?: string | null;
-  parentFolderId?: string | null; // alias for parentId
+  parentFolderId?: string | null;
   name: string;
   description?: string | null;
   path?: string | null;
@@ -111,10 +99,6 @@ export interface UpdateFolderDto {
   color?: string;
   order?: number;
 }
-
-// ============================================================================
-// Documents
-// ============================================================================
 
 export interface KBDocument {
   id: string;
@@ -165,10 +149,6 @@ export interface UploadDocumentDto {
   folderId?: string;
 }
 
-// ============================================================================
-// Query & RAG
-// ============================================================================
-
 export interface QueryKnowledgeBaseDto {
   query: string;
   knowledgeBaseId?: string;
@@ -210,10 +190,6 @@ export interface GenerateAnswerResponse {
   sources: RAGSource[];
 }
 
-// ============================================================================
-// Agent Assignment
-// ============================================================================
-
 export interface AgentKnowledgeBase {
   id: string;
   agentId: string;
@@ -233,10 +209,6 @@ export interface AssignAgentDto {
   maxResults?: number;
   similarityThreshold?: number;
 }
-
-// ============================================================================
-// API Response Types
-// ============================================================================
 
 export type GetKnowledgeBasesResponse = KnowledgeBase[];
 export type GetKnowledgeBaseResponse = KnowledgeBase;

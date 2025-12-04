@@ -1,7 +1,3 @@
-/**
- * Standard Pagination Types
- * Backend should return data in this format
- */
 
 export interface PaginationParams {
   page: number

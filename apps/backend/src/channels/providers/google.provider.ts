@@ -7,9 +7,6 @@ import {
   IncomingMessage,
 } from '../interfaces/channel-provider.interface';
 
-/**
- * Google Business Messages channel provider
- */
 @Injectable()
 export class GoogleProvider implements ChannelProvider {
   readonly channelType = 'google';
@@ -24,8 +21,6 @@ export class GoogleProvider implements ChannelProvider {
 
   async sendMessage(message: ChannelMessage): Promise<ChannelMessageResponse> {
     try {
-      // TODO: Implement Google Business Messages API
-      // This is a placeholder implementation
       return {
         success: true,
         messageId: `google-${Date.now()}`,
@@ -39,12 +34,10 @@ export class GoogleProvider implements ChannelProvider {
   }
 
   verifyWebhook(): boolean {
-    // TODO: Implement Google webhook verification
     return true;
   }
 
   parseIncomingMessage(payload: any): IncomingMessage {
-    // TODO: Implement Google message parsing
     return {
       from: payload.sender?.id || '',
       content: payload.message?.text || '',

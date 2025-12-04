@@ -111,7 +111,7 @@ export function WorkflowCard({ workflow, onUpdate, onRun }: WorkflowCardProps) {
                         {workflow.status}
                     </span>
 
-                    {/* Dropdown Menu */}
+                    {}
                     <div className="relative">
                         <Button
                             variant="ghost"
@@ -127,13 +127,13 @@ export function WorkflowCard({ workflow, onUpdate, onRun }: WorkflowCardProps) {
 
                         {isDropdownOpen && (
                             <>
-                                {/* Backdrop */}
+                                {}
                                 <div
                                     className="fixed inset-0 z-10"
                                     onClick={() => setIsDropdownOpen(false)}
                                 />
 
-                                {/* Dropdown */}
+                                {}
                                 <div className="absolute right-0 mt-2 w-48 glass rounded-lg shadow-lg border border-border/40 z-20 overflow-hidden">
                                     <button
                                         onClick={handleEdit}
@@ -204,7 +204,7 @@ export function WorkflowCard({ workflow, onUpdate, onRun }: WorkflowCardProps) {
                 </div>
             </div>
 
-            {/* Delete Confirmation Dialog */}
+            {}
             <AlertDialogConfirm
                 open={showDeleteDialog}
                 onOpenChange={setShowDeleteDialog}

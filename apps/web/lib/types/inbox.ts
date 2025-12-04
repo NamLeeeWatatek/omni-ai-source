@@ -1,6 +1,3 @@
-﻿/**
- * Inbox and messaging related type definitions
- */
 
 export interface InboxMessage {
   id: string

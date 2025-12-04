@@ -32,11 +32,9 @@ export function TestNodePanel({ node, onClose, flowId, className }: TestNodePane
     const nodeType = getNodeType(node.data.type || node.type || '')
     const nodeConfig = node.data.config || {}
 
-    // Get test inputs (properties that are not configured)
     const testInputs = (() => {
         const properties = nodeType?.properties || []
 
-        // Filter to only show unconfigured required fields
         return properties.filter((prop: any) => {
             const isConfigured = nodeConfig[prop.name] !== undefined &&
                 nodeConfig[prop.name] !== '' &&
@@ -46,7 +44,6 @@ export function TestNodePanel({ node, onClose, flowId, className }: TestNodePane
     })()
 
     useEffect(() => {
-        // Initialize with defaults
         const defaults: Record<string, any> = {}
         testInputs.forEach((input: any) => {
             if (input.default !== undefined) {
@@ -56,7 +53,6 @@ export function TestNodePanel({ node, onClose, flowId, className }: TestNodePane
         setInputData(defaults)
     }, [node.id])
 
-    // Sync WebSocket result to local state
     useEffect(() => {
         if (wsTestResult) {
             if (wsTestResult.status === 'success') {
@@ -75,13 +71,11 @@ export function TestNodePanel({ node, onClose, flowId, className }: TestNodePane
         clearResult()
 
         try {
-            // Prepare test payload
             const testPayload = {
                 ...nodeConfig,
                 ...inputData
             }
 
-            // Use WebSocket if connected, otherwise fallback to HTTP
             if (isConnected) {
                 await testNode(
                     flowId,
@@ -91,10 +85,8 @@ export function TestNodePanel({ node, onClose, flowId, className }: TestNodePane
                 )
                 toast.success('Node tested successfully!')
             } else {
-                // Fallback to HTTP API
                 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
 
-                // Get token from NextAuth session
                 const { getSession } = await import('next-auth/react')
                 const session = await getSession()
                 const token = session?.accessToken
@@ -144,7 +136,7 @@ export function TestNodePanel({ node, onClose, flowId, className }: TestNodePane
 
     return (
         <div className={`w-96 border-l border-border/40 bg-background flex flex-col h-full ${className || ''}`}>
-            {/* Header */}
+            {}
             <div className="p-4 border-b border-border/40">
                 <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold flex items-center gap-2">
@@ -174,14 +166,14 @@ export function TestNodePanel({ node, onClose, flowId, className }: TestNodePane
                 </div>
             </div>
 
-            {/* Body */}
+            {}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {/* Info Banner */}
+                {}
                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-sm text-blue-500">
                     💡 Configure test inputs below. Configured values from properties are already applied.
                 </div>
 
-                {/* Test Inputs */}
+                {}
                 {testInputs.length > 0 ? (
                     <div className="space-y-4">
                         <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide">
@@ -205,7 +197,7 @@ export function TestNodePanel({ node, onClose, flowId, className }: TestNodePane
                     </div>
                 )}
 
-                {/* Test Results */}
+                {}
                 {testResult && (
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
@@ -222,7 +214,7 @@ export function TestNodePanel({ node, onClose, flowId, className }: TestNodePane
                             </Button>
                         </div>
 
-                        {/* Status */}
+                        {}
                         <div className="glass rounded-lg p-3 border border-border/40">
                             <div className="flex items-center gap-2 mb-2">
                                 <FiCheckCircle className="w-4 h-4 text-green-500" />
@@ -236,7 +228,7 @@ export function TestNodePanel({ node, onClose, flowId, className }: TestNodePane
                             )}
                         </div>
 
-                        {/* Output Data */}
+                        {}
                         <div className="glass rounded-lg p-3 border border-border/40">
                             <div className="text-xs font-medium text-muted-foreground mb-2">OUTPUT</div>
                             <div className="bg-muted/30 rounded p-2 text-xs font-mono overflow-x-auto">
@@ -248,7 +240,7 @@ export function TestNodePanel({ node, onClose, flowId, className }: TestNodePane
                     </div>
                 )}
 
-                {/* Test Error */}
+                {}
                 {testError && (
                     <div className="glass rounded-lg p-3 border border-red-500/20 bg-red-500/5">
                         <div className="flex items-center gap-2 mb-2">
@@ -262,7 +254,7 @@ export function TestNodePanel({ node, onClose, flowId, className }: TestNodePane
                 )}
             </div>
 
-            {/* Footer */}
+            {}
             <div className="p-4 border-t border-border/40 bg-muted/30 space-y-2">
                 {!isConnected && (
                     <div className="text-xs text-amber-500 flex items-center gap-1">

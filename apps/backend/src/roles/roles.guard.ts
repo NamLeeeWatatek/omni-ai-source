@@ -22,15 +22,12 @@ export class RolesGuard implements CanActivate {
       return false;
     }
 
-    // Support both new string role and legacy role object
     const userRole = user.role;
 
-    // New format: role is string ('admin', 'user')
     if (typeof userRole === 'string') {
       return roles.map(String).includes(userRole);
     }
 
-    // Legacy format: role is object with id
     if (userRole?.id !== undefined) {
       return roles.map(String).includes(String(userRole.id));
     }

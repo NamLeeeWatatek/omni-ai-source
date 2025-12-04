@@ -1,7 +1,3 @@
-/**
- * Knowledge Base Types
- * Centralized type definitions for knowledge management
- */
 
 export interface KnowledgeDocument {
   id: string

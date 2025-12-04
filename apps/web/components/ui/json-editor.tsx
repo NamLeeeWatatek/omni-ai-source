@@ -11,7 +11,6 @@ export function JsonEditor({ value, onChange, placeholder, rows = 4 }: JsonEdito
     const [text, setText] = useState('')
     const [error, setError] = useState<string | null>(null)
 
-    // Initialize text from value
     useEffect(() => {
         if (typeof value === 'string') {
             setText(value)
@@ -24,9 +23,7 @@ export function JsonEditor({ value, onChange, placeholder, rows = 4 }: JsonEdito
         const newText = e.target.value
         setText(newText)
 
-        // Try to parse and propagate change
         try {
-            // If empty, treat as empty object
             if (!newText.trim()) {
                 onChange({})
                 setError(null)
@@ -37,10 +34,7 @@ export function JsonEditor({ value, onChange, placeholder, rows = 4 }: JsonEdito
             onChange(parsed)
             setError(null)
         } catch (err) {
-            // If invalid JSON, propagate as string (or handle as error depending on requirement)
-            // Here we propagate as string to allow typing, but parent should handle type check
             onChange(newText)
-            // setError('Invalid JSON') // Optional: show error immediately or on blur
         }
     }
 

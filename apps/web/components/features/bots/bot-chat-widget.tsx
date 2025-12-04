@@ -55,8 +55,6 @@ export function BotChatWidget({
     setLoading(true)
 
     try {
-      // TODO: Fix this to use correct API signature
-      // executeBotFunction needs: botId, functionName, input, conversationHistory
       const botMessage: Message = {
         id: `msg-${Date.now()}-bot`,
         role: 'assistant',
@@ -64,23 +62,6 @@ export function BotChatWidget({
         timestamp: new Date(),
       }
       
-      // const response = await executeBotFunction(
-      //   botId,
-      //   functionId, // This should be functionName
-      //   {
-      //     query: userMessage.content,
-      //     maxResults: 5,
-      //   },
-      //   messages.slice(-5).map(m => ({ role: m.role, content: m.content }))
-      // )
-
-      // const botMessage: Message = {
-      //   id: `msg-${Date.now()}-bot`,
-      //   role: 'assistant',
-      //   content: response.result?.suggestion || response.result?.message || 'Xin lỗi, tôi không thể trả lời câu hỏi này.',
-      //   timestamp: new Date(),
-      // }
-
       setMessages((prev) => [...prev, botMessage])
     } catch (error) {
 
@@ -105,7 +86,7 @@ export function BotChatWidget({
 
   return (
     <div className={cn('flex flex-col h-[600px] border rounded-lg bg-background', className)}>
-      {/* Header */}
+      {}
       <div className="flex items-center gap-3 p-4 border-b">
         <Avatar className="size-10">
           <AvatarFallback className="bg-primary text-primary-foreground">
@@ -118,7 +99,7 @@ export function BotChatWidget({
         </div>
       </div>
 
-      {/* Messages */}
+      {}
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
         <div className="space-y-4">
           {messages.length === 0 && (
@@ -182,7 +163,7 @@ export function BotChatWidget({
         </div>
       </ScrollArea>
 
-      {/* Input */}
+      {}
       <div className="p-4 border-t">
         <div className="flex gap-2">
           <Input

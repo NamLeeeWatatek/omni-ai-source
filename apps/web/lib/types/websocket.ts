@@ -1,7 +1,3 @@
-/**
- * WebSocket Types
- * Centralized type definitions for WebSocket connections
- */
 
 import type { Socket } from 'socket.io-client'
 

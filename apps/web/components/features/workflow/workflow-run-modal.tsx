@@ -13,7 +13,6 @@ export function WorkflowRunModal({ isOpen, onClose, onSubmit, inputFields, workf
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
-        // Validate required fields
         const missing = inputFields.filter(f => f.required && (formData[f.key] === undefined || formData[f.key] === ''))
         if (missing.length > 0) {
             toast.error(`Please fill in required fields: ${missing.map(f => f.label).join(', ')}`)
@@ -32,7 +31,6 @@ export function WorkflowRunModal({ isOpen, onClose, onSubmit, inputFields, workf
 
             const endpoint = file.type.startsWith('image/') ? '/media/upload/image' : '/media/upload/file'
 
-            // Get token from NextAuth session
             const { getSession } = await import('next-auth/react')
             const session = await getSession()
             const token = session?.accessToken

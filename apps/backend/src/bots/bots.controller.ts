@@ -56,7 +56,6 @@ export class BotsController {
   @ApiCreatedResponse({ type: Bot })
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createDto: CreateBotDto, @Request() req) {
-    // If workspaceId is not provided, get user's default workspace
     if (!createDto.workspaceId) {
       const userWorkspace = await this.botsService.ensureUserHasWorkspace(
         req.user.id,
@@ -143,7 +142,6 @@ export class BotsController {
     return this.botsService.duplicate(id, req.user.id, body.name);
   }
 
-  // Flow Versions
   @Post(':id/versions')
   @ApiOperation({ summary: 'Create flow version' })
   @ApiCreatedResponse({ type: FlowVersion })
@@ -207,7 +205,6 @@ export class BotsController {
     return this.botsService.publishFlowVersion(id, versionId);
   }
 
-  // Knowledge Base Links
   @Post(':id/knowledge-bases')
   @ApiOperation({ summary: 'Link knowledge base to bot' })
   @ApiCreatedResponse({ type: BotKnowledgeBase })
@@ -250,7 +247,6 @@ export class BotsController {
     return this.botsService.toggleKnowledgeBase(id, kbId, body.isActive);
   }
 
-  // Bot Functions endpoints (legacy)
   @Post(':id/functions')
   @ApiOperation({ summary: 'Create bot function' })
   createFunction(@Body() createDto: CreateBotFunctionDto) {
@@ -291,7 +287,6 @@ export class BotsController {
     return this.botFunctionsService.execute(executeDto);
   }
 
-  // Bot Interaction endpoints
   @Get(':id/stats')
   @ApiOperation({ summary: 'Get bot statistics' })
   @ApiParam({ name: 'id', type: String })
@@ -313,7 +308,6 @@ export class BotsController {
     return this.botInteractionService.validateBotInteraction(id);
   }
 
-  // Bot Channels endpoints
   @Get(':id/channels')
   @ApiOperation({ summary: 'Get bot channels' })
   @ApiParam({ name: 'id', type: String })
@@ -365,7 +359,6 @@ export class BotsController {
     return this.botsService.toggleBotChannel(id, channelId, body.isActive);
   }
 
-  // Widget Appearance endpoints
   @Get(':id/widget/appearance')
   @ApiOperation({ summary: 'Get widget appearance settings' })
   @ApiOkResponse({ type: AppearanceResponseDto })

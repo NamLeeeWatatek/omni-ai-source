@@ -15,7 +15,6 @@ export async function getWorkspaceKnowledgeBases() {
   const workspaceId = session?.workspace?.id
   
   if (!workspaceId) {
-    console.warn('[KB] No workspace in session, fetching user KBs only')
   }
   
   return getKnowledgeBases(workspaceId)

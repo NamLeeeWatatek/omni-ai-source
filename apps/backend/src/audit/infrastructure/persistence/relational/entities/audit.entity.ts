@@ -7,10 +7,6 @@ import {
 } from 'typeorm';
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 
-/**
- * AuditLog entity - theo schema mới
- * Table: audit_logs
- */
 @Entity({ name: 'audit_log' })
 export class AuditLogEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
@@ -49,10 +45,6 @@ export class AuditLogEntity extends EntityRelationalHelper {
   createdAt: Date;
 }
 
-/**
- * DataAccessLog entity - theo schema mới
- * Table: data_access_logs
- */
 @Entity({ name: 'data_access_log' })
 export class DataAccessLogEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')

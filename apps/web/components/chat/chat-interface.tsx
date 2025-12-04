@@ -45,7 +45,6 @@ export function ChatInterface({
     const lastMessageIdRef = useRef<string | null>(null);
     const isInitialLoadRef = useRef(true);
 
-    // Load initial messages
     useEffect(() => {
         loadInitialMessages();
     }, [conversationId]);
@@ -55,26 +54,19 @@ export function ChatInterface({
             setLoading(true);
             setError(null);
             
-            console.log('📨 Loading messages for conversation:', conversationId);
-            
             const response = await axiosClient.get(`/conversations/${conversationId}/messages`, {
                 params: { limit: 50 }
             });
             
-            console.log('📨 Messages data:', response.data);
-            
             const msgs = Array.isArray(response.data) ? response.data : response.data.messages || [];
             
-            console.log('📨 Loaded messages:', msgs.length);
-            
-            setMessages(msgs.reverse()); // Reverse to show oldest first
+            setMessages(msgs.reverse());
             setHasMore(msgs.length >= 50);
             
             if (msgs.length > 0) {
                 lastMessageIdRef.current = msgs[0].id;
             }
         } catch (err) {
-            console.error('❌ Error loading messages:', err);
             setError('Failed to load conversation');
             toast.error('Failed to load messages');
         } finally {
@@ -83,7 +75,6 @@ export function ChatInterface({
         }
     };
 
-    // Auto scroll to bottom on new messages
     useEffect(() => {
         if (!isInitialLoadRef.current && messages.length > 0) {
             scrollToBottom();
@@ -94,13 +85,11 @@ export function ChatInterface({
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
-    // Infinite scroll handler
     const handleScroll = useCallback(
         async (e: React.UIEvent<HTMLDivElement>) => {
             const target = e.target as HTMLDivElement;
             const scrollTop = target.scrollTop;
 
-            // Check if scrolled to top (with 50px threshold)
             if (scrollTop < 50 && hasMore && !loadingMore && onLoadMore) {
                 setLoadingMore(true);
 
@@ -108,7 +97,6 @@ export function ChatInterface({
                     const oldScrollHeight = target.scrollHeight;
                     const oldScrollTop = target.scrollTop;
 
-                    // Load more messages before the first message
                     const firstMessageId = messages[0]?.id;
                     if (!firstMessageId) return;
 
@@ -119,7 +107,6 @@ export function ChatInterface({
                     } else {
                         setMessages((prev) => [...olderMessages.reverse(), ...prev]);
 
-                        // Maintain scroll position
                         setTimeout(() => {
                             const newScrollHeight = target.scrollHeight;
                             target.scrollTop = oldScrollTop + (newScrollHeight - oldScrollHeight);
@@ -151,10 +138,8 @@ export function ChatInterface({
 
         try {
             await onSendMessage(input.trim());
-            // The response will be added via WebSocket or polling
         } catch (err) {
             toast.error('Failed to send message');
-            // Remove the temporary message on error
             setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
         } finally {
             setSending(false);
@@ -190,27 +175,27 @@ export function ChatInterface({
 
     return (
         <div className={cn('flex flex-col h-full', className)}>
-            {/* Messages Area */}
+            {}
             <ScrollArea
                 ref={scrollAreaRef}
                 className="flex-1 px-4"
                 onScroll={handleScroll}
             >
-                {/* Loading More Indicator */}
+                {}
                 {loadingMore && (
                     <div className="flex justify-center py-4">
                         <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                     </div>
                 )}
 
-                {/* No More Messages Indicator */}
+                {}
                 {!hasMore && messages.length > 0 && (
                     <div className="text-center py-4 text-sm text-muted-foreground">
                         Beginning of conversation
                     </div>
                 )}
 
-                {/* Messages */}
+                {}
                 <div className="space-y-4 py-4">
                     {messages.length === 0 ? (
                         <div className="text-center py-12">
@@ -232,7 +217,7 @@ export function ChatInterface({
                 </div>
             </ScrollArea>
 
-            {/* Input Area */}
+            {}
             <div className="border-t p-4">
                 <div className="flex gap-2">
                     <Textarea

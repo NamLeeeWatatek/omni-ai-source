@@ -28,7 +28,6 @@ import { Plan, Subscription, UsageQuota, Invoice } from './domain/subscription';
 export class SubscriptionsController {
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
 
-  // Plans
   @Get('plans')
   @ApiOperation({ summary: 'Get all plans' })
   @ApiOkResponse({ type: [Plan] })
@@ -44,7 +43,6 @@ export class SubscriptionsController {
     return this.subscriptionsService.getPlan(id);
   }
 
-  // Subscriptions
   @Get('workspace/:workspaceId')
   @ApiOperation({ summary: 'Get workspace subscription' })
   @ApiOkResponse({ type: Subscription })
@@ -92,7 +90,6 @@ export class SubscriptionsController {
     return this.subscriptionsService.cancelSubscription(workspaceId);
   }
 
-  // Usage Quotas
   @Get('workspace/:workspaceId/quota')
   @ApiOperation({ summary: 'Get workspace usage quota' })
   @ApiOkResponse({ type: UsageQuota })
@@ -108,7 +105,6 @@ export class SubscriptionsController {
     return this.subscriptionsService.checkQuotaLimit(workspaceId);
   }
 
-  // Invoices
   @Get('workspace/:workspaceId/invoices')
   @ApiOperation({ summary: 'Get workspace invoices' })
   @ApiOkResponse({ type: [Invoice] })

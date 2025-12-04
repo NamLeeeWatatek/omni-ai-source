@@ -31,11 +31,9 @@ export function TestNodeModal({ node, onClose, flowId }: TestNodeModalProps) {
     const nodeType = getNodeType(node.data.type || node.type || '')
     const nodeConfig = node.data.config || {}
 
-    // Get test inputs (properties that are not configured)
     const testInputs = (() => {
         const properties = nodeType?.properties || []
 
-        // Filter to only show unconfigured required fields
         return properties.filter((prop: any) => {
             const isConfigured = nodeConfig[prop.name] !== undefined &&
                 nodeConfig[prop.name] !== '' &&
@@ -45,7 +43,6 @@ export function TestNodeModal({ node, onClose, flowId }: TestNodeModalProps) {
     })()
 
     useEffect(() => {
-        // Initialize with defaults
         const defaults: Record<string, any> = {}
         testInputs.forEach((input: any) => {
             if (input.default !== undefined) {
@@ -55,7 +52,6 @@ export function TestNodeModal({ node, onClose, flowId }: TestNodeModalProps) {
         setInputData(defaults)
     }, [node.id])
 
-    // Sync WebSocket result to local state
     useEffect(() => {
         if (wsTestResult) {
             if (wsTestResult.status === 'success') {
@@ -74,13 +70,11 @@ export function TestNodeModal({ node, onClose, flowId }: TestNodeModalProps) {
         clearResult()
 
         try {
-            // Prepare test payload
             const testPayload = {
                 ...nodeConfig,
                 ...inputData
             }
 
-            // Use WebSocket if connected, otherwise fallback to HTTP
             if (isConnected) {
                 await testNode(
                     flowId,
@@ -90,10 +84,8 @@ export function TestNodeModal({ node, onClose, flowId }: TestNodeModalProps) {
                 )
                 toast.success('Node tested successfully!')
             } else {
-                // Fallback to HTTP API
                 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
 
-                // Get token from NextAuth session
                 const { getSession } = await import('next-auth/react')
                 const session = await getSession()
                 const token = session?.accessToken
@@ -144,7 +136,7 @@ export function TestNodeModal({ node, onClose, flowId }: TestNodeModalProps) {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-background border border-border rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                {/* Header */}
+                {}
                 <div className="p-4 border-b border-border/40 bg-muted/30 flex items-center justify-between">
                     <div>
                         <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -168,14 +160,14 @@ export function TestNodeModal({ node, onClose, flowId }: TestNodeModalProps) {
                     </button>
                 </div>
 
-                {/* Body */}
+                {}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                    {/* Info Banner */}
+                    {}
                     <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-sm text-blue-500">
                         💡 Configure test inputs below. Configured values from properties are already applied.
                     </div>
 
-                    {/* Test Inputs */}
+                    {}
                     {testInputs.length > 0 ? (
                         <div className="space-y-4">
                             <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide">
@@ -199,7 +191,7 @@ export function TestNodeModal({ node, onClose, flowId }: TestNodeModalProps) {
                         </div>
                     )}
 
-                    {/* Test Results */}
+                    {}
                     {testResult && (
                         <div className="space-y-3 pt-4 border-t border-border/40">
                             <div className="flex items-center justify-between">
@@ -216,7 +208,7 @@ export function TestNodeModal({ node, onClose, flowId }: TestNodeModalProps) {
                                 </Button>
                             </div>
 
-                            {/* Status */}
+                            {}
                             <div className="glass rounded-lg p-3 border border-border/40">
                                 <div className="flex items-center gap-2 mb-2">
                                     <FiCheckCircle className="w-4 h-4 text-green-500" />
@@ -230,7 +222,7 @@ export function TestNodeModal({ node, onClose, flowId }: TestNodeModalProps) {
                                 )}
                             </div>
 
-                            {/* Output Data */}
+                            {}
                             <div className="glass rounded-lg p-3 border border-border/40">
                                 <div className="text-xs font-medium text-muted-foreground mb-2">OUTPUT</div>
                                 <div className="bg-muted/30 rounded p-2 text-xs font-mono overflow-x-auto">
@@ -242,7 +234,7 @@ export function TestNodeModal({ node, onClose, flowId }: TestNodeModalProps) {
                         </div>
                     )}
 
-                    {/* Test Error */}
+                    {}
                     {testError && (
                         <div className="glass rounded-lg p-3 border border-red-500/20 bg-red-500/5 mt-4">
                             <div className="flex items-center gap-2 mb-2">
@@ -256,7 +248,7 @@ export function TestNodeModal({ node, onClose, flowId }: TestNodeModalProps) {
                     )}
                 </div>
 
-                {/* Footer */}
+                {}
                 <div className="p-4 border-t border-border/40 bg-muted/30 flex justify-end gap-3">
                     {!isConnected && (
                         <div className="text-xs text-amber-500 flex items-center gap-1 mr-auto">

@@ -49,7 +49,6 @@ export function useChat({ conversationId, onMessageReceived }: UseChatOptions) {
 
                 const data = await response.json();
                 
-                // Notify about the received message
                 if (onMessageReceived && data.message) {
                     onMessageReceived(data.message);
                 }

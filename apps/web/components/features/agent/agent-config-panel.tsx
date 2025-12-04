@@ -71,7 +71,6 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
             const data = response.data || response
             setConfig(data)
         } catch (e: any) {
-            // Config doesn't exist yet, use defaults
 
         } finally {
             setLoading(false)
@@ -83,10 +82,8 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
             setSaving(true)
 
             if (config.id) {
-                // Update existing
                 await axiosClient.patch(`/agent-configs/${flowId}`, config)
             } else {
-                // Create new
                 await axiosClient.post('/agent-configs/', config)
             }
 
@@ -114,7 +111,7 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-zinc-900 rounded-2xl border border-zinc-800 w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-                {/* Header */}
+                {}
                 <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
                     <div>
                         <h2 className="text-2xl font-bold">Agent Configuration</h2>
@@ -128,9 +125,9 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
                     </button>
                 </div>
 
-                {/* Form */}
+                {}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                    {/* Name */}
+                    {}
                     <div>
                         <label className="block text-sm font-medium mb-2">Agent Name</label>
                         <input
@@ -142,7 +139,7 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
                         />
                     </div>
 
-                    {/* Personality */}
+                    {}
                     <div>
                         <label className="block text-sm font-medium mb-2">Personality</label>
                         <div className="grid grid-cols-3 gap-3">
@@ -162,7 +159,7 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
                         </div>
                     </div>
 
-                    {/* Tone */}
+                    {}
                     <div>
                         <label className="block text-sm font-medium mb-2">Tone</label>
                         <div className="flex gap-3">
@@ -181,7 +178,7 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
                         </div>
                     </div>
 
-                    {/* System Prompt */}
+                    {}
                     <div>
                         <label className="block text-sm font-medium mb-2">System Prompt</label>
                         <textarea
@@ -193,7 +190,7 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
                         />
                     </div>
 
-                    {/* Model Settings */}
+                    {}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium mb-2">Model</label>
@@ -260,7 +257,7 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
                     </div>
                 </div>
 
-                {/* Footer */}
+                {}
                 <div className="p-6 border-t border-zinc-800 flex justify-end gap-3">
                     <Button
                         onClick={onClose}

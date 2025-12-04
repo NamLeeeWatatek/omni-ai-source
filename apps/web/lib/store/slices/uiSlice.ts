@@ -1,7 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit'
 
 interface UiState {
-    // Reserved for future UI state management
 }
 
 const initialState: UiState = {}

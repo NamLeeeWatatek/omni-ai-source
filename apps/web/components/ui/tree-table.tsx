@@ -33,7 +33,7 @@ export function TreeTable({ data, className }: TreeTableProps) {
           )}
           style={{ paddingLeft: `${level * 2 + 1}rem` }}
         >
-          {/* Expand/Collapse Button */}
+          {}
           {hasChildren ? (
             <button
               onClick={() => toggleNode(node.id)}
@@ -49,20 +49,20 @@ export function TreeTable({ data, className }: TreeTableProps) {
             <div className="w-6" />
           )}
 
-          {/* Icon */}
+          {}
           {node.icon && <div className="flex-shrink-0">{node.icon}</div>}
 
-          {/* Label */}
+          {}
           <div className="flex-1 min-w-0">{node.label}</div>
 
-          {/* Badge */}
+          {}
           {node.badge && <div className="flex-shrink-0">{node.badge}</div>}
 
-          {/* Actions */}
+          {}
           {node.actions && <div className="flex-shrink-0 flex items-center gap-2">{node.actions}</div>}
         </div>
 
-        {/* Children */}
+        {}
         {hasChildren && isExpanded && (
           <div>
             {node.children!.map(child => renderNode(child, level + 1))}

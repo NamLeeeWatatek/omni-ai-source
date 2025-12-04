@@ -14,7 +14,7 @@ export class ChannelsService {
   async findAll(userId?: string): Promise<ChannelConnectionEntity[]> {
     const where: any = {};
     if (userId) {
-      where.workspaceId = userId; // Use workspaceId field
+      where.workspaceId = userId;
     }
     return this.connectionRepository.find({
       where,
@@ -38,7 +38,6 @@ export class ChannelsService {
   }
 
   async findByExternalId(externalId: string): Promise<ChannelConnectionEntity | null> {
-    // Find channel by pageId in metadata
     const channels = await this.connectionRepository.find({
       where: { status: 'active' },
       relations: ['credential'],
@@ -69,7 +68,7 @@ export class ChannelsService {
   ): Promise<ChannelConnectionEntity> {
     const connection = this.connectionRepository.create({
       ...dto,
-      workspaceId: userId, // Use workspaceId field instead of userId
+      workspaceId: userId,
       status: 'active',
       connectedAt: new Date(),
     });
@@ -79,7 +78,7 @@ export class ChannelsService {
   async delete(id: string, userId?: string): Promise<void> {
     const where: any = { id };
     if (userId) {
-      where.workspaceId = userId; // Use workspaceId field
+      where.workspaceId = userId;
     }
     await this.connectionRepository.delete(where);
   }

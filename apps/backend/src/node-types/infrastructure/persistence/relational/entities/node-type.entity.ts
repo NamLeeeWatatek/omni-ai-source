@@ -10,25 +10,25 @@ import { EntityRelationalHelper } from '../../../../../utils/relational-entity-h
 @Entity({ name: 'node_type' })
 export class NodeTypeEntity extends EntityRelationalHelper {
   @PrimaryColumn()
-  id: string; // webhook, http-request, openai-chat, etc.
+  id: string;
 
   @Column()
   label: string;
 
   @Column()
-  category: string; // trigger, action, ai, data, integration
+  category: string;
 
   @Column()
-  icon: string; // Icon name (e.g., 'Webhook', 'Globe', 'Bot')
+  icon: string;
 
   @Column()
-  color: string; // Hex color (e.g., '#10b981')
+  color: string;
 
   @Column({ type: 'text', nullable: true })
   description: string;
 
   @Column({ type: 'jsonb', nullable: true })
-  properties: NodeProperty[]; // Configuration fields for this node type
+  properties: NodeProperty[];
 
   @Column({ default: false })
   isPremium: boolean;
@@ -37,7 +37,7 @@ export class NodeTypeEntity extends EntityRelationalHelper {
   isActive: boolean;
 
   @Column({ type: 'int', default: 0 })
-  sortOrder: number; // For ordering in UI
+  sortOrder: number;
 
   @CreateDateColumn()
   createdAt: Date;
@@ -46,7 +46,6 @@ export class NodeTypeEntity extends EntityRelationalHelper {
   updatedAt: Date;
 }
 
-// Type definition for node properties
 export interface NodeProperty {
   name: string;
   label: string;
@@ -69,6 +68,6 @@ export interface NodeProperty {
   options?: Array<{ value: string; label: string } | string>;
   default?: any;
   showWhen?: Record<string, any>;
-  accept?: string; // For file/image upload
+  accept?: string;
   multiple?: boolean;
 }

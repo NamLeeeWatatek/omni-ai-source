@@ -27,9 +27,6 @@ export class WidgetDeploymentController {
         private readonly widgetVersionService: WidgetVersionService,
     ) {}
 
-    /**
-     * Get deployment history
-     */
     @Get()
     @HttpCode(HttpStatus.OK)
     @ApiOperation({

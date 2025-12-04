@@ -13,10 +13,6 @@ import {
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 import { WorkspaceEntity } from '../../../../../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
 
-/**
- * Bot entity - theo schema mới
- * Table: bots
- */
 @Entity({ name: 'bot' })
 export class BotEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
@@ -47,7 +43,6 @@ export class BotEntity extends EntityRelationalHelper {
   @Column({ name: 'created_by', type: 'uuid' })
   createdBy: string;
 
-  // Legacy fields - backward compatibility
   @Column({ type: String, default: 'FiMessageSquare', nullable: true })
   icon?: string;
 
@@ -57,7 +52,6 @@ export class BotEntity extends EntityRelationalHelper {
   @Column({ name: 'flow_id', type: 'uuid', nullable: true })
   flowId?: string | null;
 
-  // Advanced bot features
   @Column({ name: 'system_prompt', type: 'text', nullable: true })
   systemPrompt?: string | null;
 
@@ -67,15 +61,14 @@ export class BotEntity extends EntityRelationalHelper {
   @Column({ name: 'function_config', type: 'jsonb', nullable: true })
   functionConfig?: Record<string, any> | null;
 
-  // AI Provider reference - thay thế hard-code ai_model và ai_config
   @Column({ name: 'ai_provider_id', type: 'uuid', nullable: true })
   aiProviderId?: string | null;
 
   @Column({ name: 'ai_model_name', type: String, nullable: true })
-  aiModelName?: string | null; // Model name from the provider (e.g., 'gpt-4', 'gemini-pro')
+  aiModelName?: string | null;
 
   @Column({ name: 'ai_parameters', type: 'jsonb', nullable: true })
-  aiParameters?: Record<string, any> | null; // temperature, max_tokens, etc.
+  aiParameters?: Record<string, any> | null;
 
   @Column({ name: 'knowledge_base_ids', type: 'simple-array', nullable: true })
   knowledgeBaseIds?: string[] | null;
@@ -83,9 +76,8 @@ export class BotEntity extends EntityRelationalHelper {
   @Column({ name: 'enable_auto_learn', type: Boolean, default: false })
   enableAutoLearn: boolean;
 
-  // Widget Configuration
   @Column({ name: 'allowed_origins', type: 'jsonb', nullable: true })
-  allowedOrigins?: string[] | null; // ['https://example.com', '*']
+  allowedOrigins?: string[] | null;
 
   @Column({ name: 'welcome_message', type: String, nullable: true })
   welcomeMessage?: string | null;
@@ -94,7 +86,7 @@ export class BotEntity extends EntityRelationalHelper {
   placeholderText?: string | null;
 
   @Column({ name: 'primary_color', type: String, nullable: true })
-  primaryColor?: string | null; // Hex color code
+  primaryColor?: string | null;
 
   @Column({ name: 'widget_position', type: String, default: 'bottom-right' })
   widgetPosition: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
@@ -134,10 +126,6 @@ export class BotEntity extends EntityRelationalHelper {
   updatedAt: Date;
 }
 
-/**
- * FlowVersion entity - theo schema mới
- * Table: flow_versions
- */
 @Entity({ name: 'flow_version' })
 @Index(['botId', 'version'], { unique: true })
 export class FlowVersionEntity extends EntityRelationalHelper {
@@ -169,7 +157,6 @@ export class FlowVersionEntity extends EntityRelationalHelper {
   @Column({ type: 'jsonb' })
   flow: Record<string, any>;
 
-  // Legacy
   @Column({ name: 'is_published', type: Boolean, default: false })
   isPublished: boolean;
 
@@ -186,10 +173,6 @@ export class FlowVersionEntity extends EntityRelationalHelper {
   updatedAt: Date;
 }
 
-/**
- * BotKnowledgeBase entity - theo schema mới
- * Table: bot_knowledge_bases
- */
 @Entity({ name: 'bot_knowledge_base' })
 @Index(['botId', 'knowledgeBaseId'], { unique: true })
 export class BotKnowledgeBaseEntity extends EntityRelationalHelper {

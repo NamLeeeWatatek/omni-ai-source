@@ -41,7 +41,6 @@ interface WidgetDeployment {
     deployedBy?: string;
 }
 
-// Fetcher will receive token as second parameter
 const fetcher = async (url: string, token: string) => {
     const res = await fetch(url, {
         headers: {

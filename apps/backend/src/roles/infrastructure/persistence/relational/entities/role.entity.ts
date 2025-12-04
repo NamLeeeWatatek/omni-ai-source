@@ -15,9 +15,8 @@ export class RoleEntity extends EntityRelationalHelper {
   @Column({ nullable: true })
   description?: string;
 
-  // Casdoor integration
   @Column({ nullable: true, name: 'casdoor_role_name' })
-  casdoorRoleName?: string; // Map to Casdoor role name
+  casdoorRoleName?: string;
 
   @ManyToMany(() => PermissionEntity, (permission) => permission.roles)
   @JoinTable({

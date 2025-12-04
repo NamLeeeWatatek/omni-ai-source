@@ -69,7 +69,6 @@ export function AgentConfigDialog({
             await onSubmit(values)
             onOpenChange(false)
         } catch (error) {
-            // Error handled in parent
         }
     }
 

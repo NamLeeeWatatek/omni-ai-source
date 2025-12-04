@@ -26,10 +26,6 @@ export class FacebookOAuthController {
     private readonly channelStrategy: ChannelStrategy,
   ) { }
 
-  /**
-   * Step 1: Get OAuth URL for user to login
-   * Frontend redirects user to this URL
-   */
   @Get('oauth/url')
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
@@ -37,7 +33,6 @@ export class FacebookOAuthController {
   async getOAuthUrl(@Request() req, @Query('redirect_uri') redirectUri?: string) {
     const workspaceId = req.user.workspaceId || req.user.id;
 
-    // Get Facebook credentials from database
     const credential = await this.facebookOAuthService.getCredential(workspaceId);
 
     if (!credential) {
@@ -50,7 +45,6 @@ export class FacebookOAuthController {
     const defaultRedirectUri = `${process.env.FRONTEND_DOMAIN}/channels/callback?provider=facebook`;
     const uri = redirectUri || defaultRedirectUri;
 
-    // Use user ID as state for security
     const state = req.user?.id || 'anonymous';
 
     const oauthUrl = this.facebookOAuthService.getOAuthUrl(
@@ -65,10 +59,6 @@ export class FacebookOAuthController {
     };
   }
 
-  /**
-   * Step 2: Handle OAuth callback
-   * Facebook redirects back here with authorization code
-   */
   @Get('oauth/callback')
   @ApiOperation({ summary: 'Handle Facebook OAuth callback' })
   async handleCallback(
@@ -78,7 +68,6 @@ export class FacebookOAuthController {
     @Query('error') error?: string,
     @Query('error_description') errorDescription?: string,
   ) {
-    // Handle OAuth errors
     if (error) {
       throw new HttpException(
         errorDescription || 'Facebook OAuth failed',
@@ -94,10 +83,8 @@ export class FacebookOAuthController {
     }
 
     try {
-      // Get workspace ID from state or query param
       const wsId = workspaceId || state;
 
-      // Get Facebook credentials from database
       const credential = await this.facebookOAuthService.getCredential(wsId);
 
       if (!credential) {
@@ -107,7 +94,6 @@ export class FacebookOAuthController {
         );
       }
 
-      // Exchange code for access token
       const redirectUri = `${process.env.FRONTEND_DOMAIN}/channels/callback?provider=facebook`;
       const accessToken = await this.facebookOAuthService.exchangeCodeForToken(
         code,
@@ -116,21 +102,17 @@ export class FacebookOAuthController {
         credential.clientSecret,
       );
 
-      // Get user's pages
       const pages = await this.facebookOAuthService.getUserPages(accessToken);
 
       return {
         success: true,
-        state: state, // Return state to identify user
+        state: state,
         pages: pages.map(page => ({
           id: page.id,
           name: page.name,
           category: page.category,
           tasks: page.tasks,
-          // Don't expose access token to frontend
         })),
-        // Store access token temporarily (in session or cache)
-        // Frontend will use this to connect specific pages
         tempToken: accessToken,
       };
     } catch (error) {
@@ -141,10 +123,6 @@ export class FacebookOAuthController {
     }
   }
 
-  /**
-   * Step 3: Connect a specific Facebook Page
-   * User selects which page to connect
-   */
   @Post('connect')
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
@@ -154,16 +132,15 @@ export class FacebookOAuthController {
     @Body() body: {
       pageId: string;
       pageName: string;
-      userAccessToken: string; // Temporary token from callback
+      userAccessToken: string;
       category?: string;
-      botId?: string; // Optional bot ID to associate with this channel
+      botId?: string;
     },
   ) {
     try {
       const userId = req.user.id;
       const workspaceId = req.user.workspaceId || userId;
 
-      // Get page access token
       const pages = await this.facebookOAuthService.getUserPages(
         body.userAccessToken,
       );
@@ -177,7 +154,6 @@ export class FacebookOAuthController {
         );
       }
 
-      // Connect page
       const connection = await this.facebookOAuthService.connectPage(
         page.id,
         page.name,
@@ -187,11 +163,10 @@ export class FacebookOAuthController {
         {
           category: page.category,
           tasks: page.tasks,
-          botId: body.botId, // Save botId to metadata
+          botId: body.botId,
         },
       );
 
-      // Subscribe to webhooks
       const subscribed = await this.facebookOAuthService.subscribePageWebhooks(
         page.id,
         page.access_token,
@@ -217,9 +192,6 @@ export class FacebookOAuthController {
     }
   }
 
-  /**
-   * Get all connected Facebook pages
-   */
   @Get('connections')
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
@@ -244,9 +216,6 @@ export class FacebookOAuthController {
     };
   }
 
-  /**
-   * Disconnect a Facebook page
-   */
   @Delete('connections/:id')
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
@@ -262,9 +231,6 @@ export class FacebookOAuthController {
     };
   }
 
-  /**
-   * Test connection by sending a test message
-   */
   @Post('connections/:id/test')
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
@@ -276,16 +242,13 @@ export class FacebookOAuthController {
   ) {
     const workspaceId = req.user.workspaceId || req.user.id;
 
-    // 1. Get connection
     const connection = await this.channelsService.findOne(connectionId, workspaceId);
     if (!connection) {
       throw new HttpException('Connection not found', HttpStatus.NOT_FOUND);
     }
 
-    // 2. Get provider
     const provider = this.channelStrategy.getProvider('facebook');
 
-    // 3. Set credentials manually (since we are bypassing strategy lookup which might pick wrong connection)
     if ('setCredentials' in provider) {
       (provider as any).setCredentials(
         connection.accessToken,
@@ -293,7 +256,6 @@ export class FacebookOAuthController {
       );
     }
 
-    // 4. Send message
     const result = await provider.sendMessage({
       to: body.recipientId,
       content: body.message,
@@ -313,9 +275,6 @@ export class FacebookOAuthController {
     };
   }
 
-  /**
-   * Setup Facebook App credentials
-   */
   @Post('setup')
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
@@ -349,9 +308,6 @@ export class FacebookOAuthController {
     };
   }
 
-  /**
-   * Get Facebook App credentials
-   */
   @Get('setup')
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))

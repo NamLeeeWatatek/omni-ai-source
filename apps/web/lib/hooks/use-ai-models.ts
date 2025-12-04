@@ -56,20 +56,16 @@ export function useAIModels(): UseAIModelsReturn {
         }
     }
 
-    // Flatten all models from all providers (with safety check)
     const models = providers?.flatMap(p => p.models) || []
 
-    // Get models by specific provider
     const getModelsByProvider = (provider: string): AIModel[] => {
         return providers.find(p => p.provider === provider)?.models || []
     }
 
-    // Get only available models
     const getAvailableModels = (): AIModel[] => {
         return models.filter(m => m?.is_available === true)
     }
 
-    // Get models as select options
     const getModelOptions = () => {
         return getAvailableModels().map(m => ({
             value: m.model_name,

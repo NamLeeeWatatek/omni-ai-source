@@ -55,7 +55,7 @@ export default function ConversationPage() {
         try {
             await axiosClient.post(`/conversations/${conversationId}/messages`, { 
                 content, 
-                role: 'assistant' // Agent/staff messages use 'assistant' role
+                role: 'assistant'
             });
         } catch (err) {
             toast.error('Failed to send message');
@@ -117,7 +117,7 @@ export default function ConversationPage() {
 
     return (
         <div className="h-[calc(100vh-4rem)] flex flex-col">
-            {/* Header */}
+            {}
             <div className="border-b px-4 py-3 flex items-center justify-between bg-background">
                 <div className="flex items-center gap-3">
                     <Button
@@ -137,8 +137,10 @@ export default function ConversationPage() {
 
                     <div>
                         <h2 className="font-semibold">{conversation.customerName || 'Unknown User'}</h2>
-                        <p className="text-xs text-muted-foreground">
-                            {conversation.channelName} • {conversation.channelType}
+                        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                            <span>{conversation.channelName}</span>
+                            <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
+                            <span>{conversation.channelType}</span>
                         </p>
                     </div>
 
@@ -178,7 +180,7 @@ export default function ConversationPage() {
                 </div>
             </div>
 
-            {/* Chat Interface */}
+            {}
             <div className="flex-1 overflow-hidden">
                 <ChatInterface
                     conversationId={conversationId}

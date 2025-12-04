@@ -13,7 +13,6 @@ export default function ChannelCallbackPage() {
   const [processed, setProcessed] = useState(false);
 
   useEffect(() => {
-    // Prevent double processing
     if (processed) return;
     
     const code = searchParams.get('code');
@@ -42,7 +41,6 @@ export default function ChannelCallbackPage() {
     try {
       const wsId = (session as any)?.user?.workspaceId || (session as any)?.user?.id;
 
-      // For Facebook
       if (provider === 'facebook') {
         const res = await axiosClient.get(
           `/channels/facebook/oauth/callback?code=${code}&workspace_id=${wsId}`
@@ -53,7 +51,6 @@ export default function ChannelCallbackPage() {
           setStatus('success');
           setMessage(`Found ${response.pages.length} page(s)`);
           
-          // Store pages data and notify parent
           notifyParent('success', 'facebook', {
             pages: response.pages,
             tempToken: response.tempToken,
@@ -64,13 +61,11 @@ export default function ChannelCallbackPage() {
           notifyParent('error', 'No pages found');
         }
       } else {
-        // For other providers (old flow)
         setStatus('success');
         setMessage('Connected successfully');
         notifyParent('success', provider);
       }
     } catch (error: any) {
-      console.error('Callback error:', error);
       setStatus('error');
       setMessage(error.message || 'Failed to process callback');
       notifyParent('error', error.message);

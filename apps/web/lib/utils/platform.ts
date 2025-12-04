@@ -111,5 +111,4 @@ export function getPlatformColor(type: string): string {
 
   return validPlatforms.includes(type) ? `platform-${type}` : 'platform-default'
 }
-
-
+

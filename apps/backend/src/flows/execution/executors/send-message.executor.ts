@@ -6,10 +6,6 @@ import {
 } from '../node-executor.interface';
 import { ChannelStrategy } from '../../../channels/channel.strategy';
 
-/**
- * Executor for send-message nodes
- * Sends messages through configured channels (Facebook, Google, Omi, etc.)
- */
 @Injectable()
 export class SendMessageExecutor implements NodeExecutor {
   constructor(private readonly channelStrategy: ChannelStrategy) {}
@@ -34,10 +30,8 @@ export class SendMessageExecutor implements NodeExecutor {
         };
       }
 
-      // Get workspaceId from context (TODO: implement workspace tracking in flows)
       const workspaceId = input.context?.workspaceId;
 
-      // Send message through the specified channel with workspace context
       const result = await this.channelStrategy.sendMessage(
         channel,
         {

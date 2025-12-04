@@ -45,7 +45,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
 
   return (
     <div className="h-full flex">
-      {/* Sidebar */}
+      {}
       <aside className="w-64 border-r border-border/40 bg-card/30 p-6 overflow-y-auto">
         <div className="mb-6">
           <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -104,7 +104,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
         </nav>
       </aside>
 
-      {/* Main Content */}
+      {}
       <main className="flex-1 overflow-y-auto">
         {children}
       </main>

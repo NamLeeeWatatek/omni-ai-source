@@ -61,7 +61,6 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsDate()
   emailVerifiedAt?: Date | null;
 
-  // Legacy fields - backward compatibility
   @ApiPropertyOptional({ example: 'John', deprecated: true })
   @IsOptional()
   @IsString()

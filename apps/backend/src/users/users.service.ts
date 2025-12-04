@@ -19,9 +19,6 @@ export class UsersService {
 
   constructor(private readonly usersRepository: UserRepository) {}
 
-  /**
-   * Set Casdoor sync service (to avoid circular dependency)
-   */
   setCasdoorSyncService(service: any) {
     this.casdoorSyncService = service;
   }
@@ -51,7 +48,6 @@ export class UsersService {
       email = createUserDto.email;
     }
 
-    // Build name from firstName + lastName if name not provided (backward compatibility)
     let name = createUserDto.name;
     if (!name && (createUserDto.firstName || createUserDto.lastName)) {
       name = [createUserDto.firstName, createUserDto.lastName]
@@ -68,18 +64,15 @@ export class UsersService {
       providerId: createUserDto.providerId ?? createUserDto.socialId,
       isActive: createUserDto.isActive ?? true,
       role: createUserDto.role ?? 'user',
-      // Legacy fields
       firstName: createUserDto.firstName,
       lastName: createUserDto.lastName,
       socialId: createUserDto.socialId,
     });
 
-    // Sync to Casdoor if not from Casdoor
     if (this.casdoorSyncService && createUserDto.provider !== 'casdoor') {
       try {
         await this.casdoorSyncService.syncUserToCasdoor(user);
       } catch (error) {
-        console.error('Failed to sync user to Casdoor:', error);
       }
     }
 
@@ -160,7 +153,6 @@ export class UsersService {
       email = null;
     }
 
-    // Build name from firstName + lastName if name not provided
     let name = updateUserDto.name;
     if (
       name === undefined &&
@@ -183,18 +175,15 @@ export class UsersService {
       isActive: updateUserDto.isActive,
       role: updateUserDto.role,
       emailVerifiedAt: updateUserDto.emailVerifiedAt,
-      // Legacy fields
       firstName: updateUserDto.firstName,
       lastName: updateUserDto.lastName,
       socialId: updateUserDto.socialId,
     });
 
-    // Sync to Casdoor if role changed
     if (this.casdoorSyncService && updatedUser && updateUserDto.role) {
       try {
         await this.casdoorSyncService.syncUserToCasdoor(updatedUser);
       } catch (error) {
-        console.error('Failed to sync user to Casdoor:', error);
       }
     }
 
@@ -205,31 +194,26 @@ export class UsersService {
     const user = await this.usersRepository.findById(id);
     await this.usersRepository.remove(id);
 
-    // Sync deletion to Casdoor
     if (this.casdoorSyncService && user?.email) {
       try {
         await this.casdoorSyncService.deleteUserFromCasdoor(user.email);
       } catch (error) {
-        console.error('Failed to delete user from Casdoor:', error);
       }
     }
   }
 
-  // Helper method to verify email
   async verifyEmail(id: User['id']): Promise<User | null> {
     return this.usersRepository.update(id, {
       emailVerifiedAt: new Date(),
     });
   }
 
-  // Helper method to deactivate user
   async deactivate(id: User['id']): Promise<User | null> {
     return this.usersRepository.update(id, {
       isActive: false,
     });
   }
 
-  // Helper method to activate user
   async activate(id: User['id']): Promise<User | null> {
     return this.usersRepository.update(id, {
       isActive: true,

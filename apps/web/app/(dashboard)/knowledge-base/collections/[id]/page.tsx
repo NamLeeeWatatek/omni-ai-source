@@ -1,10 +1,5 @@
 'use client'
 
-/**
- * Knowledge Base Detail Page - Redux Version
- * Sử dụng Redux để quản lý state thay vì local state
- */
-
 import { useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -66,7 +61,6 @@ import {
     FiClock,
 } from 'react-icons/fi'
 
-// Redux
 import { useAppDispatch, useAppSelector } from '@/lib/store/hooks'
 import {
     loadKnowledgeBase,
@@ -116,7 +110,6 @@ export default function KnowledgeBaseDetailPageRedux() {
     const dispatch = useAppDispatch()
     const kbId = params.id as string
 
-    // Redux selectors
     const kb = useAppSelector(selectCurrentKB)
     const stats = useAppSelector(selectStats)
     const folders = useAppSelector(selectFilteredFolders)
@@ -132,7 +125,6 @@ export default function KnowledgeBaseDetailPageRedux() {
     const dragOverFolder = useAppSelector(selectDragOverFolder)
     const hasProcessing = useAppSelector(selectHasProcessingDocuments)
 
-    // Local state for dialogs
     const [folderDialogOpen, setFolderDialogOpen] = useState(false)
     const [documentDialogOpen, setDocumentDialogOpen] = useState(false)
     const [queryDialogOpen, setQueryDialogOpen] = useState(false)
@@ -143,7 +135,6 @@ export default function KnowledgeBaseDetailPageRedux() {
     const [showBulkDelete, setShowBulkDelete] = useState(false)
     const [editingItem, setEditingItem] = useState<{ type: 'folder' | 'document'; item: KBFolder | KBDocument } | null>(null)
 
-    // Load data on mount only
     useEffect(() => {
         dispatch(loadKnowledgeBase({ kbId, folderId: null }))
 
@@ -152,7 +143,6 @@ export default function KnowledgeBaseDetailPageRedux() {
         }
     }, [dispatch, kbId])
 
-    // Auto-refresh when processing
     useEffect(() => {
         dispatch(setAutoRefreshing(hasProcessing))
 
@@ -165,7 +155,6 @@ export default function KnowledgeBaseDetailPageRedux() {
         }
     }, [dispatch, hasProcessing, kbId, currentFolderId])
 
-    // Handlers
     const handleNavigateToFolder = (folderId: string, folderName: string) => {
         dispatch(navigateToFolder({ id: folderId, name: folderName }))
         dispatch(refreshData({ kbId, folderId }))
@@ -225,8 +214,6 @@ export default function KnowledgeBaseDetailPageRedux() {
             })).unwrap()
 
             toast.success('File uploaded and processing started')
-            // Refresh to get latest data (optional since uploadDocument.fulfilled already adds it)
-            // await dispatch(refreshData({ kbId, folderId: currentFolderId }))
         } catch (error: any) {
 
             const message = error?.message || error?.detail || 'Failed to upload file'
@@ -437,7 +424,7 @@ export default function KnowledgeBaseDetailPageRedux() {
 
     return (
         <div className="h-full flex flex-col">
-            {/* Header */}
+            {}
             <div className="page-header flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" onClick={() => router.push('/knowledge-base/collections')}>
@@ -480,13 +467,13 @@ export default function KnowledgeBaseDetailPageRedux() {
                 </div>
             </div>
 
-            {/* Stats */}
+            {}
             {stats && <KBStatsCards stats={stats} />}
 
-            {/* Processing Status */}
+            {}
             <KBProcessingStatus knowledgeBaseId={kbId} />
 
-            {/* Breadcrumbs */}
+            {}
             <KBBreadcrumbs
                 rootName={kb.name}
                 breadcrumbs={breadcrumbs}
@@ -495,7 +482,7 @@ export default function KnowledgeBaseDetailPageRedux() {
                 dragOverId={dragOverFolder}
             />
 
-            {/* Actions & Search */}
+            {}
             <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="flex items-center gap-2 flex-wrap">
                     <Button variant="outline" onClick={() => setFolderDialogOpen(true)}>
@@ -546,7 +533,7 @@ export default function KnowledgeBaseDetailPageRedux() {
                             Delete {selectedIds.length}
                         </Button>
                     )}
-                    <div className="glass p-1 rounded-lg flex items-center">
+                    <Card className="p-1 flex items-center">
                         <button
                             onClick={() => dispatch(setViewMode('table'))}
                             className={`p-2 rounded-md transition-all ${viewMode === 'table' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
@@ -559,11 +546,11 @@ export default function KnowledgeBaseDetailPageRedux() {
                         >
                             <FiGrid className="w-4 h-4" />
                         </button>
-                    </div>
+                    </Card>
                 </div>
             </div>
 
-            {/* Content */}
+            {}
             <div className="flex-1 overflow-auto">
                 {loading ? (
                     <div className="flex justify-center py-20">
@@ -885,7 +872,7 @@ export default function KnowledgeBaseDetailPageRedux() {
                 )}
             </div>
 
-            {/* Dialogs - Same as original */}
+            {}
             <KBFolderDialog
                 open={folderDialogOpen}
                 onOpenChange={setFolderDialogOpen}

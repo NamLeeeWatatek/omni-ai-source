@@ -1,11 +1,6 @@
-/**
- * Knowledge Base API
- * API client for knowledge base management, documents, folders, and RAG
- */
 
 import axiosClient from '@/lib/axios-client'
 import type {
-  // Knowledge Base
   GetKnowledgeBasesResponse,
   GetKnowledgeBaseResponse,
   CreateKnowledgeBaseDto,
@@ -14,7 +9,6 @@ import type {
   UpdateKnowledgeBaseResponse,
   DeleteKnowledgeBaseResponse,
   GetKnowledgeBaseStatsResponse,
-  // Folders
   GetFoldersResponse,
   GetFolderTreeResponse,
   CreateFolderDto,
@@ -22,7 +16,6 @@ import type {
   UpdateFolderDto,
   UpdateFolderResponse,
   DeleteFolderResponse,
-  // Documents
   GetDocumentsResponse,
   GetDocumentResponse,
   CreateDocumentDto,
@@ -31,21 +24,15 @@ import type {
   UpdateDocumentResponse,
   DeleteDocumentResponse,
   MoveDocumentResponse,
-  // Query & RAG
   QueryKnowledgeBaseDto,
   QueryResponse,
   GenerateAnswerDto,
   GenerateAnswerResponse,
-  // Agent Assignment
   GetAgentAssignmentsResponse,
   AssignAgentDto,
   AssignAgentResponse,
   UnassignAgentResponse,
 } from '../types/knowledge-base'
-
-// ============================================================================
-// Knowledge Base Management
-// ============================================================================
 
 /**
  * Get all knowledge bases
@@ -93,10 +80,6 @@ export async function getKnowledgeBaseStats(id: string): Promise<GetKnowledgeBas
   return axiosClient.get(`/knowledge-bases/${id}/stats`)
 }
 
-// ============================================================================
-// Folders
-// ============================================================================
-
 /**
  * Create folder
  */
@@ -138,10 +121,6 @@ export async function moveKBFolder(folderId: string, parentFolderId: string | nu
 export async function deleteKBFolder(folderId: string): Promise<DeleteFolderResponse> {
   return axiosClient.delete(`/knowledge-bases/folders/${folderId}`)
 }
-
-// ============================================================================
-// Documents
-// ============================================================================
 
 /**
  * Create document
@@ -209,13 +188,8 @@ export async function uploadKBDocument(file: File, kbId: string, folderId?: stri
     formData.append('folderId', folderId)
   }
 
-  // Let axios automatically set Content-Type with boundary for FormData
   return axiosClient.post('/knowledge-bases/documents/upload', formData)
 }
-
-// ============================================================================
-// Query & RAG
-// ============================================================================
 
 /**
  * Query knowledge base (vector search)
@@ -268,10 +242,6 @@ export async function crawlSitemap(data: {
 }): Promise<{ success: boolean; documentsCreated: number; errors: string[] }> {
   return axiosClient.post('/knowledge-bases/crawl/sitemap', data)
 }
-
-// ============================================================================
-// Agent Assignment
-// ============================================================================
 
 /**
  * Assign agent to knowledge base

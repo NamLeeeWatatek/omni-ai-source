@@ -1,6 +1,3 @@
-/**
- * Workspace Types
- */
 
 export interface Workspace {
   id: string;

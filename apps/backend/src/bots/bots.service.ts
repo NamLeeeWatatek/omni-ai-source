@@ -47,7 +47,6 @@ export class BotsService {
   }
 
   async create(createDto: CreateBotDto, userId: string) {
-    // Validate workspaceId is provided
     if (!createDto.workspaceId) {
       throw new BadRequestException('workspaceId is required');
     }
@@ -61,7 +60,6 @@ export class BotsService {
     });
     const savedBot = await this.botRepository.save(bot);
 
-    // Create default widget version 1.0.0
     try {
       const defaultVersion = await this.widgetVersionService.createVersion(
         savedBot.id,
@@ -106,15 +104,12 @@ export class BotsService {
         userId,
       );
 
-      // Auto-publish version 1.0.0
       await this.widgetVersionService.publishVersion(
         savedBot.id,
         defaultVersion.id,
         userId,
       );
     } catch (error) {
-      // If widget version creation fails, log but don't fail bot creation
-      console.error('Failed to create default widget version:', error);
     }
 
     return savedBot;
@@ -153,8 +148,7 @@ export class BotsService {
   }
 
   async remove(id: string) {
-    await this.findOne(id); // Validate bot exists
-    // Soft delete
+    await this.findOne(id);
     await this.botRepository.softDelete(id);
   }
 
@@ -170,7 +164,6 @@ export class BotsService {
     return this.update(id, { status: 'archived' });
   }
 
-  // Flow Versions
   async createFlowVersion(
     botId: string,
     dto: CreateFlowVersionDto,
@@ -238,7 +231,6 @@ export class BotsService {
   async publishFlowVersion(botId: string, versionId: string) {
     const version = await this.getFlowVersion(botId, versionId);
 
-    // Unpublish other versions
     await this.flowVersionRepository.update(
       { botId, status: 'published' },
       { status: 'archived', isPublished: false },
@@ -257,7 +249,6 @@ export class BotsService {
     });
   }
 
-  // Knowledge Base Links
   async linkKnowledgeBase(botId: string, dto: LinkKnowledgeBaseDto) {
     await this.findOne(botId);
 
@@ -266,7 +257,6 @@ export class BotsService {
     });
 
     if (existing) {
-      // Update existing
       existing.priority = dto.priority ?? existing.priority;
       existing.ragSettings = dto.ragSettings ?? existing.ragSettings;
       return this.botKbRepository.save(existing);
@@ -311,7 +301,6 @@ export class BotsService {
     return this.botKbRepository.save(link);
   }
 
-  // Duplicate bot
   async duplicate(id: string, userId: string, newName?: string) {
     const bot = await this.findOne(id);
 
@@ -329,10 +318,8 @@ export class BotsService {
     return this.botRepository.save(newBot);
   }
 
-  // Bot Channels Management
   async getBotChannels(botId: string) {
-    await this.findOne(botId); // Validate bot exists
-    // Import ChannelEntity if needed
+    await this.findOne(botId);
     const { ChannelEntity } = await import(
       '../channels/infrastructure/persistence/relational/entities/channel.entity'
     );
@@ -348,7 +335,7 @@ export class BotsService {
     dto: { type: string; name: string; config?: Record<string, any> },
     userId: string,
   ) {
-    await this.findOne(botId); // Validate bot exists
+    await this.findOne(botId);
     const { ChannelEntity } = await import(
       '../channels/infrastructure/persistence/relational/entities/channel.entity'
     );
@@ -409,11 +396,6 @@ export class BotsService {
     return this.updateBotChannel(botId, channelId, { isActive });
   }
 
-  // Widget Appearance Management
-  /**
-   * Update widget appearance settings
-   * This updates the active widget version config
-   */
   async updateAppearance(
     botId: string,
     appearance: {
@@ -431,9 +413,8 @@ export class BotsService {
     },
     userId: string,
   ) {
-    await this.findOne(botId); // Validate bot exists
+    await this.findOne(botId);
 
-    // Update active version config
     const configUpdate: any = {};
 
     if (
@@ -485,11 +466,8 @@ export class BotsService {
     );
   }
 
-  /**
-   * Get current appearance settings from active version
-   */
   async getAppearance(botId: string) {
-    await this.findOne(botId); // Validate bot exists
+    await this.findOne(botId);
 
     const activeVersion =
       await this.widgetVersionService.getActiveVersion(botId);

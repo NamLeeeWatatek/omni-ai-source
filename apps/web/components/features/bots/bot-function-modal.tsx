@@ -205,7 +205,6 @@ export function BotFunctionModal({
                                     const config = JSON.parse(e.target.value)
                                     setFormData({ ...formData, config })
                                 } catch {
-                                    // Invalid JSON, ignore
                                 }
                             }}
                             rows={6}

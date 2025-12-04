@@ -50,7 +50,6 @@ export class User {
   })
   role: 'admin' | 'user';
 
-  // Legacy fields - giữ lại để backward compatibility
   @ApiPropertyOptional({ type: String, deprecated: true })
   firstName?: string | null;
 
@@ -60,7 +59,6 @@ export class User {
   @ApiPropertyOptional({ type: String, deprecated: true })
   socialId?: string | null;
 
-  // WataOmi specific fields
   @ApiPropertyOptional({ type: String, description: 'Casdoor external ID' })
   externalId?: string | null;
 

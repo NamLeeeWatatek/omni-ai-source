@@ -1,7 +1,3 @@
-/**
- * Permission Button Component
- * Button that's disabled/hidden based on permissions
- */
 'use client'
 
 import { ReactNode } from 'react'
@@ -34,7 +30,6 @@ export function PermissionButton({
     isLoading,
   } = usePermissions()
 
-  // Check permissions
   let hasAccess = true
 
   if (permission) {
@@ -64,7 +59,6 @@ export function PermissionButton({
     }
   }
 
-  // Hide if no permission and hideIfNoPermission is true
   if (!hasAccess && hideIfNoPermission) {
     return null
   }

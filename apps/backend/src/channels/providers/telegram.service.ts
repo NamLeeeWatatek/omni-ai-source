@@ -15,14 +15,10 @@ export class TelegramService {
     private connectionRepository: Repository<ChannelConnectionEntity>,
   ) {}
 
-  /**
-   * Send message via Telegram
-   */
   async sendMessage(options: SendMessageOptions): Promise<SendMessageResult> {
     try {
       const { recipientId, message, channelId } = options;
 
-      // Get bot token
       const connection = await this.getConnection('telegram', channelId);
       if (!connection) {
         return {
@@ -39,7 +35,6 @@ export class TelegramService {
         };
       }
 
-      // Send message via Telegram Bot API
       const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
       const response = await fetch(url, {
@@ -81,9 +76,6 @@ export class TelegramService {
     }
   }
 
-  /**
-   * Send typing indicator
-   */
   async sendTypingIndicator(
     recipientId: string,
     channelId?: string,
@@ -112,9 +104,6 @@ export class TelegramService {
     }
   }
 
-  /**
-   * Send message with inline keyboard
-   */
   async sendMessageWithButtons(
     recipientId: string,
     message: string,

@@ -5,8 +5,6 @@ import { createSlice, createAsyncThunk, type PayloadAction, type ActionReducerMa
 import type { Draft } from '@reduxjs/toolkit'
 import axiosClient from '@/lib/axios-client'
 import type { NodeProperty, NodeCategory } from '@/lib/types/node'
-// Icon names are stored as strings and resolved at render time
-// See lib/icon-resolver.ts for icon resolution logic
 
 export type { NodeProperty, NodeCategory }
 
@@ -14,8 +12,8 @@ export interface NodeType {
   id: string
   label: string
   category: 'trigger' | 'ai' | 'action' | 'logic' | 'response'
-  icon: string | any // Icon name (string) or component (legacy support)
-  iconName?: string // Explicit icon name field
+  icon: string | any
+  iconName?: string
   color: string
   bgColor: string
   borderColor: string
@@ -38,7 +36,6 @@ const initialState: NodeTypesState = {
   error: null,
 }
 
-// API Response types
 interface ApiNodeType {
   id: string
   label: string
@@ -50,7 +47,6 @@ interface ApiNodeType {
   properties?: NodeProperty[]
 }
 
-// Async thunks
 export const fetchNodeTypes = createAsyncThunk<ApiNodeType[], string | undefined>(
   'nodeTypes/fetchNodeTypes',
   async (category?: string) => {
@@ -76,7 +72,6 @@ export const fetchNodeType = createAsyncThunk<ApiNodeType, string>(
   }
 )
 
-// Slice
 const nodeTypesSlice = createSlice({
   name: 'nodeTypes',
   initialState,
@@ -86,7 +81,6 @@ const nodeTypesSlice = createSlice({
     },
   },
   extraReducers: (builder: ActionReducerMapBuilder<NodeTypesState>) => {
-    // Fetch node types
     builder
       .addCase(fetchNodeTypes.pending, (state: Draft<NodeTypesState>) => {
         state.loading = true
@@ -94,14 +88,12 @@ const nodeTypesSlice = createSlice({
       })
       .addCase(fetchNodeTypes.fulfilled, (state: Draft<NodeTypesState>, action: PayloadAction<ApiNodeType[]>) => {
         state.loading = false
-        // Map API response to NodeType format
-        // Store icon NAME (string) instead of component for Redux serializability
         state.items = action.payload.map((apiNode: ApiNodeType) => ({
           id: apiNode.id,
           label: apiNode.label,
           category: apiNode.category,
-          icon: apiNode.icon, // Keep as string name (e.g. "FiZap")
-          iconName: apiNode.icon, // Also store in iconName for clarity
+          icon: apiNode.icon,
+          iconName: apiNode.icon,
           color: apiNode.color,
           bgColor: apiNode.color,
           borderColor: apiNode.color,
@@ -115,7 +107,6 @@ const nodeTypesSlice = createSlice({
         state.error = action.error.message || 'Failed to fetch node types'
       })
 
-    // Fetch categories
     builder.addCase(fetchNodeCategories.fulfilled, (state: Draft<NodeTypesState>, action: PayloadAction<NodeCategory[]>) => {
       state.categories = action.payload
     })

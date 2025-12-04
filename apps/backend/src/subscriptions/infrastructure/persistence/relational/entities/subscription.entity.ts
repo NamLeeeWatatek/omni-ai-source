@@ -11,10 +11,6 @@ import {
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 import { WorkspaceEntity } from '../../../../../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
 
-/**
- * Plan entity - theo schema mới
- * Table: plans
- */
 @Entity({ name: 'plan' })
 export class PlanEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
@@ -42,10 +38,6 @@ export class PlanEntity extends EntityRelationalHelper {
   features?: Record<string, any>;
 }
 
-/**
- * Subscription entity - theo schema mới
- * Table: subscriptions
- */
 @Entity({ name: 'subscription' })
 export class SubscriptionEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
@@ -85,10 +77,6 @@ export class SubscriptionEntity extends EntityRelationalHelper {
   createdAt: Date;
 }
 
-/**
- * UsageQuota entity - theo schema mới
- * Table: usage_quotas
- */
 @Entity({ name: 'usage_quota' })
 @Index(['workspaceId', 'periodStart'], { unique: true })
 export class UsageQuotaEntity extends EntityRelationalHelper {
@@ -118,10 +106,6 @@ export class UsageQuotaEntity extends EntityRelationalHelper {
   updatedAt: Date;
 }
 
-/**
- * Invoice entity - theo schema mới
- * Table: invoices
- */
 @Entity({ name: 'invoice' })
 export class InvoiceEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')

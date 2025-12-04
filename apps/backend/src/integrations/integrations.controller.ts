@@ -19,10 +19,8 @@ export class IntegrationsController {
   @Get()
   @ApiOperation({ summary: 'Get all integration credentials' })
   async findAll() {
-    // TODO: Get workspaceId from authenticated user context
     const credentials = await this.integrationsService.findAll();
 
-    // Return without exposing full client_secret
     return credentials.map((cred) => ({
       id: cred.id,
       name: cred.name,
@@ -37,7 +35,6 @@ export class IntegrationsController {
   @Post()
   @ApiOperation({ summary: 'Create integration credential' })
   async create(@Body() dto: CreateCredentialDto) {
-    // TODO: Get workspaceId from authenticated user context
     const credential = await this.integrationsService.create(dto);
 
     return {

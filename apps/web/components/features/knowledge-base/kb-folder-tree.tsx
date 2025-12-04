@@ -83,7 +83,7 @@ export function KBFolderTree({ folders, onNavigate, onDelete, level = 0 }: KBFol
                             </div>
                         </Card>
 
-                        {/* Render subfolders if expanded */}
+                        {}
                         {hasSubfolders && isExpanded && (
                             <div className="mt-2">
                                 <KBFolderTree

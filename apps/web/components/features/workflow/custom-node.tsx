@@ -4,8 +4,8 @@ import React, { memo } from 'react'
 import { Handle, Position, NodeProps } from 'reactflow'
 import { useAppSelector } from '@/lib/store/hooks'
 import { FiLoader, FiCheck, FiX, FiAlertCircle } from 'react-icons/fi'
-import { getNodeClassName, getIconStyle } from '@/lib/workflow-theme'
-import { getNodeIcon } from '@/lib/icon-resolver'
+import { getNodeIcon } from '@/lib/utils/icon-resolver'
+import { getIconStyle, getNodeClassName } from '@/lib/utils/workflow-theme'
 
 const CustomNodeComponent = ({ data, selected }: NodeProps) => {
     const { items: nodeTypes = [] } = useAppSelector((state: any) => state.nodeTypes || {})
@@ -17,17 +17,15 @@ const CustomNodeComponent = ({ data, selected }: NodeProps) => {
     const nodeType = getNodeType(data.type)
     const Icon = getNodeIcon(nodeType)
 
-    // Execution status from data
-    const executionStatus = data.executionStatus // 'idle' | 'running' | 'success' | 'error'
+    const executionStatus = data.executionStatus
     const executionError = data.executionError
 
-    // Get node styles using centralized theme
     const nodeClassName = getNodeClassName({ selected, executionStatus })
     const iconStyle = getIconStyle(nodeType?.color)
 
     return (
         <div className="relative">
-            {/* Animated Border for Running Status */}
+            {}
             {executionStatus === 'running' && (
                 <>
                     <div className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
@@ -53,7 +51,7 @@ const CustomNodeComponent = ({ data, selected }: NodeProps) => {
             )}
 
             <div className={nodeClassName} style={{ position: 'relative', zIndex: 1 }}>
-                {/* Execution Status Badge - Top Right */}
+                {}
                 {executionStatus && executionStatus !== 'idle' && (
                     <div className="absolute -top-2 -right-2 z-20">
                         {executionStatus === 'running' && (
@@ -74,11 +72,11 @@ const CustomNodeComponent = ({ data, selected }: NodeProps) => {
                     </div>
                 )}
 
-                {/* Node Content */}
+                {}
                 <div className="p-4">
-                    {/* Header with Icon and Label */}
+                    {}
                     <div className="flex items-center gap-3 mb-2">
-                        {/* Icon */}
+                        {}
                         <div
                             className="rounded-lg w-10 h-10 flex items-center justify-center flex-shrink-0"
                             style={iconStyle}
@@ -93,7 +91,7 @@ const CustomNodeComponent = ({ data, selected }: NodeProps) => {
                             )}
                         </div>
 
-                        {/* Label */}
+                        {}
                         <div className="flex-1 min-w-0">
                             <div className="text-sm font-semibold text-foreground truncate">
                                 {data.label || nodeType?.label || 'Unknown Node'}
@@ -101,7 +99,7 @@ const CustomNodeComponent = ({ data, selected }: NodeProps) => {
                         </div>
                     </div>
 
-                    {/* Description/Status */}
+                    {}
                     <div className="text-xs text-muted-foreground mt-2 px-1">
                         {executionStatus === 'running' ? (
                             <span className="text-blue-500 font-medium">Executing...</span>
@@ -122,16 +120,15 @@ const CustomNodeComponent = ({ data, selected }: NodeProps) => {
                         )}
                     </div>
 
-                    {/* Custom label if exists */}
+                    {}
                     {data.customLabel && (
                         <div className="mt-2 px-2 py-1 bg-muted/50 rounded text-xs text-muted-foreground truncate">
                             {data.customLabel}
                         </div>
                     )}
 
-                    {/* Image Preview - Show if config has image URLs */}
+                    {}
                     {data.config && (() => {
-                        // Find first image URL in config
                         const imageFields = Object.entries(data.config).filter(([_, value]) => {
                             if (typeof value === 'string') {
                                 return /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(value) || value.includes('cloudinary')
@@ -146,12 +143,11 @@ const CustomNodeComponent = ({ data, selected }: NodeProps) => {
 
                         const [_, imageValue] = imageFields[0]
                         const imageUrls = Array.isArray(imageValue) ? imageValue : [imageValue]
-                        const displayUrls = imageUrls.slice(0, 3) // Show max 3 images
+                        const displayUrls = imageUrls.slice(0, 3)
 
                         return (
                             <div className="mt-2 space-y-1">
                                 {displayUrls.length === 1 ? (
-                                    // Single image - larger preview
                                     <div className="relative rounded overflow-hidden border border-border/40 bg-muted/20">
                                         <img
                                             src={displayUrls[0]}
@@ -163,7 +159,6 @@ const CustomNodeComponent = ({ data, selected }: NodeProps) => {
                                         />
                                     </div>
                                 ) : (
-                                    // Multiple images - grid
                                     <div className="grid grid-cols-3 gap-1">
                                         {displayUrls.map((url, idx) => (
                                             <div key={idx} className="relative rounded overflow-hidden border border-border/40 bg-muted/20 aspect-square">
@@ -189,7 +184,7 @@ const CustomNodeComponent = ({ data, selected }: NodeProps) => {
                     })()}
                 </div>
 
-                {/* Connection Handles */}
+                {}
                 <Handle
                     type="target"
                     position={Position.Left}

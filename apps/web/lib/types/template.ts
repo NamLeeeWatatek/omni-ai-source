@@ -1,6 +1,3 @@
-﻿/**
- * Template related type definitions
- */
 
 export interface Template {
   id: string

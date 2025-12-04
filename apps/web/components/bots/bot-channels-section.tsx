@@ -160,7 +160,7 @@ export function BotChannelsSection({ botId, botChannels, onRefresh }: Props) {
                 </CardContent>
             </Card>
 
-            {/* Create Channel Modal */}
+            {}
             <Dialog open={showModal} onOpenChange={setShowModal}>
                 <DialogContent>
                     <DialogHeader>

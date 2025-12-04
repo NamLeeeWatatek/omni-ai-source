@@ -62,7 +62,6 @@ export default function BotsPage() {
 
     const loadBots = useCallback(async () => {
         if (!workspaceId) {
-            console.log('[Bots] No workspace ID available')
             setLoading(false)
             return
         }
@@ -83,7 +82,6 @@ export default function BotsPage() {
             loadBots()
             dispatch(fetchFlows())
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [workspaceId])
 
     const openModal = (bot?: Bot) => {
@@ -217,7 +215,7 @@ export default function BotsPage() {
                             <Card key={bot.id} className="p-6">
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="flex items-center gap-3">
-                                        {/* Icon Picker Button */}
+                                        {}
                                         <div className="relative group">
                                             <div className="w-12 h-12 rounded-xl bg-gradient-wata flex items-center justify-center cursor-pointer">
                                                 <BotIcon className="w-6 h-6 text-white" />
@@ -285,7 +283,7 @@ export default function BotsPage() {
                 </div>
             )}
 
-            {/* Modal */}
+            {}
             <Dialog open={showModal} onOpenChange={setShowModal}>
                 <DialogContent>
                     <DialogHeader>
@@ -347,7 +345,7 @@ export default function BotsPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Delete Confirmation Dialog */}
+            {}
             <AlertDialogConfirm
                 open={deleteId !== null}
                 onOpenChange={(open) => !open && setDeleteId(null)}

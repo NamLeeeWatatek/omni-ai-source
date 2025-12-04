@@ -98,20 +98,14 @@ export default function ChatWithAIPage() {
     const loadKnowledgeBases = async () => {
         try {
             if (!currentWorkspace) {
-                console.log('No workspace available for loading knowledge bases')
                 return
             }
-            console.log('Loading knowledge bases for workspace:', currentWorkspace.id)
             const data = await getKnowledgeBases(currentWorkspace.id)
-            console.log('Knowledge bases loaded:', data)
             const kbList = Array.isArray(data) ? data : []
             setKnowledgeBases(kbList)
             if (kbList.length === 0) {
-                console.warn('No knowledge bases found')
             }
         } catch (error) {
-            console.error('Failed to load knowledge bases:', error)
-            // Don't show error toast as knowledge base is optional
             setKnowledgeBases([])
         }
     }
@@ -120,7 +114,6 @@ export default function ChatWithAIPage() {
         try {
             setLoadingConversations(true)
             const data = await getAIConversations()
-            // Validate and filter conversations with id
             const convList = Array.isArray(data)
                 ? data.filter((c: any) => c && c.id)
                 : []
@@ -146,7 +139,6 @@ export default function ChatWithAIPage() {
                 },
             })
 
-            // Optimistic update
             setConversations((prev) => [newConv, ...prev])
             setCurrentConversation(newConv)
             setMessages([])
@@ -160,7 +152,6 @@ export default function ChatWithAIPage() {
     }
 
     const selectConversation = (conv: AiConversation) => {
-        console.log('[Chat] Selecting conversation:', {
             id: conv.id,
             botId: conv.botId,
             useKnowledgeBase: conv.useKnowledgeBase,
@@ -170,23 +161,17 @@ export default function ChatWithAIPage() {
         setCurrentConversation(conv)
         setMessages(conv.messages || [])
         
-        // Restore bot selection
         if (conv.botId) {
-            console.log('[Chat] Restoring bot:', conv.botId)
             setSelectedBot(conv.botId)
         } else {
-            console.log('[Chat] No bot in conversation, using "none"')
             setSelectedBot('none')
         }
         
-        // Restore knowledge base settings
         if (conv.useKnowledgeBase !== undefined) {
             setUseKnowledgeBase(conv.useKnowledgeBase)
         }
         
-        // Restore selected knowledge bases from metadata
         if (conv.metadata?.knowledgeBaseIds && Array.isArray(conv.metadata.knowledgeBaseIds)) {
-            console.log('[Chat] Restoring KB IDs:', conv.metadata.knowledgeBaseIds)
             setSelectedKnowledgeBases(conv.metadata.knowledgeBaseIds)
         } else {
             setSelectedKnowledgeBases([])
@@ -199,7 +184,6 @@ export default function ChatWithAIPage() {
             return
         }
 
-        // Optimistic update
         const oldConversations = [...conversations]
         const oldCurrentConversation = currentConversation
 
@@ -215,7 +199,6 @@ export default function ChatWithAIPage() {
             await updateAIConversation(id, { title })
             toast.success('Title updated')
         } catch (error) {
-            // Rollback on error
             setConversations(oldConversations)
             setCurrentConversation(oldCurrentConversation)
             toast.error('Failed to update title')
@@ -232,7 +215,6 @@ export default function ChatWithAIPage() {
 
         const id = conversationToDelete
 
-        // Optimistic update
         const oldConversations = [...conversations]
         const oldCurrentConversation = currentConversation
         const oldMessages = [...messages]
@@ -247,7 +229,6 @@ export default function ChatWithAIPage() {
             await deleteAIConversation(id)
             toast.success('Conversation deleted')
         } catch (error) {
-            // Rollback on error
             setConversations(oldConversations)
             setCurrentConversation(oldCurrentConversation)
             setMessages(oldMessages)
@@ -263,7 +244,6 @@ export default function ChatWithAIPage() {
         let conversationId = currentConversation?.id
         let newConversation: AiConversation | null = null
 
-        // 1. Auto-create conversation if needed
         if (!conversationId) {
             try {
                 setCreatingConversation(true)
@@ -275,7 +255,6 @@ export default function ChatWithAIPage() {
                 newConversation = newConv
                 conversationId = newConv.id
 
-                // Update state immediately
                 setConversations((prev) => [newConv, ...prev])
                 setCurrentConversation(newConv)
                 setCreatingConversation(false)
@@ -286,14 +265,12 @@ export default function ChatWithAIPage() {
             }
         }
 
-        // 2. Optimistic UI update
         const userMessage: AiMessage = {
             role: 'user',
             content: input,
             timestamp: new Date().toISOString(),
         }
 
-        // If it's a new conversation, messages is empty initially
         const currentMessages = newConversation ? [] : messages
         const updatedMessages = [...currentMessages, userMessage]
         setMessages(updatedMessages)
@@ -305,8 +282,6 @@ export default function ChatWithAIPage() {
             let sources: any[] = []
             let modelName = 'gemini-2.5-flash'
 
-            // 3. Call Chat API
-            console.log('[Chat] Sending message with:', {
                 selectedBot,
                 useKnowledgeBase,
                 knowledgeBaseIds: selectedKnowledgeBases,
@@ -315,8 +290,6 @@ export default function ChatWithAIPage() {
             if (selectedBot !== 'none') {
                 const bot = bots.find((b) => b.id === selectedBot)
                 modelName = bot?.aiModelName || modelName
-
-                console.log('[Chat] Using bot:', bot?.name, 'ID:', selectedBot)
 
                 const res = await botsApi.chat(
                     selectedBot,
@@ -327,7 +300,6 @@ export default function ChatWithAIPage() {
                 responseText = res.response
                 sources = res.sources || []
             } else {
-                // Direct AI Chat using knowledge-bases/chat endpoint
                 const res = await axiosClient.post('/knowledge-bases/chat', {
                     message: input,
                     model: modelName,
@@ -337,7 +309,6 @@ export default function ChatWithAIPage() {
                 responseText = data.answer || data.response || 'No response'
             }
 
-            // 4. Update UI with Assistant Message
             const assistantMessage: AiMessage = {
                 role: 'assistant',
                 content: responseText,
@@ -352,13 +323,11 @@ export default function ChatWithAIPage() {
             const finalMessages = [...updatedMessages, assistantMessage]
             setMessages(finalMessages)
 
-            // 5. Save messages to backend
             if (conversationId) {
                 await updateConversationMessages(conversationId, finalMessages)
             }
 
         } catch (error) {
-            console.error(error)
             toast.error('Failed to get AI response')
         } finally {
             setLoading(false)
@@ -372,7 +341,6 @@ export default function ChatWithAIPage() {
                 prev.map((c) => (c.id === id ? { ...c, messages, updatedAt: new Date().toISOString() } : c))
             )
         } catch (error) {
-            // Silent fail for message updates
         }
     }
 
@@ -384,7 +352,6 @@ export default function ChatWithAIPage() {
 
         try {
             setSavingSettings(true)
-            console.log('[Chat] Updating conversation settings:', {
                 botId: selectedBot !== 'none' ? selectedBot : null,
                 useKnowledgeBase,
                 knowledgeBaseIds: selectedKnowledgeBases,
@@ -398,7 +365,6 @@ export default function ChatWithAIPage() {
                 },
             })
             
-            // Update local state
             setConversations((prev) =>
                 prev.map((c) =>
                     c.id === currentConversation.id
@@ -474,9 +440,9 @@ export default function ChatWithAIPage() {
 
     return (
         <div className="h-full flex">
-            {/* Sidebar - Conversations History */}
+            {}
             <aside className="w-80 border-r border-border/40 flex flex-col bg-background">
-                {/* Sidebar Header */}
+                {}
                 <div className="p-4 border-b border-border/40">
                     <Button
                         onClick={createNewConversation}
@@ -498,7 +464,7 @@ export default function ChatWithAIPage() {
                     </Button>
                 </div>
 
-                {/* Conversations List */}
+                {}
                 <div className="flex-1 overflow-y-auto p-3 space-y-2">
                     {loadingConversations ? (
                         <div className="flex flex-col items-center justify-center py-12 gap-3">
@@ -603,9 +569,9 @@ export default function ChatWithAIPage() {
                 </div>
             </aside>
 
-            {/* Main Chat Area */}
+            {}
             <div className="flex-1 flex flex-col">
-                {/* Header */}
+                {}
                 <header className="border-b border-border/40 bg-background flex-shrink-0">
                     <div className="px-6 py-4 flex items-center justify-between">
                         <div>
@@ -636,11 +602,11 @@ export default function ChatWithAIPage() {
                         </div>
                     </div>
 
-                    {/* Settings Panel */}
+                    {}
                     {showSettings && (
                         <div className="border-t border-border/40 bg-gradient-to-b from-muted/30 to-muted/10">
                             <div className="max-w-6xl mx-auto p-6 space-y-6">
-                                {/* Header */}
+                                {}
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -670,14 +636,14 @@ export default function ChatWithAIPage() {
                                     </Button>
                                 </div>
 
-                                {/* Bot Selection */}
+                                {}
                                 <div className="space-y-3">
                                     <label className="text-sm font-semibold flex items-center gap-2">
                                         <FiMessageCircle className="w-4 h-4" />
                                         Select Bot
                                     </label>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                        {/* No Bot Option */}
+                                        {}
                                         <Card
                                             className={`p-4 cursor-pointer transition-all duration-200 ${selectedBot === 'none'
                                                 ? 'border-primary bg-primary/5 shadow-md'
@@ -698,7 +664,7 @@ export default function ChatWithAIPage() {
                                             </div>
                                         </Card>
 
-                                        {/* Bot Options */}
+                                        {}
                                         {bots.map((bot) => (
                                             <Card
                                                 key={bot.id}
@@ -730,7 +696,7 @@ export default function ChatWithAIPage() {
                                     </div>
                                 </div>
 
-                                {/* Knowledge Base Selection */}
+                                {}
                                 {selectedBot !== 'none' && (
                                     <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                                         <div className="flex items-center justify-between">
@@ -828,7 +794,7 @@ export default function ChatWithAIPage() {
                                     </div>
                                 )}
 
-                                {/* Current Configuration Summary */}
+                                {}
                                 {selectedBot !== 'none' && selectedBotData && (
                                     <div className="bg-muted/50 rounded-lg p-4 border border-border/40">
                                         <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
@@ -861,7 +827,7 @@ export default function ChatWithAIPage() {
                     )}
                 </header>
 
-                {/* Messages */}
+                {}
                 <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4 min-h-0">
                     {messages.length === 0 ? (
                         <div className="h-full flex items-center justify-center">
@@ -982,7 +948,7 @@ export default function ChatWithAIPage() {
                                                 <p className="whitespace-pre-wrap">{message.content}</p>
                                             </div>
 
-                                            {/* Sources hidden - only show answer */}
+                                            {}
                                             {/* {message.metadata?.sources && message.metadata.sources.length > 0 && (
                                                 <div className="mt-3 pt-3 border-t border-border/40">
                                                     <div className="flex items-center gap-2 text-xs font-medium mb-2">
@@ -1045,7 +1011,7 @@ export default function ChatWithAIPage() {
                     )}
                 </div>
 
-                {/* Input */}
+                {}
                 <div className="border-t border-border/40 bg-background p-6 flex-shrink-0">
                     <div className="max-w-4xl mx-auto">
                         <div className="flex gap-3">
@@ -1095,7 +1061,7 @@ export default function ChatWithAIPage() {
                 </div>
             </div>
 
-            {/* Delete Confirmation Dialog */}
+            {}
             <AlertDialogConfirm
                 open={deleteDialogOpen}
                 onOpenChange={setDeleteDialogOpen}

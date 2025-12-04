@@ -71,7 +71,6 @@ export function BotDialog({ open, onOpenChange, bot, workspaceId, onSubmit }: Bo
             form.reset()
             onOpenChange(false)
         } catch (error) {
-            // Error handled in parent
         }
     }
 

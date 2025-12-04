@@ -71,7 +71,6 @@ export function KBSettingsDialog({ open, onOpenChange, knowledgeBase, onSave }: 
             })
             onOpenChange(false)
         } catch (error) {
-            // Error handling is done in parent
         }
     }
 

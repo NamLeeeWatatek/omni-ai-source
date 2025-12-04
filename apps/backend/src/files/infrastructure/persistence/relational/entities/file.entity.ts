@@ -1,5 +1,4 @@
 import {
-  // typeorm decorators here
   Column,
   Entity,
   PrimaryGeneratedColumn,

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, memo } from 'react'
 import { KeyValueEditor } from './key-value-editor'
-import { FiUpload, FiX } from 'react-icons/fi'
+import { FiUpload, FiX, FiArrowRight } from 'react-icons/fi'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { axiosClient } from '@/lib/axios-client'
@@ -25,8 +25,8 @@ interface FormFieldProps {
         default?: any
         options?: Array<{ value: string; label: string } | string>
         showWhen?: Record<string, any>
-        accept?: string // For file upload
-        multiple?: boolean // For multiple file upload
+        accept?: string
+        multiple?: boolean
     }
     value: any
     onChange: (key: string, value: any) => void
@@ -40,7 +40,6 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
     const [dynamicOptions, setDynamicOptions] = useState<any[]>([])
     const [loadingOptions, setLoadingOptions] = useState(false)
 
-    // Check showWhen condition
     if (field.showWhen) {
         const conditionMet = Object.entries(field.showWhen).every(
             ([key, val]) => allValues[key] === val
@@ -50,14 +49,12 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
 
     const currentValue = value !== undefined ? value : field.default
 
-    // Load dynamic options if needed
     useEffect(() => {
         const options = field.options
         if (typeof options === 'string' && (options as string).startsWith('dynamic:')) {
             loadDynamicOptions()
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [field.name]) // Only reload when field name changes, not options
+    }, [field.name])
 
     const loadDynamicOptions = async () => {
         const options = field.options
@@ -68,7 +65,6 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
         try {
             setLoadingOptions(true)
 
-            // Handle ai-models:provider format
             if (optionsConfig.startsWith('ai-models:')) {
                 const provider = optionsConfig.split(':')[1]
                 const data = await axiosClient.get('/ai-providers/models').then(r => r.data)
@@ -84,7 +80,6 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
                     setDynamicOptions(options)
                 }
             }
-            // Handle channels format
             else if (optionsConfig === 'channels') {
                 const data = await axiosClient.get('/channels').then(r => r.data)
                 const options = data.map((c: any) => ({
@@ -100,7 +95,6 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
         }
     }
 
-    // Handle file upload to Cloudinary
     const handleFileUpload = async (files: FileList) => {
         setUploadingFiles(true)
         setUploadError(null)
@@ -115,7 +109,6 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
 
                 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
 
-                // Get token from NextAuth session
                 const { getSession } = await import('next-auth/react')
                 const session = await getSession()
                 const token = session?.accessToken
@@ -137,7 +130,6 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
                 uploadedUrls.push(data.url)
             }
 
-            // If multiple files, return array; otherwise return single URL
             if (field.multiple) {
                 onChange(field.name, uploadedUrls)
             } else {
@@ -150,7 +142,6 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
             setUploadingFiles(false)
         }
     }
-
 
     const renderField = () => {
         switch (field.type) {
@@ -187,12 +178,10 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
                             onChange={(e) => {
                                 const val = e.target.value
                                 try {
-                                    // Try to parse as JSON
                                     const parsed = JSON.parse(val)
                                     onChange(field.name, parsed)
                                     setJsonError(null)
                                 } catch (err) {
-                                    // If not valid JSON, store as string
                                     onChange(field.name, val)
                                     setJsonError('Invalid JSON format')
                                 }
@@ -227,10 +216,8 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
                     ? dynamicOptions
                     : (field.options as any[]) || []
 
-                // Ensure value is a string and exists in options
                 const selectValue = currentValue ? String(currentValue) : undefined
 
-                // Check if this is a channel selector
                 const isChannelSelector = typeof field.options === 'string' && field.options === 'dynamic:channels'
 
                 return (
@@ -261,7 +248,7 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
                             </SelectContent>
                         </Select>
 
-                        {/* Show helpful message for channel selector when empty */}
+                        {}
                         {isChannelSelector && options.length === 0 && !loadingOptions && (
                             <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                                 <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">
@@ -272,7 +259,7 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
                                     target="_blank"
                                     className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                                 >
-                                    Go to Channels →
+                                    Go to Channels <FiArrowRight className="w-3 h-3" />
                                 </a>
                             </div>
                         )}
@@ -347,11 +334,10 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
                             </label>
                         </div>
 
-                        {/* Display uploaded files with image preview */}
+                        {}
                         {currentValue && (
                             <div className="space-y-2">
                                 {Array.isArray(currentValue) ? (
-                                    // Multiple files - show grid of previews
                                     <div className="grid grid-cols-2 gap-2">
                                         {currentValue.map((url, idx) => {
                                             const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(url)
@@ -364,7 +350,6 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
                                                                 alt={`Upload ${idx + 1}`}
                                                                 className="w-full h-full object-cover"
                                                                 onError={(e) => {
-                                                                    // Fallback if image fails to load
                                                                     e.currentTarget.style.display = 'none'
                                                                     e.currentTarget.parentElement!.innerHTML = `<div class="flex items-center justify-center h-full text-xs text-muted-foreground p-2 break-all">${url}</div>`
                                                                 }}
@@ -400,7 +385,6 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
                                         })}
                                     </div>
                                 ) : (
-                                    // Single file - show larger preview
                                     (() => {
                                         const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(currentValue)
                                         return isImage ? (
@@ -411,7 +395,6 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
                                                         alt="Uploaded image"
                                                         className="w-full h-auto max-h-64 object-contain"
                                                         onError={(e) => {
-                                                            // Fallback if image fails to load
                                                             e.currentTarget.style.display = 'none'
                                                             e.currentTarget.parentElement!.innerHTML = `<div class="flex items-center justify-center p-4 text-xs text-muted-foreground break-all">${currentValue}</div>`
                                                         }}
@@ -443,7 +426,7 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
                             </div>
                         )}
 
-                        {/* Display upload error */}
+                        {}
                         {uploadError && (
                             <p className="text-xs text-red-500">{uploadError}</p>
                         )}
@@ -511,7 +494,6 @@ export const DynamicFormField = memo(function DynamicFormField({ field, value, o
         }
     }
 
-    // For boolean type, render differently (no separate label)
     if (field.type === 'boolean') {
         return (
             <div key={field.name} className="mb-4">

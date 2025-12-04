@@ -53,17 +53,12 @@ export class ConversationsService {
       .leftJoinAndSelect('conversation.bot', 'bot')
       .where('conversation.deletedAt IS NULL');
 
-    // Filter by conversation source
     if (options.onlyChannelConversations === true) {
-      // Only channel conversations (Facebook, WhatsApp, etc.)
       query.andWhere('conversation.channelId IS NOT NULL');
     } else if (options.onlyChannelConversations === false) {
-      // Only widget conversations (AI chat from website)
       query.andWhere('conversation.channelId IS NULL');
     }
-    // If undefined, show all conversations
 
-    // Filter by workspace through bot
     if (options.workspaceId) {
       query.andWhere('bot.workspaceId = :workspaceId', { 
         workspaceId: options.workspaceId 
@@ -106,21 +101,10 @@ export class ConversationsService {
       .skip((page - 1) * limit)
       .take(limit);
 
-    // Debug logging
-    console.log('=== Conversations Query Debug ===');
-    console.log('Options:', JSON.stringify(options, null, 2));
-    console.log('SQL:', query.getSql());
-    console.log('Parameters:', query.getParameters());
-
     const [items, total] = await query.getManyAndCount();
     
-    console.log(`Found ${total} conversations, returning ${items.length} items`);
-    console.log('================================');
-
-    // Format items with channel info and last message
     const formattedItems = await Promise.all(
       items.map(async (item) => {
-        // Get channel info if channelId exists
         let channelName = item.channelType || 'Unknown';
         let channelMetadata = {};
         
@@ -140,7 +124,6 @@ export class ConversationsService {
           }
         }
 
-        // Get last message
         let lastMessage = 'No messages yet';
         try {
           const lastMsg = await this.messageRepository.findOne({
@@ -151,7 +134,6 @@ export class ConversationsService {
             lastMessage = lastMsg.content;
           }
         } catch (error) {
-          // Ignore message fetch errors
         }
 
         return {
@@ -203,7 +185,6 @@ export class ConversationsService {
     await this.conversationRepository.softDelete(id);
   }
 
-  // Messages
   async addMessage(conversationId: string, createDto: CreateMessageDto) {
     const conversation = await this.findOne(conversationId);
 
@@ -215,17 +196,14 @@ export class ConversationsService {
       metadata: createDto.metadata || {},
       sources: createDto.sources,
       toolCalls: createDto.toolCalls,
-      // Legacy support
       sender: createDto.sender ?? createDto.role,
     });
 
     const savedMessage = await this.messageRepository.save(message);
 
-    // Update conversation's lastMessageAt
     conversation.lastMessageAt = new Date();
     await this.conversationRepository.save(conversation);
 
-    // If this is an assistant/agent message and conversation has external channel, send it
     if (createDto.role === 'assistant' && conversation.externalId && conversation.channelType) {
       await this.sendMessageToExternalChannel(conversation, createDto.content);
     }
@@ -233,17 +211,10 @@ export class ConversationsService {
     return savedMessage;
   }
 
-  /**
-   * Send message to external channel (Facebook, Instagram, Telegram, etc.)
-   * Note: This method is a placeholder. Actual sending is handled by BotExecutionService
-   * to avoid circular dependencies. Messages are sent after bot processing.
-   */
   private async sendMessageToExternalChannel(
     conversation: ConversationEntity,
     message: string,
   ): Promise<void> {
-    // This is now handled by BotExecutionService after processing
-    // to avoid circular dependencies with channels module
     this.logger.log(
       `Message queued for ${conversation.channelType} channel (handled by BotExecutionService)`,
     );
@@ -299,12 +270,10 @@ export class ConversationsService {
     return this.messageRepository.save(message);
   }
 
-  // Message Feedback (detailed)
   async createMessageFeedback(
     messageId: string,
     dto: CreateMessageFeedbackDto,
   ) {
-    // Check if feedback already exists
     const existing = await this.feedbackRepository.findOne({
       where: { messageId },
     });
@@ -330,7 +299,6 @@ export class ConversationsService {
     });
   }
 
-  // Stats
   async getConversationStats(botId: string, period: 'day' | 'week' | 'month') {
     const startDate = new Date();
     if (period === 'day') startDate.setDate(startDate.getDate() - 1);
@@ -368,7 +336,6 @@ export class ConversationsService {
     };
   }
 
-  // Find or create conversation by external ID (for channel integrations)
   async findOrCreateByExternalId(
     botId: string,
     externalId: string,
@@ -392,10 +359,6 @@ export class ConversationsService {
     return conversation;
   }
 
-  /**
-   * Find or create conversation from webhook
-   * Handles all the logic for webhook-based conversation creation
-   */
   async findOrCreateFromWebhook(params: {
     botId: string;
     channelId: string;
@@ -405,7 +368,6 @@ export class ConversationsService {
     contactAvatar?: string;
     metadata?: Record<string, any>;
   }): Promise<ConversationEntity> {
-    // Find existing conversation
     let conversation = await this.conversationRepository.findOne({
       where: {
         externalId: params.externalId,
@@ -414,7 +376,6 @@ export class ConversationsService {
     });
 
     if (!conversation) {
-      // Create new conversation
       conversation = this.conversationRepository.create({
         botId: params.botId,
         channelId: params.channelId,
@@ -427,7 +388,6 @@ export class ConversationsService {
         metadata: params.metadata || {},
       });
     } else {
-      // Update existing conversation
       conversation.contactName = params.contactName || conversation.contactName;
       conversation.contactAvatar = params.contactAvatar || conversation.contactAvatar;
       conversation.lastMessageAt = new Date();
@@ -440,10 +400,6 @@ export class ConversationsService {
     return this.conversationRepository.save(conversation);
   }
 
-  /**
-   * Add message from webhook
-   * Handles message creation from external channels
-   */
   async addMessageFromWebhook(params: {
     conversationId: string;
     content: string;

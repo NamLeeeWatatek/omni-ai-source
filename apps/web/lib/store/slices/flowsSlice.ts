@@ -28,14 +28,12 @@ interface FlowsState {
   currentFlow: Flow | null
   loading: boolean
   error: string | null
-  // Pagination
   total: number
   page: number
   pageSize: number
   totalPages: number
   hasNext: boolean
   hasPrev: boolean
-  // Aggregated stats from backend
   stats?: {
     total_flows: number
     total_published: number
@@ -58,7 +56,6 @@ const initialState: FlowsState = {
   stats: undefined,
 }
 
-// Async thunks
 export const fetchFlows = createAsyncThunk<
   PaginatedResponse<Flow>,
   Partial<PaginationParams & { status?: string }> | void
@@ -74,12 +71,10 @@ export const fetchFlows = createAsyncThunk<
       if (params.sort_by) queryParams.append('sort_by', params.sort_by)
       if (params.sort_order) queryParams.append('sort_order', params.sort_order)
       
-      // Handle status filter directly (not nested in filters)
       if ('status' in params && params.status) {
         queryParams.append('status', params.status)
       }
       
-      // Handle other filters
       if (params.filters) {
         Object.entries(params.filters).forEach(([key, value]) => {
           queryParams.append(key, String(value))
@@ -90,7 +85,6 @@ export const fetchFlows = createAsyncThunk<
     const url = `/flows/${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
     const response: any = await axiosClient.get(url)
     
-    // If backend doesn't return paginated format yet, wrap it
     if (Array.isArray(response)) {
       return {
         items: response,
@@ -155,7 +149,6 @@ export const archiveFlow = createAsyncThunk<Flow, number>(
   }
 )
 
-// Slice
 const flowsSlice = createSlice({
   name: 'flows',
   initialState,
@@ -168,7 +161,6 @@ const flowsSlice = createSlice({
     },
   },
   extraReducers: (builder: ActionReducerMapBuilder<FlowsState>) => {
-    // Fetch flows
     builder
       .addCase(fetchFlows.pending, (state: Draft<FlowsState>) => {
         state.loading = true
@@ -183,7 +175,6 @@ const flowsSlice = createSlice({
         state.totalPages = action.payload.total_pages
         state.hasNext = action.payload.has_next
         state.hasPrev = action.payload.has_prev
-        // Store aggregated stats if backend provides them
         if (action.payload.stats) {
           state.stats = action.payload.stats
         }
@@ -193,18 +184,15 @@ const flowsSlice = createSlice({
         state.error = action.error.message || 'Failed to fetch flows'
       })
 
-    // Fetch single flow
     builder.addCase(fetchFlow.fulfilled, (state: Draft<FlowsState>, action: PayloadAction<Flow>) => {
       state.currentFlow = action.payload
     })
 
-    // Create flow
     builder.addCase(createFlow.fulfilled, (state: Draft<FlowsState>, action: PayloadAction<Flow>) => {
       state.items.push(action.payload)
       state.currentFlow = action.payload
     })
 
-    // Update flow
     builder.addCase(updateFlow.fulfilled, (state: Draft<FlowsState>, action: PayloadAction<Flow>) => {
       const index = state.items.findIndex((f: Flow) => f.id === action.payload.id)
       if (index !== -1) {
@@ -215,7 +203,6 @@ const flowsSlice = createSlice({
       }
     })
 
-    // Delete flow
     builder.addCase(deleteFlow.fulfilled, (state: Draft<FlowsState>, action: PayloadAction<number>) => {
       state.items = state.items.filter((f: Flow) => f.id !== action.payload)
       if (state.currentFlow?.id === action.payload) {
@@ -223,12 +210,10 @@ const flowsSlice = createSlice({
       }
     })
 
-    // Duplicate flow
     builder.addCase(duplicateFlow.fulfilled, (state: Draft<FlowsState>, action: PayloadAction<Flow>) => {
       state.items.push(action.payload)
     })
 
-    // Archive flow
     builder.addCase(archiveFlow.fulfilled, (state: Draft<FlowsState>, action: PayloadAction<Flow>) => {
       const index = state.items.findIndex((f: Flow) => f.id === action.payload.id)
       if (index !== -1) {

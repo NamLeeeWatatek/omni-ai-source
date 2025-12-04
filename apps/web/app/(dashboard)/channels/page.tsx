@@ -29,6 +29,14 @@ import {
 import { FaWhatsapp, FaTelegram, FaFacebookMessenger, FaTiktok, FaDiscord, FaShopify, FaGoogle, FaLine, FaViber, FaWeixin } from 'react-icons/fa'
 import { SiZalo, SiNotion, SiAirtable, SiZapier, SiHubspot, SiSalesforce, SiMailchimp, SiIntercom } from 'react-icons/si'
 import type { Channel, IntegrationConfig } from '@/lib/types'
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card"
 
 export default function ChannelsPage() {
     const { data: session } = useSession()
@@ -38,7 +46,6 @@ export default function ChannelsPage() {
     const [loading, setLoading] = useState(true)
     const [connecting, setConnecting] = useState<string | null>(null)
 
-    // Facebook pages selector
     const [facebookPages, setFacebookPages] = useState<any[]>([])
     const [facebookTempToken, setFacebookTempToken] = useState('')
     const [connectingPage, setConnectingPage] = useState(false)
@@ -46,8 +53,6 @@ export default function ChannelsPage() {
     const [selectedBotId, setSelectedBotId] = useState<string>('')
     const [loadingBots, setLoadingBots] = useState(false)
 
-
-    // Config Form State
     const [configForm, setConfigForm] = useState({
         id: null as number | null,
         provider: '',
@@ -55,7 +60,7 @@ export default function ChannelsPage() {
         client_id: '',
         client_secret: '',
         scopes: '',
-        verify_token: '' // For Facebook webhook
+        verify_token: ''
     })
 
     useEffect(() => {
@@ -73,7 +78,6 @@ export default function ChannelsPage() {
             setConfigs(configsData)
 
         } catch (error) {
-            console.error('Failed to load channels:', error)
             toast.error('Failed to load channels')
         } finally {
             setLoading(false)
@@ -84,16 +88,12 @@ export default function ChannelsPage() {
         setLoadingBots(true)
         try {
             if (!currentWorkspace) {
-                console.warn('No workspace selected')
                 toast.error('No workspace selected. Please refresh the page.')
                 return
             }
 
-            console.log('Fetching bots for workspace:', currentWorkspace.id)
             const response = await (await axiosClient.get(`/bots?workspaceId=${currentWorkspace.id}`)).data
-            console.log('Bots API response:', response)
 
-            // Handle different response formats
             let botsList = []
             if (Array.isArray(response)) {
                 botsList = response
@@ -103,18 +103,13 @@ export default function ChannelsPage() {
                 botsList = response.data
             }
 
-            console.log('Parsed bots list:', botsList, 'length:', botsList.length)
             setBots(botsList)
 
-            // Auto-select first bot
             if (botsList.length > 0) {
                 setSelectedBotId(botsList[0].id)
-                console.log('Auto-selected bot:', botsList[0].id, botsList[0].name)
             } else {
-                console.warn('No bots found for workspace:', currentWorkspace?.id)
             }
         } catch (error) {
-            console.error('Failed to load bots:', error)
             toast.error('Failed to load bots')
         } finally {
             setLoadingBots(false)
@@ -127,7 +122,6 @@ export default function ChannelsPage() {
 
             let oauthUrl: string
 
-            // For Facebook, use new backend API
             if (provider === 'facebook' || provider === 'messenger' || provider === 'instagram') {
                 const response = await axiosClient.get('/channels/facebook/oauth/url').then(r => r.data)
 
@@ -140,7 +134,6 @@ export default function ChannelsPage() {
 
                 oauthUrl = response.url
             } else {
-                // For other providers, check if configured
                 const config = configId ? configs.find(c => c.id === configId) : configs.find(c => c.provider === provider)
                 if (!config) {
                     toast.error(`Please configure ${provider} settings first`)
@@ -149,7 +142,6 @@ export default function ChannelsPage() {
                     return
                 }
 
-                // Get OAuth URL from old API
                 const configParam = configId ? `?configId=${configId}` : ''
                 const response = await (await axiosClient.get(`/oauth/login/${provider}${configParam}`)).data
 
@@ -162,7 +154,6 @@ export default function ChannelsPage() {
                 oauthUrl = response.url
             }
 
-            // Open popup
             const width = 600
             const height = 700
             const left = window.screen.width / 2 - width / 2
@@ -180,27 +171,22 @@ export default function ChannelsPage() {
                 return
             }
 
-            // Listen for message from popup
             const messageHandler = (event: MessageEvent) => {
                 if (event.data?.status === 'success') {
-                    // For Facebook, show page selector
                     if ((provider === 'facebook' || provider === 'messenger' || provider === 'instagram') && event.data.pages) {
                         setFacebookPages(event.data.pages)
                         setFacebookTempToken(event.data.tempToken)
                         toast.success(`Found ${event.data.pages.length} Facebook page(s)`)
 
-                        // Load bots for selection
                         loadBots()
                         popup?.close()
                         window.removeEventListener('message', messageHandler)
                         setConnecting(null)
                     } else {
-                        // For other providers
                         toast.success(`Connected to ${event.data.channel || provider}`)
                         popup?.close()
                         window.removeEventListener('message', messageHandler)
 
-                        // Delay reload to allow backend to create all channels
                         setTimeout(() => {
                             loadData()
                             setConnecting(null)
@@ -216,7 +202,6 @@ export default function ChannelsPage() {
 
             window.addEventListener('message', messageHandler)
 
-            // Check if popup closed manually
             const checkClosed = setInterval(() => {
                 if (popup?.closed) {
                     clearInterval(checkClosed)
@@ -275,7 +260,6 @@ export default function ChannelsPage() {
         }
 
         try {
-            // For Facebook, use new backend API
             if (configForm.provider === 'facebook' || configForm.provider === 'messenger' || configForm.provider === 'instagram') {
                 await axiosClient.post('/channels/facebook/setup', {
                     appId: configForm.client_id,
@@ -283,7 +267,6 @@ export default function ChannelsPage() {
                     verifyToken: configForm.verify_token || 'wataomi_verify_token'
                 }).then(r => r.data)
             } else {
-                // For other providers, use old API
                 const url = configForm.id ? `/integrations/${configForm.id}` : '/integrations/'
                 const data = {
                     provider: configForm.provider,
@@ -302,7 +285,7 @@ export default function ChannelsPage() {
             }
 
             toast.success('Configuration saved successfully!')
-            setConfigForm(prev => ({ ...prev, provider: '' })) // Close modal
+            setConfigForm(prev => ({ ...prev, provider: '' }))
             loadData()
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to save configuration'
@@ -330,10 +313,8 @@ export default function ChannelsPage() {
             const selectedBot = bots.find(b => b.id === selectedBotId)
             toast.success(`Connected ${page.name} to bot "${selectedBot?.name}"`)
 
-            // Remove connected page from list
             setFacebookPages(prev => prev.filter(p => p.id !== page.id))
 
-            // Reload connections
             await loadData()
         } catch (error: any) {
             toast.error(error.message || 'Failed to connect page')
@@ -424,7 +405,6 @@ export default function ChannelsPage() {
         return colors[type] || 'text-gray-600 bg-gray-600/10 border-gray-600/20'
     }
 
-    // Messaging Channels
     const MESSAGING_CHANNELS = [
         { id: 'facebook', name: 'Facebook Page', description: 'Manage posts and comments on your Facebook Page', category: 'social', multiAccount: true },
         { id: 'messenger', name: 'Messenger', description: 'Reply to messages from your Facebook Page', category: 'messaging', multiAccount: true },
@@ -446,7 +426,6 @@ export default function ChannelsPage() {
         { id: 'webchat', name: 'Web Chat', description: 'Embed chat widget on your website', category: 'messaging', multiAccount: false },
     ]
 
-    // Business Integrations
     const BUSINESS_INTEGRATIONS = [
         { id: 'shopify', name: 'Shopify', description: 'Sync orders and customers from Shopify', category: 'ecommerce', multiAccount: true },
         { id: 'google', name: 'Google Business', description: 'Manage Google Business Profile reviews', category: 'business', multiAccount: true },
@@ -461,11 +440,9 @@ export default function ChannelsPage() {
 
     const [activeTab, setActiveTab] = useState<'connected' | 'configurations'>('connected')
 
-    // Count configured integrations
     const configuredCount = configs.length
     const allChannels = [...MESSAGING_CHANNELS, ...BUSINESS_INTEGRATIONS]
 
-    // Group channels by connection status
     const configuredProviders = new Set(configs.map(c => c.provider))
     const configuredNotConnected = Array.from(configuredProviders).filter(provider =>
         !channels.some(c => c.type === provider)
@@ -491,7 +468,7 @@ export default function ChannelsPage() {
                 </Button>
             </div>
 
-            {/* Tabs */}
+            {}
             <div className="flex gap-2 border-b border-border/40 pb-4">
                 <button
                     onClick={() => setActiveTab('connected')}
@@ -523,7 +500,7 @@ export default function ChannelsPage() {
                 </button>
             </div>
 
-            {/* Connected Tab */}
+            {}
             {activeTab === 'connected' && (
                 <div>
                     {channels.length === 0 && configuredCount === 0 ? (
@@ -541,7 +518,7 @@ export default function ChannelsPage() {
                         </div>
                     ) : (
                         <div className="space-y-10">
-                            {/* Connected Channels */}
+                            {}
                             {channels.length > 0 && (
                                 <div>
                                     <div className="flex items-center justify-between mb-6">
@@ -556,11 +533,8 @@ export default function ChannelsPage() {
                                             const sameTypeCount = channels.filter(c => c.type === channel.type).length
 
                                             return (
-                                                <div
-                                                    key={channel.id}
-                                                    className="glass rounded-xl p-6"
-                                                >
-                                                    <div className="flex items-start justify-between mb-4">
+                                                <Card key={channel.id} className="relative overflow-hidden">
+                                                    <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                                                         <div className={`p-3 rounded-lg ${getColor(channel.type)}`}>
                                                             {getIcon(channel.type)}
                                                         </div>
@@ -575,31 +549,33 @@ export default function ChannelsPage() {
                                                                 Active
                                                             </span>
                                                         </div>
-                                                    </div>
-                                                    <h3 className="font-semibold text-lg mb-1">{channel.name}</h3>
-                                                    <p className="text-sm text-muted-foreground capitalize mb-4">
-                                                        {channelInfo?.name || channel.type}
-                                                    </p>
-                                                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                                                    </CardHeader>
+                                                    <CardContent>
+                                                        <CardTitle className="text-lg font-semibold mb-1">{channel.name}</CardTitle>
+                                                        <CardDescription className="capitalize">
+                                                            {channelInfo?.name || channel.type}
+                                                        </CardDescription>
+                                                    </CardContent>
+                                                    <CardFooter className="flex items-center justify-between border-t bg-muted/50 px-6 py-3">
                                                         <span className="text-xs text-muted-foreground">
                                                             Connected {new Date(channel.connected_at).toLocaleDateString()}
                                                         </span>
                                                         <button
                                                             onClick={() => handleDisconnect(channel.id)}
-                                                            className="flex items-center gap-1.5 text-xs font-medium text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10"
+                                                            className="flex items-center gap-1.5 text-xs font-medium text-destructive hover:text-destructive/80 transition-colors px-2 py-1 rounded-lg hover:bg-destructive/10"
                                                         >
                                                             <FiTrash2 className="w-3.5 h-3.5" />
                                                             Disconnect
                                                         </button>
-                                                    </div>
-                                                </div>
+                                                    </CardFooter>
+                                                </Card>
                                             )
                                         })}
                                     </div>
                                 </div>
                             )}
 
-                            {/* Configured but Not Connected */}
+                            {}
                             {configuredNotConnected.length > 0 && (
                                 <div>
                                     <div className="flex items-center justify-between mb-6">
@@ -613,37 +589,38 @@ export default function ChannelsPage() {
                                             const channelInfo = allChannels.find(c => c.id === provider)
 
                                             return (
-                                                <div
-                                                    key={provider}
-                                                    className="glass rounded-xl p-6 border-warning/20"
-                                                >
-                                                    <div className="flex items-start justify-between mb-4">
+                                                <Card key={provider} className="border-warning/20">
+                                                    <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                                                         <div className={`p-3 rounded-lg ${getColor(provider)}`}>
                                                             {getIcon(provider)}
                                                         </div>
                                                         <span className="text-xs font-medium text-warning bg-warning/10 px-2 py-0.5 rounded-full">
                                                             Ready
                                                         </span>
-                                                    </div>
-                                                    <h3 className="font-semibold text-lg mb-1">{channelInfo?.name || provider}</h3>
-                                                    <p className="text-sm text-muted-foreground mb-5">
-                                                        {channelInfo?.description || 'Configured and ready to connect'}
-                                                    </p>
-                                                    <Button
-                                                        className="w-full"
-                                                        onClick={() => handleConnect(provider)}
-                                                        disabled={connecting === provider}
-                                                    >
-                                                        {connecting === provider ? 'Connecting...' : 'Connect Now'}
-                                                    </Button>
-                                                </div>
+                                                    </CardHeader>
+                                                    <CardContent className="pb-4">
+                                                        <CardTitle className="text-lg font-semibold mb-1">{channelInfo?.name || provider}</CardTitle>
+                                                        <CardDescription>
+                                                            {channelInfo?.description || 'Configured and ready to connect'}
+                                                        </CardDescription>
+                                                    </CardContent>
+                                                    <CardFooter>
+                                                        <Button
+                                                            className="w-full"
+                                                            onClick={() => handleConnect(provider)}
+                                                            disabled={connecting === provider}
+                                                        >
+                                                            {connecting === provider ? 'Connecting...' : 'Connect Now'}
+                                                        </Button>
+                                                    </CardFooter>
+                                                </Card>
                                             )
                                         })}
                                     </div>
                                 </div>
                             )}
 
-                            {/* Not Configured */}
+                            {}
                             {notConfigured.length > 0 && (
                                 <div>
                                     <div className="flex items-center justify-between mb-6">
@@ -661,34 +638,35 @@ export default function ChannelsPage() {
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {notConfigured.map((channel) => (
-                                            <div
-                                                key={channel.id}
-                                                className="glass rounded-xl p-6"
-                                            >
-                                                <div className="flex items-start justify-between mb-4">
+                                            <Card key={channel.id}>
+                                                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                                                     <div className={`p-3 rounded-lg ${getColor(channel.id)} opacity-60`}>
                                                         {getIcon(channel.id)}
                                                     </div>
                                                     <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                                                         Not Configured
                                                     </span>
-                                                </div>
-                                                <h3 className="font-semibold text-lg mb-1">{channel.name}</h3>
-                                                <p className="text-sm text-muted-foreground mb-5">
-                                                    {channel.description || 'Configure API credentials to connect'}
-                                                </p>
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="w-full"
-                                                    onClick={() => {
-                                                        setActiveTab('configurations')
-                                                        openConfig(undefined, channel.id)
-                                                    }}
-                                                >
-                                                    Configure Now
-                                                </Button>
-                                            </div>
+                                                </CardHeader>
+                                                <CardContent className="pb-4">
+                                                    <CardTitle className="text-lg font-semibold mb-1">{channel.name}</CardTitle>
+                                                    <CardDescription>
+                                                        {channel.description || 'Configure API credentials to connect'}
+                                                    </CardDescription>
+                                                </CardContent>
+                                                <CardFooter>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="w-full"
+                                                        onClick={() => {
+                                                            setActiveTab('configurations')
+                                                            openConfig(undefined, channel.id)
+                                                        }}
+                                                    >
+                                                        Configure Now
+                                                    </Button>
+                                                </CardFooter>
+                                            </Card>
                                         ))}
                                     </div>
                                 </div>
@@ -698,7 +676,7 @@ export default function ChannelsPage() {
                 </div>
             )}
 
-            {/* Configurations Tab */}
+            {}
             {activeTab === 'configurations' && (
                 <div className="space-y-10">
                     <AlertBanner
@@ -710,7 +688,7 @@ export default function ChannelsPage() {
                     </AlertBanner>
 
                     <div className="space-y-10">
-                        {/* Configured Integrations */}
+                        {}
                         {configuredCount > 0 && (
                             <div>
                                 <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
@@ -726,11 +704,8 @@ export default function ChannelsPage() {
                                         const connectedCount = channels.filter(c => c.type === provider).length
 
                                         return (
-                                            <div
-                                                key={config.id}
-                                                className="glass rounded-xl p-6"
-                                            >
-                                                <div className="flex items-start justify-between mb-4">
+                                            <Card key={config.id}>
+                                                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                                                     <div className={`p-3 rounded-lg ${getColor(provider)}`}>
                                                         {getIcon(provider)}
                                                     </div>
@@ -755,25 +730,27 @@ export default function ChannelsPage() {
                                                             <FiTrash2 className="w-4 h-4" />
                                                         </button>
                                                     </div>
-                                                </div>
-                                                <h3 className="font-semibold text-lg mb-1">{config.name || channelInfo?.name || provider}</h3>
-                                                <p className="text-sm text-muted-foreground mb-5">
-                                                    {channelInfo?.description || 'API configured'}
-                                                </p>
-                                                <div className="space-y-2 text-xs mb-6">
-                                                    <div className="flex items-center justify-between p-2 bg-muted rounded-lg">
-                                                        <span className="text-muted-foreground">Client ID</span>
-                                                        <span className="font-mono">{config.client_id.slice(0, 12)}...</span>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <CardTitle className="text-lg font-semibold mb-1">{config.name || channelInfo?.name || provider}</CardTitle>
+                                                    <CardDescription className="mb-5">
+                                                        {channelInfo?.description || 'API configured'}
+                                                    </CardDescription>
+                                                    <div className="space-y-2 text-xs">
+                                                        <div className="flex items-center justify-between p-2 bg-muted rounded-lg">
+                                                            <span className="text-muted-foreground">Client ID</span>
+                                                            <span className="font-mono">{config.client_id.slice(0, 12)}...</span>
+                                                        </div>
+                                                        <div className="flex items-center justify-between p-2 bg-muted rounded-lg">
+                                                            <span className="text-muted-foreground">Status</span>
+                                                            <span className={`flex items-center gap-1.5 ${config.is_active ? 'text-success' : 'text-destructive'}`}>
+                                                                <span className={`w-1.5 h-1.5 rounded-full ${config.is_active ? 'bg-success' : 'bg-destructive'}`}></span>
+                                                                {config.is_active ? 'Active' : 'Inactive'}
+                                                            </span>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center justify-between p-2 bg-muted rounded-lg">
-                                                        <span className="text-muted-foreground">Status</span>
-                                                        <span className={`flex items-center gap-1.5 ${config.is_active ? 'text-success' : 'text-destructive'}`}>
-                                                            <span className={`w-1.5 h-1.5 rounded-full ${config.is_active ? 'bg-success' : 'bg-destructive'}`}></span>
-                                                            {config.is_active ? 'Active' : 'Inactive'}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="flex gap-3">
+                                                </CardContent>
+                                                <CardFooter className="flex gap-3">
                                                     <Button
                                                         size="sm"
                                                         className="flex-1"
@@ -789,68 +766,72 @@ export default function ChannelsPage() {
                                                     >
                                                         Edit
                                                     </Button>
-                                                </div>
-                                            </div>
+                                                </CardFooter>
+                                            </Card>
                                         )
                                     })}
                                 </div>
                             </div>
                         )}
 
-                        {/* Available to Configure */}
+                        {}
                         <div>
                             <h2 className="text-xl font-semibold mb-6">
                                 Available Integrations
                             </h2>
 
-                            {/* Messaging Channels */}
+                            {}
                             <div className="mb-8">
                                 <h3 className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wider pl-1">Messaging Channels</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                     {MESSAGING_CHANNELS.map((channel) => (
-                                        <button
+                                        <Card
                                             key={channel.id}
                                             onClick={() => openConfig(undefined, channel.id)}
-                                            className="glass rounded-lg p-4 hover:scale-[1.02] transition-transform text-left group"
+                                            className="cursor-pointer hover:scale-[1.02] transition-transform text-left group"
                                         >
-                                            <div className="flex items-start justify-between mb-3">
+                                            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                                                 <div className={`p-2.5 rounded-lg ${getColor(channel.id)}`}>
                                                     {getIcon(channel.id)}
                                                 </div>
                                                 <FiSettings className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            </div>
-                                            <h3 className="font-semibold mb-1">{channel.name}</h3>
-                                            <p className="text-xs text-muted-foreground line-clamp-2">
-                                                {channel.description}
-                                            </p>
-                                        </button>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <CardTitle className="text-base font-semibold mb-1">{channel.name}</CardTitle>
+                                                <CardDescription className="text-xs line-clamp-2">
+                                                    {channel.description}
+                                                </CardDescription>
+                                            </CardContent>
+                                        </Card>
                                     ))}
                                 </div>
                             </div>
 
-                            {/* Business Integrations */}
+                            {}
                             <div>
                                 <h3 className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wider pl-1">Business Integrations</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                     {BUSINESS_INTEGRATIONS.map((integration) => (
-                                        <button
+                                        <Card
                                             key={integration.id}
                                             onClick={() => openConfig(undefined, integration.id)}
-                                            className="glass rounded-lg p-4 hover:scale-[1.02] transition-transform text-left group"
+                                            className="cursor-pointer hover:scale-[1.02] transition-transform text-left group"
                                         >
-                                            <div className="flex items-start justify-between mb-3">
+                                            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                                                 <div className={`p-2.5 rounded-lg ${getColor(integration.id)}`}>
                                                     {getIcon(integration.id)}
                                                 </div>
                                                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
                                                     {integration.category}
                                                 </span>
-                                            </div>
-                                            <h3 className="font-semibold mb-1">{integration.name}</h3>
-                                            <p className="text-xs text-muted-foreground line-clamp-2">
-                                                {integration.description}
-                                            </p>
-                                        </button>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <CardTitle className="text-base font-semibold mb-1">{integration.name}</CardTitle>
+                                                <CardDescription className="text-xs line-clamp-2">
+                                                    {integration.description}
+                                                </CardDescription>
+                                            </CardContent>
+                                        </Card>
                                     ))}
                                 </div>
                             </div>
@@ -859,7 +840,7 @@ export default function ChannelsPage() {
                 </div>
             )}
 
-            {/* Configuration Modal */}
+            {}
             {configForm.provider && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
                     <div className="bg-card border border-border rounded-xl p-6 w-full max-w-md shadow-2xl relative overflow-hidden"
@@ -880,7 +861,7 @@ export default function ChannelsPage() {
                                 </button>
                             </div>
 
-                            {/* Info Banner */}
+                            {}
                             <AlertBanner variant="tip" className="mb-6">
                                 You need to create an app in the <span className="font-semibold">{configForm.provider} developer portal</span> to get these credentials.
                             </AlertBanner>
@@ -925,7 +906,7 @@ export default function ChannelsPage() {
                                     />
                                 </div>
 
-                                {/* Verify Token for Facebook */}
+                                {}
                                 {(configForm.provider === 'facebook' || configForm.provider === 'messenger' || configForm.provider === 'instagram') && (
                                     <div>
                                         <label className="block text-sm font-medium mb-2">
@@ -944,7 +925,7 @@ export default function ChannelsPage() {
                                     </div>
                                 )}
 
-                                {/* Scopes for other providers */}
+                                {}
                                 {configForm.provider !== 'facebook' && configForm.provider !== 'messenger' && configForm.provider !== 'instagram' && (
                                     <div>
                                         <label className="block text-sm font-medium mb-2">
@@ -960,7 +941,7 @@ export default function ChannelsPage() {
                                     </div>
                                 )}
 
-                                {/* Webhook URL for Facebook */}
+                                {}
                                 {(configForm.provider === 'facebook' || configForm.provider === 'messenger' || configForm.provider === 'instagram') && (
                                     <CodeBlock label="Webhook URL">
                                         {process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}/api/v1/webhooks/facebook
@@ -989,7 +970,7 @@ export default function ChannelsPage() {
                 </div>
             )}
 
-            {/* Facebook Pages Selector Modal */}
+            {}
             {facebookPages.length > 0 && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
                     <div className="bg-card border border-border rounded-xl p-6 w-full max-w-2xl shadow-2xl relative overflow-hidden max-h-[80vh] overflow-y-auto"
@@ -1014,7 +995,7 @@ export default function ChannelsPage() {
                             </button>
                         </div>
 
-                        {/* Bot Selector */}
+                        {}
                         <AlertBanner variant="info" title="Select Bot" className="mb-6">
                             {loadingBots ? (
                                 <div className="flex items-center gap-2">
@@ -1052,7 +1033,7 @@ export default function ChannelsPage() {
                             )}
                         </AlertBanner>
 
-                        {/* Pages List */}
+                        {}
                         <div className="space-y-3">
                             <h4 className="text-sm font-medium text-muted-foreground">Available Pages ({facebookPages.length})</h4>
                             {facebookPages.map((page) => (
@@ -1092,7 +1073,7 @@ export default function ChannelsPage() {
                 </div>
             )}
 
-            {/* Disconnect Confirmation Dialog */}
+            {}
             <AlertDialogConfirm
                 open={disconnectId !== null}
                 onOpenChange={(open) => !open && setDisconnectId(null)}
@@ -1104,7 +1085,7 @@ export default function ChannelsPage() {
                 variant="destructive"
             />
 
-            {/* Delete Config Confirmation Dialog */}
+            {}
             <AlertDialogConfirm
                 open={deleteConfigId !== null}
                 onOpenChange={(open) => !open && setDeleteConfigId(null)}

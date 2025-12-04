@@ -42,14 +42,14 @@ export function usePagination({
 
   const handlePageSizeChange = useCallback((newPageSize: number) => {
     setPageSize(newPageSize)
-    setPage(1) // Reset to first page
+    setPage(1)
     const params = { ...buildParams(), page: 1, page_size: newPageSize }
     onParamsChange?.(params)
   }, [buildParams, onParamsChange])
 
   const handleSearchChange = useCallback((newSearch: string) => {
     setSearch(newSearch)
-    setPage(1) // Reset to first page
+    setPage(1)
     const params = { ...buildParams(), page: 1, search: newSearch || undefined }
     onParamsChange?.(params)
   }, [buildParams, onParamsChange])
@@ -63,7 +63,7 @@ export function usePagination({
 
   const handleFilterChange = useCallback((newFilters: Record<string, any>) => {
     setFilters(newFilters)
-    setPage(1) // Reset to first page
+    setPage(1)
     const params = { ...buildParams(), page: 1, filters: newFilters }
     onParamsChange?.(params)
   }, [buildParams, onParamsChange])
@@ -78,7 +78,6 @@ export function usePagination({
   }, [initialPage, initialPageSize])
 
   return {
-    // State
     page,
     pageSize,
     search,
@@ -86,7 +85,6 @@ export function usePagination({
     sortOrder,
     filters,
     
-    // Handlers
     handlePageChange,
     handlePageSizeChange,
     handleSearchChange,
@@ -94,7 +92,6 @@ export function usePagination({
     handleFilterChange,
     reset,
     
-    // Helpers
     buildParams,
   }
 }

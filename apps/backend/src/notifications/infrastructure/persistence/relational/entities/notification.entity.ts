@@ -7,10 +7,6 @@ import {
 } from 'typeorm';
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 
-/**
- * Notification entity - theo schema mới
- * Table: notifications
- */
 @Entity({ name: 'notification' })
 export class NotificationEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')

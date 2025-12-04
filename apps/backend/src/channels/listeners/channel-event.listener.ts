@@ -7,10 +7,6 @@ import {
 } from '../../shared/events';
 import { ChannelStrategy } from '../channel.strategy';
 
-/**
- * Event listener for channel-related events
- * Handles sending messages to external channels via events
- */
 @Injectable()
 export class ChannelEventListener {
     private readonly logger = new Logger(ChannelEventListener.name);
@@ -20,9 +16,6 @@ export class ChannelEventListener {
         private readonly eventEmitter: EventEmitter2,
     ) { }
 
-    /**
-     * Handle send channel message event
-     */
     @OnEvent('channel.message.send')
     async handleSendChannelMessage(event: SendChannelMessageEvent) {
         this.logger.debug(
@@ -38,7 +31,6 @@ export class ChannelEventListener {
                 },
             );
 
-            // Emit message sent event
             const sentEvent = new MessageSentEvent(
                 event.conversationId || '',
                 result.messageId || '',
@@ -64,7 +56,6 @@ export class ChannelEventListener {
                 error.stack,
             );
 
-            // Emit failure event
             const sentEvent = new MessageSentEvent(
                 event.conversationId || '',
                 '',

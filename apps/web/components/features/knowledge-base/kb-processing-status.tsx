@@ -25,14 +25,11 @@ export function KBProcessingStatus({ knowledgeBaseId }: KBProcessingStatusProps)
     const [jobs, setJobs] = useState<ProcessingJob[]>([])
 
     useEffect(() => {
-        // Connect to WebSocket - remove /api/v1 from URL
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
         const wsUrl = apiUrl.replace('/api/v1', '')
 
-
-
         const socket: Socket = io(wsUrl, {
-            transports: ['websocket'], // Only WebSocket, no polling fallback
+            transports: ['websocket'],
             reconnection: true,
             reconnectionDelay: 1000,
             reconnectionAttempts: 5,
@@ -46,31 +43,24 @@ export function KBProcessingStatus({ knowledgeBaseId }: KBProcessingStatusProps)
 
         })
 
-        // Listen for processing updates
         socket.on('processing:update', (data: ProcessingJob) => {
 
-
-            // Only show jobs for this knowledge base
             if (data.knowledgeBaseId !== knowledgeBaseId) return
 
             setJobs(prevJobs => {
-                // Remove completed/failed jobs after 2 seconds
                 if (data.status === 'completed' || data.status === 'failed') {
                     setTimeout(() => {
                         setJobs(prev => prev.filter(j => j.documentId !== data.documentId))
                     }, 2000)
                 }
 
-                // Update or add job
                 const existingIndex = prevJobs.findIndex(j => j.documentId === data.documentId)
 
                 if (existingIndex >= 0) {
-                    // Update existing job
                     const updated = [...prevJobs]
                     updated[existingIndex] = data
                     return updated
                 } else if (data.status === 'processing' || data.status === 'queued') {
-                    // Add new job (only if active)
                     return [...prevJobs, data]
                 }
 

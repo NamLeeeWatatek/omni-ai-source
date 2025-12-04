@@ -10,11 +10,10 @@ export function usePermissions() {
   const { data: capabilities, isLoading, error } = useQuery<UserCapabilities>({
     queryKey: ['permissions', 'capabilities'],
     queryFn: permissionsApi.getMyCapabilities,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 5 * 60 * 1000,
     retry: 1,
   })
 
-  // Helper functions
   const hasPermission = (permission: string): boolean => {
     return capabilities?.permissions.includes(permission) ?? false
   }

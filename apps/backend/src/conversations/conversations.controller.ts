@@ -47,8 +47,6 @@ export class ConversationsController {
     return this.conversationsService.create(createDto);
   }
 
-
-
   @Get()
   @ApiOperation({ summary: 'Get all conversations with pagination' })
   @ApiQuery({ name: 'botId', required: false })
@@ -81,14 +79,12 @@ export class ConversationsController {
   ) {
     const workspaceId = req.user?.workspaceId || req.user?.id;
     
-    // Determine onlyChannelConversations based on source filter
     let onlyChannelConversations: boolean | undefined;
     if (source === 'channel') {
-      onlyChannelConversations = true; // Only channel conversations
+      onlyChannelConversations = true;
     } else if (source === 'widget') {
-      onlyChannelConversations = false; // Only widget conversations (no channel_id)
+      onlyChannelConversations = false;
     }
-    // If source === 'all' or undefined, don't filter by channel
     
     return this.conversationsService.findAll({
       botId,
@@ -146,7 +142,6 @@ export class ConversationsController {
     return this.conversationsService.delete(id);
   }
 
-  // Messages
   @Post(':id/messages')
   @ApiOperation({ summary: 'Add message to conversation' })
   @ApiCreatedResponse({ type: Message })
@@ -226,7 +221,6 @@ export class ConversationsController {
     return this.conversationsService.getMessageFeedback(messageId);
   }
 
-  // Stats
   @Get('stats/:botId')
   @ApiOperation({ summary: 'Get conversation statistics' })
   @ApiParam({ name: 'botId', type: String })

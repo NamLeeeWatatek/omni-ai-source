@@ -8,7 +8,6 @@ import { KBRagService } from '../knowledge-base/services/kb-rag.service';
 import { AiProvidersService } from '../ai-providers/ai-providers.service';
 import { BotEntity } from './infrastructure/persistence/relational/entities/bot.entity';
 
-// Placeholder type for bot function - exported for controller
 export interface BotFunction {
   id: string;
   botId: string;
@@ -23,7 +22,6 @@ export interface BotFunction {
 @Injectable()
 export class BotFunctionsService {
   private readonly logger = new Logger(BotFunctionsService.name);
-  // In-memory storage until proper entity is created
   private functions: Map<string, BotFunction> = new Map();
 
   constructor(
@@ -34,7 +32,6 @@ export class BotFunctionsService {
   ) {}
 
   async create(createDto: CreateBotFunctionDto) {
-    // Verify bot exists and get workspaceId
     const bot = await this.botRepository.findOne({
       where: { id: createDto.botId },
     });

@@ -94,7 +94,6 @@ export class WorkspacesController {
     return this.workspacesService.remove(id, req.user.id);
   }
 
-  // Member management
   @Get(':id/members')
   @ApiOperation({ summary: 'Get workspace members' })
   @ApiOkResponse({ type: [WorkspaceMember] })

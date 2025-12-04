@@ -1,7 +1,3 @@
-/**
- * AI Models Types
- * Types for AI provider management
- */
 
 export interface AIModelInfo {
   model_name: string;
@@ -49,7 +45,6 @@ export interface DefaultModelResponse {
   provider: string;
 }
 
-// API Response types
 export type GetModelsResponse = AIProviderGroup[];
 export type GetDefaultModelResponse = DefaultModelResponse;
 export type PostChatResponse = ChatResponse;

@@ -10,9 +10,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Bot, Sparkles, MessageSquare } from 'lucide-react'
+import { FiCircle } from 'react-icons/fi'
 
 export default function BotDemoPage() {
-  // Auto-fill demo state
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
@@ -43,7 +43,7 @@ export default function BotDemoPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Chat Widget Demo */}
+        {}
         <TabsContent value="chat" className="space-y-4">
           <Card>
             <CardHeader>
@@ -83,7 +83,7 @@ export default function BotDemoPage() {
           </Card>
         </TabsContent>
 
-        {/* Auto Fill Demo */}
+        {}
         <TabsContent value="autofill" className="space-y-4">
           <Card>
             <CardHeader>
@@ -149,7 +149,7 @@ export default function BotDemoPage() {
           </Card>
         </TabsContent>
 
-        {/* Setup Guide */}
+        {}
         <TabsContent value="setup" className="space-y-4">
           <Card>
             <CardHeader>
@@ -221,10 +221,10 @@ export default function BotDemoPage() {
                   💡 Lưu ý quan trọng
                 </h4>
                 <ul className="space-y-1 text-sm text-blue-800 dark:text-blue-200">
-                  <li>• workspaceId sẽ tự động được lấy từ user</li>
-                  <li>• Bot cần được activate trước khi sử dụng</li>
-                  <li>• Function phải được enable</li>
-                  <li>• Knowledge Base phải có documents</li>
+                  <li className="flex items-center gap-2"><FiCircle className="w-1.5 h-1.5 fill-current shrink-0" /> workspaceId sẽ tự động được lấy từ user</li>
+                  <li className="flex items-center gap-2"><FiCircle className="w-1.5 h-1.5 fill-current shrink-0" /> Bot cần được activate trước khi sử dụng</li>
+                  <li className="flex items-center gap-2"><FiCircle className="w-1.5 h-1.5 fill-current shrink-0" /> Function phải được enable</li>
+                  <li className="flex items-center gap-2"><FiCircle className="w-1.5 h-1.5 fill-current shrink-0" /> Knowledge Base phải có documents</li>
                 </ul>
               </div>
             </CardContent>

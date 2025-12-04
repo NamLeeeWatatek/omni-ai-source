@@ -38,7 +38,6 @@ export class IntegrationsService {
     dto: CreateCredentialDto,
     workspaceId?: string,
   ): Promise<ChannelCredentialEntity> {
-    // Always create new config (allow multiple configs per provider)
     const credential = this.credentialRepository.create({
       ...dto,
       workspaceId,

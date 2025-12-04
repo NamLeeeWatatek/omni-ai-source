@@ -38,9 +38,6 @@ export class WidgetVersionController {
         private readonly widgetVersionService: WidgetVersionService,
     ) {}
 
-    /**
-     * List all widget versions for bot
-     */
     @Get()
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -60,9 +57,6 @@ export class WidgetVersionController {
         return this.widgetVersionService.listVersions(botId, req.user.id);
     }
 
-    /**
-     * Get widget version detail
-     */
     @Get(':versionId')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -88,9 +82,6 @@ export class WidgetVersionController {
         );
     }
 
-    /**
-     * Create new widget version
-     */
     @Post()
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({
@@ -115,9 +106,6 @@ export class WidgetVersionController {
         );
     }
 
-    /**
-     * Update widget version (draft only)
-     */
     @Patch(':versionId')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -145,9 +133,6 @@ export class WidgetVersionController {
         );
     }
 
-    /**
-     * Publish widget version
-     */
     @Post(':versionId/publish')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -173,9 +158,6 @@ export class WidgetVersionController {
         );
     }
 
-    /**
-     * Rollback to widget version
-     */
     @Post(':versionId/rollback')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -203,9 +185,6 @@ export class WidgetVersionController {
         );
     }
 
-    /**
-     * Archive widget version
-     */
     @Post(':versionId/archive')
     @HttpCode(HttpStatus.NO_CONTENT)
     @ApiOperation({
@@ -230,9 +209,6 @@ export class WidgetVersionController {
         );
     }
 
-    /**
-     * Delete widget version (draft only)
-     */
     @Delete(':versionId')
     @HttpCode(HttpStatus.NO_CONTENT)
     @ApiOperation({
@@ -257,9 +233,6 @@ export class WidgetVersionController {
         );
     }
 
-    /**
-     * Get embed code for specific version
-     */
     @Get(':versionId/embed-code')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -284,9 +257,6 @@ export class WidgetVersionController {
         );
     }
 
-    /**
-     * Get preview URL for specific version
-     */
     @Get(':versionId/preview-url')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({

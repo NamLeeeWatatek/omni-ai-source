@@ -5,12 +5,10 @@ export default auth((req) => {
   const { pathname } = req.nextUrl
   const isAuthenticated = !!req.auth
 
-  // Allow access to test-auth page without authentication
   if (pathname.startsWith('/test-auth')) {
     return NextResponse.next()
   }
 
-  // Protected routes
   const protectedRoutes = [
     '/dashboard',
     '/flows',

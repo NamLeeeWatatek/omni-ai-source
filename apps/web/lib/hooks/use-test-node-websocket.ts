@@ -15,8 +15,6 @@ export function useTestNodeWebSocket() {
 
     useEffect(() => {
 
-
-
         return () => { }
     }, [])
 
@@ -39,7 +37,6 @@ export function useTestNodeWebSocket() {
                 reject(new Error('Test timeout'))
             }, 60000)
 
-
             wsRef.current?.send(JSON.stringify({
                 type: 'test_node',
                 flow_id: flowId,
@@ -47,7 +44,6 @@ export function useTestNodeWebSocket() {
                 node_type: nodeType,
                 config: config
             }))
-
 
         })
     }, [])

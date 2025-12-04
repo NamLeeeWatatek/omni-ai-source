@@ -11,10 +11,6 @@ import { EntityRelationalHelper } from '../../../../../utils/relational-entity-h
 import { UserEntity } from '../../../../../users/infrastructure/persistence/relational/entities/user.entity';
 import { WorkspaceEntity } from '../../../../../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
 
-/**
- * UserAiProvider entity - theo schema mới
- * Table: user_ai_providers
- */
 @Entity({ name: 'user_ai_provider' })
 export class UserAiProviderEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
@@ -59,10 +55,6 @@ export class UserAiProviderEntity extends EntityRelationalHelper {
   createdAt: Date;
 }
 
-/**
- * WorkspaceAiProvider entity - theo schema mới
- * Table: workspace_ai_providers
- */
 @Entity({ name: 'workspace_ai_provider' })
 export class WorkspaceAiProviderEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
@@ -98,10 +90,6 @@ export class WorkspaceAiProviderEntity extends EntityRelationalHelper {
   createdAt: Date;
 }
 
-/**
- * AiUsageLog entity - theo schema mới
- * Table: ai_usage_logs
- */
 @Entity({ name: 'ai_usage_log' })
 export class AiUsageLogEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')

@@ -6,23 +6,17 @@ import { PermissionCheckResponseDto } from './dto/permission-check.dto';
 
 @Injectable()
 export class PermissionsService {
-  /**
-   * Get user capabilities based on role and custom permissions
-   */
   getUserCapabilities(user: User): UserCapabilitiesDto {
     const isAdmin = user.role === 'admin';
     const customPermissions = user.permissions || {};
 
-    // Base permissions from role
     const basePermissions = this.getBasePermissions(user.role);
 
-    // Merge with custom permissions
     const allPermissions = [
       ...basePermissions,
       ...Object.keys(customPermissions).filter((key) => customPermissions[key]),
     ];
 
-    // Build CRUD permissions for each resource
     const resources = [
       'user',
       'flow',
@@ -87,14 +81,11 @@ export class PermissionsService {
         can_manage_integrations: isAdmin,
         can_update_settings: isAdmin,
         is_admin: isAdmin,
-        is_super_admin: false, // TODO: Add super admin role
+        is_super_admin: false,
       },
     };
   }
 
-  /**
-   * Check if user has specific permissions
-   */
   checkPermissions(
     user: User,
     requiredPermissions: string[],
@@ -102,7 +93,6 @@ export class PermissionsService {
     const capabilities = this.getUserCapabilities(user);
     const userPermissions = new Set(capabilities.permissions);
 
-    // Admin has all permissions
     if (capabilities.role === 'admin') {
       return {
         hasPermission: true,
@@ -120,9 +110,6 @@ export class PermissionsService {
     };
   }
 
-  /**
-   * Get base permissions for a role
-   */
   private getBasePermissions(role?: 'admin' | 'user'): string[] {
     if (role === 'admin') {
       return [
@@ -144,7 +131,6 @@ export class PermissionsService {
       ];
     }
 
-    // Default user permissions
     return ['flows:read', 'flows:write', 'templates:read', 'bots:read'];
   }
 }

@@ -6,7 +6,6 @@ export class CreateWidgetVersioningTables1733235000000
     name = 'CreateWidgetVersioningTables1733235000000';
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        // 1. Create widget_version table
         await queryRunner.query(`
             CREATE TABLE "widget_version" (
                 "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -38,7 +37,6 @@ export class CreateWidgetVersioningTables1733235000000
             )
         `);
 
-        // 2. Create indexes for widget_version
         await queryRunner.query(`
             CREATE INDEX "idx_widget_version_bot_id" 
             ON "widget_version"("bot_id")
@@ -55,7 +53,6 @@ export class CreateWidgetVersioningTables1733235000000
             WHERE "is_active" = true
         `);
 
-        // 3. Create widget_deployment table
         await queryRunner.query(`
             CREATE TABLE "widget_deployment" (
                 "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -92,7 +89,6 @@ export class CreateWidgetVersioningTables1733235000000
             )
         `);
 
-        // 4. Create indexes for widget_deployment
         await queryRunner.query(`
             CREATE INDEX "idx_widget_deployment_bot" 
             ON "widget_deployment"("bot_id")
@@ -108,7 +104,6 @@ export class CreateWidgetVersioningTables1733235000000
             ON "widget_deployment"("deployed_at" DESC)
         `);
 
-        // 5. Create widget_analytics table
         await queryRunner.query(`
             CREATE TABLE "widget_analytics" (
                 "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -135,7 +130,6 @@ export class CreateWidgetVersioningTables1733235000000
             )
         `);
 
-        // 6. Create indexes for widget_analytics
         await queryRunner.query(`
             CREATE INDEX "idx_widget_analytics_bot" 
             ON "widget_analytics"("bot_id")
@@ -156,7 +150,6 @@ export class CreateWidgetVersioningTables1733235000000
             ON "widget_analytics"("created_at")
         `);
 
-        // 7. Migrate existing bot widget configs to widget_version
         await queryRunner.query(`
             INSERT INTO "widget_version" (
                 "bot_id",
@@ -213,7 +206,6 @@ export class CreateWidgetVersioningTables1733235000000
             WHERE "widget_enabled" = true
         `);
 
-        // 8. Create initial deployment records for migrated versions
         await queryRunner.query(`
             INSERT INTO "widget_deployment" (
                 "bot_id",
@@ -234,7 +226,6 @@ export class CreateWidgetVersioningTables1733235000000
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        // Drop tables in reverse order (due to foreign keys)
         await queryRunner.query(`DROP TABLE IF EXISTS "widget_analytics"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "widget_deployment"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "widget_version"`);

@@ -1,7 +1,3 @@
-/**
- * Execution Utilities
- * Helper functions for workflow execution display and formatting
- */
 
 /**
  * Generate execution reference string
@@ -61,23 +57,24 @@ export function getExecutionStatusColor(status: string): string {
 }
 
 /**
- * Get icon for execution status
+ * Get icon component name for execution status
+ * Returns the React Icon component name to use
  */
-export function getExecutionStatusIcon(status: string): string {
+export function getExecutionStatusIcon(status: string): 'FiCheckCircle' | 'FiLoader' | 'FiXCircle' | 'FiSlash' | 'FiCircle' {
   switch (status.toLowerCase()) {
     case 'completed':
     case 'success':
-      return '✓'
+      return 'FiCheckCircle'
     case 'running':
     case 'pending':
-      return '⟳'
+      return 'FiLoader'
     case 'failed':
     case 'error':
-      return '✕'
+      return 'FiXCircle'
     case 'cancelled':
-      return '⊘'
+      return 'FiSlash'
     default:
-      return '•'
+      return 'FiCircle'
   }
 }
 

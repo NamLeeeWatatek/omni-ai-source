@@ -44,7 +44,6 @@ export class AiProvidersService {
       process.env.ENCRYPTION_KEY || 'default-key-32-chars-long!!!!!';
   }
 
-  // Encryption helpers
   private encrypt(text: string): string {
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv(
@@ -70,7 +69,6 @@ export class AiProvidersService {
     return decrypted;
   }
 
-  // User AI Providers
   async createUserProvider(userId: string, dto: CreateUserAiProviderDto) {
     const provider = this.userProviderRepo.create({
       userId,
@@ -138,7 +136,6 @@ export class AiProvidersService {
     return this.userProviderRepo.save(provider);
   }
 
-  // Workspace AI Providers
   async createWorkspaceProvider(
     workspaceId: string,
     dto: CreateWorkspaceAiProviderDto,
@@ -191,7 +188,6 @@ export class AiProvidersService {
     await this.workspaceProviderRepo.remove(provider);
   }
 
-  // Usage Logging
   async logUsage(data: {
     workspaceId: string;
     userId: string;
@@ -267,7 +263,6 @@ export class AiProvidersService {
     return result;
   }
 
-  // API Key verification
   private async verifyApiKey(
     provider: string,
     apiKey: string,
@@ -300,7 +295,6 @@ export class AiProvidersService {
           return anthropicRes.ok || anthropicRes.status === 400;
 
         case 'google':
-          // Google AI verification
           return true;
 
         default:
@@ -311,7 +305,6 @@ export class AiProvidersService {
     }
   }
 
-  // Get decrypted API key for internal use
   async getDecryptedApiKey(
     type: 'user' | 'workspace',
     id: string,
@@ -329,13 +322,6 @@ export class AiProvidersService {
     }
   }
 
-  // ============================================
-  // AI Chat & Embedding Methods
-  // ============================================
-
-  /**
-   * Get API key for a provider (from env or database)
-   */
   private getApiKey(provider: string): string {
     const envKeys: Record<string, string | undefined> = {
       google: process.env.GOOGLE_API_KEY,
@@ -351,9 +337,6 @@ export class AiProvidersService {
     return key;
   }
 
-  /**
-   * Simple chat completion
-   */
   async chat(prompt: string, model?: string): Promise<string> {
     const modelName = model || 'gemini-2.0-flash';
     const provider = this.getProviderFromModel(modelName);
@@ -374,9 +357,6 @@ export class AiProvidersService {
     }
   }
 
-  /**
-   * Chat with conversation history
-   */
   async chatWithHistory(
     messages: ChatMessage[],
     model?: string,
@@ -400,9 +380,6 @@ export class AiProvidersService {
     }
   }
 
-  /**
-   * Generate embedding for text
-   */
   async generateEmbedding(
     text: string,
     provider: string = 'google',
@@ -426,9 +403,6 @@ export class AiProvidersService {
     }
   }
 
-  /**
-   * Determine provider from model name
-   */
   private getProviderFromModel(model: string): string {
     if (model.startsWith('gemini') || model.startsWith('text-embedding')) {
       return 'google';
@@ -443,10 +417,9 @@ export class AiProvidersService {
     if (model.startsWith('claude')) {
       return 'anthropic';
     }
-    return 'google'; // default
+    return 'google';
   }
 
-  // Google AI implementations
   private async chatWithGoogle(prompt: string, model: string): Promise<string> {
     const apiKey = this.getApiKey('google');
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -462,14 +435,11 @@ export class AiProvidersService {
     const apiKey = this.getApiKey('google');
     const genAI = new GoogleGenerativeAI(apiKey);
     
-    // Convert messages to Google format
     const systemMessage = messages.find((m) => m.role === 'system');
     const chatMessages = messages.filter((m) => m.role !== 'system');
 
-    // Configure model with system instruction if provided
     const modelConfig: any = { 
       model,
-      // Reduce safety filters to allow more flexible responses
       safetySettings: [
         {
           category: 'HARM_CATEGORY_HARASSMENT',
@@ -491,11 +461,9 @@ export class AiProvidersService {
     };
     
     if (systemMessage?.content) {
-      // System instruction format for Gemini
       modelConfig.systemInstruction = {
         parts: [{ text: systemMessage.content }],
       };
-      console.log('[Gemini] Using system instruction:', systemMessage.content.substring(0, 100) + '...');
     }
     
     const genModel = genAI.getGenerativeModel(modelConfig);
@@ -525,7 +493,6 @@ export class AiProvidersService {
     return result.embedding.values;
   }
 
-  // OpenAI implementations
   private async chatWithOpenAI(prompt: string, model: string): Promise<string> {
     const apiKey = this.getApiKey('openai');
     const openai = new OpenAI({ apiKey });
@@ -562,7 +529,6 @@ export class AiProvidersService {
     return response.data[0].embedding;
   }
 
-  // Anthropic implementations
   private async chatWithAnthropic(
     prompt: string,
     model: string,

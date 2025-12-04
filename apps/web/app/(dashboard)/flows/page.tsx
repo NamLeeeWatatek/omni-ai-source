@@ -61,7 +61,6 @@ interface WorkflowWithNodes {
     }
 }
 
-// Dropdown Menu Component
 function FlowDropdownMenu({
     flowId,
     flowName,
@@ -77,7 +76,6 @@ function FlowDropdownMenu({
     const dispatch = useAppDispatch()
     const { canUpdate, canDelete, isLoading } = usePermissions()
 
-    // Show all options while loading
     if (isLoading) {
         return (
             <DropdownMenu>
@@ -101,7 +99,6 @@ function FlowDropdownMenu({
         try {
             const duplicated = await dispatch(duplicateFlow(flowId)).unwrap()
             router.push(`/flows/${duplicated.id}/edit`)
-            // toast.success('Flow duplicated!') - Removed to reduce notifications
         } catch (error) {
             toast.error('Failed to duplicate')
         }
@@ -223,21 +220,17 @@ export default function WorkflowsPage() {
     const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'published' | 'archived'>('all')
     const [showTemplateSelector, setShowTemplateSelector] = useState(false)
 
-    // Delete Dialog State
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [flowToDelete, setFlowToDelete] = useState<{ id: number; name: string } | null>(null)
 
-    // Run Modal State
     const [runModalOpen, setRunModalOpen] = useState(false)
     const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowWithNodes | null>(null)
     const [workflowInputFields, setWorkflowInputFields] = useState<InputField[]>([])
 
-    // Pagination hook with page_size = 25 for flows
     const pagination = usePagination({
         initialPage: 1,
         initialPageSize: 25,
         onParamsChange: (params) => {
-            // Send status filter to backend
             dispatch(fetchFlows({
                 ...params,
                 status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -245,9 +238,7 @@ export default function WorkflowsPage() {
         }
     })
 
-    // Load flows on mount and when filters change
     useEffect(() => {
-        // All filtering happens on backend
         dispatch(fetchFlows({
             page: pagination.page,
             page_size: pagination.pageSize,
@@ -258,10 +249,8 @@ export default function WorkflowsPage() {
 
     const handleRunClick = async (workflowId: string) => {
         try {
-            // Fetch full workflow data to get nodes
             const fullWorkflow = await axiosClient.get(`/flows/${workflowId}`) as any
 
-            // IMPORTANT: Backend uses 'data' field, not 'flow_data'
             const flowData = fullWorkflow.data || fullWorkflow.flow_data || {}
             const nodes = flowData.nodes || []
 
@@ -272,7 +261,6 @@ export default function WorkflowsPage() {
                 setWorkflowInputFields(startNode.data.config.inputFields)
                 setRunModalOpen(true)
             } else {
-                // No inputs needed, just run
                 executeWorkflow(fullWorkflow.id, {})
             }
         } catch (error) {
@@ -302,23 +290,19 @@ export default function WorkflowsPage() {
     const handleDeleteConfirm = async () => {
         if (!flowToDelete) return
 
-        // Close dialog immediately
         setDeleteDialogOpen(false)
         const flowId = flowToDelete.id
         setFlowToDelete(null)
 
         try {
             await dispatch(deleteFlow(flowId)).unwrap()
-            // toast.success('Flow deleted!') - Removed to reduce notifications
         } catch (error) {
             toast.error('Failed to delete')
         }
     }
 
-    // Display flows directly from backend (no client-side filtering)
     const displayFlows = Array.isArray(flows) ? flows : []
 
-    // Use stats from backend response (already calculated server-side)
     const stats = backendStats || {
         total: total || 0,
         active: 0,
@@ -330,7 +314,7 @@ export default function WorkflowsPage() {
 
     return (
         <div className="h-full">
-            {/* Header */}
+            {}
             <div className="page-header flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold mb-2">Workflows</h1>
@@ -357,17 +341,17 @@ export default function WorkflowsPage() {
                 </div>
             </div>
 
-            {/* Stats */}
+            {}
             <WorkflowStats stats={stats} />
 
-            {/* Filters & Search */}
+            {}
             <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="flex-1">
                     <SearchBar onSearch={pagination.handleSearchChange} />
                 </div>
                 <div className="flex items-center gap-2">
-                    {/* Status Filter */}
-                    <div className="glass rounded-lg p-1 flex items-center gap-1">
+                    {}
+                    <Card className="p-1 flex items-center gap-1">
                         <button
                             onClick={() => setStatusFilter('all')}
                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${statusFilter === 'all'
@@ -404,10 +388,10 @@ export default function WorkflowsPage() {
                         >
                             Archived ({stats.archived})
                         </button>
-                    </div>
+                    </Card>
 
-                    {/* View Mode Toggle */}
-                    <div className="glass p-1 rounded-lg flex items-center">
+                    {}
+                    <Card className="p-1 flex items-center">
                         <button
                             onClick={() => setViewMode('grid')}
                             className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
@@ -420,11 +404,11 @@ export default function WorkflowsPage() {
                         >
                             <FiList className="w-4 h-4" />
                         </button>
-                    </div>
+                    </Card>
                 </div >
             </div >
 
-            {/* Content */}
+            {}
             {
                 loading ? (
                     <div className="flex justify-center items-center py-20">
@@ -468,7 +452,7 @@ export default function WorkflowsPage() {
                             />
                         )}
 
-                        {/* Pagination */}
+                        {}
                         {totalPages > 1 && (
                             <Pagination
                                 currentPage={page || pagination.page}
@@ -483,21 +467,19 @@ export default function WorkflowsPage() {
                 )
             }
 
-            {/* Template Selector */}
+            {}
             {
                 showTemplateSelector && (
                     <TemplateSelector
                         onSelect={async (templateData) => {
                             setShowTemplateSelector(false)
 
-                            // Store template in Redux instead of localStorage
                             dispatch(setDraftTemplate({
                                 name: templateData.name,
                                 nodes: templateData.nodes || [],
                                 edges: templateData.edges || []
                             }))
 
-                            // Redirect to create new flow
                             router.push('/flows/new/edit')
                         }}
                         onClose={() => setShowTemplateSelector(false)}
@@ -505,7 +487,7 @@ export default function WorkflowsPage() {
                 )
             }
 
-            {/* Run Modal */}
+            {}
             <WorkflowRunModal
                 isOpen={runModalOpen}
                 onClose={() => setRunModalOpen(false)}
@@ -519,7 +501,7 @@ export default function WorkflowsPage() {
                 workflowName={selectedWorkflow?.name || ''}
             />
 
-            {/* Delete Confirmation Dialog */}
+            {}
             <AlertDialog open={deleteDialogOpen} onOpenChange={(open) => {
                 setDeleteDialogOpen(open)
                 if (!open) setFlowToDelete(null)

@@ -18,13 +18,11 @@ interface FlowsContextType {
   loading: boolean
   error: string | null
 
-  // Read operations
   getFlow: (id: string) => Flow | undefined
   getFlowsByStatus: (status: string) => Flow[]
   refreshFlows: () => Promise<void>
   refreshSingleFlow: (id: string) => Promise<Flow>
 
-  // Write operations
   createNewFlow: (data: FlowCreateData) => Promise<Flow>
   updateExistingFlow: (id: string, data: FlowUpdateData) => Promise<Flow>
   deleteExistingFlow: (id: string) => Promise<void>
@@ -39,7 +37,6 @@ export function FlowsProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Load all flows
   const loadFlows = useCallback(async () => {
     try {
       setLoading(true)
@@ -55,17 +52,14 @@ export function FlowsProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Get single flow from cache
   const getFlow = useCallback((id: string) => {
     return flows.find(f => f.id === id)
   }, [flows])
 
-  // Get flows by status
   const getFlowsByStatus = useCallback((status: string) => {
     return flows.filter(f => f.status === status)
   }, [flows])
 
-  // Refresh single flow (fetch from API and update cache)
   const refreshSingleFlow = useCallback(async (id: string) => {
     try {
       const updated = await fetchFlow(id)
@@ -84,7 +78,6 @@ export function FlowsProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Create flow
   const createNewFlow = useCallback(async (data: FlowCreateData) => {
     try {
       const newFlow = await createFlow(data)
@@ -98,9 +91,7 @@ export function FlowsProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Update flow with optimistic update
   const updateExistingFlow = useCallback(async (id: string, data: FlowUpdateData) => {
-    // Optimistic update
     const previousFlows = flows
     setFlows(prev => prev.map(f => f.id === id ? { ...f, ...data } : f))
 
@@ -110,7 +101,6 @@ export function FlowsProvider({ children }: { children: ReactNode }) {
       toast.success('Workflow updated successfully')
       return updated
     } catch (err: any) {
-      // Rollback on error
       setFlows(previousFlows)
 
       toast.error(err.message || 'Failed to update workflow')
@@ -118,9 +108,7 @@ export function FlowsProvider({ children }: { children: ReactNode }) {
     }
   }, [flows])
 
-  // Delete flow
   const deleteExistingFlow = useCallback(async (id: string) => {
-    // Optimistic delete
     const previousFlows = flows
     setFlows(prev => prev.filter(f => f.id !== id))
 
@@ -128,7 +116,6 @@ export function FlowsProvider({ children }: { children: ReactNode }) {
       await deleteFlow(id)
       toast.success('Workflow deleted successfully')
     } catch (err: any) {
-      // Rollback on error
       setFlows(previousFlows)
 
       toast.error(err.message || 'Failed to delete workflow')
@@ -136,10 +123,8 @@ export function FlowsProvider({ children }: { children: ReactNode }) {
     }
   }, [flows])
 
-  // Duplicate flow
   const duplicateExistingFlow = useCallback(async (id: string) => {
     try {
-      // TODO: Implement duplicate API endpoint
       toast.error('Duplicate feature not yet implemented')
       throw new Error('Not implemented')
     } catch (err: any) {
@@ -148,10 +133,8 @@ export function FlowsProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Archive flow
   const archiveExistingFlow = useCallback(async (id: string) => {
     try {
-      // TODO: Implement archive API endpoint
       toast.error('Archive feature not yet implemented')
       throw new Error('Not implemented')
     } catch (err: any) {

@@ -36,12 +36,10 @@ export function AlertDialogConfirm({
   const handleConfirm = async () => {
     try {
       await onConfirm()
-      // Only close if still open (parent might have closed it already)
       if (open) {
         onOpenChange(false)
       }
     } catch (error) {
-      // If error, don't close dialog so user can see error toast
 
     }
   }

@@ -22,16 +22,13 @@ async function bootstrap() {
     },
   });
 
-  // Cấu hình helmet để cho phép nhúng widget vào các trang web khác
   app.use(
     helmet({
-      contentSecurityPolicy: false, // Tắt CSP nếu cần
-      frameguard: false, // Tắt X-Frame-Options mặc định để tự cấu hình
+      contentSecurityPolicy: false,
+      frameguard: false,
     }),
   );
 
-  // Cho phép nhúng từ mọi domain (ALLOWALL)
-  // Nếu muốn giới hạn domain cụ thể, thay đổi middleware này
   app.use((_req: any, res: any, next: any) => {
     res.removeHeader('X-Frame-Options');
     next();
@@ -51,8 +48,6 @@ async function bootstrap() {
   });
   app.useGlobalPipes(new ValidationPipe(validationOptions));
   app.useGlobalInterceptors(
-    // ResolvePromisesInterceptor is used to resolve promises in responses because class-transformer can't do it
-    // https://github.com/typestack/class-transformer/issues/549
     new ResolvePromisesInterceptor(),
     new ClassSerializerInterceptor(app.get(Reflector)),
   );

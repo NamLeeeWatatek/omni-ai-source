@@ -1,7 +1,3 @@
-/**
- * Node Types & Interfaces
- * Centralized type definitions for Node management
- */
 
 export interface NodeProperty {
   name: string

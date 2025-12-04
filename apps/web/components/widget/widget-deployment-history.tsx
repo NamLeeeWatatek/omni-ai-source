@@ -96,21 +96,21 @@ export function WidgetDeploymentHistory({ deployments, isLoading }: Props) {
 
     return (
         <div className="space-y-4">
-            {/* Timeline */}
+            {}
             <div className="relative">
-                {/* Timeline line */}
+                {}
                 <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-border" />
 
-                {/* Deployment items */}
+                {}
                 <div className="space-y-6">
                     {deployments.map((deployment) => (
                         <div key={deployment.id} className="relative pl-14">
-                            {/* Timeline dot */}
+                            {}
                             <div className="absolute left-0 top-1 w-12 h-12 rounded-full bg-background border-2 border-border flex items-center justify-center">
                                 {getDeploymentIcon(deployment.deploymentType)}
                             </div>
 
-                            {/* Content */}
+                            {}
                             <Card>
                                 <CardContent className="p-6">
                                     <div className="flex items-start justify-between mb-3">

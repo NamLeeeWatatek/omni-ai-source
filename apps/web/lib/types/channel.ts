@@ -1,7 +1,3 @@
-/**
- * Channel Types & Interfaces
- * Centralized type definitions for Channel management
- */
 
 export interface ChannelType {
   id: string

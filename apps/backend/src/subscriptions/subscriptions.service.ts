@@ -25,7 +25,6 @@ export class SubscriptionsService {
     private invoiceRepo: Repository<InvoiceEntity>,
   ) {}
 
-  // Plans
   async getPlans() {
     return this.planRepo.find({ order: { priceMonthly: 'ASC' } });
   }
@@ -41,7 +40,6 @@ export class SubscriptionsService {
     return this.planRepo.save(plan);
   }
 
-  // Subscriptions
   async getSubscription(workspaceId: string) {
     return this.subscriptionRepo.findOne({
       where: { workspaceId },
@@ -57,7 +55,6 @@ export class SubscriptionsService {
   }) {
     const plan = await this.getPlan(data.planId);
 
-    // Calculate period end (1 month from now)
     const currentPeriodEnd = new Date();
     currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
 
@@ -92,13 +89,12 @@ export class SubscriptionsService {
     const subscription = await this.getSubscription(workspaceId);
     if (!subscription) throw new NotFoundException('Subscription not found');
 
-    await this.getPlan(newPlanId); // Validate plan exists
+    await this.getPlan(newPlanId);
     subscription.planId = newPlanId;
 
     return this.subscriptionRepo.save(subscription);
   }
 
-  // Usage Quotas
   async getQuota(workspaceId: string) {
     const periodStart = this.getCurrentPeriodStart();
 
@@ -157,7 +153,6 @@ export class SubscriptionsService {
     };
   }
 
-  // Invoices
   async getInvoices(workspaceId: string) {
     return this.invoiceRepo.find({
       where: { workspaceId },
@@ -196,7 +191,6 @@ export class SubscriptionsService {
     return this.invoiceRepo.save(invoice);
   }
 
-  // Helpers
   private getCurrentPeriodStart(): Date {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);

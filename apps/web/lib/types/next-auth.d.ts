@@ -1,6 +1,5 @@
 import { DefaultSession } from "next-auth"
 
-// Minimal workspace info stored in session
 export interface SessionWorkspace {
   id: string
   name: string

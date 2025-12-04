@@ -1,11 +1,3 @@
-﻿/**
- * Flow/Workflow related type definitions
- * Synced with backend: apps/backend/src/flows/
- */
-
-// ============================================================================
-// Flow Entity
-// ============================================================================
 
 export interface Flow {
   id: string
@@ -20,10 +12,6 @@ export interface Flow {
   createdAt: string
   updatedAt: string
 }
-
-// ============================================================================
-// Flow DTOs
-// ============================================================================
 
 export interface CreateFlowDto {
   name: string
@@ -51,10 +39,6 @@ export interface CreateFlowFromTemplateDto {
   description?: string
 }
 
-// ============================================================================
-// Flow Responses
-// ============================================================================
-
 export interface GetFlowsResponse {
   data: Flow[]
   success: boolean
@@ -78,10 +62,6 @@ export interface UpdateFlowResponse {
 export interface DeleteFlowResponse {
   success: boolean
 }
-
-// ============================================================================
-// Flow Execution
-// ============================================================================
 
 export interface FlowExecution {
   id: string
@@ -116,10 +96,6 @@ export interface GetExecutionResponse {
   success: boolean
 }
 
-// ============================================================================
-// Workflow Nodes (UI)
-// ============================================================================
-
 export interface WorkflowNode {
   id: string
   type: string
@@ -142,10 +118,6 @@ export interface WorkflowEdge {
   targetHandle?: string
   type?: string
 }
-
-// ============================================================================
-// Legacy (for backward compatibility)
-// ============================================================================
 
 export interface ExecutionStatus {
   id: string

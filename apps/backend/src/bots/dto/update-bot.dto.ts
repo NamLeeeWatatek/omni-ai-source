@@ -83,7 +83,6 @@ export class UpdateBotDto extends PartialType(CreateBotDto) {
   @IsBoolean()
   enableAutoLearn?: boolean;
 
-  // Widget Appearance Settings
   @ApiPropertyOptional({ example: '#667eea' })
   @IsOptional()
   @IsString()

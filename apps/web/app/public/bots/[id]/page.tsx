@@ -30,11 +30,8 @@ export default function PublicBotPage() {
             const response = await fetch(`${API_URL}/public/bots/${botId}/config`)
             if (!response.ok) throw new Error('Failed to load bot')
             const data = await response.json()
-            console.log('[Widget] Bot config loaded:', data)
-            console.log('[Widget] Theme:', data.theme)
             setBot(data)
             
-            // Add welcome message
             if (data.welcomeMessage) {
                 setMessages([{
                     role: 'assistant',
@@ -43,7 +40,6 @@ export default function PublicBotPage() {
                 }])
             }
         } catch (error) {
-            console.error('[Widget] Failed to load bot:', error)
         }
     }
 
@@ -63,7 +59,6 @@ export default function PublicBotPage() {
             const data = await response.json()
             setConversationId(data.conversationId)
         } catch (error) {
-            console.error('[Widget] Failed to create conversation:', error)
         }
     }
 
@@ -92,7 +87,6 @@ export default function PublicBotPage() {
                 metadata: data.metadata,
             }])
         } catch (error) {
-            console.error('[Widget] Failed to send message:', error)
             setMessages(prev => [...prev, {
                 role: 'assistant',
                 content: 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại.',
@@ -124,7 +118,7 @@ export default function PublicBotPage() {
                 }
             `}</style>
 
-            {/* Floating Button */}
+            {}
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 style={{
@@ -162,7 +156,7 @@ export default function PublicBotPage() {
                 </svg>
             </button>
 
-            {/* Chat Window */}
+            {}
             {isOpen && (
                 <div style={{
                     position: 'fixed',
@@ -180,7 +174,7 @@ export default function PublicBotPage() {
                     zIndex: 999998,
                     overflow: 'hidden',
                 }}>
-                    {/* Header */}
+                    {}
                     <div style={{
                         background: `linear-gradient(135deg, ${primaryColor} 0%, ${adjustColor(primaryColor, -20)} 100%)`,
                         color: 'white',
@@ -224,7 +218,7 @@ export default function PublicBotPage() {
                         </button>
                     </div>
 
-                    {/* Messages */}
+                    {}
                     <div style={{
                         flex: 1,
                         overflowY: 'auto',
@@ -272,7 +266,7 @@ export default function PublicBotPage() {
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {/* Input */}
+                    {}
                     <div style={{
                         padding: '16px',
                         borderTop: '1px solid #e5e7eb',

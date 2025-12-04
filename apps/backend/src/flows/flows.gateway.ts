@@ -30,15 +30,12 @@ export class FlowsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  private activeUsers = new Map<string, Set<string>>(); // flowId -> Set of socketIds
+  private activeUsers = new Map<string, Set<string>>();
 
   handleConnection(client: Socket) {
-    console.log(`Client connected: ${client.id}`);
   }
 
   handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: ${client.id}`);
-    // Remove from all flows
     this.activeUsers.forEach((users, flowId) => {
       users.delete(client.id);
       if (users.size === 0) {
@@ -54,23 +51,19 @@ export class FlowsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const { flowId, userId } = data;
 
-    // Join room
     client.join(`flow-${flowId}`);
 
-    // Track active user
     if (!this.activeUsers.has(flowId)) {
       this.activeUsers.set(flowId, new Set());
     }
     this.activeUsers.get(flowId)!.add(client.id);
 
-    // Notify others
     client.to(`flow-${flowId}`).emit('user-joined', {
       userId,
       socketId: client.id,
       timestamp: Date.now(),
     });
 
-    // Send current active users
     return {
       activeUsers: Array.from(this.activeUsers.get(flowId) || []),
     };
@@ -83,13 +76,10 @@ export class FlowsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const { flowId, userId } = data;
 
-    // Leave room
     client.leave(`flow-${flowId}`);
 
-    // Remove from active users
     this.activeUsers.get(flowId)?.delete(client.id);
 
-    // Notify others
     client.to(`flow-${flowId}`).emit('user-left', {
       userId,
       socketId: client.id,
@@ -104,7 +94,6 @@ export class FlowsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const { flowId, userId, nodes, edges, timestamp } = data;
 
-    // Broadcast to others in the same flow (except sender)
     client.to(`flow-${flowId}`).emit('flow-updated', {
       userId,
       nodes,
@@ -123,7 +112,6 @@ export class FlowsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const { flowId, userId, x, y } = data;
 
-    // Broadcast cursor position to others
     client.to(`flow-${flowId}`).emit('cursor-moved', {
       userId,
       socketId: client.id,
@@ -141,7 +129,6 @@ export class FlowsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const { flowId, userId, nodeId } = data;
 
-    // Broadcast node selection
     client.to(`flow-${flowId}`).emit('node-selected', {
       userId,
       nodeId,
@@ -149,7 +136,6 @@ export class FlowsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
-  // Server-side methods to emit events
   emitFlowSaved(flowId: string, data: any) {
     this.server.to(`flow-${flowId}`).emit('flow-saved', {
       flowId,

@@ -16,7 +16,6 @@ export function useTokenRefresh() {
 
     try {
 
-
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/auth/refresh`,
         {
@@ -34,14 +33,12 @@ export function useTokenRefresh() {
 
       const data = await response.json()
 
-
       await update({
         ...session,
         accessToken: data.token,
         refreshToken: data.refreshToken || session.refreshToken,
         tokenExpires: data.tokenExpires,
       })
-
 
     } catch (error) {
 
@@ -62,7 +59,6 @@ export function useTokenRefresh() {
     const expiresAt = session.tokenExpires
     const timeUntilExpiry = expiresAt - now
 
-
     if (timeUntilExpiry < TOKEN_EXPIRY_BUFFER) {
       refreshToken()
       return
@@ -70,13 +66,10 @@ export function useTokenRefresh() {
 
     const refreshIn = Math.min(REFRESH_INTERVAL, timeUntilExpiry - TOKEN_EXPIRY_BUFFER)
 
-
-
     refreshTimerRef.current = setTimeout(() => {
       refreshToken()
     }, refreshIn)
   }, [session?.tokenExpires, refreshToken])
-
 
   useEffect(() => {
     if (session?.accessToken) {
@@ -89,7 +82,6 @@ export function useTokenRefresh() {
       }
     }
   }, [session?.accessToken, scheduleRefresh])
-
 
   const manualRefresh = useCallback(async () => {
     await refreshToken()

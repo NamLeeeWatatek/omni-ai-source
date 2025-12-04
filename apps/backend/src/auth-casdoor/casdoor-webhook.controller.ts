@@ -10,10 +10,6 @@ import {
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { CasdoorSyncService } from './casdoor-sync.service';
 
-/**
- * Casdoor Webhook Controller
- * Handles webhook events from Casdoor
- */
 @ApiTags('Casdoor Webhooks')
 @Controller({
   path: 'webhooks/casdoor',
@@ -24,10 +20,6 @@ export class CasdoorWebhookController {
 
   constructor(private readonly casdoorSyncService: CasdoorSyncService) {}
 
-  /**
-   * Handle Casdoor webhook events
-   * Configure this URL in Casdoor: http://your-backend/api/v1/webhooks/casdoor
-   */
   @Post()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Handle Casdoor webhook events' })
@@ -47,13 +39,10 @@ export class CasdoorWebhookController {
           break;
 
         case 'user-deleted':
-          // Note: We might not want to auto-delete users from backend
-          // Just log for now
           this.logger.log(`User deleted in Casdoor: ${data?.email}`);
           break;
 
         case 'role-updated':
-          // Trigger full sync when roles change
           this.logger.log('Role updated in Casdoor, triggering user sync...');
           await this.casdoorSyncService.syncUsersFromCasdoor();
           break;
@@ -65,14 +54,10 @@ export class CasdoorWebhookController {
       return { success: true };
     } catch (error) {
       this.logger.error(`Webhook processing failed: ${error.message}`);
-      // Return success anyway to avoid Casdoor retrying
       return { success: true };
     }
   }
 
-  /**
-   * Trigger manual sync (admin only)
-   */
   @Post('sync')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Manually trigger user sync from Casdoor' })
@@ -80,9 +65,6 @@ export class CasdoorWebhookController {
     return this.casdoorSyncService.triggerManualSync();
   }
 
-  /**
-   * Get sync status
-   */
   @Get('status')
   @ApiOperation({ summary: 'Get sync status' })
   getSyncStatus(): { isSyncing: boolean } {

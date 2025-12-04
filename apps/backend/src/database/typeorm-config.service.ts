@@ -31,8 +31,6 @@ export class TypeOrmConfigService implements TypeOrmOptionsFactory {
         subscribersDir: 'subscriber',
       },
       extra: {
-        // based on https://node-postgres.com/apis/pool
-        // max connection pool size
         max: this.configService.get('database.maxConnections', { infer: true }),
         ssl: this.configService.get('database.sslEnabled', { infer: true })
           ? {

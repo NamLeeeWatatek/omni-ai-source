@@ -1,12 +1,7 @@
-/**
- * Workflow Editor & Components Types
- * Centralized type definitions for workflow editor
- */
 
 import type { Node, Edge } from 'reactflow'
 import type { NodeType } from './node'
 
-// Workflow Editor State
 export interface DraftTemplate {
   id: string
   name: string
@@ -24,7 +19,6 @@ export interface WorkflowEditorState {
   draftTemplates: DraftTemplate[]
 }
 
-// Workflow Components Props
 export interface NodePaletteProps {
   onAddNode: (nodeType: NodeType) => void
 }
@@ -58,7 +52,6 @@ export interface CustomNodeProps {
   selected?: boolean
 }
 
-// Workflow Run Modal
 export interface InputField {
   id: string
   label: string
@@ -91,7 +84,6 @@ export interface ExecuteFlowModalProps {
   }>
 }
 
-// Test Node
 export interface TestNodePanelProps {
   node: Node
   onClose: () => void
@@ -111,7 +103,6 @@ export interface TestNodeResult {
   duration?: number
 }
 
-// Workflow Stats
 export interface WorkflowStatsProps {
   stats: {
     total: number
@@ -121,7 +112,6 @@ export interface WorkflowStatsProps {
   }
 }
 
-// Workflow Card
 export interface WorkflowCardProps {
   workflow: {
     id: number
@@ -139,7 +129,6 @@ export interface WorkflowCardProps {
   onDelete?: () => void
 }
 
-// Flows Table
 export interface FlowsTableProps {
   flows: Array<{
     id: number
@@ -154,7 +143,6 @@ export interface FlowsTableProps {
   onUpdate: () => void
 }
 
-// Dynamic Form Field
 export interface FormFieldProps {
   field: {
     name: string
@@ -174,7 +162,6 @@ export interface FormFieldProps {
   nodeData?: Record<string, any>
 }
 
-// Key-Value Editor
 export interface KeyValuePair {
   key: string
   value: string

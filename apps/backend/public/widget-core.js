@@ -12,25 +12,20 @@
         }
 
         async init() {
-            console.log('[WataOmi Widget Core] Initializing with config:', this.config);
             
-            // Create container (hidden initially)
             this.container = document.createElement('div');
             this.container.id = 'wataomi-widget-container';
             this.container.style.cssText = 'position: fixed; z-index: 999999; opacity: 0; transition: opacity 0.3s;';
             document.body.appendChild(this.container);
 
-            // Render initial state
             this.render();
 
-            // Show container after render
             setTimeout(() => {
                 if (this.container) {
                     this.container.style.opacity = '1';
                 }
             }, 50);
 
-            // Create conversation
             await this.createConversation();
         }
 
@@ -56,7 +51,6 @@
                     const data = await response.json();
                     this.conversationId = data.conversationId;
                     
-                    // Add welcome message
                     const welcomeMessage = this.config.botConfig?.welcomeMessage || 
                         'Xin chào! Tôi có thể giúp gì cho bạn?';
                     
@@ -69,7 +63,6 @@
                     this.render();
                 }
             } catch (error) {
-                console.error('[WataOmi Widget] Failed to create conversation:', error);
             }
         }
 
@@ -106,7 +99,6 @@
                     throw new Error('Failed to send message');
                 }
             } catch (error) {
-                console.error('[WataOmi Widget] Failed to send message:', error);
                 this.messages.push({
                     role: 'assistant',
                     content: 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại.',
@@ -342,7 +334,6 @@
                         color: rgba(255,255,255,0.6);
                     }
                     
-                    /* Mobile responsive */
                     @media (max-width: 480px) {
                         .wataomi-window {
                             width: 100vw !important;
@@ -420,7 +411,6 @@
                 </div>
             `;
 
-            // Scroll to bottom
             setTimeout(() => {
                 const messagesContainer = document.getElementById('wataomi-messages');
                 if (messagesContainer) {
@@ -428,7 +418,6 @@
                 }
             }, 0);
 
-            // Add event listeners
             const toggleBtn = document.getElementById('wataomi-toggle');
             const closeBtn = document.getElementById('wataomi-close');
             const input = document.getElementById('wataomi-input');
@@ -459,7 +448,6 @@
                     }
                 };
 
-                // Auto-focus input when opened
                 if (this.isOpen) {
                     setTimeout(() => input.focus(), 100);
                 }
@@ -473,7 +461,6 @@
         }
 
         adjustColor(color, amount) {
-            // Simple color adjustment (darken/lighten)
             const num = parseInt(color.replace('#', ''), 16);
             const r = Math.max(0, Math.min(255, (num >> 16) + amount));
             const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
@@ -482,6 +469,5 @@
         }
     }
 
-    // Expose to global scope
     window.WataOmiWidgetCore = WataOmiWidgetCore;
 })();

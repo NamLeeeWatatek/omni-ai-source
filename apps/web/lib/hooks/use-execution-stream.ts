@@ -49,7 +49,6 @@ export function useExecutionStream(
         setIsExecuting(true)
         setError(null)
 
-        // Reset all nodes to idle
         setNodes((nds) =>
             nds.map((node) => ({
                 ...node,
@@ -65,14 +64,10 @@ export function useExecutionStream(
         try {
             const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
 
-            // Get token from NextAuth session
             const { getSession } = await import('next-auth/react')
             const session = await getSession()
             const token = session?.accessToken
 
-
-
-            // Use fetch with streaming instead of EventSource (for POST support)
             const response = await fetch(`${API_URL}/executions/stream`, {
                 method: 'POST',
                 headers: {
@@ -84,8 +79,6 @@ export function useExecutionStream(
                     input_data: inputData
                 })
             })
-
-
 
             if (!response.ok) {
                 const errorText = await response.text()
@@ -100,8 +93,6 @@ export function useExecutionStream(
                 throw new Error('No response body')
             }
 
-            // Read stream
-
             let eventCount = 0
 
             while (true) {
@@ -114,17 +105,15 @@ export function useExecutionStream(
 
                 const text = decoder.decode(value, { stream: true })
 
-
                 const lines = text.split('\n')
 
                 for (const line of lines) {
                     if (line.startsWith('data: ')) {
-                        const jsonStr = line.slice(6) // Remove 'data: ' prefix
+                        const jsonStr = line.slice(6)
 
                         try {
                             const event: ExecutionEvent = JSON.parse(jsonStr)
                             eventCount++
-
 
                             switch (event.type) {
                                 case 'executionStarted':

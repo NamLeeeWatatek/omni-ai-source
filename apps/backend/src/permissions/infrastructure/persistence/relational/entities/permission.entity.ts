@@ -15,16 +15,16 @@ export class PermissionEntity extends EntityRelationalHelper {
   id: string;
 
   @Column({ unique: true })
-  name: string; // Format: "resource:action" (e.g., "flow:create")
+  name: string;
 
   @Column({ nullable: true })
   description: string;
 
   @Column()
-  resource: string; // flow, bot, user, channel, etc.
+  resource: string;
 
   @Column()
-  action: string; // create, read, update, delete, execute
+  action: string;
 
   @ManyToMany(() => RoleEntity, (role) => role.permissions)
   roles: RoleEntity[];

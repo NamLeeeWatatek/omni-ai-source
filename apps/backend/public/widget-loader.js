@@ -1,9 +1,6 @@
 (function() {
     'use strict';
 
-    /* VERSION_PLACEHOLDER */
-
-    // Configuration from script tag attributes
     const script = document.currentScript;
     const config = {
         botId: script.getAttribute('data-bot-id'),
@@ -15,18 +12,12 @@
     };
 
     if (!config.botId) {
-        console.error('[WataOmi Widget] Error: data-bot-id is required');
         return;
     }
 
-    console.log('[WataOmi Widget] Initializing version:', config.version || 'unknown');
-
-    // State
     let widgetLoaded = false;
     let widgetCore = null;
 
-    // Create minimal button first (fast load)
-    // Hidden until config loads to prevent FOUC
     function createButton() {
         const button = document.createElement('div');
         button.id = 'wataomi-widget-button';
@@ -67,36 +58,27 @@
         button.onclick = loadWidget;
         document.body.appendChild(button);
 
-        // Load config immediately and show button when ready
         loadConfigAndShowButton(button);
     }
 
-    // Load config first to prevent FOUC
     async function loadConfigAndShowButton(button) {
         try {
-            console.log('[WataOmi Widget] Fetching config from:', `${config.apiUrl}/public/bots/${config.botId}/config`);
             const configResponse = await fetch(`${config.apiUrl}/public/bots/${config.botId}/config`);
             if (!configResponse.ok) {
                 throw new Error('Failed to fetch bot config');
             }
             const botConfig = await configResponse.json();
-            console.log('[WataOmi Widget] Config received:', botConfig);
             
-            // Store config
             config.version = botConfig.version;
             config.versionId = botConfig.versionId;
             config.botConfig = botConfig;
 
-            // Apply theme to button
             const theme = botConfig.theme || {};
             const primaryColor = theme.primaryColor || '#667eea';
             const position = theme.position || config.position || 'bottom-right';
             const buttonSize = theme.buttonSize === 'large' ? '64px' : 
                               theme.buttonSize === 'small' ? '48px' : '56px';
             
-            console.log('[WataOmi Widget] Applying theme:', { primaryColor, position, buttonSize });
-
-            // Update button with correct config
             button.style.cssText = `
                 position: fixed;
                 ${position.includes('right') ? 'right: 20px;' : 'left: 20px;'}
@@ -116,16 +98,12 @@
                 pointer-events: auto;
             `;
 
-            console.log('[WataOmi Widget] Config loaded, button ready with version:', config.version);
         } catch (error) {
-            console.error('[WataOmi Widget] Failed to load config:', error);
-            // Show button anyway with default config
             button.style.opacity = '1';
             button.style.pointerEvents = 'auto';
         }
     }
 
-    // Helper function to adjust color
     function adjustColor(color, amount) {
         const num = parseInt(color.replace('#', ''), 16);
         const r = Math.max(0, Math.min(255, (num >> 16) + amount));
@@ -134,7 +112,6 @@
         return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
     }
 
-    // Lazy load widget core
     async function loadWidget() {
         if (widgetLoaded) {
             if (widgetCore && widgetCore.toggle) {
@@ -145,7 +122,6 @@
 
         widgetLoaded = true;
         
-        // Show loading state
         const button = document.getElementById('wataomi-widget-button');
         if (button) {
             button.innerHTML = `
@@ -159,8 +135,6 @@
         }
 
         try {
-            // Config already loaded in loadConfigAndShowButton
-            // If not loaded yet, load it now
             if (!config.botConfig) {
                 const configResponse = await fetch(`${config.apiUrl}/public/bots/${config.botId}/config`);
                 if (!configResponse.ok) {
@@ -168,18 +142,13 @@
                 }
                 const botConfig = await configResponse.json();
                 
-                // Store version and config
                 config.version = botConfig.version;
                 config.versionId = botConfig.versionId;
                 config.botConfig = botConfig;
             }
 
-            console.log('[WataOmi Widget] Loading widget core for version:', config.version);
-
-            // Load widget core dynamically with version
             const coreScript = document.createElement('script');
             
-            // Use versioned URL for cache busting
             const baseUrl = script.src.substring(0, script.src.lastIndexOf('/'));
             coreScript.src = `${baseUrl}/v/${config.version}/core.js`;
             
@@ -188,14 +157,12 @@
                     widgetCore = new window.WataOmiWidgetCore(config);
                     widgetCore.init();
                     
-                    // Remove button, widget core will handle UI
                     if (button) {
                         button.remove();
                     }
                 }
             };
             coreScript.onerror = () => {
-                console.error('[WataOmi Widget] Failed to load widget core');
                 if (button) {
                     button.innerHTML = `
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
@@ -208,7 +175,6 @@
             };
             document.head.appendChild(coreScript);
         } catch (error) {
-            console.error('[WataOmi Widget] Failed to initialize:', error);
             if (button) {
                 button.innerHTML = `
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
@@ -221,21 +187,18 @@
         }
     }
 
-    // Initialize
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', createButton);
     } else {
         createButton();
     }
 
-    // Auto-open if configured
     if (config.autoOpen) {
         setTimeout(() => {
             loadWidget();
         }, config.autoOpenDelay * 1000);
     }
 
-    // Expose public API
     window.WataOmiWidget = {
         open: loadWidget,
         config: config,

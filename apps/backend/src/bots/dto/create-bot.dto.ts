@@ -52,7 +52,6 @@ export class CreateBotDto {
   @IsUUID()
   workspaceId?: string;
 
-  // Advanced features
   @ApiPropertyOptional({ example: 'You are a helpful customer support agent.' })
   @IsOptional()
   @IsString()
@@ -101,7 +100,6 @@ export class CreateBotDto {
   @IsBoolean()
   enableAutoLearn?: boolean;
 
-  // Widget Appearance Settings (for initial version creation)
   @ApiPropertyOptional({
     example: '#667eea',
     description: 'Primary color in hex format',
@@ -159,7 +157,6 @@ export class CreateBotDto {
   @IsString({ each: true })
   allowedOrigins?: string[] | null;
 
-  // Legacy fields
   @ApiPropertyOptional({ deprecated: true })
   @IsOptional()
   @IsString()

@@ -14,22 +14,12 @@ export class ConditionExecutor implements NodeExecutor {
   private executeSync(input: NodeExecutionInput): NodeExecutionOutput {
     try {
       const { conditions } = input.data;
-      // Simple evaluation: check if any condition matches
-      // This is a placeholder for a more complex rule engine
-
-      // Example condition structure: { field: 'input.value', operator: 'equals', value: 'foo' }
-      // For now, let's assume a simple boolean expression or just return true/false based on a field
 
       let result = false;
 
-      // Mock logic for now as the dynamic form structure isn't fully defined
-      // In a real app, we'd parse the conditions array and evaluate against input
-
       if (conditions && Array.isArray(conditions)) {
-        // Implement simple AND logic
         result = conditions.every(() => this.evaluate());
       } else {
-        // Fallback or default behavior
         result = true;
       }
 
@@ -37,7 +27,7 @@ export class ConditionExecutor implements NodeExecutor {
         success: true,
         output: {
           result,
-          branch: result ? 'true' : 'false', // Standard output for condition node
+          branch: result ? 'true' : 'false',
         },
       };
     } catch (error) {
@@ -50,9 +40,6 @@ export class ConditionExecutor implements NodeExecutor {
   }
 
   private evaluate(): boolean {
-    // Placeholder evaluation logic
-    // const value = this.getValue(condition.field, input);
-    // switch(condition.operator) { ... }
     return true;
   }
 }

@@ -11,9 +11,7 @@ export class NodeTypesService {
     private readonly nodeTypeRepository: Repository<NodeTypeEntity>,
   ) {}
 
-  // Keep hardcoded data as fallback for now
   private readonly fallbackNodeTypes: NodeType[] = [
-    // Triggers
     {
       id: 'webhook',
       label: 'Webhook',
@@ -81,7 +79,6 @@ export class NodeTypesService {
       properties: [],
     },
 
-    // Messaging
     {
       id: 'send-message',
       label: 'Send Message',
@@ -95,7 +92,7 @@ export class NodeTypesService {
           label: 'Channel',
           type: 'select',
           required: true,
-          options: 'dynamic:channels', // Load from /channels/ API
+          options: 'dynamic:channels',
           description: 'Select which connected channel to send through',
         },
         {
@@ -138,7 +135,6 @@ export class NodeTypesService {
       ],
     },
 
-    // AI
     {
       id: 'ai-chat',
       label: 'AI Chat',
@@ -208,7 +204,6 @@ export class NodeTypesService {
       ],
     },
 
-    // Data
     {
       id: 'http-request',
       label: 'HTTP Request',
@@ -258,7 +253,7 @@ export class NodeTypesService {
           label: 'Connection',
           type: 'select',
           required: true,
-          options: [], // Dynamic from connections
+          options: [],
         },
         {
           name: 'query',
@@ -275,7 +270,6 @@ export class NodeTypesService {
       ],
     },
 
-    // Logic
     {
       id: 'condition',
       label: 'Condition',
@@ -332,7 +326,6 @@ export class NodeTypesService {
       ],
     },
 
-    // Transform
     {
       id: 'code',
       label: 'Code',
@@ -391,9 +384,7 @@ export class NodeTypesService {
 
       const entities = await query.getMany();
 
-      // If no data in database, return fallback
       if (entities.length === 0) {
-        console.warn('⚠️  No node types in database, using fallback data');
         return category
           ? this.fallbackNodeTypes.filter((node) => node.category === category)
           : this.fallbackNodeTypes;
@@ -401,8 +392,6 @@ export class NodeTypesService {
 
       return entities;
     } catch (error) {
-      console.error('Error fetching node types:', error);
-      // Return fallback on error
       return category
         ? this.fallbackNodeTypes.filter((node) => node.category === category)
         : this.fallbackNodeTypes;
@@ -416,13 +405,11 @@ export class NodeTypesService {
       });
 
       if (!entity) {
-        // Try fallback
         return this.fallbackNodeTypes.find((node) => node.id === id) || null;
       }
 
       return entity;
     } catch (error) {
-      console.error(`Error fetching node type ${id}:`, error);
       return this.fallbackNodeTypes.find((node) => node.id === id) || null;
     }
   }
@@ -441,18 +428,15 @@ export class NodeTypesService {
         return this.categories;
       }
 
-      // Add colors from categories mapping
       return result.map((cat) => ({
         ...cat,
         color: this.categories.find((c) => c.id === cat.id)?.color || '#607D8B',
       }));
     } catch (error) {
-      console.error('Error fetching categories:', error);
       return this.categories;
     }
   }
 
-  // Admin methods for CRUD
   async create(data: Partial<NodeTypeEntity>): Promise<NodeTypeEntity> {
     const nodeType = this.nodeTypeRepository.create(data);
     return this.nodeTypeRepository.save(nodeType);
@@ -471,7 +455,6 @@ export class NodeTypesService {
   }
 
   async remove(id: string): Promise<void> {
-    // Soft delete by setting isActive = false
     await this.nodeTypeRepository.update(id, { isActive: false });
   }
 }

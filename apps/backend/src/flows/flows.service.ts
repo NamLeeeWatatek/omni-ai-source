@@ -65,10 +65,8 @@ export class FlowsService {
       throw new NotFoundException('Template not found');
     }
 
-    // Increment template usage count
     await this.templatesService.useTemplate(dto.templateId);
 
-    // Create flow from template
     const flow = this.flowRepository.create({
       name: dto.name,
       description: dto.description || template.description,

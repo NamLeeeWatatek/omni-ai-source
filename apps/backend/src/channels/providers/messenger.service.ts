@@ -28,14 +28,10 @@ export class MessengerService {
     private connectionRepository: Repository<ChannelConnectionEntity>,
   ) {}
 
-  /**
-   * Send message via Facebook Messenger
-   */
   async sendMessage(options: SendMessageOptions): Promise<SendMessageResult> {
     try {
       const { recipientId, message, channelId } = options;
 
-      // Get page access token
       const connection = await this.getConnection('facebook', channelId);
       if (!connection) {
         return {
@@ -44,7 +40,6 @@ export class MessengerService {
         };
       }
 
-      // Try to get token from accessToken column first, then fallback to metadata
       const pageAccessToken = connection.accessToken || connection.metadata?.accessToken;
       if (!pageAccessToken) {
         return {
@@ -53,7 +48,6 @@ export class MessengerService {
         };
       }
 
-      // Send message via Facebook Graph API
       const url = `https://graph.facebook.com/${this.apiVersion}/me/messages`;
 
       const response = await fetch(url, {
@@ -95,9 +89,6 @@ export class MessengerService {
     }
   }
 
-  /**
-   * Send typing indicator
-   */
   async sendTypingIndicator(
     recipientId: string,
     channelId?: string,
@@ -127,9 +118,6 @@ export class MessengerService {
     }
   }
 
-  /**
-   * Send message with quick replies
-   */
   async sendQuickReplies(
     recipientId: string,
     message: string,
@@ -189,9 +177,6 @@ export class MessengerService {
     }
   }
 
-  /**
-   * Get connection by type and optional channelId
-   */
   private async getConnection(
     type: string,
     channelId?: string,

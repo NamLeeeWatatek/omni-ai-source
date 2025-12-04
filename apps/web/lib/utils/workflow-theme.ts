@@ -1,17 +1,11 @@
-/**
- * Workflow Theme Configuration
- * Centralized styling for workflow nodes and UI elements
- */
 
 export const workflowTheme = {
-  // Node styles
   node: {
     minWidth: '200px',
     borderRadius: '12px',
     padding: '16px',
     shadow: 'shadow-lg',
     
-    // States
     default: {
       bg: 'bg-card',
       border: 'border-2 border-border/40',
@@ -35,7 +29,6 @@ export const workflowTheme = {
     }
   },
 
-  // Icon styles
   icon: {
     size: 'w-10 h-10',
     borderRadius: 'rounded-lg',
@@ -46,7 +39,6 @@ export const workflowTheme = {
     })
   },
 
-  // Handle (connection point) styles
   handle: {
     size: 'w-3 h-3',
     bg: '!bg-primary',
@@ -55,7 +47,6 @@ export const workflowTheme = {
     transition: 'transition-transform'
   },
 
-  // Status badge styles
   statusBadge: {
     size: 'w-7 h-7',
     borderRadius: 'rounded-full',
@@ -76,13 +67,12 @@ export const workflowTheme = {
     }
   },
 
-  // Category colors (matching backend)
   categories: {
-    trigger: '#10b981',  // green
-    ai: '#3b82f6',       // blue
-    action: '#8b5cf6',   // purple
-    logic: '#f59e0b',    // amber
-    response: '#ec4899'  // pink
+    trigger: '#10b981',
+    ai: '#3b82f6',
+    action: '#8b5cf6',
+    logic: '#f59e0b',
+    response: '#ec4899'
   }
 }
 

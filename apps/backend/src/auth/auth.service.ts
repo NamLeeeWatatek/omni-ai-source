@@ -102,7 +102,6 @@ export class AuthService {
       hash,
     });
 
-    // Ensure user has workspace and get workspace info
     const workspace = await this.workspaceHelper.ensureUserHasWorkspace(
       user.id,
       user.name || undefined,
@@ -190,7 +189,6 @@ export class AuthService {
       hash,
     });
 
-    // Ensure user has workspace and get workspace info
     const workspace = await this.workspaceHelper.ensureUserHasWorkspace(
       user.id,
       user.name || undefined,

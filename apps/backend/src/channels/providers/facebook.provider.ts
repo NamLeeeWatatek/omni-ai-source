@@ -9,9 +9,6 @@ import {
   IncomingMessage,
 } from '../interfaces/channel-provider.interface';
 
-/**
- * Facebook Messenger channel provider
- */
 @Injectable()
 export class FacebookProvider implements ChannelProvider {
   readonly channelType = 'facebook';
@@ -20,7 +17,6 @@ export class FacebookProvider implements ChannelProvider {
   private readonly apiVersion = 'v24.0';
 
   constructor(private configService: ConfigService) {
-    // Default to environment variables
     this.pageAccessToken = this.configService.get<string>(
       'FACEBOOK_PAGE_ACCESS_TOKEN',
       '',
@@ -28,9 +24,6 @@ export class FacebookProvider implements ChannelProvider {
     this.appSecret = this.configService.get<string>('FACEBOOK_APP_SECRET', '');
   }
 
-  /**
-   * Set credentials dynamically (for database-stored credentials)
-   */
   setCredentials(pageAccessToken: string, appSecret: string): void {
     this.pageAccessToken = pageAccessToken;
     this.appSecret = appSecret;

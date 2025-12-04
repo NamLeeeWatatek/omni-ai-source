@@ -16,7 +16,6 @@ function CallbackContent() {
         const state = searchParams.get('state')
 
         if (code) {
-            // Prevent double execution for the same code
             if (processedCode.current === code) return
             processedCode.current = code
 
@@ -37,18 +36,38 @@ function CallbackContent() {
 
                     if (result?.ok) {
                         setStatus('Login successful! Redirecting...')
-                        // Force a hard redirect to ensure session is loaded
-                        window.location.href = '/dashboard'
+                        
+                        if (window.opener) {
+                            window.opener.postMessage(
+                                { type: 'CASDOOR_LOGIN_SUCCESS' },
+                                window.location.origin
+                            )
+                            setTimeout(() => {
+                                window.close()
+                            }, 500)
+                        } else {
+                            window.location.href = '/dashboard'
+                        }
                     } else {
                         throw new Error('Authentication failed')
                     }
                 } catch (error: unknown) {
-
                     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
                     setStatus(`Login failed: ${errorMessage}`)
-                    setTimeout(() => {
-                        router.push('/login')
-                    }, 2000)
+                    
+                    if (window.opener) {
+                        window.opener.postMessage(
+                            { type: 'CASDOOR_LOGIN_ERROR', error: errorMessage },
+                            window.location.origin
+                        )
+                        setTimeout(() => {
+                            window.close()
+                        }, 1000)
+                    } else {
+                        setTimeout(() => {
+                            router.push('/login')
+                        }, 2000)
+                    }
                 }
             }
 

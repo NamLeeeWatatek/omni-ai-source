@@ -140,7 +140,6 @@ export class KBDocumentsController {
       };
     }
 
-    // 2. Extract text from file (PDF, DOCX, etc.)
     let content: string;
     try {
       content = await this.documentsService.extractTextFromFile(
@@ -158,7 +157,6 @@ export class KBDocumentsController {
       return { success: false, error: 'File content is empty or invalid' };
     }
 
-    // 3. Store document with file URL and extracted text in PG
     return this.documentsService.create(userId, {
       knowledgeBaseId,
       folderId,
@@ -166,13 +164,13 @@ export class KBDocumentsController {
       content,
       fileType: file.mimetype,
       mimeType: file.mimetype,
-      fileUrl, // Store S3/MinIO URL
+      fileUrl,
       metadata: {
         originalName: file.originalname,
         size: file.size,
         extractedLength: content.length,
         uploadedAt: new Date().toISOString(),
-        fileId, // Store file ID for reference
+        fileId,
       },
     });
   }

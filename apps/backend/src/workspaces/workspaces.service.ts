@@ -23,7 +23,6 @@ export class WorkspacesService {
   ) {}
 
   async create(createDto: CreateWorkspaceDto, ownerId: string) {
-    // Check slug uniqueness
     const existing = await this.workspaceRepository.findOne({
       where: { slug: createDto.slug },
     });
@@ -39,7 +38,6 @@ export class WorkspacesService {
 
     const saved = await this.workspaceRepository.save(workspace);
 
-    // Add owner as member with 'owner' role
     await this.memberRepository.save({
       workspaceId: saved.id,
       userId: ownerId,
@@ -67,7 +65,6 @@ export class WorkspacesService {
     });
 
     if (!membership?.workspace) {
-      // Auto-create default workspace if none exists
       return this.createDefaultWorkspace(userId);
     }
 
@@ -87,7 +84,6 @@ export class WorkspacesService {
 
     const saved = await this.workspaceRepository.save(workspace);
 
-    // Add user as owner member
     await this.memberRepository.save({
       workspaceId: saved.id,
       userId,
@@ -126,7 +122,6 @@ export class WorkspacesService {
   async update(id: string, updateDto: UpdateWorkspaceDto, userId?: string) {
     const workspace = await this.findOne(id);
 
-    // Check if user has permission (owner or admin)
     if (userId) {
       const member = await this.memberRepository.findOne({
         where: { workspaceId: id, userId },
@@ -136,7 +131,6 @@ export class WorkspacesService {
       }
     }
 
-    // Check slug uniqueness if changing
     if (updateDto.slug && updateDto.slug !== workspace.slug) {
       const existing = await this.workspaceRepository.findOne({
         where: { slug: updateDto.slug },
@@ -153,12 +147,10 @@ export class WorkspacesService {
   async remove(id: string, userId?: string) {
     const workspace = await this.findOne(id);
 
-    // Only owner can delete workspace
     if (userId && workspace.ownerId !== userId) {
       throw new ForbiddenException('Only owner can delete workspace');
     }
 
-    // Soft delete
     await this.workspaceRepository.softDelete(id);
   }
 
@@ -167,7 +159,6 @@ export class WorkspacesService {
     userId: string,
     role: 'admin' | 'member' = 'member',
   ) {
-    // Check if already member
     const existing = await this.memberRepository.findOne({
       where: { workspaceId, userId },
     });
@@ -258,11 +249,9 @@ export class WorkspacesService {
       throw new ForbiddenException('Only owner can transfer ownership');
     }
 
-    // Update workspace owner
     workspace.ownerId = newOwnerId;
     await this.workspaceRepository.save(workspace);
 
-    // Update member roles
     await this.memberRepository.update(
       { workspaceId, userId: currentOwnerId },
       { role: 'admin' },

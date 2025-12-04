@@ -29,11 +29,9 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
     const [flowName, setFlowName] = useState('')
     const [deleteExecutionId, setDeleteExecutionId] = useState<number | null>(null)
 
-    // WebSocket for real-time updates
     const { connected, subscribeToFlow } = useExecutionSocket({
         flowId: params.id,
         onUpdate: (update) => {
-            // Update execution in list when status changes
             setExecutions((prev) =>
                 prev.map((exec) =>
                     exec.id.toString() === update.executionId
@@ -43,7 +41,6 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
             )
         },
         onComplete: () => {
-            // Reload executions when one completes
             loadExecutions()
         },
     })
@@ -51,8 +48,7 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
     useEffect(() => {
         loadExecutions()
         loadFlow()
-        
-        // Subscribe to flow executions
+
         if (connected) {
             subscribeToFlow(params.id)
         }
@@ -139,13 +135,15 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
 
     return (
         <div className="p-8">
-            {/* Header */}
+            {}
             <div className="mb-8">
                 <div className="flex items-center justify-between mb-4">
                     <div>
                         <h1 className="text-3xl font-bold mb-2">Executions</h1>
-                        <p className="text-muted-foreground">
-                            {flowName || 'Loading...'} • {executions.length} total runs
+                        <p className="text-muted-foreground flex items-center gap-2">
+                            <span>{flowName || 'Loading...'}</span>
+                            <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
+                            <span>{executions.length} total runs</span>
                         </p>
                     </div>
                     <div className="flex gap-2">
@@ -160,9 +158,9 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
                 </div>
             </div>
 
-            {/* Stats Cards */}
+            {}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <div className="glass rounded-xl p-6">
+                <Card className="p-6">
                     <div className="flex items-center justify-between mb-2">
                         <FiCheckCircle className="w-8 h-8 text-green-500" />
                     </div>
@@ -170,9 +168,9 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
                         {executions.filter(e => e.status === 'completed').length}
                     </h3>
                     <p className="text-sm text-muted-foreground">Completed</p>
-                </div>
+                </Card>
 
-                <div className="glass rounded-xl p-6">
+                <Card className="p-6">
                     <div className="flex items-center justify-between mb-2">
                         <FiXCircle className="w-8 h-8 text-red-500" />
                     </div>
@@ -180,9 +178,9 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
                         {executions.filter(e => e.status === 'failed').length}
                     </h3>
                     <p className="text-sm text-muted-foreground">Failed</p>
-                </div>
+                </Card>
 
-                <div className="glass rounded-xl p-6">
+                <Card className="p-6">
                     <div className="flex items-center justify-between mb-2">
                         <FiClock className="w-8 h-8 text-blue-500" />
                     </div>
@@ -190,9 +188,9 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
                         {executions.filter(e => e.status === 'running').length}
                     </h3>
                     <p className="text-sm text-muted-foreground">Running</p>
-                </div>
+                </Card>
 
-                <div className="glass rounded-xl p-6">
+                <Card className="p-6">
                     <div className="flex items-center justify-between mb-2">
                         <FiClock className="w-8 h-8 text-slate-400" />
                     </div>
@@ -205,16 +203,16 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
                             : '-'}
                     </h3>
                     <p className="text-sm text-muted-foreground">Avg Duration</p>
-                </div>
+                </Card>
             </div>
 
-            {/* Executions List */}
+            {}
             {loading ? (
                 <div className="flex justify-center items-center py-20">
                     <Spinner className="size-8 text-primary" />
                 </div>
             ) : executions.length === 0 ? (
-                <div className="text-center py-20 glass rounded-xl">
+                <Card className="text-center py-20">
                     <h3 className="text-lg font-semibold mb-2">No executions yet</h3>
                     <p className="text-muted-foreground mb-4">
                         Run this workflow to see execution history
@@ -222,9 +220,9 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
                     <Link href={`/flows/${params.id}/edit`}>
                         <Button>Open Editor</Button>
                     </Link>
-                </div>
+                </Card>
             ) : (
-                <div className="glass rounded-xl overflow-hidden">
+                <Card className="overflow-hidden">
                     <table className="w-full">
                         <thead className="bg-muted/50">
                             <tr>
@@ -267,7 +265,7 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
                                                     className="h-full bg-primary transition-all"
                                                     style={{
                                                         width: `${((execution.completed_nodes ?? 0) /
-                                                                (execution.total_nodes ?? 1)) *
+                                                            (execution.total_nodes ?? 1)) *
                                                             100
                                                             }%`
                                                     }}
@@ -304,10 +302,10 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
                             ))}
                         </tbody>
                     </table>
-                </div>
+                </Card>
             )}
 
-            {/* Delete Confirmation Dialog */}
+            {}
             <AlertDialogConfirm
                 open={deleteExecutionId !== null}
                 onOpenChange={(open) => !open && setDeleteExecutionId(null)}

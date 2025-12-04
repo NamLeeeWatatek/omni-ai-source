@@ -4,7 +4,6 @@ export class AddWidgetSettings1733155200000 implements MigrationInterface {
     name = 'AddWidgetSettings1733155200000';
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        // Add widget configuration fields to bot table
         await queryRunner.query(`
       ALTER TABLE "bot" 
       ADD COLUMN IF NOT EXISTS "allowed_origins" jsonb DEFAULT '["*"]',
@@ -18,7 +17,6 @@ export class AddWidgetSettings1733155200000 implements MigrationInterface {
       ADD COLUMN IF NOT EXISTS "widget_enabled" boolean DEFAULT true
     `);
 
-        // Add comment for documentation
         await queryRunner.query(`
       COMMENT ON COLUMN "bot"."allowed_origins" IS 'List of allowed origins for CORS (e.g., ["https://example.com", "*"])';
       COMMENT ON COLUMN "bot"."welcome_message" IS 'Welcome message displayed when widget opens';

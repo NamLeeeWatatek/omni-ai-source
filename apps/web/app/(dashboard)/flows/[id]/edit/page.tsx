@@ -76,7 +76,6 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
     const { screenToFlowPosition } = useReactFlow()
     const dispatch = useAppDispatch()
 
-    // Redux state (Global) - with default values
     const nodes = useAppSelector((state: any) => state.workflowEditor?.nodes || [])
     const edges = useAppSelector((state: any) => state.workflowEditor?.edges || [])
     const selectedNodeId = useAppSelector((state: any) => state.workflowEditor?.selectedNodeId)
@@ -87,61 +86,50 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
     const isTesting = useAppSelector((state: any) => state.workflowEditor?.isTesting || false)
     const draftTemplate = useAppSelector((state: any) => state.workflowEditor?.draftTemplate)
 
-    // Local UI state only
     const [showProperties, setShowProperties] = useState(false)
     const [showTestPanel, setShowTestPanel] = useState(false)
     const [showExecuteModal, setShowExecuteModal] = useState(false)
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null)
     const [isSaving, setIsSaving] = useState(false)
 
-    // Temporary data (from API)
     const [flow, setFlow] = useState<any>(null)
     const [channels, setChannels] = useState<Channel[]>([])
     const [savedState, setSavedState] = useState<string>('')
 
-    // Ref to prevent double-save of template
     const templateSavedRef = useRef(false)
 
-    // Custom handlers that dispatch to Redux
     const handleNodesChange = useCallback((changes: any) => {
-        // Apply changes using ReactFlow's applyNodeChanges
         let updatedNodes = [...nodes]
         let shouldMarkDirty = false
 
         changes.forEach((change: any) => {
             if (change.type === 'position') {
-                // Update position
                 updatedNodes = updatedNodes.map(n =>
                     n.id === change.id
                         ? { ...n, position: change.position || n.position }
                         : n
                 )
-                // Only mark dirty if dragging finished
                 if (change.dragging === false) {
                     shouldMarkDirty = true
                 }
             } else if (change.type === 'dimensions') {
-                // Update dimensions (not dirty)
                 updatedNodes = updatedNodes.map(n =>
                     n.id === change.id
                         ? { ...n, width: change.dimensions?.width, height: change.dimensions?.height }
                         : n
                 )
             } else if (change.type === 'select') {
-                // Update selection (not dirty)
                 updatedNodes = updatedNodes.map(n =>
                     n.id === change.id
                         ? { ...n, selected: change.selected }
                         : n
                 )
             } else if (change.type === 'remove') {
-                // Remove node (dirty)
                 updatedNodes = updatedNodes.filter(n => n.id !== change.id)
                 shouldMarkDirty = true
             }
         })
 
-        // Use appropriate action based on whether change should mark dirty
         if (shouldMarkDirty) {
             dispatch(setNodes(updatedNodes))
         } else {
@@ -156,18 +144,16 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
         changes.forEach((change: any) => {
             if (change.type === 'remove') {
                 updatedEdges = updatedEdges.filter(e => e.id !== change.id)
-                shouldMarkDirty = true // Removing edge is meaningful change
+                shouldMarkDirty = true
             } else if (change.type === 'select') {
                 updatedEdges = updatedEdges.map(e =>
                     e.id === change.id
                         ? { ...e, selected: change.selected }
                         : e
                 )
-                // Selection doesn't mark dirty
             }
         })
 
-        // Use appropriate action
         if (shouldMarkDirty) {
             dispatch(setEdges(updatedEdges))
         } else {
@@ -175,19 +161,14 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
         }
     }, [edges, dispatch])
 
-    // WebSocket execution hook (shared for both Test Run and Execute)
-    // Note: We use Redux states (isTesting, isExecuting) for button states, not isWebSocketExecuting
     const { execute: executeWithWebSocket, isExecuting: isWebSocketExecuting } = useExecutionWebSocket(
         (updater: any) => {
             const newNodes = typeof updater === 'function' ? updater(nodes) : updater
-            // Don't mark as dirty when updating execution status via WebSocket
             dispatch(updateNodesWithoutDirty(newNodes))
         }
     )
 
-    // Auto-clear execution status after 5 seconds
     useEffect(() => {
-        // Wait until all executions are done (both Test Run and Execute)
         if (!isExecuting && !isTesting) {
             const hasExecutionStatus = nodes.some((n: Node) => n.data?.executionStatus)
 
@@ -201,9 +182,8 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                             executionError: undefined
                         }
                     }))
-                    // Don't mark as dirty when clearing execution status
                     dispatch(updateNodesWithoutDirty(cleanNodes))
-                }, 5000) // Clear after 5 seconds
+                }, 5000)
 
                 return () => clearTimeout(timer)
             }
@@ -217,7 +197,6 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
     useEffect(() => {
         loadChannels()
     }, [])
-
 
     const currentStateString = useMemo(() => {
         if (!Array.isArray(nodes)) {
@@ -283,24 +262,19 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
 
     useEffect(() => {
         if (params.id === 'new') {
-            // Load template from Redux if available
             if (draftTemplate && !templateSavedRef.current) {
-                // Mark as being saved to prevent double-save
                 templateSavedRef.current = true
 
                 const migratedNodes = migrateNodes(draftTemplate.nodes || [])
                 const templateName = draftTemplate.name || 'Untitled Workflow'
                 const templateEdges = draftTemplate.edges || []
 
-                // CRITICAL: Clear template FIRST to prevent double-save on re-mount
                 dispatch(clearDraftTemplate())
 
-                // Load template into editor
                 dispatch(setNodes(migratedNodes))
                 dispatch(setEdges(templateEdges))
                 dispatch(setWorkflowName(templateName))
 
-                // Auto-save the template as a new flow
                 const createFlowFromTemplate = async () => {
                     try {
                         setIsSaving(true)
@@ -317,7 +291,6 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                         const created: any = await axiosClient.post('/flows/', flowData)
                         setFlow(created)
 
-                        // Update saved state
                         const cleanNodes = migratedNodes.map((node: any) => {
                             if (!node) return null
                             const { executionStatus, executionError, executionOutput, ...cleanData } = node.data || {}
@@ -341,10 +314,8 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                         setSavedState(newState)
                         dispatch(setHasUnsavedChanges(false))
 
-                        // Redirect to the new flow URL properly
                         router.replace(`/flows/${created.id}/edit`)
 
-                        // No toast needed for auto-save of template
                     } catch (error) {
 
                         toast.error('Failed to save template as new flow')
@@ -355,7 +326,6 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
 
                 createFlowFromTemplate()
             } else {
-                // Empty new flow - set empty state
                 dispatch(setNodes([]))
                 dispatch(setEdges([]))
                 dispatch(setWorkflowName('Untitled Workflow'))
@@ -366,13 +336,11 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                     nodes: [],
                     edges: []
                 }))
-                dispatch(setHasUnsavedChanges(false)) // No changes yet for empty flow
+                dispatch(setHasUnsavedChanges(false))
             }
         } else {
-            // Existing flow - load from API
             loadFlow()
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [params.id])
 
     const loadChannels = async () => {
@@ -389,12 +357,10 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
             const data: any = await axiosClient.get(`/flows/${params.id}`)
             setFlow(data)
 
-            // IMPORTANT: Backend uses 'data' field, not 'flow_data'
             const flowData = data.data || data.flow_data || {}
 
             const migratedNodes = flowData.nodes ? migrateNodes(flowData.nodes) : []
 
-            // Load into Redux
             dispatch(loadWorkflow({
                 name: data.name,
                 description: data.description || '',
@@ -403,8 +369,6 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                 channelId: data.channel_id || null
             }))
 
-            // Save initial state (clean nodes for comparison - remove execution status)
-            // Use migrated nodes to ensure consistency
             const cleanNodes = migratedNodes.map((node: any) => {
                 if (!node) return null
                 const { executionStatus, executionError, executionOutput, ...cleanData } = node.data || {}
@@ -431,8 +395,6 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
             toast.error('Failed to load workflow')
         }
     }
-
-
 
     const onConnect = useCallback(
         (params: Edge | Connection) => {
@@ -499,7 +461,6 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
     }, [dispatch])
 
     const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-        // Clear execution status when clicking node
         if (node.data?.executionStatus) {
             const cleanNode = {
                 ...node,
@@ -510,7 +471,6 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                 }
             }
             const cleanNodes = nodes.map((n: Node) => n.id === node.id ? cleanNode : n)
-            // Don't mark as dirty when clearing execution status
             dispatch(updateNodesWithoutDirty(cleanNodes))
         }
 
@@ -552,7 +512,6 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                 selected: false
             }
             dispatch(addNodeAction(newNode))
-            // toast.success('Node duplicated!')
         }
     }, [nodes, contextMenu, dispatch])
 
@@ -566,7 +525,6 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
             setShowProperties(false)
             setShowTestPanel(false)
             dispatch(setSelectedNodeId(null))
-            // toast.success('Node deleted!')
         }
     }, [contextMenu, nodes, edges, dispatch])
 
@@ -577,7 +535,6 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
     const handleSave = async () => {
         const savePromise = (async () => {
             setIsSaving(true)
-            // IMPORTANT: Backend uses 'data' field, not 'flow_data'
             const flowData = {
                 name: workflowName,
                 description: flow?.description || '',
@@ -589,11 +546,9 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
             }
 
             if (params.id === 'new') {
-                // Create new flow
                 const created: any = await axiosClient.post('/flows/', flowData)
                 setFlow(created)
 
-                // Update saved state
                 const cleanNodes = nodes.map((node: any) => {
                     if (!node) return null
                     const { executionStatus, executionError, executionOutput, ...cleanData } = node.data || {}
@@ -617,16 +572,13 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                 setSavedState(newState)
                 dispatch(setHasUnsavedChanges(false))
 
-                // Update URL without triggering navigation (replace instead of push)
                 window.history.replaceState({}, '', `/flows/${created.id}/edit`)
 
                 return created
             } else {
-                // Update existing flow
                 const updated: any = await axiosClient.patch(`/flows/${params.id}`, flowData)
                 setFlow(updated)
 
-                // Update saved state after successful save (clean execution status)
                 const cleanNodes = nodes.map((node: any) => {
                     if (!node) return null
                     const { executionStatus, executionError, executionOutput, ...cleanData } = node.data || {}
@@ -665,7 +617,6 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
         savePromise.finally(() => setIsSaving(false))
     }
 
-    // Save as Template
     const handleSaveAsTemplate = async () => {
         if (nodes.length === 0) {
             toast.error('Add some nodes first!')
@@ -705,27 +656,23 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
         }
     }
 
-    // Test Run with WebSocket (real-time node updates)
     const handleTestRun = async () => {
         if (nodes.length === 0) {
             toast.error('Add some nodes first!')
             return
         }
 
-        // Use flow.id if available (after save), otherwise try params.id
         const flowId = flow?.id || (params.id !== 'new' ? parseInt(params.id) : null)
         if (!flowId) {
             toast.error('Please save the workflow before testing')
             return
         }
 
-        // Block if unsaved changes - must save first
         if (hasUnsavedChanges) {
             toast.error('Please save your changes before testing')
             return
         }
 
-        // Validate that nodes are connected (at least 1 edge if multiple nodes)
         if (nodes.length > 1 && edges.length === 0) {
             toast.error('Please connect your nodes before testing')
             return
@@ -742,27 +689,23 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
         }
     }
 
-    // Execute - Open modal to input data
     const handleExecute = () => {
         if (nodes.length === 0) {
             toast.error('Add some nodes first!')
             return
         }
 
-        // Use flow.id if available (after save), otherwise try params.id
         const flowId = flow?.id || (params.id !== 'new' ? parseInt(params.id) : null)
         if (!flowId) {
             toast.error('Please save the workflow before executing')
             return
         }
 
-        // Block if unsaved changes - must save first
         if (hasUnsavedChanges) {
             toast.error('Please save your changes before executing')
             return
         }
 
-        // Validate that nodes are connected (at least 1 edge if multiple nodes)
         if (nodes.length > 1 && edges.length === 0) {
             toast.error('Please connect your nodes before executing')
             return
@@ -771,9 +714,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
         setShowExecuteModal(true)
     }
 
-    // Execute workflow with input data from modal
     const handleExecuteWithData = async (inputData: Record<string, any>) => {
-        // Use flow.id if available (after save), otherwise try params.id
         const flowId = flow?.id || (params.id !== 'new' ? parseInt(params.id) : null)
         if (!flowId) {
             toast.error('Please save the workflow before executing')
@@ -784,7 +725,6 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
         setShowExecuteModal(false)
 
         try {
-            // Use WebSocket for real-time execution with node status updates
             await executeWithWebSocket(flowId, inputData)
             toast.success('Workflow executed successfully!')
         } catch (error: any) {
@@ -796,7 +736,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
 
     return (
         <div className="h-screen flex flex-col">
-            {/* Header */}
+            {}
             <div className="h-16 border-b border-border/40 flex items-center justify-between px-6 bg-background">
                 <div className="flex items-center gap-4 flex-1">
                     <Link href="/flows">
@@ -812,7 +752,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                         placeholder="Workflow name"
                     />
 
-                    {/* Channel Selector */}
+                    {}
                     <div className="flex items-center gap-2 ml-4">
                         <span className="text-sm text-muted-foreground">Channel:</span>
                         <select
@@ -838,7 +778,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                         </span>
                     )}
 
-                    {/* Test Run - WebSocket real-time */}
+                    {}
                     <Button
                         variant="outline"
                         onClick={handleTestRun}
@@ -853,7 +793,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                         Test Run
                     </Button>
 
-                    {/* Execute - WebSocket with input data */}
+                    {}
                     <Button
                         onClick={handleExecute}
                         disabled={isExecuting}
@@ -878,7 +818,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                         </Button>
                     )}
 
-                    {/* More Options Menu */}
+                    {}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" size="icon">
@@ -895,7 +835,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                 </div>
             </div>
 
-            {/* Main Content */}
+            {}
             <div className="flex-1 flex overflow-hidden">
                 <div className="flex-1 relative" ref={reactFlowWrapper}>
                     <ReactFlow
@@ -932,7 +872,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                     </ReactFlow>
                 </div>
 
-                {/* Properties Panel - Always show when node is selected, even if execution results are visible */}
+                {}
                 {showProperties && selectedNode && !showTestPanel && (
                     <div className="w-80 border-l border-border/40 bg-background flex flex-col h-full z-10">
                         <div className="p-4 border-b border-border/40 flex items-center justify-between">
@@ -957,7 +897,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                 )}
             </div>
 
-            {/* Test Node Modal */}
+            {}
             <Dialog open={showTestPanel} onOpenChange={setShowTestPanel}>
                 <DialogContent className="max-w-2xl h-[80vh] p-0 overflow-hidden bg-background">
                     {selectedNode && (
@@ -971,7 +911,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                 </DialogContent>
             </Dialog>
 
-            {/* Execute Flow Modal */}
+            {}
             <ExecuteFlowModal
                 isOpen={showExecuteModal}
                 onClose={() => setShowExecuteModal(false)}
@@ -979,7 +919,6 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                 nodes={nodes}
                 isExecuting={isExecuting}
             />
-
 
         </div>
     )

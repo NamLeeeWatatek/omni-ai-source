@@ -23,17 +23,14 @@ export const NodeProperties = memo(function NodeProperties({ node, onUpdate }: N
         return nodeTypes.find((nt: any) => nt.id === typeId)
     }
 
-    // Use refs to avoid recreating callbacks
     const nodeRef = useRef(node)
     const onUpdateRef = useRef(onUpdate)
 
-    // Update refs when props change
     useEffect(() => {
         nodeRef.current = node
         onUpdateRef.current = onUpdate
     }, [node, onUpdate])
 
-    // Sync config when node ID changes
     useEffect(() => {
         setConfig(nodeData.config || {})
     }, [node.id, nodeData.config])
@@ -49,14 +46,12 @@ export const NodeProperties = memo(function NodeProperties({ node, onUpdate }: N
         toast.success('Node configuration saved!')
     }
 
-    // Check if there are unsaved changes
     const hasChanges = () => {
         return JSON.stringify(config) !== JSON.stringify(nodeData.config || {})
     }
 
     const updateConfig = useCallback((key: string, value: any) => {
         setConfig((prevConfig: any) => {
-            // Avoid unnecessary updates if value hasn't changed
             if (prevConfig[key] === value) {
                 return prevConfig
             }
@@ -64,7 +59,6 @@ export const NodeProperties = memo(function NodeProperties({ node, onUpdate }: N
         })
     }, [])
 
-    // Render configuration form based on node type properties
     const renderConfigForm = () => {
         const nodeType = nodeData.type
         const nodeTypeInfo = getNodeType(nodeType)
@@ -78,7 +72,6 @@ export const NodeProperties = memo(function NodeProperties({ node, onUpdate }: N
             )
         }
 
-        // If node type has properties definition, use dynamic form rendering
         if (nodeTypeInfo.properties && Array.isArray(nodeTypeInfo.properties) && nodeTypeInfo.properties.length > 0) {
             return (
                 <>
@@ -95,7 +88,6 @@ export const NodeProperties = memo(function NodeProperties({ node, onUpdate }: N
             )
         }
 
-        // Default - no specific config
         return (
             <div className="text-center py-12 flex flex-col items-center justify-center text-muted-foreground/50">
                 <FiSettings className="w-12 h-12 mb-3 opacity-20" />

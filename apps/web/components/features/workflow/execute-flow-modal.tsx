@@ -35,19 +35,15 @@ export function ExecuteFlowModal({ isOpen, onClose, onExecute, nodes, isExecutin
 
     useEffect(() => {
         if (isOpen && nodes.length > 0) {
-            // Initialize data for all nodes - START WITH CONFIGURED VALUES
             const initialData: Record<string, any> = {}
             nodes.forEach(node => {
                 const nodeType = getNodeType(node.type || '')
-                // Use executeInputs if available, otherwise fall back to properties
                 const inputs = (nodeType as any)?.executeInputs || nodeType?.properties || []
 
                 if (inputs.length > 0) {
-                    // Start with configured values, then add defaults for unconfigured
                     const nodeData: Record<string, any> = { ...node.data.config }
 
                     inputs.forEach((input: any) => {
-                        // If not configured and has default, use default
                         if (nodeData[input.name] === undefined && input.default !== undefined) {
                             nodeData[input.name] = input.default
                         }
@@ -62,10 +58,8 @@ export function ExecuteFlowModal({ isOpen, onClose, onExecute, nodes, isExecutin
         }
     }, [isOpen, nodes, getNodeType])
 
-    // Helper to find trigger variables used in other nodes
     const findTriggerVariables = (nodes: Node[]) => {
         const vars = new Set<string>()
-        // Regex to match {{trigger.body.variableName}}
         const regex = /\{\{trigger\.body\.([a-zA-Z0-9_]+)\}\}/g
 
         const walk = (obj: any) => {
@@ -87,22 +81,17 @@ export function ExecuteFlowModal({ isOpen, onClose, onExecute, nodes, isExecutin
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        // Combine all nodes data into execution payload
         const executionData: Record<string, any> = {}
 
-        // Get trigger variables to know which fields belong to trigger body
         const triggerVars = findTriggerVariables(nodes)
 
         nodes.forEach(node => {
             if (allNodesData[node.id] && Object.keys(allNodesData[node.id]).length > 0) {
-                // Special handling for trigger nodes with detected variables
                 if (node.type?.startsWith('trigger-') && triggerVars.length > 0) {
-                    // Check if the data contains any of the detected variables
                     const nodeData = allNodesData[node.id]
                     const hasTriggerVars = Object.keys(nodeData).some(k => triggerVars.includes(k))
 
                     if (hasTriggerVars) {
-                        // Separate body params from other params
                         const bodyParams: Record<string, any> = {}
                         const otherParams: Record<string, any> = {}
 
@@ -140,23 +129,19 @@ export function ExecuteFlowModal({ isOpen, onClose, onExecute, nodes, isExecutin
         }))
     }
 
-    // Group nodes by category for better organization
     const renderNodeInputs = () => {
         const sections: { title: string; nodes: Node[]; customInputs?: Record<string, any[]> }[] = []
         const triggerVars = findTriggerVariables(nodes)
 
-        // Trigger nodes first
         const activeTriggers = nodes.filter(n => n.type?.startsWith('trigger-'))
 
         if (activeTriggers.length > 0) {
-            // If we detected variables like {{trigger.body.xyz}}, add them as inputs to the first trigger node
             const customTriggerInputs: Record<string, any[]> = {}
 
             if (triggerVars.length > 0) {
                 const targetTriggerId = activeTriggers[0].id
                 const targetNode = activeTriggers[0]
 
-                // Filter out variables that are already configured in the trigger node
                 const unconfiguredVars = triggerVars.filter(v => {
                     const configValue = targetNode.data.config?.[v]
                     return configValue === undefined || configValue === '' || configValue === null
@@ -195,22 +180,17 @@ export function ExecuteFlowModal({ isOpen, onClose, onExecute, nodes, isExecutin
             }
         }
 
-        // Other nodes that need input - SHOW EXECUTION FIELDS
         const otherNodes = nodes.filter(n => {
             if (n.type?.startsWith('trigger-')) return false
             const nodeType = getNodeType(n.type || '')
             const inputs = (nodeType as any)?.executeInputs || nodeType?.properties || []
 
-            // Show important execution fields
             const executionInputs = inputs.filter((input: any) => {
-                // Always show required fields
                 if (input.required) return true
 
-                // Show common execution fields
                 const executionFieldNames = ['content', 'prompt', 'message', 'text', 'body', 'query', 'input']
                 if (executionFieldNames.includes(input.name.toLowerCase())) return true
 
-                // Show unconfigured fields
                 const configValue = n.data.config?.[input.name]
                 const isUnconfigured = configValue === undefined || configValue === '' || configValue === null
                 return isUnconfigured
@@ -250,30 +230,24 @@ export function ExecuteFlowModal({ isOpen, onClose, onExecute, nodes, isExecutin
                     const definedInputs = (nodeType as any)?.executeInputs || nodeType?.properties || []
                     const detectedInputs = section.customInputs?.[node.id] || []
 
-                    // Show important fields for execution (both configured and unconfigured)
-                    // Priority: required fields + common execution fields (content, prompt, message, etc)
                     const executionFields = definedInputs.filter((input: any) => {
-                        // Always show required fields
                         if (input.required) return true
 
-                        // Show common execution fields even if configured
                         const executionFieldNames = ['content', 'prompt', 'message', 'text', 'body', 'query', 'input']
                         if (executionFieldNames.includes(input.name.toLowerCase())) return true
 
-                        // Show unconfigured optional fields
                         const configValue = node.data.config?.[input.name]
                         const isUnconfigured = configValue === undefined || configValue === '' || configValue === null
                         return isUnconfigured
                     })
 
-                    // Merge inputs
                     const allInputs = [...executionFields, ...detectedInputs]
 
                     if (allInputs.length === 0) return null
 
                     return (
                         <div key={node.id} className="space-y-4">
-                            {/* Only show node header if there are multiple nodes requiring input */}
+                            {}
                             {(sections.length > 1 || section.nodes.length > 1) && (
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                     <div

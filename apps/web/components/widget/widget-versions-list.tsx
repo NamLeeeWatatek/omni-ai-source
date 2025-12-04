@@ -64,7 +64,6 @@ export function WidgetVersionsList({ botId, versions, isLoading, onRefresh }: Pr
             await publishVersion(versionId);
             onRefresh();
         } catch (error) {
-            // Error handled in hook
         }
     };
 
@@ -80,7 +79,6 @@ export function WidgetVersionsList({ botId, versions, isLoading, onRefresh }: Pr
             setRollbackReason('');
             onRefresh();
         } catch (error) {
-            // Error handled in hook
         }
     };
 
@@ -89,7 +87,6 @@ export function WidgetVersionsList({ botId, versions, isLoading, onRefresh }: Pr
             await archiveVersion(versionId);
             onRefresh();
         } catch (error) {
-            // Error handled in hook
         }
     };
 
@@ -101,7 +98,6 @@ export function WidgetVersionsList({ botId, versions, isLoading, onRefresh }: Pr
             setDeleteVersion(null);
             onRefresh();
         } catch (error) {
-            // Error handled in hook
         }
     };
 
@@ -180,7 +176,7 @@ export function WidgetVersionsList({ botId, versions, isLoading, onRefresh }: Pr
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    {/* View/Edit */}
+                                    {}
                                     <Button
                                         variant="ghost"
                                         size="sm"
@@ -201,7 +197,7 @@ export function WidgetVersionsList({ botId, versions, isLoading, onRefresh }: Pr
                                         )}
                                     </Button>
 
-                                    {/* Publish (draft only) */}
+                                    {}
                                     {version.status === 'draft' && (
                                         <Button
                                             size="sm"
@@ -213,7 +209,7 @@ export function WidgetVersionsList({ botId, versions, isLoading, onRefresh }: Pr
                                         </Button>
                                     )}
 
-                                    {/* Rollback (published, not active) */}
+                                    {}
                                     {version.status === 'published' && !version.isActive && (
                                         <Button
                                             size="sm"
@@ -226,7 +222,7 @@ export function WidgetVersionsList({ botId, versions, isLoading, onRefresh }: Pr
                                         </Button>
                                     )}
 
-                                    {/* Archive (published, not active) */}
+                                    {}
                                     {version.status === 'published' && !version.isActive && (
                                         <Button
                                             size="sm"
@@ -238,7 +234,7 @@ export function WidgetVersionsList({ botId, versions, isLoading, onRefresh }: Pr
                                         </Button>
                                     )}
 
-                                    {/* Delete (draft only) */}
+                                    {}
                                     {version.status === 'draft' && (
                                         <Button
                                             size="sm"
@@ -268,7 +264,7 @@ export function WidgetVersionsList({ botId, versions, isLoading, onRefresh }: Pr
                 ))}
             </div>
 
-            {/* Rollback Dialog */}
+            {}
             <AlertDialog
                 open={!!rollbackVersion}
                 onOpenChange={(open) => {
@@ -304,7 +300,7 @@ export function WidgetVersionsList({ botId, versions, isLoading, onRefresh }: Pr
                 </AlertDialogContent>
             </AlertDialog>
 
-            {/* Delete Dialog */}
+            {}
             <AlertDialog
                 open={!!deleteVersion}
                 onOpenChange={(open) => {

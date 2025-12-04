@@ -1,11 +1,6 @@
-/**
- * Conversations API
- * API client for bot conversations and AI chat sessions
- */
 
 import { axiosClient } from '../axios-client'
 import type {
-  // Bot Conversations
   GetConversationsResponse,
   GetConversationResponse,
   CreateConversationDto,
@@ -13,7 +8,6 @@ import type {
   GetMessagesResponse,
   CreateMessageDto,
   AddMessageResponse,
-  // AI Conversations
   GetAiConversationsResponse,
   GetAiConversationResponse,
   CreateAiConversationDto,
@@ -24,10 +18,6 @@ import type {
   AddAiMessageDto,
   AddAiMessageResponse,
 } from '../types/conversations'
-
-// ============================================================================
-// Bot Conversations (External users via channels)
-// ============================================================================
 
 export interface GetConversationsParams {
   botId?: string
@@ -105,10 +95,6 @@ export async function addBotConversationMessage(conversationId: string, data: Cr
   const response = await axiosClient.post(`/conversations/${conversationId}/messages`, data)
   return response.data
 }
-
-// ============================================================================
-// AI Conversations (Internal users - AI chat sessions)
-// ============================================================================
 
 /**
  * Get all AI conversations

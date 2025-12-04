@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { FiChevronDown, FiChevronRight, FiRefreshCw } from 'react-icons/fi'
 import { useAppDispatch, useAppSelector } from '@/lib/store/hooks'
 import { fetchNodeTypes, fetchNodeCategories, type NodeType } from '@/lib/store/slices/nodeTypesSlice'
-import { getNodeIcon } from '@/lib/icon-resolver'
 import toast from '@/lib/toast'
+import { getNodeIcon } from '@/lib/utils/icon-resolver'
 
 interface NodePaletteProps {
     onAddNode: (nodeType: NodeType) => void
@@ -70,7 +70,7 @@ export function NodePalette({ onAddNode }: NodePaletteProps) {
                 </button>
             </div>
 
-            {/* Node Categories */}
+            {}
             <div className="flex-1 overflow-y-auto p-2 min-h-0">
                 {loading ? (
                     <div className="text-center py-8 text-muted-foreground text-sm">
@@ -82,7 +82,7 @@ export function NodePalette({ onAddNode }: NodePaletteProps) {
 
                     return (
                         <div key={category.id} className="mb-2">
-                            {/* Category Header */}
+                            {}
                             <button
                                 onClick={() => toggleCategory(category.id)}
                                 className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-accent transition-colors group"
@@ -106,7 +106,7 @@ export function NodePalette({ onAddNode }: NodePaletteProps) {
                                 )}
                             </button>
 
-                            {/* Nodes List */}
+                            {}
                             {isExpanded && (
                                 <div className="mt-1 space-y-1 pl-2">
                                     {nodes.map((nodeType: any) => {
@@ -149,7 +149,7 @@ export function NodePalette({ onAddNode }: NodePaletteProps) {
                 })}
             </div>
 
-            {/* Footer Hint */}
+            {}
             <div className="p-4 border-t border-border/40 bg-muted/20 flex-shrink-0">
                 <p className="text-xs text-muted-foreground text-center">
                     Drag & drop nodes to canvas

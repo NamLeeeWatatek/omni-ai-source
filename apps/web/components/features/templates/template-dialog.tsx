@@ -73,7 +73,6 @@ export function TemplateDialog({
             form.reset()
             onOpenChange(false)
         } catch (error) {
-            // Error handled in parent
         }
     }
 

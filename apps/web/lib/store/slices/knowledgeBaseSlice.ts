@@ -25,21 +25,16 @@ import {
   uploadKBDocument,
 } from '@/lib/api/knowledge-base'
 
-// Types
 interface KnowledgeBaseState {
-  // Current KB
   currentKB: KnowledgeBase | null
   stats: KnowledgeBaseStats | null
   
-  // Navigation
   currentFolderId: string | null
   breadcrumbs: Array<{ id: string | null; name: string }>
   
-  // Data
   folders: KBFolder[]
   documents: KBDocument[]
   
-  // UI State
   loading: boolean
   autoRefreshing: boolean
   uploading: boolean
@@ -47,11 +42,9 @@ interface KnowledgeBaseState {
   searchQuery: string
   selectedIds: string[]
   
-  // Drag & Drop
   draggedItem: { type: 'folder' | 'document'; id: string } | null
   dragOverFolder: string | null
   
-  // Error
   error: string | null
 }
 
@@ -73,7 +66,6 @@ const initialState: KnowledgeBaseState = {
   error: null,
 }
 
-// Async Thunks
 export const loadKnowledgeBase = createAsyncThunk(
   'knowledgeBase/load',
   async ({ kbId, folderId }: { kbId: string; folderId?: string | null }) => {
@@ -84,7 +76,6 @@ export const loadKnowledgeBase = createAsyncThunk(
       getKBDocuments(kbId, folderId || undefined),
     ])
     
-    // Handle both response.data and direct response
     const kb = (kbRes as any)?.data || kbRes
     const stats = (statsRes as any)?.data || statsRes
     const folders = Array.isArray(foldersRes) ? foldersRes : ((foldersRes as any)?.data || [])
@@ -103,7 +94,6 @@ export const refreshData = createAsyncThunk(
       getKBDocuments(kbId, folderId || undefined),
     ])
     
-    // Handle both response.data and direct response
     const stats = (statsRes as any)?.data || statsRes
     const folders = Array.isArray(foldersRes) ? foldersRes : ((foldersRes as any)?.data || [])
     const documents = Array.isArray(documentsRes) ? documentsRes : ((documentsRes as any)?.data || [])
@@ -194,12 +184,10 @@ export const moveDocumentToFolder = createAsyncThunk(
   }
 )
 
-// Slice
 const knowledgeBaseSlice = createSlice({
   name: 'knowledgeBase',
   initialState,
   reducers: {
-    // Navigation
     setCurrentFolder: (state, action: PayloadAction<string | null>) => {
       state.currentFolderId = action.payload
     },
@@ -220,7 +208,6 @@ const knowledgeBaseSlice = createSlice({
       }
     },
     
-    // UI State
     setViewMode: (state, action: PayloadAction<'grid' | 'table'>) => {
       state.viewMode = action.payload
     },
@@ -252,7 +239,6 @@ const knowledgeBaseSlice = createSlice({
       state.selectedIds = []
     },
     
-    // Drag & Drop
     setDraggedItem: (state, action: PayloadAction<{ type: 'folder' | 'document'; id: string } | null>) => {
       state.draggedItem = action.payload
     },
@@ -261,17 +247,14 @@ const knowledgeBaseSlice = createSlice({
       state.dragOverFolder = action.payload
     },
     
-    // Auto-refresh
     setAutoRefreshing: (state, action: PayloadAction<boolean>) => {
       state.autoRefreshing = action.payload
     },
     
-    // Reset
     resetState: () => initialState,
   },
   
   extraReducers: (builder) => {
-    // Load Knowledge Base
     builder
       .addCase(loadKnowledgeBase.pending, (state) => {
         state.loading = true
@@ -283,22 +266,16 @@ const knowledgeBaseSlice = createSlice({
         state.stats = action.payload.stats
         state.currentFolderId = action.payload.folderId
         
-        // Ensure folders is an array
         const folders = Array.isArray(action.payload.folders) ? action.payload.folders : []
         
-        // Filter folders based on current location
-        // Show only folders that belong to current parent
         if (action.payload.folderId === null) {
-          // Root level - show folders without parent
           state.folders = folders.filter(f => !f.parentId && !f.parentFolderId)
         } else {
-          // Inside a folder - show folders with this parent
           state.folders = folders.filter(
             f => f.parentId === action.payload.folderId || f.parentFolderId === action.payload.folderId
           )
         }
         
-        // Ensure documents is an array
         state.documents = Array.isArray(action.payload.documents) ? action.payload.documents : []
       })
       .addCase(loadKnowledgeBase.rejected, (state, action) => {
@@ -306,30 +283,23 @@ const knowledgeBaseSlice = createSlice({
         state.error = action.error.message || 'Failed to load knowledge base'
       })
     
-    // Refresh Data
     builder
       .addCase(refreshData.fulfilled, (state, action) => {
         state.stats = action.payload.stats
         
-        // Ensure folders is an array
         const folders = Array.isArray(action.payload.folders) ? action.payload.folders : []
         
-        // Filter folders based on current location
         if (state.currentFolderId === null) {
-          // Root level - show folders without parent
           state.folders = folders.filter(f => !f.parentId && !f.parentFolderId)
         } else {
-          // Inside a folder - show folders with this parent
           state.folders = folders.filter(
             f => f.parentId === state.currentFolderId || f.parentFolderId === state.currentFolderId
           )
         }
         
-        // Ensure documents is an array
         state.documents = Array.isArray(action.payload.documents) ? action.payload.documents : []
       })
     
-    // Create Folder
     builder
       .addCase(createFolder.pending, (state) => {
         state.loading = true
@@ -343,7 +313,6 @@ const knowledgeBaseSlice = createSlice({
         state.error = action.error.message || 'Failed to create folder'
       })
     
-    // Create Document
     builder
       .addCase(createDocument.pending, (state) => {
         state.loading = true
@@ -357,14 +326,12 @@ const knowledgeBaseSlice = createSlice({
         state.error = action.error.message || 'Failed to create document'
       })
     
-    // Upload Document
     builder
       .addCase(uploadDocument.pending, (state) => {
         state.uploading = true
       })
       .addCase(uploadDocument.fulfilled, (state, action) => {
         state.uploading = false
-        // Add uploaded document to state
         state.documents.push(action.payload)
       })
       .addCase(uploadDocument.rejected, (state, action) => {
@@ -372,7 +339,6 @@ const knowledgeBaseSlice = createSlice({
         state.error = action.error.message || 'Failed to upload document'
       })
     
-    // Update Folder
     builder
       .addCase(updateFolder.fulfilled, (state, action) => {
         const index = state.folders.findIndex(f => f.id === action.payload.id)
@@ -381,7 +347,6 @@ const knowledgeBaseSlice = createSlice({
         }
       })
     
-    // Update Document
     builder
       .addCase(updateDocument.fulfilled, (state, action) => {
         const index = state.documents.findIndex(d => d.id === action.payload.id)
@@ -390,7 +355,6 @@ const knowledgeBaseSlice = createSlice({
         }
       })
     
-    // Remove Folder
     builder
       .addCase(removeFolder.pending, (state) => {
         state.loading = true
@@ -405,7 +369,6 @@ const knowledgeBaseSlice = createSlice({
         state.error = action.error.message || 'Failed to delete folder'
       })
     
-    // Remove Document
     builder
       .addCase(removeDocument.pending, (state) => {
         state.loading = true
@@ -422,7 +385,6 @@ const knowledgeBaseSlice = createSlice({
   },
 })
 
-// Actions
 export const {
   setCurrentFolder,
   navigateToFolder,
@@ -438,7 +400,6 @@ export const {
   resetState,
 } = knowledgeBaseSlice.actions
 
-// Selectors
 export const selectCurrentKB = (state: { knowledgeBase: KnowledgeBaseState }) => state.knowledgeBase.currentKB
 export const selectStats = (state: { knowledgeBase: KnowledgeBaseState }) => state.knowledgeBase.stats
 export const selectFolders = (state: { knowledgeBase: KnowledgeBaseState }) => state.knowledgeBase.folders
@@ -453,7 +414,6 @@ export const selectCurrentFolderId = (state: { knowledgeBase: KnowledgeBaseState
 export const selectDraggedItem = (state: { knowledgeBase: KnowledgeBaseState }) => state.knowledgeBase.draggedItem
 export const selectDragOverFolder = (state: { knowledgeBase: KnowledgeBaseState }) => state.knowledgeBase.dragOverFolder
 
-// Filtered selectors
 export const selectFilteredFolders = (state: { knowledgeBase: KnowledgeBaseState }) => {
   const { folders, searchQuery } = state.knowledgeBase
   if (!searchQuery) return folders

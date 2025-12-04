@@ -48,7 +48,6 @@ export class CreateConversationDto {
   @IsObject()
   metadata?: Record<string, any>;
 
-  // Legacy
   @ApiPropertyOptional({ deprecated: true })
   @IsOptional()
   @IsString()
@@ -121,7 +120,6 @@ export class CreateMessageDto {
     result?: any;
   }> | null;
 
-  // Legacy
   @ApiPropertyOptional({ deprecated: true })
   @IsOptional()
   @IsString()

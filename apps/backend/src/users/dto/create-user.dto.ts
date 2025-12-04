@@ -53,7 +53,6 @@ export class CreateUserDto {
   @IsEnum(['admin', 'user'])
   role?: 'admin' | 'user';
 
-  // Legacy fields - backward compatibility
   @ApiPropertyOptional({ example: 'John', deprecated: true })
   @IsOptional()
   @IsString()

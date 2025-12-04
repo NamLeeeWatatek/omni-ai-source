@@ -62,7 +62,6 @@ export function ChatWidget({ botId, apiUrl = '/api/v1' }: ChatWidgetProps) {
                 setConfig(data)
             }
         } catch (error) {
-            console.error('Failed to load bot config:', error)
         }
     }
 
@@ -83,7 +82,6 @@ export function ChatWidget({ botId, apiUrl = '/api/v1' }: ChatWidgetProps) {
                 const data = await response.json()
                 setConversationId(data.conversationId)
                 
-                // Add welcome message
                 if (config?.welcomeMessage) {
                     setMessages([{
                         role: 'assistant',
@@ -93,7 +91,6 @@ export function ChatWidget({ botId, apiUrl = '/api/v1' }: ChatWidgetProps) {
                 }
             }
         } catch (error) {
-            console.error('Failed to create conversation:', error)
         }
     }
 
@@ -130,7 +127,6 @@ export function ChatWidget({ botId, apiUrl = '/api/v1' }: ChatWidgetProps) {
                 throw new Error('Failed to send message')
             }
         } catch (error) {
-            console.error('Failed to send message:', error)
             setMessages(prev => [...prev, {
                 role: 'assistant',
                 content: 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại.',
@@ -148,7 +144,7 @@ export function ChatWidget({ botId, apiUrl = '/api/v1' }: ChatWidgetProps) {
 
     return (
         <>
-            {/* Chat Button */}
+            {}
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className="fixed z-50 rounded-full shadow-lg transition-all hover:scale-110"
@@ -167,7 +163,7 @@ export function ChatWidget({ botId, apiUrl = '/api/v1' }: ChatWidgetProps) {
                 )}
             </button>
 
-            {/* Chat Window */}
+            {}
             {isOpen && (
                 <div
                     className="fixed z-50 bg-white rounded-lg shadow-2xl flex flex-col"
@@ -179,7 +175,7 @@ export function ChatWidget({ botId, apiUrl = '/api/v1' }: ChatWidgetProps) {
                         maxHeight: 'calc(100vh - 120px)',
                     }}
                 >
-                    {/* Header */}
+                    {}
                     <div
                         className="p-4 rounded-t-lg text-white flex items-center gap-3"
                         style={{ backgroundColor: primaryColor }}
@@ -207,7 +203,7 @@ export function ChatWidget({ botId, apiUrl = '/api/v1' }: ChatWidgetProps) {
                         </button>
                     </div>
 
-                    {/* Messages */}
+                    {}
                     <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
                         {messages.map((msg, idx) => (
                             <div
@@ -248,7 +244,7 @@ export function ChatWidget({ botId, apiUrl = '/api/v1' }: ChatWidgetProps) {
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {/* Input */}
+                    {}
                     <div className="p-4 border-t bg-white rounded-b-lg">
                         <div className="flex gap-2">
                             <input

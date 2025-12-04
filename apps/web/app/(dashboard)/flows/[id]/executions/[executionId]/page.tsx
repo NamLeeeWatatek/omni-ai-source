@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
 import toast from '@/lib/toast'
 import {
@@ -18,7 +18,7 @@ import {
 } from 'react-icons/fi'
 import axiosClient from '@/lib/axios-client'
 import { useAppSelector } from '@/lib/store/hooks'
-import { getExecutionReference, formatExecutionDuration, formatExecutionDate } from '@/lib/execution-utils'
+import { getExecutionReference } from '@/lib/utils/execution'
 
 interface NodeExecution {
     id: number
@@ -96,48 +96,47 @@ export default function ExecutionDetailPage({
         }
     }
 
-    // Detect output type and render accordingly
     const renderOutputData = (data: any) => {
-        // 1. Check if it's a text response (AI output)
         if (data.response && typeof data.response === 'string') {
             return (
-                <div className="glass rounded-lg border border-border/40 p-4">
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                            {data.response}
-                        </p>
-                    </div>
-
-                    {/* Show metadata if exists */}
-                    {(data.model || data.tokens_used) && (
-                        <div className="mt-3 pt-3 border-t border-border/40 flex items-center gap-3 text-xs text-muted-foreground">
-                            {data.model && (
-                                <span className="px-2 py-1 bg-muted rounded">
-                                    Model: {data.model}
-                                </span>
-                            )}
-                            {data.tokens_used && (
-                                <span className="px-2 py-1 bg-muted rounded">
-                                    Tokens: {data.tokens_used}
-                                </span>
-                            )}
+                <Card className="border-border/40">
+                    <CardContent className="p-4">
+                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                            <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                                {data.response}
+                            </p>
                         </div>
-                    )}
 
-                    {/* Show raw JSON in collapsible */}
-                    <details className="mt-3">
-                        <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
-                            View Raw JSON
-                        </summary>
-                        <pre className="mt-2 text-xs overflow-auto max-h-32 p-2 bg-muted/30 rounded">
-                            {JSON.stringify(data, null, 2)}
-                        </pre>
-                    </details>
-                </div>
+                        {}
+                        {(data.model || data.tokens_used) && (
+                            <div className="mt-3 pt-3 border-t border-border/40 flex items-center gap-3 text-xs text-muted-foreground">
+                                {data.model && (
+                                    <span className="px-2 py-1 bg-muted rounded">
+                                        Model: {data.model}
+                                    </span>
+                                )}
+                                {data.tokens_used && (
+                                    <span className="px-2 py-1 bg-muted rounded">
+                                        Tokens: {data.tokens_used}
+                                    </span>
+                                )}
+                            </div>
+                        )}
+
+                        {}
+                        <details className="mt-3">
+                            <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                                View Raw JSON
+                            </summary>
+                            <pre className="mt-2 text-xs overflow-auto max-h-32 p-2 bg-muted/30 rounded">
+                                {JSON.stringify(data, null, 2)}
+                            </pre>
+                        </details>
+                    </CardContent>
+                </Card>
             )
         }
 
-        // 2. Check if it's a product (has image/name/description)
         const isProduct = data.image || data.image_url || data.thumbnail ||
             (data.name && data.description) ||
             (data.title && (data.image || data.url))
@@ -150,8 +149,8 @@ export default function ExecutionDetailPage({
             const category = data.category || data.type
 
             return (
-                <div className="glass rounded-lg border border-border/40 overflow-hidden">
-                    {/* Product Image */}
+                <Card className="overflow-hidden border-border/40">
+                    {}
                     {imageUrl && (
                         <div className="relative w-full h-48 bg-muted">
                             <img
@@ -165,8 +164,8 @@ export default function ExecutionDetailPage({
                         </div>
                     )}
 
-                    {/* Product Info */}
-                    <div className="p-4 space-y-2">
+                    {}
+                    <CardContent className="p-4 space-y-2">
                         <h4 className="font-semibold text-base">{name}</h4>
 
                         {description && (
@@ -188,7 +187,7 @@ export default function ExecutionDetailPage({
                             )}
                         </div>
 
-                        {/* Show raw JSON in collapsible */}
+                        {}
                         <details className="mt-3">
                             <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
                                 View Raw JSON
@@ -197,14 +196,13 @@ export default function ExecutionDetailPage({
                                 {JSON.stringify(data, null, 2)}
                             </pre>
                         </details>
-                    </div>
-                </div>
+                    </CardContent>
+                </Card>
             )
         }
 
-        // 3. Default: show as JSON
         return (
-            <pre className="glass rounded-lg px-3 py-2 border border-border/40 text-xs overflow-auto max-h-40">
+            <pre className="text-xs overflow-auto max-h-40 p-3 bg-muted/30 rounded-lg border border-border/40">
                 {JSON.stringify(data, null, 2)}
             </pre>
         )
@@ -269,19 +267,21 @@ export default function ExecutionDetailPage({
     if (!execution) {
         return (
             <div className="p-8">
-                <div className="glass rounded-xl p-6 text-center">
-                    <p className="text-red-500 mb-4">Execution not found</p>
-                    <Link href={`/flows/${params.id}/executions`}>
-                        <Button>Back to Executions</Button>
-                    </Link>
-                </div>
+                <Card>
+                    <CardContent className="p-6 text-center">
+                        <p className="text-red-500 mb-4">Execution not found</p>
+                        <Link href={`/flows/${params.id}/executions`}>
+                            <Button>Back to Executions</Button>
+                        </Link>
+                    </CardContent>
+                </Card>
             </div>
         )
     }
 
     return (
         <div className="p-4 space-y-6">
-            {/* Header */}
+            {}
             <div className="mb-8">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4">
@@ -310,194 +310,211 @@ export default function ExecutionDetailPage({
                 </div>
             </div>
 
-            {/* Stats */}
+            {}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-                <div className="glass rounded-xl p-6">
-                    <div className="flex items-center gap-2 mb-2">
-                        {getStatusIcon(execution.status)}
-                        <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(
-                                execution.status
-                            )}`}
-                        >
-                            {execution.status}
-                        </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">Status</p>
-                </div>
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-2 mb-2">
+                            {getStatusIcon(execution.status)}
+                            <span
+                                className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(
+                                    execution.status
+                                )}`}
+                            >
+                                {execution.status}
+                            </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">Status</p>
+                    </CardContent>
+                </Card>
 
-                <div className="glass rounded-xl p-6">
-                    <h3 className="text-2xl font-bold mb-1">{formatDuration(execution.duration_ms)}</h3>
-                    <p className="text-sm text-muted-foreground">Duration</p>
-                </div>
+                <Card>
+                    <CardContent className="p-6">
+                        <h3 className="text-2xl font-bold mb-1">{formatDuration(execution.duration_ms)}</h3>
+                        <p className="text-sm text-muted-foreground">Duration</p>
+                    </CardContent>
+                </Card>
 
-                <div className="glass rounded-xl p-6">
-                    <h3 className="text-2xl font-bold mb-1">
-                        {execution.completed_nodes}/{execution.total_nodes}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">Nodes Executed</p>
-                </div>
+                <Card>
+                    <CardContent className="p-6">
+                        <h3 className="text-2xl font-bold mb-1">
+                            {execution.completed_nodes}/{execution.total_nodes}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">Nodes Executed</p>
+                    </CardContent>
+                </Card>
 
-                <div className="glass rounded-xl p-6">
-                    <h3 className="text-2xl font-bold mb-1">{execution.success_rate?.toFixed(0) || 0}%</h3>
-                    <p className="text-sm text-muted-foreground">Success Rate</p>
-                </div>
+                <Card>
+                    <CardContent className="p-6">
+                        <h3 className="text-2xl font-bold mb-1">{execution.success_rate?.toFixed(0) || 0}%</h3>
+                        <p className="text-sm text-muted-foreground">Success Rate</p>
+                    </CardContent>
+                </Card>
 
-                <div className="glass rounded-xl p-6">
-                    <h3 className="text-2xl font-bold mb-1">
-                        {execution.node_executions.filter((n) => n.status === 'failed').length}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">Failed Nodes</p>
-                </div>
+                <Card>
+                    <CardContent className="p-6">
+                        <h3 className="text-2xl font-bold mb-1">
+                            {execution.node_executions.filter((n) => n.status === 'failed').length}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">Failed Nodes</p>
+                    </CardContent>
+                </Card>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Node Executions Timeline */}
+                {}
                 <div className="lg:col-span-2">
-                    <div className="glass rounded-xl p-6">
-                        <h3 className="text-lg font-semibold mb-4">Execution Timeline</h3>
-                        <div className="space-y-3">
-                            {execution.node_executions.map((nodeExec, index) => {
-                                const nodeType = getNodeType(nodeExec.node_type)
-                                const Icon = nodeType?.icon
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg">Execution Timeline</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                                {execution.node_executions.map((nodeExec, index) => {
+                                    const nodeType = getNodeType(nodeExec.node_type)
+                                    const Icon = nodeType?.icon
 
-                                return (
-                                    <div
-                                        key={nodeExec.id}
-                                        onClick={() => setSelectedNode(nodeExec)}
-                                        className={`p-4 rounded-lg border cursor-pointer transition-all ${selectedNode?.id === nodeExec.id
-                                            ? 'border-primary bg-primary/5'
-                                            : 'border-border/40 hover:bg-muted/20'
-                                            }`}
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3 flex-1">
-                                                {/* Step Number */}
-                                                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
-                                                    {index + 1}
-                                                </div>
-
-                                                {/* Node Icon */}
-                                                {Icon && nodeType && (
-                                                    <div
-                                                        className="p-2 rounded-lg"
-                                                        style={{
-                                                            backgroundColor: `${nodeType.bgColor}20`,
-                                                            color: nodeType.color
-                                                        }}
-                                                    >
-                                                        <Icon className="w-4 h-4" />
+                                    return (
+                                        <div
+                                            key={nodeExec.id}
+                                            onClick={() => setSelectedNode(nodeExec)}
+                                            className={`p-4 rounded-lg border cursor-pointer transition-all ${selectedNode?.id === nodeExec.id
+                                                ? 'border-primary bg-primary/5'
+                                                : 'border-border/40 hover:bg-muted/20'
+                                                }`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3 flex-1">
+                                                    {}
+                                                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
+                                                        {index + 1}
                                                     </div>
-                                                )}
 
-                                                {/* Node Info */}
-                                                <div className="flex-1">
-                                                    <div className="font-medium">{nodeExec.node_label}</div>
-                                                    <div className="text-xs text-muted-foreground">
-                                                        {nodeExec.node_type}
+                                                    {}
+                                                    {Icon && nodeType && (
+                                                        <div
+                                                            className="p-2 rounded-lg"
+                                                            style={{
+                                                                backgroundColor: `${nodeType.bgColor}20`,
+                                                                color: nodeType.color
+                                                            }}
+                                                        >
+                                                            <Icon className="w-4 h-4" />
+                                                        </div>
+                                                    )}
+
+                                                    {}
+                                                    <div className="flex-1">
+                                                        <div className="font-medium">{nodeExec.node_label}</div>
+                                                        <div className="text-xs text-muted-foreground">
+                                                            {nodeExec.node_type}
+                                                        </div>
                                                     </div>
-                                                </div>
 
-                                                {/* Status */}
-                                                <div className="flex items-center gap-2">
-                                                    {getStatusIcon(nodeExec.status)}
-                                                    <span className="text-sm text-muted-foreground">
-                                                        {formatDuration(nodeExec.execution_time_ms)}
-                                                    </span>
+                                                    {}
+                                                    <div className="flex items-center gap-2">
+                                                        {getStatusIcon(nodeExec.status)}
+                                                        <span className="text-sm text-muted-foreground">
+                                                            {formatDuration(nodeExec.execution_time_ms)}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
+
+                                            {}
+                                            {nodeExec.error_message && (
+                                                <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                                                    <p className="text-sm text-red-500">{nodeExec.error_message}</p>
+                                                </div>
+                                            )}
                                         </div>
-
-                                        {/* Error Message */}
-                                        {nodeExec.error_message && (
-                                            <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                                                <p className="text-sm text-red-500">{nodeExec.error_message}</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    </div>
+                                    )
+                                })}
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
 
-                {/* Node Details Panel */}
+                {}
                 <div className="lg:col-span-1">
-                    <div className="glass rounded-xl p-6 sticky top-8">
-                        <h3 className="text-lg font-semibold mb-4">
-                            {selectedNode ? 'Node Details' : 'Select a Node'}
-                        </h3>
-
-                        {selectedNode ? (
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium mb-2">Label</label>
-                                    <div className="glass rounded-lg px-3 py-2 border border-border/40 text-sm">
-                                        {selectedNode.node_label}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium mb-2">Type</label>
-                                    <div className="glass rounded-lg px-3 py-2 border border-border/40 text-sm">
-                                        {selectedNode.node_type}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium mb-2">Status</label>
-                                    <div className="flex items-center gap-2">
-                                        {getStatusIcon(selectedNode.status)}
-                                        <span
-                                            className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(
-                                                selectedNode.status
-                                            )}`}
-                                        >
-                                            {selectedNode.status}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium mb-2">Execution Time</label>
-                                    <div className="glass rounded-lg px-3 py-2 border border-border/40 text-sm">
-                                        {formatDuration(selectedNode.execution_time_ms)}
-                                    </div>
-                                </div>
-
-                                {selectedNode.input_data && Object.keys(selectedNode.input_data).length > 0 && (
+                    <Card className="sticky top-8">
+                        <CardHeader>
+                            <CardTitle className="text-lg">
+                                {selectedNode ? 'Node Details' : 'Select a Node'}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {selectedNode ? (
+                                <div className="space-y-4">
                                     <div>
-                                        <label className="block text-sm font-medium mb-2">Input Data</label>
-                                        <pre className="glass rounded-lg px-3 py-2 border border-border/40 text-xs overflow-auto max-h-40">
-                                            {JSON.stringify(selectedNode.input_data, null, 2)}
-                                        </pre>
-                                    </div>
-                                )}
-
-                                {selectedNode.output_data && Object.keys(selectedNode.output_data).length > 0 && (
-                                    <div>
-                                        <label className="block text-sm font-medium mb-2">Output Data</label>
-                                        {renderOutputData(selectedNode.output_data)}
-                                    </div>
-                                )}
-
-                                {selectedNode.error_message && (
-                                    <div>
-                                        <label className="block text-sm font-medium mb-2 text-red-500">
-                                            Error
-                                        </label>
-                                        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-sm text-red-500">
-                                            {selectedNode.error_message}
+                                        <label className="block text-sm font-medium mb-2">Label</label>
+                                        <div className="p-3 bg-muted/30 rounded-lg border border-border/40 text-sm">
+                                            {selectedNode.node_label}
                                         </div>
                                     </div>
-                                )}
-                            </div>
-                        ) : (
-                            <p className="text-sm text-muted-foreground text-center py-8">
-                                Click on a node in the timeline to view its details
-                            </p>
-                        )}
-                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2">Type</label>
+                                        <div className="p-3 bg-muted/30 rounded-lg border border-border/40 text-sm">
+                                            {selectedNode.node_type}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2">Status</label>
+                                        <div className="flex items-center gap-2">
+                                            {getStatusIcon(selectedNode.status)}
+                                            <span
+                                                className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(
+                                                    selectedNode.status
+                                                )}`}
+                                            >
+                                                {selectedNode.status}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2">Execution Time</label>
+                                        <div className="p-3 bg-muted/30 rounded-lg border border-border/40 text-sm">
+                                            {formatDuration(selectedNode.execution_time_ms)}
+                                        </div>
+                                    </div>
+
+                                    {selectedNode.input_data && Object.keys(selectedNode.input_data).length > 0 && (
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">Input Data</label>
+                                            <pre className="text-xs overflow-auto max-h-40 p-3 bg-muted/30 rounded-lg border border-border/40">
+                                                {JSON.stringify(selectedNode.input_data, null, 2)}
+                                            </pre>
+                                        </div>
+                                    )}
+
+                                    {selectedNode.output_data && Object.keys(selectedNode.output_data).length > 0 && (
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">Output Data</label>
+                                            {renderOutputData(selectedNode.output_data)}
+                                        </div>
+                                    )}
+
+                                    {selectedNode.error_message && (
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2 text-red-500">
+                                                Error
+                                            </label>
+                                            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-sm text-red-500">
+                                                {selectedNode.error_message}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground text-center py-8">
+                                    Click on a node in the timeline to view its details
+                                </p>
+                            )}
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
         </div>

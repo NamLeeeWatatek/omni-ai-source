@@ -42,13 +42,9 @@ export class StatsService {
     @InjectRepository(WorkspaceEntity)
     private readonly workspaceRepository: Repository<WorkspaceEntity>,
   ) { }
-  /**
-   * Get comprehensive dashboard statistics
-   */
   async getDashboardStats(query: StatsQueryDto, workspaceId?: string): Promise<DashboardStatsDto> {
     const { startDate, endDate } = this.getDateRange(query);
 
-    // Execute all stats queries in parallel for better performance
     const [
       users,
       bots,
@@ -84,21 +80,16 @@ export class StatsService {
     };
   }
 
-  /**
-   * Get user statistics
-   */
   private async getUserStats(
     query: StatsQueryDto,
     startDate: Date,
     endDate: Date,
     workspaceId?: string,
   ): Promise<UserStatsDto> {
-    // Calculate previous period dates for comparison
     const periodDuration = endDate.getTime() - startDate.getTime();
     const previousStartDate = new Date(startDate.getTime() - periodDuration);
     const previousEndDate = new Date(startDate);
 
-    // Build where clause with optional workspaceId filter
     const buildWhere = (dateFilter: any) => {
       const where: any = { ...dateFilter };
       if (workspaceId) {
@@ -107,26 +98,20 @@ export class StatsService {
       return where;
     };
 
-    // Get total users count
     const total = await this.userRepository.count({
       where: workspaceId ? { workspaceId } : {},
     });
 
-    // Get users created in current period
     const current = await this.userRepository.count({
       where: buildWhere({ createdAt: Between(startDate, endDate) }),
     });
 
-    // Get users created in previous period
     const previous = await this.userRepository.count({
       where: buildWhere({ createdAt: Between(previousStartDate, previousEndDate) }),
     });
 
-    // Count active users (users who have conversations or activities)
-    // For now, we'll consider all users as potentially active
     const active = total;
 
-    // New users are the same as current period users
     const newUsers = current;
 
     return {
@@ -143,9 +128,6 @@ export class StatsService {
     };
   }
 
-  /**
-   * Get bot statistics
-   */
   private async getBotStats(
     query: StatsQueryDto,
     startDate: Date,
@@ -156,7 +138,6 @@ export class StatsService {
     const previousStartDate = new Date(startDate.getTime() - periodDuration);
     const previousEndDate = new Date(startDate);
 
-    // Build where clause with optional workspaceId filter
     const buildWhere = (additionalFilter: any = {}) => {
       const where: any = { ...additionalFilter };
       if (workspaceId) {
@@ -183,8 +164,6 @@ export class StatsService {
 
     const inactive = total - active;
 
-    // Calculate average success rate from conversations
-    // For now, we'll use a placeholder value
     const avgSuccessRate = 89.5;
 
     return {
@@ -202,9 +181,6 @@ export class StatsService {
     };
   }
 
-  /**
-   * Get conversation statistics
-   */
   private async getConversationStats(
     query: StatsQueryDto,
     startDate: Date,
@@ -215,7 +191,6 @@ export class StatsService {
     const previousStartDate = new Date(startDate.getTime() - periodDuration);
     const previousEndDate = new Date(startDate);
 
-    // Build query with workspace filter through bot relation
     const buildQuery = (additionalWhere: any = {}) => {
       const query = this.conversationRepository
         .createQueryBuilder('conversation')
@@ -250,7 +225,6 @@ export class StatsService {
 
     const completed = await buildQuery({ status: 'closed' }).getCount();
 
-    // Calculate average messages per conversation
     const totalMessages = await this.messageRepository
       .createQueryBuilder('message')
       .leftJoin('message.conversation', 'conversation')
@@ -276,9 +250,6 @@ export class StatsService {
     };
   }
 
-  /**
-   * Get flow execution statistics
-   */
   private async getFlowStats(
     query: StatsQueryDto,
     startDate: Date,
@@ -289,7 +260,6 @@ export class StatsService {
     const previousStartDate = new Date(startDate.getTime() - periodDuration);
     const previousEndDate = new Date(startDate);
 
-    // Build query with workspace filter through flow relation
     const buildQuery = () => {
       const query = this.flowExecutionRepository
         .createQueryBuilder('execution')
@@ -327,7 +297,6 @@ export class StatsService {
     const successRate =
       totalExecutions > 0 ? (successfulExecutions / totalExecutions) * 100 : 0;
 
-    // Calculate average execution time
     const executions = await buildQuery()
       .andWhere('execution.endTime >= :minTime', { minTime: 0 })
       .select(['execution.startTime', 'execution.endTime'])
@@ -343,7 +312,7 @@ export class StatsService {
       }, 0);
       avgExecutionTime = Number(
         (totalTime / executions.length / 1000).toFixed(2),
-      ); // Convert to seconds
+      );
     }
 
     return {
@@ -363,9 +332,6 @@ export class StatsService {
     };
   }
 
-  /**
-   * Get workspace statistics
-   */
   private async getWorkspaceStats(
     query: StatsQueryDto,
     startDate: Date,
@@ -376,7 +342,6 @@ export class StatsService {
     const previousStartDate = new Date(startDate.getTime() - periodDuration);
     const previousEndDate = new Date(startDate);
 
-    // If workspaceId is provided, only count that specific workspace
     const buildWhere = (additionalFilter: any = {}) => {
       const where: any = { ...additionalFilter };
       if (workspaceId) {
@@ -397,7 +362,6 @@ export class StatsService {
       where: buildWhere({ createdAt: Between(previousStartDate, previousEndDate) }),
     });
 
-    // Consider all workspaces as active for now
     const active = total;
 
     return {
@@ -413,15 +377,11 @@ export class StatsService {
     };
   }
 
-  /**
-   * Get top performing bots
-   */
   private async getTopBots(
     query: StatsQueryDto,
     startDate: Date,
     endDate: Date,
   ): Promise<TopItemDto[]> {
-    // Get bots with conversation counts
     const bots = await this.botRepository
       .createQueryBuilder('bot')
       .leftJoin('conversation', 'conv', 'conv.botId = bot.id')
@@ -442,19 +402,15 @@ export class StatsService {
       id: bot.id,
       name: bot.name,
       count: parseInt(bot.count) || 0,
-      metric: 90 + Math.random() * 10, // Placeholder for success rate
+      metric: 90 + Math.random() * 10,
     }));
   }
 
-  /**
-   * Get most used flows
-   */
   private async getTopFlows(
     query: StatsQueryDto,
     startDate: Date,
     endDate: Date,
   ): Promise<TopItemDto[]> {
-    // Get flows with execution counts
     const flows = await this.flowExecutionRepository
       .createQueryBuilder('exec')
       .leftJoin('flow', 'flow', 'flow.id = exec.flowId')
@@ -483,21 +439,14 @@ export class StatsService {
     }));
   }
 
-  /**
-   * Get activity trend over time
-   */
   private async getActivityTrend(
     query: StatsQueryDto,
     startDate: Date,
     endDate: Date,
   ): Promise<TimeSeriesDataPoint[]> {
-    // Get conversation activity trend
     return this.getConversationTrend(startDate, endDate);
   }
 
-  /**
-   * Calculate date range based on query parameters
-   */
   private getDateRange(query: StatsQueryDto): {
     startDate: Date;
     endDate: Date;
@@ -567,17 +516,11 @@ export class StatsService {
     return { startDate, endDate };
   }
 
-  /**
-   * Calculate growth rate percentage
-   */
   private calculateGrowthRate(current: number, previous: number): number {
     if (previous === 0) return current > 0 ? 100 : 0;
     return Number((((current - previous) / previous) * 100).toFixed(2));
   }
 
-  /**
-   * Get user trend data
-   */
   private async getUserTrend(
     startDate: Date,
     endDate: Date,
@@ -597,9 +540,6 @@ export class StatsService {
     return this.fillMissingDates(trend, startDate, endDate);
   }
 
-  /**
-   * Get bot trend data
-   */
   private async getBotTrend(
     startDate: Date,
     endDate: Date,
@@ -619,9 +559,6 @@ export class StatsService {
     return this.fillMissingDates(trend, startDate, endDate);
   }
 
-  /**
-   * Get conversation trend data
-   */
   private async getConversationTrend(
     startDate: Date,
     endDate: Date,
@@ -641,9 +578,6 @@ export class StatsService {
     return this.fillMissingDates(trend, startDate, endDate);
   }
 
-  /**
-   * Get flow execution trend data
-   */
   private async getFlowTrend(
     startDate: Date,
     endDate: Date,
@@ -663,9 +597,6 @@ export class StatsService {
     return this.fillMissingDates(trend, startDate, endDate);
   }
 
-  /**
-   * Get workspace trend data
-   */
   private async getWorkspaceTrend(
     startDate: Date,
     endDate: Date,
@@ -685,9 +616,6 @@ export class StatsService {
     return this.fillMissingDates(trend, startDate, endDate);
   }
 
-  /**
-   * Fill missing dates in trend data with zero values
-   */
   private fillMissingDates(
     trend: any[],
     startDate: Date,
@@ -711,9 +639,6 @@ export class StatsService {
     return result;
   }
 
-  /**
-   * Generate mock trend data (replace with real data)
-   */
   private generateMockTrend(days: number): TimeSeriesDataPoint[] {
     const trend: TimeSeriesDataPoint[] = [];
     const now = new Date();

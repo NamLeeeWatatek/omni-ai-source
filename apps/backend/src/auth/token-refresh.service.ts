@@ -17,40 +17,32 @@ export class TokenRefreshService {
     private usersService: UsersService,
   ) {}
 
-  /**
-   * Refresh access token using refresh token
-   */
   async refreshAccessToken(refreshToken: string): Promise<{
     token: string;
     tokenExpires: number;
     refreshToken: string;
   }> {
     try {
-      // Verify refresh token
       const payload = await this.jwtService.verifyAsync(refreshToken, {
         secret: this.configService.getOrThrow('auth.refreshSecret', {
           infer: true,
         }),
       });
 
-      // Get session
       const session = await this.sessionService.findById(payload.sessionId);
       if (!session) {
         throw new UnauthorizedException('Session not found');
       }
 
-      // Verify hash matches
       if (session.hash !== payload.hash) {
         throw new UnauthorizedException('Invalid session');
       }
 
-      // Get user
       const user = await this.usersService.findById(session.user.id);
       if (!user) {
         throw new UnauthorizedException('User not found');
       }
 
-      // Generate new access token
       const tokenExpiresIn = this.configService.getOrThrow('auth.expires', {
         infer: true,
       });
@@ -70,19 +62,16 @@ export class TokenRefreshService {
         },
       );
 
-      // Check if refresh token is close to expiration (< 7 days)
       const refreshExpiresIn = this.configService.getOrThrow(
         'auth.refreshExpires',
         { infer: true },
       );
-      // const refreshExpiresMs = ms(refreshExpiresIn);
-      const refreshExpiresAt = payload.exp * 1000; // Convert to milliseconds
+      const refreshExpiresAt = payload.exp * 1000;
       const timeUntilExpiry = refreshExpiresAt - Date.now();
       const sevenDays = 7 * 24 * 60 * 60 * 1000;
 
       let newRefreshToken = refreshToken;
 
-      // Rotate refresh token if close to expiration
       if (timeUntilExpiry < sevenDays) {
         this.logger.log('Rotating refresh token (close to expiration)');
         newRefreshToken = await this.jwtService.signAsync(
@@ -112,9 +101,6 @@ export class TokenRefreshService {
     }
   }
 
-  /**
-   * Check if token is close to expiration
-   */
   isTokenExpiringSoon(token: string): boolean {
     try {
       const payload = this.jwtService.decode(token) as any;
@@ -122,11 +108,10 @@ export class TokenRefreshService {
         return true;
       }
 
-      const expiresAt = payload.exp * 1000; // Convert to milliseconds
+      const expiresAt = payload.exp * 1000;
       const now = Date.now();
       const timeUntilExpiry = expiresAt - now;
 
-      // Consider token expiring soon if < 5 minutes
       const fiveMinutes = 5 * 60 * 1000;
 
       return timeUntilExpiry < fiveMinutes;
@@ -135,9 +120,6 @@ export class TokenRefreshService {
     }
   }
 
-  /**
-   * Validate token without throwing error
-   */
   async validateToken(token: string): Promise<boolean> {
     try {
       await this.jwtService.verifyAsync(token, {

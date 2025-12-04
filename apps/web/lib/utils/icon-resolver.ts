@@ -20,11 +20,9 @@ const iconMap: Record<string, any> = {
 export function resolveIcon(iconName: string | undefined): any {
   if (!iconName) return FiIcons.FiCircle
   
-  // Direct lookup
   const Icon = iconMap[iconName]
   if (Icon) return Icon
   
-  // Fallback
   return FiIcons.FiCircle
 }
 
@@ -33,21 +31,17 @@ export function resolveIcon(iconName: string | undefined): any {
  * Handles both icon component (legacy) and icon name (new)
  */
 export function getNodeIcon(nodeType: any): any {
-  // If icon is already a component (legacy)
   if (nodeType?.icon && typeof nodeType.icon === 'function') {
     return nodeType.icon
   }
   
-  // If icon is a string name (new approach)
   if (nodeType?.icon && typeof nodeType.icon === 'string') {
     return resolveIcon(nodeType.icon)
   }
   
-  // If iconName field exists
   if (nodeType?.iconName) {
     return resolveIcon(nodeType.iconName)
   }
   
-  // Fallback
   return FiIcons.FiCircle
 }

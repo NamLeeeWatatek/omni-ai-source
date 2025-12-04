@@ -42,7 +42,6 @@ export function KBDocumentDialog({ open, onOpenChange, onSubmit }: KBDocumentDia
             form.reset()
             onOpenChange(false)
         } catch (error) {
-            // Error handling is done in parent
         }
     }
 

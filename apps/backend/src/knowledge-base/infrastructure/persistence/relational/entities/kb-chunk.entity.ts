@@ -9,7 +9,6 @@ import {
 import { EntityRelationalHelper } from 'src/utils/relational-entity-helper';
 import { KbDocumentEntity } from './knowledge-base.entity';
 
-// Chunks for vector embeddings
 @Entity({ name: 'kb_chunk' })
 export class KBChunkEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')

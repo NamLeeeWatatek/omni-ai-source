@@ -22,8 +22,6 @@ export function useConversationsSocket({
 
     const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     
-    console.log('🔌 Connecting to WebSocket:', `${SOCKET_URL}/conversations`);
-
     const socket = io(`${SOCKET_URL}/conversations`, {
       transports: ['websocket', 'polling'],
       reconnection: true,
@@ -33,40 +31,29 @@ export function useConversationsSocket({
     });
 
     socket.on('connect', () => {
-      console.log('✅ WebSocket connected:', socket.id);
     });
 
     socket.on('disconnect', (reason) => {
-      console.log('❌ WebSocket disconnected:', reason);
       
-      // Auto-reconnect after 3 seconds
       if (enabled) {
         reconnectTimeoutRef.current = setTimeout(() => {
-          console.log('🔄 Attempting to reconnect...');
           socket.connect();
         }, 3000);
       }
     });
 
     socket.on('connect_error', (error) => {
-      console.error('❌ WebSocket connection error:', error);
     });
 
-    // Listen for conversation updates
     socket.on('conversation-update', (conversation) => {
-      console.log('📨 Received conversation update:', conversation);
       onConversationUpdate?.(conversation);
     });
 
-    // Listen for new conversations
     socket.on('new-conversation', (conversation) => {
-      console.log('🆕 Received new conversation:', conversation);
       onNewConversation?.(conversation);
     });
 
-    // Listen for new messages
     socket.on('new-message', (message) => {
-      console.log('💬 Received new message:', message);
       onNewMessage?.(message);
     });
 
@@ -81,7 +68,6 @@ export function useConversationsSocket({
     }
     
     if (socketRef.current) {
-      console.log('🔌 Disconnecting WebSocket');
       socketRef.current.disconnect();
       socketRef.current = null;
     }
@@ -89,14 +75,12 @@ export function useConversationsSocket({
 
   const joinConversation = useCallback((conversationId: string) => {
     if (socketRef.current?.connected) {
-      console.log('👋 Joining conversation:', conversationId);
       socketRef.current.emit('join-conversation', conversationId);
     }
   }, []);
 
   const leaveConversation = useCallback((conversationId: string) => {
     if (socketRef.current?.connected) {
-      console.log('👋 Leaving conversation:', conversationId);
       socketRef.current.emit('leave-conversation', conversationId);
     }
   }, []);

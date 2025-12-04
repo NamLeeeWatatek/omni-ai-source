@@ -8,10 +8,10 @@ import { Server } from 'socket.io';
 
 @WebSocketGateway({
   cors: {
-    origin: '*', // Allow all origins for development
+    origin: '*',
     credentials: true,
   },
-  namespace: 'executions', // Simple namespace
+  namespace: 'executions',
 })
 export class ExecutionGateway
   implements OnGatewayConnection, OnGatewayDisconnect
@@ -20,14 +20,11 @@ export class ExecutionGateway
   server: Server;
 
   handleConnection(client: any) {
-    console.log(`Execution client connected: ${client.id}`);
   }
 
   handleDisconnect(client: any) {
-    console.log(`Execution client disconnected: ${client.id}`);
   }
 
-  // Emit execution events
   emitExecutionStart(executionId: string, flowId: string) {
     this.server.emit('execution:start', {
       executionId,

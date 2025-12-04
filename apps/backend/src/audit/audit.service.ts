@@ -15,7 +15,6 @@ export class AuditService {
     private dataAccessLogRepo: Repository<DataAccessLogEntity>,
   ) {}
 
-  // Audit Logs
   async log(data: {
     userId: string;
     workspaceId: string;
@@ -79,7 +78,6 @@ export class AuditService {
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  // Data Access Logs
   async logDataAccess(data: {
     userId: string;
     workspaceId: string;
@@ -140,7 +138,6 @@ export class AuditService {
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  // Cleanup old logs
   async cleanupOldLogs(daysOld: number = 90) {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysOld);

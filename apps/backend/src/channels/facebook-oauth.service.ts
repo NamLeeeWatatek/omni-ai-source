@@ -36,9 +36,6 @@ export class FacebookOAuthService extends BaseOAuthService {
     super(connectionRepository, credentialRepository);
   }
 
-  /**
-   * Get OAuth URL for user to login and grant permissions
-   */
   getOAuthUrl(appId: string, redirectUri: string, state?: string): string {
     if (!appId) {
       throw new HttpException(
@@ -63,9 +60,6 @@ export class FacebookOAuthService extends BaseOAuthService {
     return url.toString();
   }
 
-  /**
-   * Exchange authorization code for access token
-   */
   async exchangeCodeForToken(
     code: string,
     redirectUri: string,
@@ -97,17 +91,10 @@ export class FacebookOAuthService extends BaseOAuthService {
     }
   }
 
-  /**
-   * Get user's Facebook Pages with access tokens
-   * Implements getConnectableAccounts from OAuthProviderInterface
-   */
   async getConnectableAccounts(accessToken: string): Promise<FacebookPage[]> {
     return this.getUserPages(accessToken);
   }
 
-  /**
-   * Get user's Facebook Pages with access tokens
-   */
   async getUserPages(userAccessToken: string): Promise<FacebookPage[]> {
     try {
       const response = await axios.get(
@@ -131,9 +118,6 @@ export class FacebookOAuthService extends BaseOAuthService {
     }
   }
 
-  /**
-   * Get user info from Facebook (PSID to name and avatar)
-   */
   async getUserInfo(userId: string, pageAccessToken: string): Promise<{
     name?: string;
     profile_pic?: string;
@@ -158,10 +142,6 @@ export class FacebookOAuthService extends BaseOAuthService {
     }
   }
 
-  /**
-   * Connect a Facebook Page to the system
-   * Overrides base method to use Facebook-specific logic
-   */
   async connectPage(
     pageId: string,
     pageName: string,
@@ -177,17 +157,13 @@ export class FacebookOAuthService extends BaseOAuthService {
       workspaceId,
       userId,
       {
-        pageId, // Keep for backward compatibility
+        pageId,
         pageName,
         ...metadata,
       },
     );
   }
 
-  /**
-   * Disconnect a Facebook Page
-   * Alias for base disconnectAccount method
-   */
   async disconnectPage(
     connectionId: string,
     workspaceId: string,
@@ -195,29 +171,20 @@ export class FacebookOAuthService extends BaseOAuthService {
     return this.disconnectAccount(connectionId, workspaceId);
   }
 
-  /**
-   * Get all connected Facebook pages for a workspace
-   * Alias for base getConnectedAccounts method
-   */
   async getConnectedPages(
     workspaceId: string,
   ): Promise<ChannelConnectionEntity[]> {
     return this.getConnectedAccounts(workspaceId);
   }
 
-  /**
-   * Get or create Facebook credential for workspace
-   */
   async getOrCreateCredential(
     workspaceId: string,
     appId?: string,
     appSecret?: string,
     verifyToken?: string,
   ): Promise<ChannelCredentialEntity> {
-    // Try to find existing credential
     let credential = await this.getCredential(workspaceId);
 
-    // If not found and credentials provided, create new
     if (!credential && appId && appSecret) {
       credential = await this.updateCredential(
         workspaceId,
@@ -237,10 +204,6 @@ export class FacebookOAuthService extends BaseOAuthService {
     return credential;
   }
 
-  /**
-   * Update Facebook credential with verify token
-   * Overrides base method to add Facebook-specific metadata
-   */
   async updateCredential(
     workspaceId: string,
     appId: string,
@@ -255,9 +218,6 @@ export class FacebookOAuthService extends BaseOAuthService {
     });
   }
 
-  /**
-   * Subscribe app to page webhooks
-   */
   async subscribePageWebhooks(
     pageId: string,
     pageAccessToken: string,

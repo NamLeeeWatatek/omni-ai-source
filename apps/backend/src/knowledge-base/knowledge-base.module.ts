@@ -4,7 +4,6 @@ import { BotsModule } from '../bots/bots.module';
 import { AiProvidersModule } from '../ai-providers/ai-providers.module';
 import { FilesS3PresignedModule } from '../files/infrastructure/uploader/s3-presigned/files.module';
 
-// Controllers
 import { KBManagementController } from './controllers/kb-management.controller';
 import { KBDocumentsController } from './controllers/kb-documents.controller';
 import { KBFoldersController } from './controllers/kb-folders.controller';
@@ -12,7 +11,6 @@ import { KBQueryController } from './controllers/kb-query.controller';
 import { KBProcessingController } from './controllers/kb-processing.controller';
 import { KBSyncController } from './controllers/kb-sync.controller';
 
-// Services
 import { KBManagementService } from './services/kb-management.service';
 import { KBDocumentsService } from './services/kb-documents.service';
 import { KBFoldersService } from './services/kb-folders.service';
@@ -23,10 +21,8 @@ import { KBProcessingQueueService } from './services/kb-processing-queue.service
 import { KBSyncService } from './services/kb-sync.service';
 import { KBCrawlerService } from './services/kb-crawler.service';
 
-// Gateways
 import { KBProcessingGateway } from './gateways/kb-processing.gateway';
 
-// Entities
 import {
   KnowledgeBaseEntity,
   KbFolderEntity,

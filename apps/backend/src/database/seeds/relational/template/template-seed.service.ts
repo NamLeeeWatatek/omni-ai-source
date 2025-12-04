@@ -406,6 +406,5 @@ export class TemplateSeedService {
       }
     }
 
-    console.log(`✅ Seeded ${templates.length} templates`);
   }
 }

@@ -30,9 +30,7 @@ export class KBManagementController {
   @ApiOperation({ summary: 'Get all knowledge bases' })
   async getAll(@Request() req, @Query('workspaceId') workspaceId?: string) {
     const userId = req.user.id;
-    console.log('[KB API] Getting knowledge bases for user:', userId, 'workspace:', workspaceId);
     const result = await this.kbService.findAll(userId, workspaceId);
-    console.log('[KB API] Found', result.length, 'knowledge bases');
     return result;
   }
 
@@ -75,7 +73,6 @@ export class KBManagementController {
     return this.kbService.getStats(id, userId);
   }
 
-  // Agent assignment
   @Post(':id/agents')
   @ApiOperation({ summary: 'Assign agent to knowledge base' })
   async assignAgent(

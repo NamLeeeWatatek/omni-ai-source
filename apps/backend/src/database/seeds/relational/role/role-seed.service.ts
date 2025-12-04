@@ -15,13 +15,10 @@ export class RoleSeedService {
   ) {}
 
   async run() {
-    // Get all permissions
     const allPermissions = await this.permissionRepository.find();
 
-    // Admin role - full permissions
-    const adminPermissions = allPermissions; // Admin has all permissions
+    const adminPermissions = allPermissions;
 
-    // User role - limited permissions
     const userPermissions = allPermissions.filter((p) =>
       [
         'flow:read',
@@ -35,7 +32,6 @@ export class RoleSeedService {
       ].includes(p.name),
     );
 
-    // Create/Update Admin role
     let adminRole = await this.roleRepository.findOne({
       where: { id: RoleEnum.admin },
       relations: ['permissions'],
@@ -46,20 +42,17 @@ export class RoleSeedService {
         id: RoleEnum.admin,
         name: 'Admin',
         description: 'Administrator with full access',
-        casdoorRoleName: 'admin', // Map to Casdoor role
+        casdoorRoleName: 'admin',
         permissions: adminPermissions,
       });
       await this.roleRepository.save(adminRole);
-      console.log('✅ Created Admin role with all permissions');
     } else {
       adminRole.permissions = adminPermissions;
       adminRole.description = 'Administrator with full access';
       adminRole.casdoorRoleName = 'admin';
       await this.roleRepository.save(adminRole);
-      console.log('✅ Updated Admin role permissions');
     }
 
-    // Create/Update User role
     let userRole = await this.roleRepository.findOne({
       where: { id: RoleEnum.user },
       relations: ['permissions'],
@@ -70,17 +63,15 @@ export class RoleSeedService {
         id: RoleEnum.user,
         name: 'User',
         description: 'Regular user with limited access',
-        casdoorRoleName: 'user', // Map to Casdoor role
+        casdoorRoleName: 'user',
         permissions: userPermissions,
       });
       await this.roleRepository.save(userRole);
-      console.log('✅ Created User role with limited permissions');
     } else {
       userRole.permissions = userPermissions;
       userRole.description = 'Regular user with limited access';
       userRole.casdoorRoleName = 'user';
       await this.roleRepository.save(userRole);
-      console.log('✅ Updated User role permissions');
     }
   }
 }

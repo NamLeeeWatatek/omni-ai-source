@@ -8,7 +8,6 @@ import type { KeyValuePair, KeyValueEditorProps } from '@/lib/types'
 export function KeyValueEditor({ value, onChange, placeholder }: KeyValueEditorProps) {
     const [pairs, setPairs] = useState<KeyValuePair[]>([])
 
-    // Initialize pairs from value
     useEffect(() => {
         if (typeof value === 'object' && value !== null) {
             const entries = Object.entries(value).map(([key, val]) => ({
@@ -19,9 +18,8 @@ export function KeyValueEditor({ value, onChange, placeholder }: KeyValueEditorP
         } else {
             setPairs([{ key: '', value: '' }])
         }
-    }, []) // Keep this to load initial value
+    }, [])
 
-    // Helper to update parent
     const emitChange = (newPairs: KeyValuePair[]) => {
         const obj: Record<string, any> = {}
         newPairs.forEach(pair => {

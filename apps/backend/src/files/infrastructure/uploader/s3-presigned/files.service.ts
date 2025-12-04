@@ -47,22 +47,17 @@ export class FilesS3PresignedService {
       },
       ...(minioEndpoint && {
         endpoint: minioEndpoint,
-        forcePathStyle: true, // Required for MinIO
+        forcePathStyle: true,
       }),
     });
   }
 
-  /**
-   * Ensure bucket exists, create if not
-   */
   private async ensureBucketExists(bucket: string): Promise<void> {
-    // Skip if already checked
     if (this.bucketsChecked.has(bucket)) {
       return;
     }
 
     try {
-      // Check if bucket exists
       await this.s3.send(new HeadBucketCommand({ Bucket: bucket }));
       this.logger.log(`✅ Bucket '${bucket}' exists`);
       this.bucketsChecked.add(bucket);
@@ -71,13 +66,11 @@ export class FilesS3PresignedService {
         error.name === 'NotFound' ||
         error.$metadata?.httpStatusCode === 404
       ) {
-        // Bucket doesn't exist, create it
         this.logger.log(`📦 Creating bucket '${bucket}'...`);
 
         try {
           await this.s3.send(new CreateBucketCommand({ Bucket: bucket }));
 
-          // Set public read policy for the bucket (for MinIO)
           const policy = {
             Version: '2012-10-17',
             Statement: [
@@ -126,7 +119,6 @@ export class FilesS3PresignedService {
       });
     }
 
-    // Allow more file types for documents
     const isImage = file.fileName.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i);
     const isDocument = file.fileName.match(
       /\.(pdf|doc|docx|txt|csv|xls|xlsx)$/i,
@@ -159,14 +151,12 @@ export class FilesS3PresignedService {
       .pop()
       ?.toLowerCase()}`;
 
-    // Use bucket from request or default
     const bucket =
       file.bucket ||
       this.configService.getOrThrow('file.awsDefaultS3Bucket', {
         infer: true,
       });
 
-    // Ensure bucket exists before creating presigned URL
     await this.ensureBucketExists(bucket);
 
     const command = new PutObjectCommand({
@@ -185,9 +175,6 @@ export class FilesS3PresignedService {
     };
   }
 
-  /**
-   * Generate presigned URL for downloading a file
-   */
   async generateDownloadUrl(
     filePath: string,
     expiresIn: number = 3600,
@@ -201,7 +188,6 @@ export class FilesS3PresignedService {
       Key: filePath,
     });
 
-    // Use GetObjectCommand for download
     const { GetObjectCommand } = await import('@aws-sdk/client-s3');
     const downloadCommand = new GetObjectCommand({
       Bucket: bucket,

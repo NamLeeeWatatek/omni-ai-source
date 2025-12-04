@@ -8,10 +8,6 @@ import {
 } from '../../shared/events';
 import { BotEntity } from '../infrastructure/persistence/relational/entities/bot.entity';
 
-/**
- * Event listener for bot-related events
- * Handles message processing without direct dependencies on other modules
- */
 @Injectable()
 export class BotEventListener {
     private readonly logger = new Logger(BotEventListener.name);
@@ -21,9 +17,6 @@ export class BotEventListener {
         private botRepository: Repository<BotEntity>,
     ) { }
 
-    /**
-     * Listen for incoming messages and determine if bot should process them
-     */
     @OnEvent('message.received')
     async handleMessageReceived(event: MessageReceivedEvent) {
         this.logger.debug(
@@ -31,7 +24,6 @@ export class BotEventListener {
         );
 
         try {
-            // Find active bot for this channel
             const bot = await this.findActiveBotForChannel(event.channelType);
 
             if (!bot) {
@@ -41,8 +33,6 @@ export class BotEventListener {
                 return;
             }
 
-            // Emit bot processing event
-            // This will be handled by BotExecutionService
             this.logger.log(
                 `Bot ${bot.id} will process message from conversation ${event.conversationId}`,
             );
@@ -54,17 +44,12 @@ export class BotEventListener {
         }
     }
 
-    /**
-     * Find active bot for a specific channel
-     */
     private async findActiveBotForChannel(
         channelType: string,
     ): Promise<BotEntity | null> {
         return this.botRepository.findOne({
             where: {
                 isActive: true,
-                // Note: You may need to add channel filtering logic here
-                // based on your bot-channel relationship
             },
         });
     }

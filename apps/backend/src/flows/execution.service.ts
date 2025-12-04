@@ -79,17 +79,14 @@ export class ExecutionService {
 
     this.executions.set(executionId, execution);
 
-    // Emit execution start
     this.executionGateway.emitExecutionStart(executionId, flowId);
 
-    // Execute nodes asynchronously
     this.executeNodes(executionId, flowData, inputData).catch((error) => {
       execution.status = 'failed';
       execution.error = error.message;
       execution.endTime = Date.now();
       this.executionGateway.emitExecutionError(executionId, error.message);
 
-      // Emit failure event
       const failureEvent = new FlowExecutionFailedEvent(
         flowId,
         executionId,
@@ -98,8 +95,6 @@ export class ExecutionService {
       );
       this.eventEmitter.emit('flow.execution.failed', failureEvent);
 
-      // Save failed execution to database
-      this.saveExecutionToDatabase(execution, flowId).catch(console.error);
     });
 
     return executionId;
@@ -113,10 +108,8 @@ export class ExecutionService {
     const execution = this.executions.get(executionId)!;
     const { nodes, edges } = flowData;
 
-    // Build execution order (topological sort)
     const executionOrder = this.buildExecutionOrder(nodes, edges);
 
-    // Execute nodes in order
     let currentInput = inputData;
 
     for (const nodeId of executionOrder) {
@@ -134,11 +127,9 @@ export class ExecutionService {
 
       execution.nodes.push(nodeExecution);
 
-      // Emit node start
       this.executionGateway.emitNodeExecutionStart(executionId, nodeId);
 
       try {
-        // Execute node using Strategy
         const output = await this.nodeExecutorStrategy.execute({
           nodeId: node.id,
           nodeType: node.type,
@@ -155,7 +146,6 @@ export class ExecutionService {
         nodeExecution.status = 'success';
         nodeExecution.endTime = Date.now();
 
-        // Emit node complete
         this.executionGateway.emitNodeExecutionComplete(
           executionId,
           nodeId,
@@ -168,18 +158,15 @@ export class ExecutionService {
         nodeExecution.status = 'error';
         nodeExecution.endTime = Date.now();
 
-        // Emit node error
         this.executionGateway.emitNodeExecutionError(
           executionId,
           nodeId,
           error.message,
         );
 
-        // Stop execution on error
         throw error;
       }
 
-      // Emit progress
       this.executionGateway.emitExecutionProgress(
         executionId,
         nodeId,
@@ -188,14 +175,12 @@ export class ExecutionService {
       );
     }
 
-    // All nodes completed
     execution.status = 'completed';
     execution.endTime = Date.now();
     execution.result = currentInput;
 
     this.executionGateway.emitExecutionComplete(executionId, execution.result);
 
-    // Emit completion event
     const completionEvent = new FlowExecutionCompletedEvent(
       execution.flowId,
       executionId,
@@ -203,13 +188,11 @@ export class ExecutionService {
       true,
       undefined,
     );
-    // Attach metadata if available
     if (execution.metadata) {
       (completionEvent as any).metadata = execution.metadata;
     }
     this.eventEmitter.emit('flow.execution.completed', completionEvent);
 
-    // Save successful execution to database
     await this.saveExecutionToDatabase(execution, execution.flowId);
   }
 
@@ -218,7 +201,6 @@ export class ExecutionService {
     flowId: string,
   ) {
     try {
-      // Create flow execution entity
       const flowExecution = this.flowExecutionRepository.create({
         executionId: execution.executionId,
         flowId: flowId,
@@ -232,7 +214,6 @@ export class ExecutionService {
       const savedExecution =
         await this.flowExecutionRepository.save(flowExecution);
 
-      // Create node execution entities
       if (execution.nodes.length > 0) {
         const nodeExecutions = execution.nodes.map((node) =>
           this.nodeExecutionRepository.create({
@@ -252,17 +233,14 @@ export class ExecutionService {
         await this.nodeExecutionRepository.save(nodeExecutions);
       }
     } catch (error) {
-      console.error('Failed to save execution to database:', error);
     }
   }
 
   private buildExecutionOrder(nodes: any[], edges: any[]): string[] {
-    // Simple topological sort
     const order: string[] = [];
     const visited = new Set<string>();
     const adjacencyList = new Map<string, string[]>();
 
-    // Build adjacency list
     edges.forEach((edge: any) => {
       if (!adjacencyList.has(edge.source)) {
         adjacencyList.set(edge.source, []);
@@ -270,12 +248,10 @@ export class ExecutionService {
       adjacencyList.get(edge.source)!.push(edge.target);
     });
 
-    // Find nodes with no incoming edges (start nodes)
     const startNodes = nodes.filter(
       (node) => !edges.some((edge: any) => edge.target === node.id),
     );
 
-    // DFS
     const visit = (nodeId: string) => {
       if (visited.has(nodeId)) return;
       visited.add(nodeId);
@@ -287,7 +263,6 @@ export class ExecutionService {
 
     startNodes.forEach((node) => visit(node.id));
 
-    // Add any remaining nodes
     nodes.forEach((node) => {
       if (!visited.has(node.id)) {
         order.push(node.id);
@@ -309,7 +284,6 @@ export class ExecutionService {
     return executions;
   }
 
-  // New methods for database queries
   async findAll(
     flowId?: string,
     limit: number = 100,

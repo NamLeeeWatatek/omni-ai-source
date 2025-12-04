@@ -18,8 +18,7 @@ export class CodeExecutor implements NodeExecutor {
       const sandbox = {
         input: input.input,
         context: input.context,
-        console: console, // Allow logging
-        // Add other safe globals here
+        console: console,
       };
 
       const script = new vm.Script(code);

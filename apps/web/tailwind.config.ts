@@ -57,33 +57,45 @@ const config: Config = {
     				'3': 'hsl(var(--chart-3))',
     				'4': 'hsl(var(--chart-4))',
     				'5': 'hsl(var(--chart-5))'
-    			},
-    			'wata-purple': '#64748b',
-    			'wata-blue': '#475569',
-    			'wata-cyan': '#64748b',
-    			'wata-pink': '#78716c',
-    		},
-    		backgroundImage: {
-    			'gradient-wata': 'linear-gradient(135deg, #1e40af 0%, #0e7490 50%, #4f46e5 100%)',
-    			'gradient-blue': 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)',
-    			'gradient-blue-cyan': 'linear-gradient(135deg, #1d4ed8 0%, #0e7490 100%)',
-    			'gradient-blue-indigo': 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)',
+    			}
     		},
     		fontFamily: {
-    			sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+    			sans: ['Inter', 'Helvetica Neue', 'Arial', 'system-ui', '-apple-system', 'sans-serif'],
     			serif: ['"Times New Roman"', 'Times', 'serif'],
     			mono: ['JetBrains Mono', 'Menlo', 'Monaco', 'Courier New', 'monospace'],
     		},
+    		fontWeight: {
+    			light: '300',
+    			book: '425',
+    			medium: '500',
+    			semibold: '600',
+    			bold: '700',
+    		},
+    		letterSpacing: {
+    			tighter: '-0.04em',
+    			tight: '-0.02em',
+    			normal: '0',
+    			wide: '0.01em',
+    			wider: '0.02em',
+    		},
     		fontSize: {
-    			'xs': ['0.75rem', { lineHeight: '1rem' }],
-    			'sm': ['0.875rem', { lineHeight: '1.25rem' }],
-    			'base': ['1rem', { lineHeight: '1.5rem' }],
-    			'lg': ['1.125rem', { lineHeight: '1.75rem' }],
-    			'xl': ['1.25rem', { lineHeight: '1.75rem' }],
-    			'2xl': ['1.5rem', { lineHeight: '2rem' }],
-    			'3xl': ['1.875rem', { lineHeight: '2.25rem' }],
-    			'4xl': ['2.25rem', { lineHeight: '2.5rem' }],
-    			'5xl': ['3rem', { lineHeight: '1' }],
+    			'xs': ['0.75rem', { lineHeight: '1.1', letterSpacing: '0' }],
+    			'sm': ['0.875rem', { lineHeight: '1.43', letterSpacing: '0.01em' }],
+    			'base': ['1rem', { lineHeight: '1.6', letterSpacing: '0' }],
+    			'lg': ['1.125rem', { lineHeight: '1.56', letterSpacing: '0.01em' }],
+    			'xl': ['1.25rem', { lineHeight: '1.5', letterSpacing: '0' }],
+    			'2xl': ['1.5rem', { lineHeight: '1.33', letterSpacing: '0.01em' }],
+    			'3xl': ['1.875rem', { lineHeight: '1.27', letterSpacing: '-0.01em' }],
+    			'4xl': ['2.25rem', { lineHeight: '1.21', letterSpacing: '-0.02em' }],
+    			'5xl': ['3rem', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
+    			'6xl': ['3.5rem', { lineHeight: '1.04', letterSpacing: '-0.04em' }],
+    		},
+    		boxShadow: {
+    			sm: 'var(--shadow-sm)',
+    			DEFAULT: 'var(--shadow)',
+    			md: 'var(--shadow-md)',
+    			lg: 'var(--shadow-lg)',
+    			xl: 'var(--shadow-xl)'
     		}
     	}
     }

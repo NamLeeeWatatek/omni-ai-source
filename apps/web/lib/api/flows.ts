@@ -1,8 +1,3 @@
-/**
- * Flows API Client
- * API calls for workflow management and execution
- * Synced with backend: apps/backend/src/flows/flows.controller.ts
- */
 
 import { axiosClient } from '../axios-client'
 import type {
@@ -14,10 +9,6 @@ import type {
   ExecuteFlowResponse,
   FlowExecution,
 } from '../types/flow'
-
-// ============================================================================
-// Flow Management
-// ============================================================================
 
 /**
  * Get all flows for current user
@@ -66,10 +57,6 @@ export async function deleteFlow(id: string): Promise<void> {
   await axiosClient.delete(`/flows/${id}`)
 }
 
-// ============================================================================
-// Flow Execution
-// ============================================================================
-
 /**
  * Execute flow
  */
@@ -96,10 +83,6 @@ export async function getFlowExecution(executionId: string): Promise<FlowExecuti
   const response = await axiosClient.get(`/flows/executions/${executionId}`)
   return response.data
 }
-
-// ============================================================================
-// Legacy Support (for backward compatibility)
-// ============================================================================
 
 /**
  * @deprecated Use getFlows() instead

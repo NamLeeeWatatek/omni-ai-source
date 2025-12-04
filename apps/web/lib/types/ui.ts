@@ -1,11 +1,6 @@
-/**
- * UI Component Props Types
- * Centralized type definitions for UI components
- */
 
 import type { ReactNode } from 'react'
 
-// Alert Dialog
 export interface AlertDialogConfirmProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -17,7 +12,6 @@ export interface AlertDialogConfirmProps {
   variant?: 'default' | 'destructive'
 }
 
-// Tree Table
 export interface TreeNode {
   id: string
   label: ReactNode
@@ -33,7 +27,6 @@ export interface TreeTableProps {
   className?: string
 }
 
-// Pagination
 export interface PaginationProps {
   currentPage: number
   totalPages: number
@@ -41,13 +34,11 @@ export interface PaginationProps {
   className?: string
 }
 
-// Loading Logo
 export interface LoadingLogoProps {
   size?: 'sm' | 'md' | 'lg'
   text?: string
 }
 
-// JSON Editor
 export interface JsonEditorProps {
   value: any
   onChange: (value: any) => void
@@ -55,17 +46,14 @@ export interface JsonEditorProps {
   readOnly?: boolean
 }
 
-// Icon Picker
 export interface IconPickerProps {
   value?: string
   onChange: (iconName: string) => void
   className?: string
 }
 
-// Checkbox
 export interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> { }
 
-// File Upload
 export interface FileUploadProps {
   onUploadComplete?: (fileUrl: string, fileData: any) => void
   onUploadError?: (error: Error) => void
@@ -80,14 +68,12 @@ export interface FileDropzoneProps extends FileUploadProps {
   height?: string
 }
 
-// Search Bar
 export interface SearchBarProps {
   onSearch: (query: string) => void
   placeholder?: string
   className?: string
 }
 
-// Filter Bar
 export interface FilterState {
   status?: string
   category?: string
@@ -98,7 +84,6 @@ export interface FilterBarProps {
   onFilterChange?: (filters: FilterState) => void
 }
 
-// Stats Card
 export interface StatCardProps {
   title: string
   value: string | number
@@ -110,7 +95,6 @@ export interface StatCardProps {
   className?: string
 }
 
-// Notification
 export interface Notification {
   id: string
   title: string

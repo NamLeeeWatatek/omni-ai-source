@@ -86,7 +86,6 @@ export default function TemplatesPage() {
     }, [])
 
     useEffect(() => {
-        // Filter templates based on search
         if (searchQuery.trim()) {
             const filtered = templates.filter(t =>
                 t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -120,14 +119,12 @@ export default function TemplatesPage() {
 
     const handleUseTemplate = (template: Template) => {
         try {
-            // Set template in Redux store
             dispatch(setDraftTemplate({
                 name: template.name,
                 nodes: template.nodes || [],
                 edges: template.edges || []
             }))
 
-            // Navigate to editor (editor will auto-load from Redux)
             router.push('/flows/new/edit')
             toast.success('Template loaded! Customize and save your workflow.')
         } catch (error) {
@@ -210,7 +207,7 @@ export default function TemplatesPage() {
 
     return (
         <div className="h-full">
-            {/* Header */}
+            {}
             <div className="page-header flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold mb-2">Workflow Templates</h1>
@@ -228,7 +225,7 @@ export default function TemplatesPage() {
                 </div>
             </div>
 
-            {/* Filters & Search */}
+            {}
             <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="flex-1 relative">
                     <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -240,8 +237,8 @@ export default function TemplatesPage() {
                     />
                 </div>
                 <div className="flex items-center gap-2">
-                    {/* View Mode Toggle */}
-                    <div className="glass p-1 rounded-lg flex items-center">
+                    {}
+                    <Card className="p-1 flex items-center">
                         <button
                             onClick={() => setViewMode('table')}
                             className={`p-2 rounded-md transition-all ${viewMode === 'table' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
@@ -254,11 +251,11 @@ export default function TemplatesPage() {
                         >
                             <FiGrid className="w-4 h-4" />
                         </button>
-                    </div>
+                    </Card>
                 </div>
             </div>
 
-            {/* Content */}
+            {}
             {loading ? (
                 <div className="flex justify-center items-center py-20">
                     <Spinner className="size-8 text-primary" />
@@ -276,7 +273,6 @@ export default function TemplatesPage() {
                     </Button>
                 </Card>
             ) : viewMode === 'table' ? (
-                /* Table View */
                 <Card>
                     <Table>
                         <TableHeader>
@@ -362,7 +358,6 @@ export default function TemplatesPage() {
                     </Table>
                 </Card>
             ) : (
-                /* Grid View */
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredTemplates.map((template) => (
                         <Card key={template.id} className="p-6 hover:shadow-lg transition-shadow">
@@ -424,7 +419,7 @@ export default function TemplatesPage() {
                 </div>
             )}
 
-            {/* Edit Dialog */}
+            {}
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
                 <DialogContent>
                     <DialogHeader>
@@ -470,7 +465,7 @@ export default function TemplatesPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Delete Confirmation */}
+            {}
             <AlertDialogConfirm
                 open={!!deleteId}
                 onOpenChange={(open) => !open && setDeleteId(null)}

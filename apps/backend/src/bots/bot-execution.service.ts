@@ -35,16 +35,12 @@ export class BotExecutionService {
     private kbRagService: KBRagService,
   ) {}
 
-  /**
-   * Process incoming message and trigger bot execution
-   */
   async processMessage(incomingMessage: IncomingMessage): Promise<void> {
     try {
       this.logger.log(
         `Processing message from ${incomingMessage.channel}: ${incomingMessage.senderId}`,
       );
 
-      // Find active bot for this channel
       const bot = await this.findActiveBotForChannel(incomingMessage.channel);
 
       if (!bot) {
@@ -54,11 +50,9 @@ export class BotExecutionService {
         return;
       }
 
-      // If bot has a flow, execute it
       if (bot.flowId && bot.flowId !== null) {
         await this.executeBotFlow(bot, incomingMessage);
       } else {
-        // Try to answer using knowledge base
         await this.answerWithKnowledgeBase(bot, incomingMessage);
       }
     } catch (error) {
@@ -69,23 +63,15 @@ export class BotExecutionService {
     }
   }
 
-  /**
-   * Find active bot for a specific channel
-   */
   private async findActiveBotForChannel(
     channel: string,
   ): Promise<BotEntity | null> {
-    // TODO: Add channel relationship to bot
-    // For now, find any active bot
     return this.botRepository.findOne({
       where: { isActive: true },
       relations: ['flow'],
     });
   }
 
-  /**
-   * Execute bot's flow with incoming message as input
-   */
   private async executeBotFlow(
     bot: BotEntity,
     incomingMessage: IncomingMessage,
@@ -98,7 +84,6 @@ export class BotExecutionService {
 
       this.logger.log(`Executing flow ${bot.flowId} for bot ${bot.name}`);
 
-      // Get flow data
       const flow = await this.flowsService.findOne(bot.flowId.toString());
 
       if (!flow) {
@@ -106,7 +91,6 @@ export class BotExecutionService {
         return;
       }
 
-      // Prepare input for flow execution
       const flowInput = {
         trigger: 'message',
         channel: incomingMessage.channel,
@@ -117,7 +101,6 @@ export class BotExecutionService {
         timestamp: new Date().toISOString(),
       };
 
-      // Execute flow
       const executionId = await this.executionService.executeFlow(
         bot.flowId.toString(),
         flow.data,
@@ -128,11 +111,6 @@ export class BotExecutionService {
         `Flow execution started: ${executionId} for bot ${bot.name}`,
       );
 
-      // TODO: Listen for execution completion and send response back to channel
-      // This would involve:
-      // 1. Wait for execution to complete
-      // 2. Extract response from execution result
-      // 3. Send response via channel API
     } catch (error) {
       this.logger.error(
         `Error executing bot flow: ${error.message}`,
@@ -141,9 +119,6 @@ export class BotExecutionService {
     }
   }
 
-  /**
-   * Send response back to channel
-   */
   async sendResponse(
     channel: string,
     recipientId: string,
@@ -151,10 +126,6 @@ export class BotExecutionService {
   ): Promise<void> {
     try {
       this.logger.log(`Sending response to ${channel}: ${recipientId}`);
-
-      // TODO: Implement channel-specific sending logic
-      // This would use the channel providers (Facebook, Instagram, Telegram, etc.)
-      // to send the actual message
 
       switch (channel) {
         case 'facebook':
@@ -231,9 +202,6 @@ export class BotExecutionService {
     }
   }
 
-  /**
-   * Answer using knowledge base (RAG) with bot system prompt
-   */
   private async answerWithKnowledgeBase(
     bot: BotEntity,
     incomingMessage: IncomingMessage,
@@ -243,22 +211,18 @@ export class BotExecutionService {
         `Querying knowledge base for bot ${bot.name}: "${incomingMessage.message}"`,
       );
 
-      // Get bot's system prompt
       const systemPrompt = bot.systemPrompt || bot.description || undefined;
 
-      // Generate answer using RAG with bot's system prompt
       const result = await this.kbRagService.generateAnswerForAgent(
         incomingMessage.message,
         bot.id.toString(),
-        undefined, // conversation history - TODO: implement
-        undefined, // model - use default
+        undefined,
+        undefined,
         systemPrompt,
       );
 
-      // Only send the answer, not sources/relevance
       const answer = result.answer;
 
-      // Send response back to channel
       await this.sendResponse(
         incomingMessage.channel,
         incomingMessage.senderId,
@@ -273,7 +237,6 @@ export class BotExecutionService {
         `Error answering with knowledge base: ${error.message}`,
       );
 
-      // Send fallback message
       await this.sendResponse(
         incomingMessage.channel,
         incomingMessage.senderId,

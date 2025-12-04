@@ -12,7 +12,6 @@ export class PermissionSeedService {
 
   async run() {
     const permissions = [
-      // Flow permissions
       {
         name: 'flow:create',
         description: 'Create flows',
@@ -44,7 +43,6 @@ export class PermissionSeedService {
         action: 'execute',
       },
 
-      // Bot permissions
       {
         name: 'bot:create',
         description: 'Create bots',
@@ -70,7 +68,6 @@ export class PermissionSeedService {
         action: 'delete',
       },
 
-      // Channel permissions
       {
         name: 'channel:create',
         description: 'Create channels',
@@ -96,7 +93,6 @@ export class PermissionSeedService {
         action: 'delete',
       },
 
-      // Template permissions
       {
         name: 'template:create',
         description: 'Create templates',
@@ -122,7 +118,6 @@ export class PermissionSeedService {
         action: 'delete',
       },
 
-      // Integration permissions
       {
         name: 'integration:create',
         description: 'Create integrations',
@@ -148,7 +143,6 @@ export class PermissionSeedService {
         action: 'delete',
       },
 
-      // User permissions
       {
         name: 'user:create',
         description: 'Create users',
@@ -174,7 +168,6 @@ export class PermissionSeedService {
         action: 'delete',
       },
 
-      // Workspace permissions
       {
         name: 'workspace:create',
         description: 'Create workspaces',
@@ -200,7 +193,6 @@ export class PermissionSeedService {
         action: 'delete',
       },
 
-      // Settings permissions
       {
         name: 'settings:read',
         description: 'View settings',
@@ -225,6 +217,5 @@ export class PermissionSeedService {
       }
     }
 
-    console.log(`✅ Seeded ${permissions.length} permissions`);
   }
 }

@@ -28,7 +28,6 @@ export function useExecutionSocket(options: UseExecutionSocketOptions = {}) {
   const [connected, setConnected] = useState(false)
   const [executions, setExecutions] = useState<Map<string, ExecutionUpdate>>(new Map())
 
-
   useEffect(() => {
     if (!session?.accessToken) return
 
@@ -49,11 +48,9 @@ export function useExecutionSocket(options: UseExecutionSocketOptions = {}) {
 
       setConnected(true)
 
-
       if (flowId) {
         newSocket.emit('subscribe:flow', flowId)
       }
-
 
       if (executionId) {
         newSocket.emit('subscribe:execution', executionId)
@@ -69,10 +66,6 @@ export function useExecutionSocket(options: UseExecutionSocketOptions = {}) {
 
       setConnected(false)
     })
-
-
-
-
 
     newSocket.on('execution:progress', (data: any) => {
       const update: ExecutionUpdate = {
@@ -92,8 +85,6 @@ export function useExecutionSocket(options: UseExecutionSocketOptions = {}) {
       onUpdate?.(update)
     })
 
-
-
     newSocket.on('execution:complete', (data: any) => {
       const update: ExecutionUpdate = {
         executionId: data.executionId,
@@ -111,8 +102,6 @@ export function useExecutionSocket(options: UseExecutionSocketOptions = {}) {
       onUpdate?.(update)
       onComplete?.(data.result)
     })
-
-
 
     newSocket.on('execution:error', (data: any) => {
       const update: ExecutionUpdate = {
@@ -132,19 +121,12 @@ export function useExecutionSocket(options: UseExecutionSocketOptions = {}) {
       onError?.(data.error)
     })
 
-
-
-
-
-
-
     setSocket(newSocket)
 
     return () => {
       newSocket.close()
     }
   }, [session?.accessToken, flowId, executionId])
-
 
   const subscribeToFlow = useCallback(
     (flowId: string) => {
@@ -155,7 +137,6 @@ export function useExecutionSocket(options: UseExecutionSocketOptions = {}) {
     [socket, connected]
   )
 
-
   const subscribeToExecution = useCallback(
     (executionId: string) => {
       if (socket && connected) {
@@ -165,7 +146,6 @@ export function useExecutionSocket(options: UseExecutionSocketOptions = {}) {
     [socket, connected]
   )
 
-
   const unsubscribeFromFlow = useCallback(
     (flowId: string) => {
       if (socket && connected) {
@@ -174,7 +154,6 @@ export function useExecutionSocket(options: UseExecutionSocketOptions = {}) {
     },
     [socket, connected]
   )
-
 
   const getExecution = useCallback(
     (executionId: string) => {

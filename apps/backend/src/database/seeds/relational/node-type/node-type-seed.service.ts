@@ -16,7 +16,6 @@ export class NodeTypeSeedService {
 
   async run() {
     const nodeTypes = [
-      // Triggers
       {
         id: 'webhook',
         label: 'Webhook',
@@ -80,7 +79,6 @@ export class NodeTypeSeedService {
         properties: [],
       },
 
-      // Messaging
       {
         id: 'send-message',
         label: 'Send Message',
@@ -132,7 +130,6 @@ export class NodeTypeSeedService {
         ],
       },
 
-      // AI
       {
         id: 'ai-chat',
         label: 'AI Chat',
@@ -192,7 +189,6 @@ export class NodeTypeSeedService {
         ],
       },
 
-      // Data
       {
         id: 'http-request',
         label: 'HTTP Request',
@@ -250,7 +246,6 @@ export class NodeTypeSeedService {
         ],
       },
 
-      // Logic
       {
         id: 'condition',
         label: 'Condition',
@@ -304,7 +299,6 @@ export class NodeTypeSeedService {
         ],
       },
 
-      // Transform
       {
         id: 'code',
         label: 'Code',
@@ -349,11 +343,10 @@ export class NodeTypeSeedService {
 
       if (!exists) {
         await this.repository.save(
-          this.repository.create(nodeType as any), // Cast to any to avoid type issues with complex properties
+          this.repository.create(nodeType as any),
         );
       }
     }
 
-    console.log(`✅ Seeded ${nodeTypes.length} node types`);
   }
 }

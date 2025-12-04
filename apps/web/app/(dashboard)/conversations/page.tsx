@@ -84,15 +84,12 @@ export default function ConversationsPage() {
   
   const selectedId = searchParams.get('id');
 
-  // WebSocket handlers
   const handleConversationUpdate = useCallback((updatedConversation: any) => {
-    console.log('🔄 Updating conversation:', updatedConversation);
     
     setConversations((prev) => {
       const exists = prev.find((c) => c.id === updatedConversation.id);
       
       if (exists) {
-        // Update existing conversation
         return prev.map((c) =>
           c.id === updatedConversation.id
             ? {
@@ -105,21 +102,16 @@ export default function ConversationsPage() {
           new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
         );
       } else {
-        // Add new conversation
         return [mapConversation(updatedConversation), ...prev];
       }
     });
     
-    // Show toast notification
     toast.success('New message received!', { duration: 2000 });
   }, []);
 
   const handleNewMessage = useCallback((message: any) => {
-    console.log('💬 New message:', message);
-    // Message updates are handled by conversation-update event
   }, []);
 
-  // Setup WebSocket connection
   const { isConnected } = useConversationsSocket({
     onConversationUpdate: handleConversationUpdate,
     onNewMessage: handleNewMessage,
@@ -133,16 +125,13 @@ export default function ConversationsPage() {
   useEffect(() => {
     loadConversations(false);
     
-    // Fallback polling every 30 seconds (WebSocket is primary)
     const interval = setInterval(() => {
       if (!isConnected) {
-        // Only poll if WebSocket is disconnected
         loadConversations(true);
       }
-    }, 30000); // 30 seconds
+    }, 30000);
     
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, selectedChannel, channels, isConnected]);
 
   const loadChannels = async () => {
@@ -150,19 +139,17 @@ export default function ConversationsPage() {
       setChannelsLoading(true);
       const data = await axiosClient.get('/channels').then(r => r.data);
       
-      // Map channels to UI format
       const mappedChannels: Channel[] = (data?.items || data || []).map((channel: any) => ({
         id: channel.id,
         name: channel.name || channel.channelName || 'Unknown',
         type: channel.type || channel.channelType || 'unknown',
         icon: getChannelIcon(channel.type || channel.channelType || 'unknown'),
         color: getChannelColor(channel.type || channel.channelType || 'unknown'),
-        unreadCount: 0, // Will be calculated from conversations
+        unreadCount: 0,
       }));
       
       setChannels(mappedChannels);
     } catch (error) {
-      console.error('Failed to load channels:', error);
       toast.error('Failed to load channels');
       setChannels([]);
     } finally {
@@ -179,15 +166,8 @@ export default function ConversationsPage() {
       }
       const params = new URLSearchParams();
       
-      // Filter by status (temporarily disabled to see all)
-      // if (statusFilter !== 'all') {
-      //   params.set('status', statusFilter);
-      // }
-      
-      // Filter by channel - only show channel conversations (Facebook, etc.)
       params.set('source', 'channel');
       
-      // Filter by specific channel type if selected
       if (selectedChannel !== 'all') {
         const channel = channels.find(c => c.id === selectedChannel);
         if (channel) {
@@ -195,7 +175,6 @@ export default function ConversationsPage() {
         }
       }
       
-      console.log('🔍 Fetching conversations with params:', {
         statusFilter,
         selectedChannel,
         params: params.toString(),
@@ -203,7 +182,6 @@ export default function ConversationsPage() {
       
       const data = await (await axiosClient.get(`/conversations?${params.toString()}`)).data;
       
-      // Handle different response formats
       let rawConversations: any[] = [];
       if (Array.isArray(data)) {
         rawConversations = data;
@@ -215,10 +193,8 @@ export default function ConversationsPage() {
         rawConversations = data.data;
       }
       
-      // Map backend fields to frontend format
       const mappedConversations = rawConversations.map(mapConversation);
       
-      console.log('📊 API Response:', {
         total: data?.total || rawConversations.length,
         loaded: mappedConversations.length,
         conversations: mappedConversations,
@@ -226,7 +202,6 @@ export default function ConversationsPage() {
       
       setConversations(mappedConversations);
     } catch (error) {
-      console.error('Failed to load conversations:', error);
       if (!silent) {
         toast.error('Failed to load conversations');
       }
@@ -237,7 +212,6 @@ export default function ConversationsPage() {
     }
   };
 
-  // Helper function to map backend conversation to frontend format
   const mapConversation = (conv: any): Conversation => {
     let lastMessage = 'No messages yet';
     if (conv.metadata?.lastMessage) {
@@ -301,7 +275,6 @@ export default function ConversationsPage() {
     router.push(`/conversations/${id}`);
   };
 
-  // Calculate unread counts per channel
   const channelsWithCounts = channels.map(channel => ({
     ...channel,
     unreadCount: conversations.filter(
@@ -313,18 +286,18 @@ export default function ConversationsPage() {
 
   return (
     <div className="h-[calc(100vh-4rem)] flex bg-background">
-      {/* Left Sidebar - Channels Menu */}
+      {}
       <div className="w-72 border-r border-border/50 flex flex-col bg-card/30">
-        {/* Header */}
+        {}
         <div className="px-6 py-5 border-b border-border/50">
           <h2 className="text-base font-semibold text-foreground">Channels</h2>
           <p className="text-xs text-muted-foreground mt-1">Select a channel to view messages</p>
         </div>
 
-        {/* Channels List */}
+        {}
         <ScrollArea className="flex-1 px-3 py-4">
           <div className="space-y-1">
-            {/* All Conversations */}
+            {}
             <button
               onClick={() => setSelectedChannel('all')}
               className={cn(
@@ -353,7 +326,7 @@ export default function ConversationsPage() {
               )}
             </button>
 
-            {/* Divider */}
+            {}
             <div className="py-3 px-4">
               <div className="h-px bg-border/50" />
             </div>
@@ -409,7 +382,7 @@ export default function ConversationsPage() {
           </div>
         </ScrollArea>
 
-        {/* Footer Stats */}
+        {}
         <div className="px-6 py-4 border-t border-border/50 bg-muted/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -423,9 +396,9 @@ export default function ConversationsPage() {
         </div>
       </div>
 
-      {/* Middle - Conversations List */}
+      {}
       <div className="w-[420px] border-r border-border/50 flex flex-col bg-background">
-        {/* Header */}
+        {}
         <div className="px-6 py-5 border-b border-border/50 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex-1">
@@ -435,15 +408,20 @@ export default function ConversationsPage() {
                     ? 'All Messages' 
                     : channels.find(c => c.id === selectedChannel)?.name || 'Messages'}
                 </h1>
-                {/* WebSocket Status Indicator */}
+                {}
                 <div className={cn(
                   'w-2 h-2 rounded-full',
                   isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
                 )} title={isConnected ? 'Connected (Real-time)' : 'Disconnected'} />
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {filteredConversations.length} conversation{filteredConversations.length !== 1 ? 's' : ''}
-                {isConnected && ' • Real-time updates active'}
+              <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
+                <span>{filteredConversations.length} conversation{filteredConversations.length !== 1 ? 's' : ''}</span>
+                {isConnected && (
+                  <>
+                    <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
+                    <span>Real-time updates active</span>
+                  </>
+                )}
               </p>
             </div>
             <Button 
@@ -457,7 +435,7 @@ export default function ConversationsPage() {
             </Button>
           </div>
 
-          {/* Search */}
+          {}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -468,7 +446,7 @@ export default function ConversationsPage() {
             />
           </div>
 
-          {/* Status Filter */}
+          {}
           <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
             <TabsList className="w-full grid grid-cols-3 h-9 bg-muted/50">
               <TabsTrigger value="active" className="text-xs">Active</TabsTrigger>
@@ -478,7 +456,7 @@ export default function ConversationsPage() {
           </Tabs>
         </div>
 
-        {/* Conversations List */}
+        {}
         <ScrollArea className="flex-1">
           <AnimatePresence mode="wait">
             {loading ? (
@@ -532,7 +510,7 @@ export default function ConversationsPage() {
                     )}
                   >
                     <div className="flex gap-3.5">
-                      {/* Avatar with Channel Badge */}
+                      {}
                       <div className="relative shrink-0">
                         <Avatar className="h-11 w-11 ring-2 ring-background">
                           <AvatarImage src={conv.customerAvatar} />
@@ -540,7 +518,7 @@ export default function ConversationsPage() {
                             {(conv.customerName || 'User').charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        {/* Channel Badge */}
+                        {}
                         <div className={cn(
                           'absolute -bottom-0.5 -right-0.5 p-1 rounded-full bg-background border-2 border-background shadow-sm',
                           getChannelColor(conv.channelType)
@@ -549,7 +527,7 @@ export default function ConversationsPage() {
                         </div>
                       </div>
 
-                      {/* Content */}
+                      {}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between mb-1.5">
                           <h3 className="font-semibold text-sm truncate text-foreground">
@@ -606,7 +584,7 @@ export default function ConversationsPage() {
         </ScrollArea>
       </div>
 
-      {/* Right - Chat Area */}
+      {}
       <div className="flex-1 flex flex-col bg-muted/10">
         {selectedId ? (
           <ConversationChat conversationId={selectedId} />
@@ -678,7 +656,6 @@ function formatTime(dateString: string): string {
   return date.toLocaleDateString();
 }
 
-// Conversation Chat Component
 function ConversationChat({ 
   conversationId
 }: { 
@@ -696,7 +673,6 @@ function ConversationChat({
       setLoading(true);
       const data = await (await axiosClient.get(`/conversations/${conversationId}`)).data;
       
-      // Map backend response to frontend format
       const mappedConversation = {
         id: data.id,
         externalId: data.externalId || data.external_id || '',
@@ -715,7 +691,6 @@ function ConversationChat({
       
       setConversation(mappedConversation);
     } catch (error) {
-      console.error('Failed to load conversation:', error);
       toast.error('Failed to load conversation');
     } finally {
       setLoading(false);
@@ -791,7 +766,7 @@ function ConversationChat({
 
   return (
     <>
-      {/* Header */}
+      {}
       <div className="border-b border-border/50 px-6 py-4 bg-background/95 backdrop-blur-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -843,7 +818,7 @@ function ConversationChat({
         </div>
       </div>
 
-      {/* Chat Interface */}
+      {}
       <div className="flex-1 overflow-hidden bg-background">
         <ChatInterface
           conversationId={conversationId}

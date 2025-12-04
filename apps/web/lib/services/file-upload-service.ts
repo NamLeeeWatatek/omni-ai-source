@@ -21,16 +21,12 @@ class FileUploadService {
     return localStorage.getItem('accessToken');
   }
 
-  /**
-   * Upload file to MinIO via backend
-   */
   async uploadFile(
     file: File,
     options: FileUploadOptions = {}
   ): Promise<UploadResponse> {
     const { onProgress, bucket = 'images' } = options;
 
-    // Step 1: Get presigned URL from backend
     const token = this.getAuthToken();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -52,7 +48,6 @@ class FileUploadService {
 
     const { uploadSignedUrl, file: fileData } = presignedResponse.data;
 
-    // Step 2: Upload directly to MinIO using presigned URL
     if (uploadSignedUrl) {
       await axios.put(uploadSignedUrl, file, {
         headers: {
@@ -72,17 +67,11 @@ class FileUploadService {
     return presignedResponse.data;
   }
 
-  /**
-   * Get file URL from MinIO
-   */
   getFileUrl(path: string, bucket: string = 'images'): string {
     const minioEndpoint = process.env.NEXT_PUBLIC_MINIO_ENDPOINT || 'http://localhost:9000';
     return `${minioEndpoint}/${bucket}/${path}`;
   }
 
-  /**
-   * Upload multiple files
-   */
   async uploadMultipleFiles(
     files: File[],
     options: FileUploadOptions = {}
@@ -91,17 +80,14 @@ class FileUploadService {
     return Promise.all(uploadPromises);
   }
 
-  /**
-   * Validate file before upload
-   */
   validateFile(
     file: File,
     options: {
-      maxSize?: number; // in bytes
+      maxSize?: number;
       allowedTypes?: string[];
     } = {}
   ): { valid: boolean; error?: string } {
-    const { maxSize = 5 * 1024 * 1024, allowedTypes } = options; // Default 5MB
+    const { maxSize = 5 * 1024 * 1024, allowedTypes } = options;
 
     if (file.size > maxSize) {
       return {

@@ -10,9 +10,6 @@ import {
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 import { NodeExecutionEntity } from './node-execution.entity';
 
-/**
- * Stores flow execution history
- */
 @Entity({ name: 'flow_execution' })
 export class FlowExecutionEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
@@ -20,14 +17,14 @@ export class FlowExecutionEntity extends EntityRelationalHelper {
 
   @Index()
   @Column({ type: String, unique: true })
-  executionId: string; // exec-timestamp-random
+  executionId: string;
 
   @Index()
   @Column({ type: 'uuid' })
   flowId: string;
 
   @Column({ type: String })
-  status: string; // running, completed, failed
+  status: string;
 
   @Column({ type: 'bigint' })
   startTime: number;

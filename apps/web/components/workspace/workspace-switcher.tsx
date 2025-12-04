@@ -18,9 +18,6 @@ export function WorkspaceSwitcher() {
   const { currentWorkspace, workspaces, switchWorkspace } = useWorkspace();
   const [open, setOpen] = useState(false);
 
-
-
-  // Show loading state if no workspace yet
   if (!currentWorkspace && workspaces.length === 0) {
     return (
       <Button variant="ghost" className="w-full justify-between px-3 h-12" disabled>
@@ -32,7 +29,6 @@ export function WorkspaceSwitcher() {
     );
   }
 
-  // If we have workspaces but no current, use first one
   const workspace = currentWorkspace || workspaces[0];
 
   if (!workspace) {

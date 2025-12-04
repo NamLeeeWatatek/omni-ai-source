@@ -61,7 +61,6 @@ export interface CreateBotDto {
 export interface UpdateBotDto extends Partial<CreateBotDto> { }
 
 export const botsApi = {
-  // Bot CRUD
   async getAll(workspaceId: string, status?: string) {
     const params = new URLSearchParams({ workspaceId })
     if (status) params.append('status', status)
@@ -108,7 +107,6 @@ export const botsApi = {
     return response.data || response
   },
 
-  // Bot Channels
   async getChannels(botId: string): Promise<BotChannel[]> {
     const response = await axiosClient.get(`/bots/${botId}/channels`)
     return response.data || response
@@ -150,7 +148,6 @@ export const botsApi = {
     return response.data || response
   },
 
-  // Execute bot function
   async executeFunction(
     botId: string,
     functionName: string,
@@ -164,21 +161,18 @@ export const botsApi = {
     return response.data || response
   },
 
-  // Chat with bot (simplified interface)
   async chat(
     botId: string,
     message: string,
     conversationHistory?: Array<{ role: string; content: string }>,
     knowledgeBaseIds?: string[]
   ): Promise<{ response: string; sources?: any[] }> {
-    console.log('[Bot Chat] Sending request:', {
       botId,
       message: message.substring(0, 50),
       knowledgeBaseIds,
       historyLength: conversationHistory?.length || 0,
     })
 
-    // Use knowledge-bases/chat endpoint which supports botId and RAG
     const response = await axiosClient.post(`/knowledge-bases/chat`, {
       message,
       botId,
@@ -190,7 +184,6 @@ export const botsApi = {
     })
 
     const data = response.data || response
-    console.log('[Bot Chat] Response received:', {
       answerLength: data.answer?.length || 0,
       sourcesCount: data.sources?.length || 0,
     })
@@ -202,5 +195,4 @@ export const botsApi = {
   },
 }
 
-// Export individual functions for backward compatibility
 export const executeBotFunction = botsApi.executeFunction.bind(botsApi)

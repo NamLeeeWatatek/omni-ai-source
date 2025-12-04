@@ -111,7 +111,7 @@ export function FlowsTable({ flows, onUpdate, onRun }: FlowsTableProps) {
 
   return (
     <div className="space-y-4">
-      {/* Bulk Actions */}
+      {}
       {selectedIds.length > 0 && (
         <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
           <span className="text-sm font-medium">
@@ -137,7 +137,7 @@ export function FlowsTable({ flows, onUpdate, onRun }: FlowsTableProps) {
         </div>
       )}
 
-      {/* Table */}
+      {}
       <div className="rounded-lg border border-border/40 overflow-hidden">
         <Table>
           <TableHeader>
@@ -260,7 +260,7 @@ export function FlowsTable({ flows, onUpdate, onRun }: FlowsTableProps) {
         </Table>
       </div>
 
-      {/* Bulk Delete Confirmation Dialog */}
+      {}
       <AlertDialogConfirm
         open={showBulkDeleteDialog}
         onOpenChange={setShowBulkDeleteDialog}
@@ -272,7 +272,7 @@ export function FlowsTable({ flows, onUpdate, onRun }: FlowsTableProps) {
         variant="destructive"
       />
 
-      {/* Single Delete Confirmation Dialog */}
+      {}
       <AlertDialogConfirm
         open={deleteFlowId !== null}
         onOpenChange={(open) => {
@@ -287,7 +287,7 @@ export function FlowsTable({ flows, onUpdate, onRun }: FlowsTableProps) {
         onConfirm={async () => {
           if (!deleteFlowId) return
           const idToDelete = deleteFlowId
-          setDeleteFlowId(null) // Close dialog immediately
+          setDeleteFlowId(null)
 
           try {
             await dispatch(deleteFlow(parseInt(idToDelete))).unwrap()

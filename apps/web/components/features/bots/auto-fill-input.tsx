@@ -37,27 +37,8 @@ export function AutoFillInput({
   const getSuggestion = async () => {
     setLoading(true)
     try {
-      // TODO: Fix this to use correct API signature
-      // executeBotFunction needs: botId, functionName, input, conversationHistory
-      // Current implementation uses functionId which is incorrect
       toast.error('This feature needs to be updated to use the new API')
       
-      // const response = await executeBotFunction(
-      //   botId, // Need to pass botId
-      //   functionName, // Need to pass functionName
-      //   {
-      //     field,
-      //     context,
-      //     currentValue: value,
-      //   }
-      // )
-
-      // if (response.success && response.result?.suggestion) {
-      //   setSuggestion(response.result.suggestion)
-      //   setShowSuggestion(true)
-      // } else {
-      //   toast.error('Không thể tạo gợi ý')
-      // }
     } catch (error) {
       toast.error('Đã xảy ra lỗi khi tạo gợi ý')
     } finally {

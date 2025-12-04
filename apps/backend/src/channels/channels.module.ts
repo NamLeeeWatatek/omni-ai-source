@@ -29,7 +29,6 @@ import { ChannelEventListener } from './listeners/channel-event.listener';
       ConversationEntity,
       MessageEntity,
     ]),
-    // forwardRef(() => BotsModule), // Removed circular dependency
     forwardRef(() => ConversationsModule),
   ],
   controllers: [ChannelsController, WebhooksController, FacebookOAuthController],
@@ -53,7 +52,6 @@ export class ChannelsModule implements OnModuleInit {
   ) { }
 
   onModuleInit() {
-    // Register all channel providers
     this.strategy.register('facebook', this.facebookProvider);
     this.strategy.register('google', this.googleProvider);
     this.strategy.register('omi', this.omiProvider);

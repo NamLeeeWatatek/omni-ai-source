@@ -9,10 +9,6 @@ import {
 } from 'typeorm';
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 
-/**
- * User entity - theo schema mới
- * Table: users
- */
 @Entity({ name: 'user' })
 export class UserEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
@@ -47,7 +43,6 @@ export class UserEntity extends EntityRelationalHelper {
   @Column({ type: String, default: 'user' })
   role: 'admin' | 'user';
 
-  // Legacy fields - backward compatibility
   @Column({ name: 'first_name', type: String, nullable: true })
   @Index()
   firstName?: string | null;
@@ -60,7 +55,6 @@ export class UserEntity extends EntityRelationalHelper {
   @Index()
   socialId?: string | null;
 
-  // WataOmi specific fields
   @Column({ name: 'external_id', type: String, unique: true, nullable: true })
   externalId?: string | null;
 

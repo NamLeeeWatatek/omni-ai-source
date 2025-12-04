@@ -58,34 +58,28 @@ export class FlowsModule implements OnModuleInit {
   ) { }
 
   onModuleInit() {
-    // Register all node type executors
     this.strategy.register('http-request', this.httpExecutor);
     this.strategy.register('code', this.codeExecutor);
     this.strategy.register('ai-chat', this.aiChatExecutor);
     this.strategy.register('condition', this.conditionExecutor);
     this.strategy.register('send-message', this.sendMessageExecutor);
 
-    // Simple pass-through for webhook trigger
     this.strategy.register('webhook', {
       execute: (input) =>
         Promise.resolve({ success: true, output: input.input }),
     });
 
-    // Handle 'custom' type by checking node data for actual type
     this.strategy.register('custom', {
       execute: async (input) => {
-        // Get actual node type from data
         const actualType = input.data?.nodeType || input.data?.type;
 
         if (actualType && actualType !== 'custom') {
-          // Re-execute with actual type
           return this.strategy.execute({
             ...input,
             nodeType: actualType,
           });
         }
 
-        // Default pass-through for unknown custom nodes
         return { success: true, output: input.input };
       },
     });

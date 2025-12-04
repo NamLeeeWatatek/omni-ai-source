@@ -1,11 +1,3 @@
-/**
- * Bot-related types
- * Synced with backend: apps/backend/src/bots/
- */
-
-// ============================================================================
-// Bot Entity
-// ============================================================================
 
 export interface Bot {
   id: string
@@ -25,10 +17,6 @@ export interface Bot {
   createdAt: string
   updatedAt: string
 }
-
-// ============================================================================
-// Bot DTOs
-// ============================================================================
 
 export interface CreateBotDto {
   workspaceId?: string
@@ -62,10 +50,6 @@ export interface UpdateBotDto {
   enableAutoLearn?: boolean
 }
 
-// ============================================================================
-// Bot Responses
-// ============================================================================
-
 export interface GetBotsResponse {
   data: Bot[]
   success: boolean
@@ -89,10 +73,6 @@ export interface UpdateBotResponse {
 export interface DeleteBotResponse {
   success: boolean
 }
-
-// ============================================================================
-// Flow Versions
-// ============================================================================
 
 export interface FlowVersion {
   id: string
@@ -122,10 +102,6 @@ export interface GetFlowVersionsResponse {
   data: FlowVersion[]
   success: boolean
 }
-
-// ============================================================================
-// Bot Functions
-// ============================================================================
 
 export enum BotFunctionType {
   DOCUMENT_ACCESS = 'document_access',
@@ -205,10 +181,6 @@ export interface ExecuteBotFunctionResponse {
   result: any
   executionTime?: number
 }
-
-// ============================================================================
-// UI Component Props (Keep existing)
-// ============================================================================
 
 export interface BotFunctionModalProps {
   open: boolean

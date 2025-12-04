@@ -12,8 +12,8 @@ interface MediaUploaderProps {
     type?: 'image' | 'file'
 }
 
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024
+const MAX_FILE_SIZE = 10 * 1024 * 1024
 
 export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: MediaUploaderProps) {
     const [file, setFile] = useState<File | null>(null)
@@ -24,7 +24,7 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     const maxSize = type === 'image' ? MAX_IMAGE_SIZE : MAX_FILE_SIZE
-    const acceptedTypes = type === 'image' ? 'image/*' : '*/*'
+    const acceptedTypes = type === 'image' ? 'image*'
 
     const handleDrag = (e: React.DragEvent) => {
         e.preventDefault()
@@ -53,13 +53,11 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
     }
 
     const handleFile = (selectedFile: File) => {
-        // Validate size
         if (selectedFile.size > maxSize) {
             toast.error(`File size exceeds ${maxSize / 1024 / 1024}MB limit`)
             return
         }
 
-        // Validate type for images
         if (type === 'image' && !selectedFile.type.startsWith('image/')) {
             toast.error('Please select an image file')
             return
@@ -67,7 +65,6 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
 
         setFile(selectedFile)
 
-        // Generate preview for images
         if (selectedFile.type.startsWith('image/')) {
             const reader = new FileReader()
             reader.onloadend = () => {
@@ -118,7 +115,7 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-zinc-900 rounded-2xl border border-zinc-800 w-full max-w-lg">
-                {/* Header */}
+                {}
                 <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
                     <div>
                         <h2 className="text-xl font-bold">Upload {type === 'image' ? 'Image' : 'File'}</h2>
@@ -134,7 +131,7 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
                     </button>
                 </div>
 
-                {/* Upload Area */}
+                {}
                 <div className="p-6">
                     {!file ? (
                         <div
@@ -173,7 +170,7 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {/* Preview */}
+                            {}
                             {preview ? (
                                 <div className="relative rounded-lg overflow-hidden bg-slate-700">
                                     <img
@@ -194,7 +191,7 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
                                 </div>
                             )}
 
-                            {/* Progress */}
+                            {}
                             {uploading && (
                                 <div>
                                     <div className="flex justify-between text-sm mb-2">
@@ -210,7 +207,7 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
                                 </div>
                             )}
 
-                            {/* Actions */}
+                            {}
                             <div className="flex gap-3">
                                 <Button
                                     onClick={() => {

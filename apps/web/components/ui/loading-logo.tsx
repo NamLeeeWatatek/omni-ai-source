@@ -21,10 +21,10 @@ export function LoadingLogo({ size = 'md', text }: LoadingLogoProps) {
   return (
     <div className="flex flex-col items-center justify-center gap-4">
       <div className="relative">
-        {/* Outer spinning ring */}
+        {}
         <div className={`${sizeClasses[size]} rounded-full border-2 border-primary/20 border-t-primary animate-spin`} />
         
-        {/* Logo in center */}
+        {}
         <div className="absolute inset-0 flex items-center justify-center">
           <MdAutoAwesome className={`${size === 'sm' ? 'w-4 h-4' : size === 'md' ? 'w-6 h-6' : 'w-8 h-8'} text-primary animate-pulse`} />
         </div>

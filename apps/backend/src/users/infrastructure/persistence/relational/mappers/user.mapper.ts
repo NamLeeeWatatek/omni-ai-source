@@ -15,12 +15,10 @@ export class UserMapper {
     domainEntity.isActive = raw.isActive;
     domainEntity.role = raw.role;
 
-    // Legacy fields
     domainEntity.firstName = raw.firstName;
     domainEntity.lastName = raw.lastName;
     domainEntity.socialId = raw.socialId;
 
-    // WataOmi specific
     domainEntity.externalId = raw.externalId;
     domainEntity.casdoorId = raw.casdoorId;
     domainEntity.permissions = raw.permissions;
@@ -52,12 +50,10 @@ export class UserMapper {
     persistenceEntity.isActive = domainEntity.isActive ?? true;
     persistenceEntity.role = domainEntity.role ?? 'user';
 
-    // Legacy fields
     persistenceEntity.firstName = domainEntity.firstName;
     persistenceEntity.lastName = domainEntity.lastName;
     persistenceEntity.socialId = domainEntity.socialId;
 
-    // WataOmi specific
     persistenceEntity.externalId = domainEntity.externalId;
     persistenceEntity.casdoorId = domainEntity.casdoorId;
     persistenceEntity.permissions = domainEntity.permissions;

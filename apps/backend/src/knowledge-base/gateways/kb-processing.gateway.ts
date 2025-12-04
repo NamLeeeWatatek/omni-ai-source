@@ -21,7 +21,7 @@ export class KBProcessingGateway
   server: Server;
 
   private readonly logger = new Logger(KBProcessingGateway.name);
-  private clientRooms = new Map<string, Set<string>>(); // clientId -> Set of knowledgeBaseIds
+  private clientRooms = new Map<string, Set<string>>();
 
   handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
@@ -32,9 +32,6 @@ export class KBProcessingGateway
     this.clientRooms.delete(client.id);
   }
 
-  /**
-   * Subscribe client to knowledge base updates
-   */
   subscribeToKnowledgeBase(clientId: string, knowledgeBaseId: string) {
     if (!this.clientRooms.has(clientId)) {
       this.clientRooms.set(clientId, new Set());
@@ -42,12 +39,8 @@ export class KBProcessingGateway
     this.clientRooms.get(clientId)?.add(knowledgeBaseId);
   }
 
-  /**
-   * Listen to processing updates and broadcast to subscribed clients
-   */
   @OnEvent('kb.processing.update')
   handleProcessingUpdate(payload: any) {
-    // Broadcast to all clients subscribed to this knowledge base
     this.server.emit('processing:update', payload);
 
     this.logger.log(
@@ -56,9 +49,6 @@ export class KBProcessingGateway
     this.logger.debug(`Full payload: ${JSON.stringify(payload)}`);
   }
 
-  /**
-   * Send progress update for specific document
-   */
   sendDocumentProgress(
     knowledgeBaseId: string,
     documentId: string,

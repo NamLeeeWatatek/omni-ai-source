@@ -29,7 +29,6 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
     const [messages, setMessages] = useState<Message[]>([])
     const [loadingMessages, setLoadingMessages] = useState(false)
 
-    // Load or create conversation when dialog opens
     useEffect(() => {
         if (open && !conversationId) {
             initConversation()
@@ -40,7 +39,6 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
         try {
             setLoadingMessages(true)
 
-            // Create new AI conversation for this KB
             const conversation = await createAIConversation({
                 title: `Chat with ${knowledgeBaseName}`,
                 useKnowledgeBase: true,
@@ -48,7 +46,6 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
 
             setConversationId(conversation.id)
 
-            // Load conversation with messages
             const fullConversation = await getAIConversation(conversation.id)
             setMessages((fullConversation.messages || []).map((m: any) => ({
                 id: m.id,
@@ -71,7 +68,6 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
         setMessage('')
         setLoading(true)
 
-        // Optimistically add user message
         const tempUserMsg: Message = {
             id: 'temp-' + Date.now(),
             role: 'user',
@@ -81,7 +77,6 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
         setMessages(prev => [...prev, tempUserMsg])
 
         try {
-            // 1. Send user message to conversation
             const updatedConversation = await addAIConversationMessage(conversationId, {
                 content: userMessage,
                 role: 'user',
@@ -92,7 +87,6 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
                 },
             })
 
-            // Update messages with user message
             const userMessages = (updatedConversation.messages || []).map((m: any) => ({
                 id: m.id,
                 role: m.role as 'user' | 'assistant',
@@ -101,7 +95,6 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
             }))
             setMessages(userMessages)
 
-            // 2. Generate AI answer using KB
             const { generateKBAnswer } = await import('@/lib/api/knowledge-base')
             const answerResponse = await generateKBAnswer({
                 question: userMessage,
@@ -112,7 +105,6 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
                 })),
             })
 
-            // 3. Save AI response to conversation
             const finalConversation = await addAIConversationMessage(conversationId, {
                 content: answerResponse.answer,
                 role: 'assistant',
@@ -122,7 +114,6 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
                 },
             })
 
-            // Update with all messages including AI response
             setMessages((finalConversation.messages || []).map((m: any) => ({
                 id: m.id,
                 role: m.role as 'user' | 'assistant',
@@ -132,7 +123,6 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
         } catch (error: any) {
 
             toast.error(error?.message || 'Failed to send message')
-            // Remove temp message on error
             setMessages(prev => prev.filter(m => m.id !== tempUserMsg.id))
         } finally {
             setLoading(false)
@@ -143,7 +133,6 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
         if (!conversationId) return
 
         try {
-            // Create new conversation
             await initConversation()
             toast.success('Conversation cleared')
         } catch (error) {

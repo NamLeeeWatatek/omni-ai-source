@@ -43,7 +43,6 @@ import {
 export class AiProvidersController {
   constructor(private readonly aiProvidersService: AiProvidersService) {}
 
-  // User AI Providers
   @Post('user')
   @ApiOperation({ summary: 'Create user AI provider' })
   @ApiCreatedResponse({ type: UserAiProvider })
@@ -95,7 +94,6 @@ export class AiProvidersController {
     return this.aiProvidersService.verifyUserProvider(req.user.id, id);
   }
 
-  // Workspace AI Providers
   @Post('workspace/:workspaceId')
   @ApiOperation({ summary: 'Create workspace AI provider' })
   @ApiCreatedResponse({ type: WorkspaceAiProvider })
@@ -157,7 +155,6 @@ export class AiProvidersController {
     return this.aiProvidersService.deleteWorkspaceProvider(workspaceId, id);
   }
 
-  // Usage Logs
   @Get('workspace/:workspaceId/usage')
   @ApiOperation({ summary: 'Get workspace AI usage logs' })
   @ApiOkResponse({ type: [AiUsageLog] })
@@ -192,15 +189,12 @@ export class AiProvidersController {
     return this.aiProvidersService.getUsageStats(workspaceId, period);
   }
 
-  // Verify API Key (without saving)
   @Post('verify')
   @ApiOperation({ summary: 'Verify an API key without saving' })
   async verifyApiKey(@Body() dto: VerifyApiKeyDto) {
-    // This would call the internal verify method
     return { valid: true, message: 'API key verification endpoint' };
   }
 
-  // Get available AI models
   @Get('models')
   @ApiOperation({ summary: 'Get available AI models grouped by provider' })
   @ApiOkResponse({

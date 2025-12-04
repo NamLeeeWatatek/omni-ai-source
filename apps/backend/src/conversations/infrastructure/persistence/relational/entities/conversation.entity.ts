@@ -13,10 +13,6 @@ import {
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 import { BotEntity } from '../../../../../bots/infrastructure/persistence/relational/entities/bot.entity';
 
-/**
- * Conversation entity - theo schema mới
- * Table: conversations
- */
 @Entity({ name: 'conversation' })
 export class ConversationEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
@@ -53,7 +49,6 @@ export class ConversationEntity extends EntityRelationalHelper {
   @Column({ name: 'handover_ticket_id', type: 'uuid', nullable: true })
   handoverTicketId?: string | null;
 
-  // Legacy field
   @Column({ name: 'external_id', type: String, nullable: true })
   @Index()
   externalId?: string | null;
@@ -75,10 +70,6 @@ export class ConversationEntity extends EntityRelationalHelper {
   updatedAt: Date;
 }
 
-/**
- * Message entity - theo schema mới
- * Table: messages
- */
 @Entity({ name: 'message' })
 export class MessageEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
@@ -127,7 +118,6 @@ export class MessageEntity extends EntityRelationalHelper {
   @Column({ name: 'feedback_comment', type: 'text', nullable: true })
   feedbackComment?: string | null;
 
-  // Legacy field
   @Column({ type: String, nullable: true })
   sender?: string | null;
 
@@ -145,10 +135,6 @@ export class MessageEntity extends EntityRelationalHelper {
   sentAt: Date;
 }
 
-/**
- * MessageFeedback entity - theo schema mới
- * Table: message_feedback
- */
 @Entity({ name: 'message_feedback' })
 export class MessageFeedbackEntity extends EntityRelationalHelper {
   @Column({ name: 'message_id', type: 'uuid', primary: true })

@@ -19,9 +19,6 @@ import { MessageReceivedEvent } from '../shared/events';
 import { ConversationsService } from '../conversations/conversations.service';
 import { ConversationsGateway } from '../conversations/conversations.gateway';
 
-/**
- * Controller for handling incoming webhooks from different channels
- */
 @ApiTags('Webhooks')
 @Controller('webhooks')
 export class WebhooksController {
@@ -38,10 +35,6 @@ export class WebhooksController {
     private readonly eventEmitter: EventEmitter2,
   ) { }
 
-  /**
-   * Generic webhook endpoint for all channels
-   * Route: POST /webhooks/:channel
-   */
   @Post(':channel')
   async handleWebhook(
     @Param('channel') channel: string,
@@ -50,10 +43,8 @@ export class WebhooksController {
     @Headers('x-signature') genericSignature?: string,
   ) {
     try {
-      // Determine which signature header to use
       const signature = facebookSignature || genericSignature || '';
 
-      // Verify webhook signature
       const isValid = this.channelStrategy.verifyWebhook(
         channel,
         payload,
@@ -67,16 +58,10 @@ export class WebhooksController {
         };
       }
 
-      // Parse incoming message
       const message = this.channelStrategy.parseIncomingMessage(
         channel,
         payload,
       );
-
-      // TODO: Trigger workflow execution based on incoming message
-      // This would involve:
-      // 1. Finding flows with 'receive-message' trigger for this channel
-      // 2. Executing those flows with the incoming message as input
 
       return {
         success: true,
@@ -91,10 +76,6 @@ export class WebhooksController {
     }
   }
 
-  /**
-   * Facebook webhook verification endpoint (GET request from Facebook)
-   * Route: GET /webhooks/facebook
-   */
   @Get('facebook')
   @ApiOperation({ summary: 'Verify Facebook webhook' })
   verifyFacebookWebhook(@Query() query: any) {
@@ -118,10 +99,6 @@ export class WebhooksController {
     return { success: false, error: 'Verification failed' };
   }
 
-  /**
-   * Facebook webhook handler (POST request with messages)
-   * Route: POST /webhooks/facebook
-   */
   @Post('facebook')
   @ApiOperation({ summary: 'Handle Facebook webhook events' })
   async handleFacebookWebhook(
@@ -131,7 +108,6 @@ export class WebhooksController {
     try {
       this.logger.log('Received Facebook webhook');
 
-      // Verify signature
       const isValid = this.channelStrategy.verifyWebhook(
         'facebook',
         payload,
@@ -142,7 +118,6 @@ export class WebhooksController {
         return { success: false, error: 'Invalid signature' };
       }
 
-      // Process entries
       if (payload.object === 'page') {
         for (const entry of payload.entry || []) {
           for (const messaging of entry.messaging || []) {
@@ -158,10 +133,6 @@ export class WebhooksController {
     }
   }
 
-  /**
-   * Instagram webhook handler
-   * Route: POST /webhooks/instagram
-   */
   @Post('instagram')
   @ApiOperation({ summary: 'Handle Instagram webhook events' })
   async handleInstagramWebhook(
@@ -171,7 +142,6 @@ export class WebhooksController {
     try {
       this.logger.log('Received Instagram webhook');
 
-      // Verify signature (same as Facebook)
       const isValid = this.channelStrategy.verifyWebhook(
         'instagram',
         payload,
@@ -182,7 +152,6 @@ export class WebhooksController {
         return { success: false, error: 'Invalid signature' };
       }
 
-      // Process entries
       if (payload.object === 'instagram') {
         for (const entry of payload.entry || []) {
           for (const messaging of entry.messaging || []) {
@@ -198,10 +167,6 @@ export class WebhooksController {
     }
   }
 
-  /**
-   * Telegram webhook handler
-   * Route: POST /webhooks/telegram
-   */
   @Post('telegram')
   @ApiOperation({ summary: 'Handle Telegram webhook events' })
   async handleTelegramWebhook(@Body() payload: any) {
@@ -219,9 +184,6 @@ export class WebhooksController {
     }
   }
 
-  /**
-   * Process Facebook message and save to conversations
-   */
   private async processFacebookMessage(messaging: any, pageId: string) {
     const senderId = messaging.sender.id;
     const recipientId = messaging.recipient.id;
@@ -232,7 +194,6 @@ export class WebhooksController {
     this.logger.log(`Processing Facebook message from ${senderId} to page ${pageId}`);
 
     try {
-      // Find channel by pageId
       const channel = await this.channelsService.findByExternalId(pageId);
 
       if (!channel) {
@@ -240,7 +201,6 @@ export class WebhooksController {
         return;
       }
 
-      // Get botId from channel metadata
       const botId = channel.metadata?.botId as string | undefined;
 
       if (!botId) {
@@ -248,7 +208,6 @@ export class WebhooksController {
         return;
       }
 
-      // Get user info from Facebook
       let contactName = 'Facebook User';
       let contactAvatar: string | undefined;
 
@@ -265,7 +224,6 @@ export class WebhooksController {
         }
       }
 
-      // Use ConversationsService to find or create conversation
       const conversation = await this.conversationsService.findOrCreateFromWebhook({
         botId,
         channelId: channel.id,
@@ -279,14 +237,12 @@ export class WebhooksController {
         },
       });
 
-      // Emit WebSocket event for new/updated conversation
       try {
         this.conversationsGateway.broadcastConversationUpdate(conversation);
       } catch (error) {
         this.logger.warn('Failed to emit WebSocket event:', error);
       }
 
-      // Save incoming message to database
       if (message.text) {
         const savedMessage = await this.conversationsService.addMessageFromWebhook({
           conversationId: conversation.id,
@@ -301,14 +257,12 @@ export class WebhooksController {
           },
         });
 
-        // Emit WebSocket event for new message
         try {
           this.conversationsGateway.emitNewMessage(conversation.id, savedMessage);
         } catch (error) {
           this.logger.warn('Failed to emit message WebSocket event:', error);
         }
 
-        // Emit message received event
         this.eventEmitter.emit(
           'message.received',
           new MessageReceivedEvent(
@@ -332,9 +286,6 @@ export class WebhooksController {
     }
   }
 
-  /**
-   * Process Instagram message
-   */
   private async processInstagramMessage(messaging: any, igId: string) {
     const senderId = messaging.sender.id;
     const message = messaging.message;
@@ -344,7 +295,6 @@ export class WebhooksController {
     this.logger.log(`Processing Instagram message from ${senderId}`);
 
     try {
-      // Find channel by igId
       const channel = await this.channelsService.findByExternalId(igId);
 
       if (!channel) {
@@ -359,7 +309,6 @@ export class WebhooksController {
         return;
       }
 
-      // Use ConversationsService to find or create conversation
       const conversation = await this.conversationsService.findOrCreateFromWebhook({
         botId,
         channelId: channel.id,
@@ -372,14 +321,12 @@ export class WebhooksController {
         },
       });
 
-      // Emit WebSocket event
       try {
         this.conversationsGateway.broadcastConversationUpdate(conversation);
       } catch (error) {
         this.logger.warn('Failed to emit WebSocket event:', error);
       }
 
-      // Save incoming message
       if (message.text) {
         const savedMessage = await this.conversationsService.addMessageFromWebhook({
           conversationId: conversation.id,
@@ -393,14 +340,12 @@ export class WebhooksController {
           },
         });
 
-        // Emit message event
         try {
           this.conversationsGateway.emitNewMessage(conversation.id, savedMessage);
         } catch (error) {
           this.logger.warn('Failed to emit message WebSocket event:', error);
         }
 
-        // Emit message received event
         this.eventEmitter.emit(
           'message.received',
           new MessageReceivedEvent(
@@ -423,9 +368,6 @@ export class WebhooksController {
     }
   }
 
-  /**
-   * Process Telegram message
-   */
   private async processTelegramMessage(message: any) {
     const chatId = message.chat.id;
     const text = message.text;
@@ -433,7 +375,6 @@ export class WebhooksController {
     this.logger.log(`Processing Telegram message from ${chatId}`);
 
     try {
-      // Find Telegram channel - you may need to adjust this based on your setup
       const channel = await this.channelsService.findByType('telegram');
 
       if (!channel) {
@@ -450,7 +391,6 @@ export class WebhooksController {
 
       const contactName = message.from.first_name || message.from.username || 'Telegram User';
 
-      // Use ConversationsService to find or create conversation
       const conversation = await this.conversationsService.findOrCreateFromWebhook({
         botId,
         channelId: channel.id,
@@ -464,14 +404,12 @@ export class WebhooksController {
         },
       });
 
-      // Emit WebSocket event
       try {
         this.conversationsGateway.broadcastConversationUpdate(conversation);
       } catch (error) {
         this.logger.warn('Failed to emit WebSocket event:', error);
       }
 
-      // Save incoming message
       if (text) {
         const savedMessage = await this.conversationsService.addMessageFromWebhook({
           conversationId: conversation.id,
@@ -485,14 +423,12 @@ export class WebhooksController {
           },
         });
 
-        // Emit message event
         try {
           this.conversationsGateway.emitNewMessage(conversation.id, savedMessage);
         } catch (error) {
           this.logger.warn('Failed to emit message WebSocket event:', error);
         }
 
-        // Emit message received event
         this.eventEmitter.emit(
           'message.received',
           new MessageReceivedEvent(

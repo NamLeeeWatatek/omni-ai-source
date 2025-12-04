@@ -20,12 +20,10 @@ export function WidgetEmbedCode({ botId, activeVersion }: Props) {
     const [copiedScript, setCopiedScript] = useState(false);
     const [copiedIframe, setCopiedIframe] = useState(false);
 
-    // Get URLs from environment variables
     const baseUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
     const widgetUrl = `${apiUrl}/public/widget/${botId}`;
 
-    // Script embed code (versioned) - Uses backend URL
     const scriptCode = `<script 
     src="${widgetUrl}/loader.js"
     data-bot-id="${botId}"
@@ -72,7 +70,7 @@ export function WidgetEmbedCode({ botId, activeVersion }: Props) {
 
     return (
         <div className="space-y-6">
-            {/* Active Version Info */}
+            {}
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -85,14 +83,14 @@ export function WidgetEmbedCode({ botId, activeVersion }: Props) {
                 </CardHeader>
             </Card>
 
-            {/* Embed Options */}
+            {}
             <Tabs defaultValue="script" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="script">Script Tag</TabsTrigger>
                     <TabsTrigger value="iframe">iFrame</TabsTrigger>
                 </TabsList>
 
-                {/* Script Tag */}
+                {}
                 <TabsContent value="script" className="space-y-4">
                     <Card>
                         <CardHeader>
@@ -123,7 +121,7 @@ export function WidgetEmbedCode({ botId, activeVersion }: Props) {
                     </Card>
                 </TabsContent>
 
-                {/* iFrame */}
+                {}
                 <TabsContent value="iframe" className="space-y-4">
                     <Card>
                         <CardHeader>
@@ -155,7 +153,7 @@ export function WidgetEmbedCode({ botId, activeVersion }: Props) {
                 </TabsContent>
             </Tabs>
 
-            {/* Test Widget */}
+            {}
             <Card>
                 <CardHeader>
                     <CardTitle className="text-lg">Test Your Widget</CardTitle>

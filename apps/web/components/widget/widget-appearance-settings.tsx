@@ -47,10 +47,8 @@ export function WidgetAppearanceSettings({ botId, currentSettings, onSave }: Pro
     const [saving, setSaving] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
 
-    // Update settings when currentSettings prop changes
     useEffect(() => {
         if (currentSettings) {
-            console.log('[Appearance] Updating settings from props:', currentSettings);
             const newSettings = {
                 primaryColor: currentSettings.primaryColor || '#667eea',
                 backgroundColor: currentSettings.backgroundColor || '#ffffff',
@@ -65,11 +63,10 @@ export function WidgetAppearanceSettings({ botId, currentSettings, onSave }: Pro
                 showTimestamp: currentSettings.showTimestamp ?? true,
             };
             setSettings(newSettings);
-            setHasChanges(false); // Reset changes flag when loading new settings
+            setHasChanges(false);
         }
     }, [currentSettings]);
 
-    // Check if settings have changed
     useEffect(() => {
         if (!currentSettings) return;
 
@@ -92,13 +89,10 @@ export function WidgetAppearanceSettings({ botId, currentSettings, onSave }: Pro
     const handleSave = async () => {
         setSaving(true);
         try {
-            console.log('[Appearance] Saving settings:', settings);
             await onSave(settings);
-            console.log('[Appearance] Settings saved successfully');
             toast.success('Widget appearance updated successfully!');
-            setHasChanges(false); // Reset changes flag after successful save
+            setHasChanges(false);
         } catch (error) {
-            console.error('[Appearance] Failed to save:', error);
             toast.error('Failed to update widget appearance');
         } finally {
             setSaving(false);
@@ -123,11 +117,11 @@ export function WidgetAppearanceSettings({ botId, currentSettings, onSave }: Pro
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                {/* Preview */}
+                {}
                 <div className="border rounded-lg p-6 bg-muted/30">
                     <p className="text-sm font-medium mb-4">Preview</p>
                     <div className="relative h-[200px] bg-background rounded-lg border overflow-hidden">
-                        {/* Preview button */}
+                        {}
                         <button
                             style={{
                                 position: 'absolute',
@@ -152,11 +146,11 @@ export function WidgetAppearanceSettings({ botId, currentSettings, onSave }: Pro
                     </div>
                 </div>
 
-                {/* Colors Section */}
+                {}
                 <div className="space-y-4 border-t pt-4">
                     <h3 className="font-medium">Colors</h3>
                     
-                    {/* Primary Color */}
+                    {}
                     <div className="space-y-2">
                         <Label htmlFor="primaryColor" className="flex items-center gap-2">
                             <Palette className="w-4 h-4" />
@@ -180,7 +174,7 @@ export function WidgetAppearanceSettings({ botId, currentSettings, onSave }: Pro
                         </div>
                     </div>
 
-                    {/* Background Color */}
+                    {}
                     <div className="space-y-2">
                         <Label htmlFor="backgroundColor">Chat Background Color</Label>
                         <div className="flex gap-2">
@@ -201,7 +195,7 @@ export function WidgetAppearanceSettings({ botId, currentSettings, onSave }: Pro
                         </div>
                     </div>
 
-                    {/* Bot Message Color */}
+                    {}
                     <div className="space-y-2">
                         <Label htmlFor="botMessageColor">Bot Message Background</Label>
                         <div className="flex gap-2">
@@ -222,7 +216,7 @@ export function WidgetAppearanceSettings({ botId, currentSettings, onSave }: Pro
                         </div>
                     </div>
 
-                    {/* Bot Message Text Color */}
+                    {}
                     <div className="space-y-2">
                         <Label htmlFor="botMessageTextColor">Bot Message Text Color</Label>
                         <div className="flex gap-2">
@@ -243,7 +237,7 @@ export function WidgetAppearanceSettings({ botId, currentSettings, onSave }: Pro
                         </div>
                     </div>
 
-                    {/* Font Family */}
+                    {}
                     <div className="space-y-2">
                         <Label htmlFor="fontFamily">Font Family</Label>
                         <Input
@@ -258,7 +252,7 @@ export function WidgetAppearanceSettings({ botId, currentSettings, onSave }: Pro
                     </div>
                 </div>
 
-                {/* Position */}
+                {}
                 <div className="space-y-2">
                     <Label htmlFor="position" className="flex items-center gap-2">
                         <MapPin className="w-4 h-4" />
@@ -283,7 +277,7 @@ export function WidgetAppearanceSettings({ botId, currentSettings, onSave }: Pro
                     </p>
                 </div>
 
-                {/* Button Size */}
+                {}
                 <div className="space-y-2">
                     <Label htmlFor="buttonSize" className="flex items-center gap-2">
                         <Maximize2 className="w-4 h-4" />
@@ -307,7 +301,7 @@ export function WidgetAppearanceSettings({ botId, currentSettings, onSave }: Pro
                     </p>
                 </div>
 
-                {/* Welcome Message */}
+                {}
                 <div className="space-y-2">
                     <Label htmlFor="welcomeMessage">Welcome Message</Label>
                     <Input
@@ -321,7 +315,7 @@ export function WidgetAppearanceSettings({ botId, currentSettings, onSave }: Pro
                     </p>
                 </div>
 
-                {/* Placeholder Text */}
+                {}
                 <div className="space-y-2">
                     <Label htmlFor="placeholderText">Input Placeholder</Label>
                     <Input
@@ -335,7 +329,7 @@ export function WidgetAppearanceSettings({ botId, currentSettings, onSave }: Pro
                     </p>
                 </div>
 
-                {/* Save Button */}
+                {}
                 <Button 
                     onClick={handleSave} 
                     disabled={saving || !hasChanges} 

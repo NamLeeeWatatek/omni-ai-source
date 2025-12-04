@@ -16,14 +16,10 @@ export class InstagramService {
     private connectionRepository: Repository<ChannelConnectionEntity>,
   ) {}
 
-  /**
-   * Send message via Instagram
-   */
   async sendMessage(options: SendMessageOptions): Promise<SendMessageResult> {
     try {
       const { recipientId, message, channelId } = options;
 
-      // Get Instagram access token
       const connection = await this.getConnection('instagram', channelId);
       if (!connection) {
         return {
@@ -42,7 +38,6 @@ export class InstagramService {
         };
       }
 
-      // Send message via Instagram Graph API
       const url = `https://graph.facebook.com/${this.apiVersion}/${igUserId}/messages`;
 
       const response = await fetch(url, {
@@ -84,9 +79,6 @@ export class InstagramService {
     }
   }
 
-  /**
-   * Send typing indicator
-   */
   async sendTypingIndicator(
     recipientId: string,
     channelId?: string,

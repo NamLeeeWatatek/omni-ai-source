@@ -50,7 +50,6 @@ export function KBSyncPanel({ knowledgeBaseId }: SyncPanelProps) {
 
             toast.success(`Synced ${result.data.synced} vectors (${result.data.errors} errors)`)
 
-            // Refresh verify result
             handleVerify()
         } catch (error) {
             toast.error('Failed to sync missing vectors')
@@ -73,7 +72,6 @@ export function KBSyncPanel({ knowledgeBaseId }: SyncPanelProps) {
 
             toast.success(`Rebuilt ${result.data.chunksProcessed} chunks (${result.data.errors} errors)`)
 
-            // Refresh verify result
             handleVerify()
         } catch (error) {
             toast.error('Failed to rebuild collection')

@@ -9,10 +9,6 @@ import {
 import { ExecutionService } from '../execution.service';
 import { FlowsService } from '../flows.service';
 
-/**
- * Event listener for flow-related events
- * Handles flow execution triggering via events
- */
 @Injectable()
 export class FlowEventListener {
     private readonly logger = new Logger(FlowEventListener.name);
@@ -23,9 +19,6 @@ export class FlowEventListener {
         private readonly eventEmitter: EventEmitter2,
     ) { }
 
-    /**
-     * Handle flow execution requested event
-     */
     @OnEvent('flow.execution.requested')
     async handleFlowExecutionRequested(event: FlowExecutionRequestedEvent) {
         this.logger.debug(
@@ -33,7 +26,6 @@ export class FlowEventListener {
         );
 
         try {
-            // Fetch flow definition
             const flow = await this.flowsService.findOne(event.flowId);
             if (!flow) {
                 throw new Error(`Flow not found: ${event.flowId}`);
@@ -44,8 +36,6 @@ export class FlowEventListener {
                 edges: flow.data.edges || [],
             };
 
-            // Execute flow
-            // ExecutionService will emit completion/failure events
             const metadata = {
                 ...event.metadata,
                 botId: event.botId,
@@ -66,11 +56,9 @@ export class FlowEventListener {
                 error.stack,
             );
 
-            // Emit failure event if we couldn't even start execution
-            // (e.g. flow not found)
             const failureEvent = new FlowExecutionFailedEvent(
                 event.flowId,
-                '', // executionId unknown
+                '',
                 error.message,
                 event.metadata,
             );

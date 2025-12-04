@@ -12,10 +12,6 @@ import { EntityRelationalHelper } from '../../../../../utils/relational-entity-h
 import { BotEntity } from '../../../../../bots/infrastructure/persistence/relational/entities/bot.entity';
 import { UserEntity } from '../../../../../users/infrastructure/persistence/relational/entities/user.entity';
 
-/**
- * Channel entity - theo schema mới
- * Table: channels
- */
 @Entity({ name: 'channel' })
 export class ChannelEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')

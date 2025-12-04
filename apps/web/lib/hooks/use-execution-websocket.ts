@@ -45,7 +45,6 @@ export function useExecutionWebSocket(
             setIsExecuting(true)
             setError(null)
 
-            // Reset all nodes to idle
             setNodes((nds) =>
                 nds.map((node) => ({
                     ...node,
@@ -60,11 +59,8 @@ export function useExecutionWebSocket(
 
             const namespace = 'executions'
 
-            // Connect to Socket.IO first
             wsService.connect(namespace, async () => {
 
-
-                // Now trigger execution via HTTP API
                 try {
                     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
                     const response = await fetch(`${API_URL}/flows/${flowId}/execute`, {
@@ -91,7 +87,6 @@ export function useExecutionWebSocket(
                 }
             })
 
-            // Subscribe to events (match backend event types exactly)
             const unsubscribeStart = wsService.on(namespace, 'execution:start', (data) => {
 
             })
@@ -115,7 +110,6 @@ export function useExecutionWebSocket(
 
                 setIsExecuting(false)
 
-                // Cleanup
                 unsubscribeStart()
                 unsubscribeNodeStart()
                 unsubscribeNodeComplete()
@@ -132,7 +126,6 @@ export function useExecutionWebSocket(
                 setError(data.error)
                 setIsExecuting(false)
 
-                // Cleanup
                 unsubscribeStart()
                 unsubscribeNodeStart()
                 unsubscribeNodeComplete()
@@ -144,7 +137,6 @@ export function useExecutionWebSocket(
                 reject(new Error(data.error))
             })
 
-            // Handle connection errors
             wsService.onError(namespace, (error) => {
 
                 setError('Socket.IO connection error')

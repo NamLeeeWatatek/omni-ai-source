@@ -12,7 +12,6 @@ interface StatCardProps {
 }
 
 function StatCard({ title, value, trend, icon: Icon, color }: StatCardProps) {
-    // Color mapping for consistent theme - softer, less bright colors
     const colorClasses = {
         blue: {
             bg: 'bg-blue-600/10',

@@ -2,10 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AllConfigType } from '../config/config.type';
 
-/**
- * Casdoor API Client
- * Handles all API calls to Casdoor server
- */
 @Injectable()
 export class CasdoorApiClient {
   private readonly logger = new Logger(CasdoorApiClient.name);
@@ -22,11 +18,7 @@ export class CasdoorApiClient {
     this.orgName = process.env.CASDOOR_ORG_NAME || 'built-in';
   }
 
-  /**
-   * Get admin access token for API calls
-   */
   private async getAdminToken(): Promise<string> {
-    // Use client credentials to get admin token
     const tokenUrl = `${this.casdoorEndpoint}/api/login/oauth/access_token`;
 
     const params = new URLSearchParams({
@@ -52,9 +44,6 @@ export class CasdoorApiClient {
     return data.access_token;
   }
 
-  /**
-   * Get all users from Casdoor
-   */
   async getUsers(): Promise<any[]> {
     try {
       const token = await this.getAdminToken();
@@ -78,9 +67,6 @@ export class CasdoorApiClient {
     }
   }
 
-  /**
-   * Get user by name
-   */
   async getUser(name: string): Promise<any> {
     try {
       const token = await this.getAdminToken();
@@ -104,15 +90,12 @@ export class CasdoorApiClient {
     }
   }
 
-  /**
-   * Create user in Casdoor
-   */
   async createUser(userData: {
     name: string;
     displayName: string;
     email: string;
     password?: string;
-    tag?: string; // Role tag: admin, user, etc.
+    tag?: string;
     type?: string;
   }): Promise<any> {
     try {
@@ -157,9 +140,6 @@ export class CasdoorApiClient {
     }
   }
 
-  /**
-   * Update user in Casdoor
-   */
   async updateUser(
     name: string,
     updates: {
@@ -173,13 +153,11 @@ export class CasdoorApiClient {
     try {
       const token = await this.getAdminToken();
 
-      // Get current user data first
       const currentUser = await this.getUser(name);
       if (!currentUser) {
         throw new Error(`User not found: ${name}`);
       }
 
-      // Merge updates
       const updatedUser = {
         ...currentUser,
         ...updates,
@@ -214,9 +192,6 @@ export class CasdoorApiClient {
     }
   }
 
-  /**
-   * Delete user from Casdoor
-   */
   async deleteUser(name: string): Promise<void> {
     try {
       const token = await this.getAdminToken();
@@ -251,9 +226,6 @@ export class CasdoorApiClient {
     }
   }
 
-  /**
-   * Get all roles from Casdoor
-   */
   async getRoles(): Promise<any[]> {
     try {
       const token = await this.getAdminToken();
@@ -277,9 +249,6 @@ export class CasdoorApiClient {
     }
   }
 
-  /**
-   * Get all permissions from Casdoor
-   */
   async getPermissions(): Promise<any[]> {
     try {
       const token = await this.getAdminToken();

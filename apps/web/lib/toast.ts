@@ -1,10 +1,5 @@
 import { toast as sonnerToast } from 'sonner'
 
-/**
- * Centralized toast wrapper using Sonner (shadcn/ui)
- * Provides a consistent API across the application
- */
-
 export const toast = {
   success: (message: string, options?: any) => {
     return sonnerToast.success(message, options)

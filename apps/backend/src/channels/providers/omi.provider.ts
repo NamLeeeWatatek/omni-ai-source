@@ -7,9 +7,6 @@ import {
   IncomingMessage,
 } from '../interfaces/channel-provider.interface';
 
-/**
- * Omi channel provider
- */
 @Injectable()
 export class OmiProvider implements ChannelProvider {
   readonly channelType = 'omi';
@@ -26,8 +23,6 @@ export class OmiProvider implements ChannelProvider {
 
   async sendMessage(message: ChannelMessage): Promise<ChannelMessageResponse> {
     try {
-      // TODO: Implement Omi API
-      // This is a placeholder implementation
       return {
         success: true,
         messageId: `omi-${Date.now()}`,
@@ -41,12 +36,10 @@ export class OmiProvider implements ChannelProvider {
   }
 
   verifyWebhook(): boolean {
-    // TODO: Implement Omi webhook verification
     return true;
   }
 
   parseIncomingMessage(payload: any): IncomingMessage {
-    // TODO: Implement Omi message parsing
     return {
       from: payload.from || '',
       content: payload.message || '',

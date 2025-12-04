@@ -4,7 +4,6 @@ export class MigrateAppearanceToVersion1733300000000
     implements MigrationInterface
 {
     public async up(queryRunner: QueryRunner): Promise<void> {
-        // Step 1: Update existing widget_versions with appearance data from bot table
         await queryRunner.query(`
             UPDATE widget_version wv
             SET config = jsonb_set(
@@ -40,7 +39,6 @@ export class MigrateAppearanceToVersion1733300000000
             WHERE wv.bot_id = b.id;
         `);
 
-        // Step 2: Update security.allowedOrigins
         await queryRunner.query(`
             UPDATE widget_version wv
             SET config = jsonb_set(
@@ -52,7 +50,6 @@ export class MigrateAppearanceToVersion1733300000000
             WHERE wv.bot_id = b.id;
         `);
 
-        // Step 3: Ensure all configs have required structure
         await queryRunner.query(`
             UPDATE widget_version
             SET config = jsonb_set(
@@ -81,8 +78,6 @@ export class MigrateAppearanceToVersion1733300000000
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        // Rollback: Copy data from widget_version back to bot
-        // Only update from active versions
         await queryRunner.query(`
             UPDATE bot b
             SET 

@@ -78,7 +78,6 @@ export function ChannelConfigDialog({
             form.reset()
             onOpenChange(false)
         } catch (error) {
-            // Error handled in parent
         }
     }
 

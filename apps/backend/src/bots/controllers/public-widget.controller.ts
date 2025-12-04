@@ -21,12 +21,9 @@ export class PublicWidgetController {
         private readonly widgetVersionService: WidgetVersionService,
     ) {}
 
-    /**
-     * Get widget loader script (always latest active version)
-     */
     @Get(':botId/loader.js')
     @Header('Content-Type', 'application/javascript')
-    @Header('Cache-Control', 'public, max-age=300') // 5 minutes cache
+    @Header('Cache-Control', 'public, max-age=300')
     @ApiOperation({
         summary: 'Get widget loader script',
         description: 'Returns the widget loader JavaScript file',
@@ -43,7 +40,6 @@ export class PublicWidgetController {
             throw new NotFoundException('No active widget version found');
         }
 
-        // Read loader from backend public folder
         const loaderPath = path.join(process.cwd(), 'public', 'widget-loader.js');
 
         if (!fs.existsSync(loaderPath)) {
@@ -55,21 +51,17 @@ export class PublicWidgetController {
 
         let loaderScript = fs.readFileSync(loaderPath, 'utf-8');
 
-        // Inject version and API URL
         loaderScript = loaderScript.replace(
-            '/* VERSION_PLACEHOLDER */',
+            '',
             `const WIDGET_VERSION = '${activeVersion.version}';`,
         );
 
         res.send(loaderScript);
     }
 
-    /**
-     * Get versioned widget core script
-     */
     @Get(':botId/v/:version/core.js')
     @Header('Content-Type', 'application/javascript')
-    @Header('Cache-Control', 'public, max-age=31536000, immutable') // 1 year cache
+    @Header('Cache-Control', 'public, max-age=31536000, immutable')
     @ApiOperation({
         summary: 'Get versioned widget core script',
         description: 'Returns the widget core JavaScript file for a specific version',
@@ -81,10 +73,9 @@ export class PublicWidgetController {
         @Param('version') version: string,
         @Res() res: Response,
     ): Promise<void> {
-        // Validate version exists
         const versions = await this.widgetVersionService.listVersions(
             botId,
-            undefined, // No user validation for public endpoint
+            undefined,
         );
 
         const versionExists = versions.some((v) => v.version === version);
@@ -92,7 +83,6 @@ export class PublicWidgetController {
             throw new NotFoundException('Widget version not found');
         }
 
-        // Read core from backend public folder
         const corePath = path.join(process.cwd(), 'public', 'widget-core.js');
 
         if (!fs.existsSync(corePath)) {
@@ -106,9 +96,6 @@ export class PublicWidgetController {
         res.send(coreScript);
     }
 
-    /**
-     * Get widget styles
-     */
     @Get(':botId/v/:version/styles.css')
     @Header('Content-Type', 'text/css')
     @Header('Cache-Control', 'public, max-age=31536000, immutable')
@@ -126,7 +113,6 @@ export class PublicWidgetController {
         const stylesPath = path.join(process.cwd(), 'public', 'widget-styles.css');
 
         if (!fs.existsSync(stylesPath)) {
-            // Return empty CSS if not found
             res.send('');
             return;
         }

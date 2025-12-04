@@ -40,12 +40,10 @@ import { useAuth } from '@/lib/hooks/useAuth'
 import { usePermissions } from '@/lib/hooks/usePermissions'
 import { RoleBadge } from '@/components/auth/RoleBadge'
 import toast from '@/lib/toast'
-import { AIFloatingButton } from '@/components/features/ai-assistant/ai-floating-button'
 import { LoadingLogo } from '@/components/ui/loading-logo'
 import { AlertDialogConfirm } from '@/components/ui/alert-dialog-confirm'
 import { WorkspaceSwitcher } from '@/components/workspace/workspace-switcher'
 
-// Notification type
 interface Notification {
     id: string
     title: string
@@ -67,7 +65,6 @@ export default function DashboardLayout({
     const [workspaceName] = useState('My Workspace')
     const [expandedSections, setExpandedSections] = useState<string[]>(['workflows'])
 
-    // Sidebar state - default closed on mobile, open on desktop
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [mounted, setMounted] = useState(false)
     const [showLogoutDialog, setShowLogoutDialog] = useState(false)
@@ -76,7 +73,6 @@ export default function DashboardLayout({
         setMounted(true)
     }, [])
 
-    // Notifications state
     const [notifications, setNotifications] = useState<Notification[]>([
         {
             id: '1',
@@ -89,17 +85,14 @@ export default function DashboardLayout({
     ])
     const [showNotifications, setShowNotifications] = useState(false)
 
-    // Show loading state while checking auth
     if (isLoading) {
         return (
             <div className="h-screen flex items-center justify-center bg-background">
-                <LoadingLogo size="lg" text="WATA OMI" />
+                <LoadingLogo size="lg" text="Loading dashboard..." />
             </div>
         )
     }
 
-    // Middleware handles redirect, so if we're here and not authenticated,
-    // just show loading (middleware will redirect)
     if (!isAuthenticated) {
         return (
             <div className="h-screen flex items-center justify-center bg-background">
@@ -108,22 +101,18 @@ export default function DashboardLayout({
         )
     }
 
-    // Mark notification as read
     const markAsRead = (id: string) => {
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
     }
 
-    // Mark all as read
     const markAllAsRead = () => {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })))
     }
 
-    // Clear notification
     const clearNotification = (id: string) => {
         setNotifications(prev => prev.filter(n => n.id !== id))
     }
 
-    // Unread count
     const unreadCount = notifications.filter(n => !n.read).length
 
     const navigation = [
@@ -139,7 +128,7 @@ export default function DashboardLayout({
         },
         { name: 'Channels', href: '/channels', icon: FiRadio },
         { name: 'Templates', href: '/templates', icon: FiGrid },
-        { name: 'Knowledge Base', href: '/knowledge-base', icon: FiDatabase },
+        { name: 'Knowledge Base', href: '/knowledge-base/collections', icon: FiDatabase },
         { name: 'Bots', href: '/bots', icon: RiRobot2Line },
         { name: 'Chat AI', href: '/chat', icon: TiMessages },
         { name: 'Settings', href: '/settings', icon: FiSettings },
@@ -169,11 +158,8 @@ export default function DashboardLayout({
         )
     }
 
-    // Get user display info
     const getUserName = () => {
         if (!user) return 'Loading...'
-
-
 
         return user.name || user.email || 'User'
     }
@@ -190,7 +176,7 @@ export default function DashboardLayout({
 
     return (
         <div className="h-screen flex bg-background overflow-hidden">
-            {/* Mobile Overlay */}
+            {}
             {sidebarOpen && (
                 <div
                     className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -198,25 +184,27 @@ export default function DashboardLayout({
                 />
             )}
 
-            {/* Sidebar - Responsive with Tailwind */}
+            {}
             <aside className={`
                 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
                 fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto
                 w-64 border-r border-border/40 flex flex-col bg-background
                 transition-transform duration-300 ease-in-out
             `}>
-                {/* Logo */}
+                {}
                 <div className="h-16 border-b border-border/40 flex items-center px-6">
-                    <MdAutoAwesome className="w-6 h-6 text-muted-foreground mr-2" />
+                    <div className="w-8 h-8 rounded-lg bg-gradient-wata flex items-center justify-center mr-3 shadow-md">
+                        <MdAutoAwesome className="w-5 h-5 text-white" />
+                    </div>
                     <span className="text-xl font-bold gradient-text">WataOmi</span>
                 </div>
 
-                {/* Workspace Selector */}
+                {}
                 <div className="p-4 border-b border-border/40">
                     <WorkspaceSwitcher />
                 </div>
 
-                {/* Navigation */}
+                {}
                 <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
                     {navigation.map((item) => {
                         const active = item.href ? isActive(item.href) : false
@@ -277,25 +265,25 @@ export default function DashboardLayout({
                     })}
                 </nav>
 
-                {/* User Menu */}
+                {}
                 <div className="p-4 border-t border-border/40">
-                    <div className="rounded-lg border border-border/40 bg-card p-3">
-                        <div className="flex items-center space-x-3 mb-3">
-                            <div className="w-8 h-8 rounded-full bg-gradient-wata flex items-center justify-center">
-                                <span className="text-white font-semibold text-sm">
+                    <div className="rounded-lg border border-border/40 bg-card/50 backdrop-blur-sm p-4 hover:bg-card/80 transition-all duration-200">
+                        <div className="flex items-start gap-3 mb-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-wata flex items-center justify-center shadow-md flex-shrink-0">
+                                <span className="text-white font-semibold">
                                     {getUserInitial()}
                                 </span>
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">{getUserName()}</p>
+                                <p className="text-sm font-semibold truncate mb-0.5">{getUserName()}</p>
+                                {capabilities && <RoleBadge className="mb-1.5" />}
                                 <p className="text-xs text-muted-foreground truncate">{getUserEmail()}</p>
-                                {capabilities && <RoleBadge className="mt-1" />}
                             </div>
                         </div>
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="w-full justify-start"
+                            className="w-full justify-start hover:bg-destructive/10 hover:text-destructive transition-colors"
                             onClick={() => setShowLogoutDialog(true)}
                         >
                             <FiLogOut className="w-4 h-4 mr-2" />
@@ -305,13 +293,13 @@ export default function DashboardLayout({
                 </div>
             </aside>
 
-            {/* Main Content */}
+            {}
             <main className="flex-1 flex flex-col overflow-hidden min-w-0">
-                {/* Top Bar */}
+                {}
                 <header className="h-16 border-b border-border/40 flex items-center justify-between px-4 sm:px-6 flex-shrink-0">
-                    {/* Left side */}
+                    {}
                     <div className="flex items-center gap-3">
-                        {/* Mobile Menu Toggle */}
+                        {}
                         <Button
                             variant="ghost"
                             size="icon"
@@ -428,9 +416,9 @@ export default function DashboardLayout({
                         </Breadcrumb>
                     </div>
 
-                    {/* Right side actions */}
+                    {}
                     <div className="flex items-center gap-1 sm:gap-2">
-                        {/* Theme Toggle */}
+                        {}
                         <Button
                             variant="ghost"
                             size="icon"
@@ -447,7 +435,7 @@ export default function DashboardLayout({
                             )}
                         </Button>
 
-                        {/* Notifications */}
+                        {}
                         <div className="relative">
                             <Button
                                 variant="ghost"
@@ -463,7 +451,7 @@ export default function DashboardLayout({
                                 )}
                             </Button>
 
-                            {/* Notifications Dropdown */}
+                            {}
                             {showNotifications && (
                                 <div className="absolute right-0 top-12 w-80 rounded-xl border border-border bg-popover shadow-xl z-50">
                                     <div className="p-3 border-b border-border/40 flex items-center justify-between">
@@ -536,7 +524,7 @@ export default function DashboardLayout({
                     </div>
                 </header>
 
-                {/* Page Content */}
+                {}
                 <div className="flex-1 overflow-auto relative">
                     <div className={`h-full ${pathname.includes('/edit') ||
                         pathname === '/ai-assistant' ||
@@ -550,10 +538,7 @@ export default function DashboardLayout({
                 </div>
             </main>
 
-            {/* AI Floating Button */}
-            <AIFloatingButton />
-
-            {/* Logout Confirmation Dialog */}
+            {}
             <AlertDialogConfirm
                 open={showLogoutDialog}
                 onOpenChange={setShowLogoutDialog}

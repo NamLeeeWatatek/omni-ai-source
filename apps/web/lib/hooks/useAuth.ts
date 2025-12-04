@@ -16,9 +16,6 @@ export function useAuth() {
   const workspace = (session as any)?.workspace;
   const workspaces = (session as any)?.workspaces;
 
-
-
-
   const fetchWorkspaceFromAPI = useCallback(async () => {
     if (!accessToken) return;
 
@@ -36,8 +33,6 @@ export function useAuth() {
       const currentWs = currentWsResponse.data;
       const allWs = allWsResponse.data;
 
-
-
       if (currentWs) {
         dispatch(setCurrentWorkspace(currentWs));
       }
@@ -48,7 +43,6 @@ export function useAuth() {
 
     }
   }, [accessToken, dispatch]);
-
 
   useEffect(() => {
     if (workspace) {

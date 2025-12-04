@@ -23,7 +23,6 @@ import ReactFlow, { Background, Controls, MiniMap, BackgroundVariant } from 'rea
 import 'reactflow/dist/style.css'
 import { useAppSelector } from '@/lib/store/hooks'
 import CustomNode from '@/components/features/workflow/custom-node'
-import { getExecutionReference, formatExecutionDuration, formatExecutionDate } from '@/lib/execution-utils'
 import {
     FiEdit,
     FiPlay,
@@ -38,6 +37,7 @@ import {
     FiLoader,
     FiSave
 } from 'react-icons/fi'
+import { getExecutionReference } from '@/lib/utils/execution'
 
 function FlowPreview({ nodes, edges }: { nodes: any[], edges: any[] }) {
     const { items: allNodeTypes = [] } = useAppSelector((state: any) => state.nodeTypes || {})
@@ -50,18 +50,16 @@ function FlowPreview({ nodes, edges }: { nodes: any[], edges: any[] }) {
         return types
     }, [allNodeTypes])
 
-    // Ensure nodes have correct type for CustomNode
     const safeNodes = useMemo(() => {
         return nodes.map(node => {
-            // Store original type in data.type for CustomNode to lookup
             const originalType = node.data?.type || node.type
 
             return {
                 ...node,
-                type: 'custom', // Always use custom node component
+                type: 'custom',
                 data: {
                     ...node.data,
-                    type: originalType, // Store original type for icon/style lookup
+                    type: originalType,
                     label: node.data?.label || node.data?.name || originalType
                 }
             }
@@ -118,9 +116,9 @@ function VersionsTab({ flowId, onUpdate }: { flowId: number, onUpdate: () => voi
 
     const handleCreateVersion = async () => {
         const createPromise = (await axiosClient.post(`/flows/${flowId}/versions`, {
-                name: `Version ${versions.length + 1}`,
-                description: 'Manual version snapshot'
-            })).data.then(() => {
+            name: `Version ${versions.length + 1}`,
+            description: 'Manual version snapshot'
+        })).data.then(() => {
             loadVersions()
             onUpdate()
         })
@@ -147,7 +145,7 @@ function VersionsTab({ flowId, onUpdate }: { flowId: number, onUpdate: () => voi
     }
 
     return (
-        <div className="glass rounded-xl p-6">
+        <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold">Version History</h3>
                 <Button size="sm" onClick={handleCreateVersion}>
@@ -212,7 +210,7 @@ function VersionsTab({ flowId, onUpdate }: { flowId: number, onUpdate: () => voi
                     ))}
                 </div>
             )}
-        </div>
+        </Card>
     )
 }
 
@@ -257,42 +255,41 @@ function SettingsTab({
         status !== flow.status
 
     return (
-        <div className="glass rounded-xl p-6">
+        <Card className="p-6">
             <h3 className="text-lg font-semibold mb-6">Workflow Settings</h3>
             <div className="space-y-6">
                 <div>
                     <label className="block text-sm font-medium mb-2">Workflow Name</label>
-                    <input
+                    <Input
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full glass rounded-lg px-4 py-2 border border-border/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
                         placeholder="Enter workflow name"
                     />
                 </div>
 
                 <div>
                     <label className="block text-sm font-medium mb-2">Description</label>
-                    <textarea
+                    <Textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         rows={3}
-                        className="w-full glass rounded-lg px-4 py-2 border border-border/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
                         placeholder="Describe what this workflow does"
                     />
                 </div>
 
                 <div>
                     <label className="block text-sm font-medium mb-2">Status</label>
-                    <select
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value)}
-                        className="w-full glass rounded-lg px-4 py-2 border border-border/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    >
-                        <option value="draft">Draft</option>
-                        <option value="published">Published</option>
-                        <option value="archived">Archived</option>
-                    </select>
+                    <Select value={status} onValueChange={setStatus}>
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="draft">Draft</SelectItem>
+                            <SelectItem value="published">Published</SelectItem>
+                            <SelectItem value="archived">Archived</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
 
                 {hasChanges && (
@@ -340,7 +337,7 @@ function SettingsTab({
                     </div>
                 </div>
             </div>
-        </div>
+        </Card>
     )
 }
 
@@ -352,7 +349,6 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
     const [error, setError] = useState<string | null>(null)
     const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
-    // Ensure nodeTypes are loaded for FlowPreview
     const { items: nodeTypes = [] } = useAppSelector((state: any) => state.nodeTypes || {})
 
     useEffect(() => {
@@ -517,19 +513,19 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
     if (error || !flow) {
         return (
             <div className="p-8">
-                <div className="glass rounded-xl p-6 text-center">
+                <Card className="p-6 text-center">
                     <p className="text-red-500 mb-4">{error || 'Flow not found'}</p>
                     <Link href="/flows">
                         <Button>Back to Flows</Button>
                     </Link>
-                </div>
+                </Card>
             </div>
         )
     }
 
     return (
         <div className="h-full">
-            {/* Header */}
+            {}
             <div className="page-header">
                 <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -537,7 +533,7 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
                         <p className="text-muted-foreground">{flow.description || 'No description'}</p>
                     </div>
 
-                    {/* Status Badge */}
+                    {}
                     <div>
                         {flow.status === 'published' ? (
                             <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-green-500/10 text-green-500 border border-green-500/20">
@@ -556,7 +552,7 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
                     </div>
                 </div>
 
-                {/* Action Buttons */}
+                {}
                 <div className="flex items-center gap-3">
                     <Link href={`/flows/${flow.id}/edit`}>
                         <Button>
@@ -588,7 +584,7 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
                 </div>
             </div>
 
-            {/* Stats Cards */}
+            {}
             <div className="content-section">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <Card className="p-6">
@@ -632,9 +628,9 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
                 </div>
             </div>
 
-            {/* Tabs */}
+            {}
             <div className="content-section">
-                <div className="flex items-center gap-1 glass rounded-lg p-1 w-fit">
+                <Card className="flex items-center gap-1 p-1 w-fit">
                     {(['overview', 'executions', 'versions', 'settings'] as const).map((tab) => (
                         <button
                             key={tab}
@@ -647,14 +643,14 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
                             {tab}
                         </button>
                     ))}
-                </div>
+                </Card>
             </div>
 
-            {/* Tab Content */}
+            {}
             {activeTab === 'overview' && (
                 <div className="space-y-6">
-                    {/* Workflow Canvas Preview */}
-                    <div className="glass rounded-xl p-6">
+                    {}
+                    <Card className="p-6">
                         <h3 className="text-lg font-semibold mb-4">Workflow Diagram</h3>
                         {flow.data?.nodes ? (
                             <FlowPreview nodes={flow.data.nodes} edges={flow.data.edges || []} />
@@ -663,10 +659,10 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
                                 <p className="text-muted-foreground">No diagram data available</p>
                             </div>
                         )}
-                    </div>
+                    </Card>
 
-                    {/* Recent Executions */}
-                    <div className="glass rounded-xl p-6">
+                    {}
+                    <Card className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold">Recent Executions</h3>
                             <button onClick={() => setActiveTab('executions')}>
@@ -704,8 +700,10 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
                                                 )}
                                                 <div>
                                                     <p className="font-medium">{getExecutionReference(flow.id, execution.id)}</p>
-                                                    <p className="text-sm text-muted-foreground capitalize">
-                                                        {execution.status} • {execution.completed_nodes}/{execution.total_nodes} nodes
+                                                    <p className="text-sm text-muted-foreground capitalize flex items-center gap-1.5">
+                                                        <span>{execution.status}</span>
+                                                        <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
+                                                        <span>{execution.completed_nodes}/{execution.total_nodes} nodes</span>
                                                     </p>
                                                 </div>
                                             </div>
@@ -722,12 +720,12 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
                                 ))}
                             </div>
                         )}
-                    </div>
+                    </Card>
                 </div>
             )}
 
             {activeTab === 'executions' && (
-                <div className="glass rounded-xl p-6">
+                <Card className="p-6">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-lg font-semibold">All Executions</h3>
                         <Link href={`/flows/${flow.id}/edit`}>
@@ -794,7 +792,7 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
                                         </div>
                                     </div>
 
-                                    {/* Progress bar */}
+                                    {}
                                     <div className="mb-2">
                                         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
                                             <span>Progress</span>
@@ -822,7 +820,7 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
                             ))}
                         </div>
                     )}
-                </div>
+                </Card>
             )}
 
             {activeTab === 'versions' && (
@@ -838,7 +836,7 @@ export default function WorkflowDetailPage({ params }: { params: { id: string } 
                 />
             )}
 
-            {/* Delete Confirmation Dialog */}
+            {}
             <AlertDialogConfirm
                 open={showDeleteDialog}
                 onOpenChange={setShowDeleteDialog}

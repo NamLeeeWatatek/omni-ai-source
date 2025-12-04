@@ -5,6 +5,7 @@ import { axiosClient } from '@/lib/axios-client';
 import { Card } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { Badge } from '@/components/ui/badge';
+import { FiArrowRight } from 'react-icons/fi';
 
 interface ModelConfig {
     provider: string;
@@ -145,7 +146,7 @@ export default function AIModelsPage() {
                 )}
             </div>
 
-            {/* Additional Settings Section */}
+            {}
             <div className="mt-8 grid gap-6">
                 <Card className="p-6">
                     <h2 className="text-xl font-semibold mb-4">System Information</h2>
@@ -166,7 +167,7 @@ export default function AIModelsPage() {
                             className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors group"
                         >
                             <span className="text-sm font-medium group-hover:text-primary">API Documentation</span>
-                            <span className="text-xs text-muted-foreground">→</span>
+                            <FiArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                         </a>
                         <a
                             href="https://github.com/wataomi/wataomi"
@@ -174,14 +175,14 @@ export default function AIModelsPage() {
                             className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors group"
                         >
                             <span className="text-sm font-medium group-hover:text-primary">GitHub Repository</span>
-                            <span className="text-xs text-muted-foreground">→</span>
+                            <FiArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                         </a>
                         <a
                             href="/knowledge-base"
                             className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors group"
                         >
                             <span className="text-sm font-medium group-hover:text-primary">Knowledge Base</span>
-                            <span className="text-xs text-muted-foreground">→</span>
+                            <FiArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                         </a>
                     </div>
                 </Card>

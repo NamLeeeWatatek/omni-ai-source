@@ -8,7 +8,6 @@ import { AIChatExecutor } from './execution/executors/ai-chat.executor';
 import { ConditionExecutor } from './execution/executors/condition.executor';
 import { ConfigService } from '@nestjs/config';
 
-// Mock Gateway
 const mockGateway = {
   emitExecutionStart: jest.fn(),
   emitExecutionProgress: jest.fn(),
@@ -19,7 +18,6 @@ const mockGateway = {
   emitNodeExecutionError: jest.fn(),
 };
 
-// Mock Config
 const mockConfig = {
   get: jest.fn().mockReturnValue('mock-api-key'),
 };
@@ -49,7 +47,6 @@ describe('Execution Verification', () => {
     const ai = module.get<AIChatExecutor>(AIChatExecutor);
     const condition = module.get<ConditionExecutor>(ConditionExecutor);
 
-    // Register executors
     strategy.register('http-request', http);
     strategy.register('code', code);
     strategy.register('ai-chat', ai);
@@ -81,11 +78,9 @@ describe('Execution Verification', () => {
         inputData,
       );
 
-      // Wait for execution to finish (it's async)
       await new Promise((resolve) => setTimeout(resolve, 3000));
 
       const execution = service.getExecution(executionId);
-      // fs.writeFileSync('test_debug.json', JSON.stringify(execution, null, 2));
 
       if (!execution) {
         throw new Error('Execution not found');
@@ -99,7 +94,6 @@ describe('Execution Verification', () => {
       expect(execution.result).toEqual({ result: 10 });
       expect(mockGateway.emitExecutionComplete).toHaveBeenCalled();
     } catch (error) {
-      // fs.writeFileSync('test_error.log', error.message + '\n' + error.stack);
       throw error;
     }
   });

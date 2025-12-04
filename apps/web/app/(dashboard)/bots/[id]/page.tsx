@@ -78,7 +78,6 @@ export default function BotDetailPage() {
             const data = response.data || response;
             setBotFunctions(Array.isArray(data) ? data : []);
         } catch {
-            // Silent fail
         }
     };
 
@@ -87,7 +86,6 @@ export default function BotDetailPage() {
             const data = await botsApi.getChannels(botId);
             setBotChannels(Array.isArray(data) ? data : []);
         } catch {
-            // Silent fail
         }
     };
 
@@ -166,7 +164,7 @@ export default function BotDetailPage() {
 
     return (
         <div className="max-w-5xl mx-auto space-y-6 pb-12">
-            {/* Header */}
+            {}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold">{bot.name}</h1>
@@ -189,7 +187,7 @@ export default function BotDetailPage() {
                 </Button>
             </div>
 
-            {/* Unsaved Changes Warning */}
+            {}
             {hasChanges && (
                 <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
                     <div className="flex items-center gap-2 text-amber-900 dark:text-amber-100">
@@ -201,9 +199,9 @@ export default function BotDetailPage() {
                 </div>
             )}
 
-            {/* Configuration Sections */}
+            {}
             <div className="space-y-6">
-                {/* Basic Info & System Prompt */}
+                {}
                 <div className="grid gap-6 lg:grid-cols-2">
                     <BasicInfoSection data={formData} onChange={handleChange} />
                     <AdvancedSettingsSection
@@ -215,16 +213,16 @@ export default function BotDetailPage() {
                     />
                 </div>
 
-                {/* System Prompt - Full Width */}
+                {}
                 <SystemPromptSection
                     systemPrompt={formData.systemPrompt}
                     onChange={(systemPrompt) => handleChange({ systemPrompt })}
                 />
 
-                {/* AI Configuration */}
+                {}
                 <AIConfigSection data={formData} onChange={handleChange} />
 
-                {/* Functions */}
+                {}
                 <BotFunctionsSection
                     botFunctions={botFunctions}
                     onAdd={() => openFunctionModal()}
@@ -232,7 +230,7 @@ export default function BotDetailPage() {
                     onDelete={deleteFunction}
                 />
 
-                {/* Channels */}
+                {}
                 <BotChannelsSection
                     botId={botId}
                     botChannels={botChannels}
@@ -240,7 +238,7 @@ export default function BotDetailPage() {
                 />
             </div>
 
-            {/* Function Modal */}
+            {}
             <BotFunctionModal
                 open={showFunctionModal}
                 onClose={closeFunctionModal}

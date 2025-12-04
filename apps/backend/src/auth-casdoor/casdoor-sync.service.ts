@@ -4,10 +4,6 @@ import { CasdoorApiClient } from './casdoor-api.client';
 import { UsersService } from '../users/users.service';
 import { RoleEnum } from '../roles/roles.enum';
 
-/**
- * Casdoor Sync Service
- * Handles bidirectional synchronization between Casdoor and Backend
- */
 @Injectable()
 export class CasdoorSyncService {
   private readonly logger = new Logger(CasdoorSyncService.name);
@@ -18,10 +14,6 @@ export class CasdoorSyncService {
     private readonly usersService: UsersService,
   ) {}
 
-  /**
-   * Sync all users from Casdoor to Backend
-   * Runs every 6 hours
-   */
   @Cron(CronExpression.EVERY_6_HOURS)
   async syncUsersFromCasdoor(): Promise<void> {
     if (this.isSyncing) {
@@ -70,14 +62,10 @@ export class CasdoorSyncService {
     }
   }
 
-  /**
-   * Sync single user from Casdoor to Backend
-   */
   async syncSingleUser(casdoorUser: any): Promise<void> {
     const email =
       casdoorUser.email || `${casdoorUser.name}@${casdoorUser.owner}.local`;
 
-    // Determine role
     let isAdmin = false;
     if (casdoorUser.isAdmin === true) {
       isAdmin = true;
@@ -97,11 +85,9 @@ export class CasdoorSyncService {
 
     const role = isAdmin ? 'admin' : 'user';
 
-    // Find or create user
     let user = await this.usersService.findByEmail(email);
 
     if (!user) {
-      // Create new user
       user = await this.usersService.create({
         email,
         name: casdoorUser.displayName || casdoorUser.name,
@@ -113,7 +99,6 @@ export class CasdoorSyncService {
       });
       this.logger.log(`Created user from Casdoor: ${email}`);
     } else {
-      // Update existing user if role changed
       if (user.role !== role) {
         await this.usersService.update(user.id, {
           role,
@@ -123,24 +108,18 @@ export class CasdoorSyncService {
     }
   }
 
-  /**
-   * Sync user from Backend to Casdoor
-   * Called when user is created/updated in Backend
-   */
   async syncUserToCasdoor(user: any): Promise<void> {
     try {
       const isAdmin = user.role === 'admin';
       const tag = isAdmin ? 'admin' : 'user';
 
-      // Check if user exists in Casdoor
-      const casdoorUserName = user.email.split('@')[0]; // Use email prefix as username
+      const casdoorUserName = user.email.split('@')[0];
 
       try {
         const existingUser =
           await this.casdoorApiClient.getUser(casdoorUserName);
 
         if (existingUser) {
-          // Update existing user
           await this.casdoorApiClient.updateUser(casdoorUserName, {
             displayName: user.name || user.email,
             email: user.email,
@@ -150,7 +129,6 @@ export class CasdoorSyncService {
           this.logger.log(`Updated user in Casdoor: ${user.email}`);
         }
       } catch {
-        // User doesn't exist, create new
         await this.casdoorApiClient.createUser({
           name: casdoorUserName,
           displayName: user.name || user.email,
@@ -161,14 +139,9 @@ export class CasdoorSyncService {
       }
     } catch (error) {
       this.logger.error(`Failed to sync user to Casdoor: ${error.message}`);
-      // Don't throw - we don't want to block backend operations if Casdoor is down
     }
   }
 
-  /**
-   * Delete user from Casdoor
-   * Called when user is deleted in Backend
-   */
   async deleteUserFromCasdoor(email: string): Promise<void> {
     try {
       const casdoorUserName = email.split('@')[0];
@@ -176,13 +149,9 @@ export class CasdoorSyncService {
       this.logger.log(`Deleted user from Casdoor: ${email}`);
     } catch (error) {
       this.logger.error(`Failed to delete user from Casdoor: ${error.message}`);
-      // Don't throw - we don't want to block backend operations
     }
   }
 
-  /**
-   * Manual sync trigger (for admin use)
-   */
   async triggerManualSync(): Promise<{ success: boolean; message: string }> {
     try {
       await this.syncUsersFromCasdoor();
@@ -198,9 +167,6 @@ export class CasdoorSyncService {
     }
   }
 
-  /**
-   * Get sync status
-   */
   getSyncStatus(): { isSyncing: boolean } {
     return { isSyncing: this.isSyncing };
   }

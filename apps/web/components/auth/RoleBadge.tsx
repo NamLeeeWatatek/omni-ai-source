@@ -1,19 +1,15 @@
-/**
- * Role Badge Component
- * Displays user role with appropriate styling
- */
 'use client'
 
 import { usePermissions } from '@/lib/hooks/usePermissions'
 import type { Role, RoleBadgeProps } from '@/lib/types'
 
 const roleColors: Record<Role, string> = {
-  super_admin: 'bg-purple-500/20 text-purple-500 border-purple-500/30',
-  admin: 'bg-red-500/20 text-red-500 border-red-500/30',
-  manager: 'bg-blue-500/20 text-blue-500 border-blue-500/30',
-  editor: 'bg-green-500/20 text-green-500 border-green-500/30',
-  viewer: 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30',
-  user: 'bg-gray-500/20 text-gray-500 border-gray-500/30',
+  super_admin: 'bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-orange-500/20 text-orange-400 border-orange-400/40',
+  admin: 'bg-gradient-to-r from-pink-500/20 to-orange-500/20 text-pink-400 border-pink-400/40',
+  manager: 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 border-purple-400/40',
+  editor: 'bg-gradient-to-r from-orange-500/20 to-amber-500/20 text-orange-400 border-orange-400/40',
+  viewer: 'bg-gradient-to-r from-pink-500/20 to-rose-500/20 text-pink-400 border-pink-400/40',
+  user: 'bg-gradient-to-r from-purple-400/15 to-pink-400/15 text-purple-300 border-purple-300/30',
 }
 
 const roleLabels: Record<Role, string> = {

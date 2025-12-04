@@ -21,10 +21,8 @@ export default function WidgetPage({ params }: { params: { id: string } }) {
     const { versions, isLoading: versionsLoading, mutate: mutateVersions } = useWidgetVersions(params.id);
     const { deployments, isLoading: deploymentsLoading } = useWidgetDeployments(params.id);
 
-    // Get active version
     const activeVersion = versions?.find(v => v.isActive && v.status === 'published');
 
-    // Load appearance settings when component mounts or when switching to appearance tab
     useEffect(() => {
         if (activeTab === 'appearance') {
             loadAppearanceSettings();
@@ -33,18 +31,13 @@ export default function WidgetPage({ params }: { params: { id: string } }) {
 
     const loadAppearanceSettings = async () => {
         try {
-            console.log('[Widget Page] Loading appearance settings...');
-            // Use new appearance API that reads from active widget version
             const response = await axiosClient.get(`/bots/${params.id}/widget/appearance`);
-            console.log('[Widget Page] Appearance settings loaded:', response.data);
             setBotSettings(response.data);
         } catch (error) {
-            console.error('[Widget Page] Failed to load appearance settings:', error);
         }
     };
 
     const handleSaveAppearance = async (settings: any) => {
-        // Use new appearance API that updates active widget version
         await axiosClient.patch(`/bots/${params.id}/widget/appearance`, {
             primaryColor: settings.primaryColor,
             backgroundColor: settings.backgroundColor,
@@ -59,13 +52,12 @@ export default function WidgetPage({ params }: { params: { id: string } }) {
             showTimestamp: settings.showTimestamp,
         });
         await loadAppearanceSettings();
-        // Refresh versions list to show new version
         mutateVersions();
     };
 
     return (
         <div className="container mx-auto p-6 max-w-7xl">
-            {/* Header */}
+            {}
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h1 className="text-3xl font-bold">Widget Settings</h1>
@@ -79,7 +71,7 @@ export default function WidgetPage({ params }: { params: { id: string } }) {
                 </Button>
             </div>
 
-            {/* Tabs */}
+            {}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
                 <TabsList>
                     <TabsTrigger value="appearance">
@@ -100,10 +92,10 @@ export default function WidgetPage({ params }: { params: { id: string } }) {
                 <TabsContent value="appearance" className="space-y-4">
                     {activeVersion && (
                         <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
-                            <p className="text-sm text-blue-900 dark:text-blue-100">
-                                <strong>Active Version:</strong> {activeVersion.version}
-                                {' • '}
-                                Updating appearance will create a new version automatically.
+                            <p className="text-sm text-blue-900 dark:text-blue-100 flex items-center gap-2 flex-wrap">
+                                <span><strong>Active Version:</strong> {activeVersion.version}</span>
+                                <span className="w-1 h-1 rounded-full bg-blue-900/50 dark:bg-blue-100/50" />
+                                <span>Updating appearance will create a new version automatically.</span>
                             </p>
                         </div>
                     )}
@@ -159,7 +151,7 @@ export default function WidgetPage({ params }: { params: { id: string } }) {
                 </TabsContent>
             </Tabs>
 
-            {/* Create Version Dialog */}
+            {}
             <CreateVersionDialog
                 botId={params.id}
                 open={showCreateDialog}

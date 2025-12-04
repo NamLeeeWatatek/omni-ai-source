@@ -50,6 +50,6 @@ export default registerAs<FileConfig>('file', () => {
     awsDefaultS3Bucket: process.env.AWS_DEFAULT_S3_BUCKET,
     awsS3Region: process.env.AWS_S3_REGION,
     minioEndpoint: process.env.MINIO_ENDPOINT,
-    maxFileSize: 5242880, // 5mb
+    maxFileSize: 5242880,
   };
 });

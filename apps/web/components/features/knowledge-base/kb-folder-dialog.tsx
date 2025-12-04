@@ -44,7 +44,6 @@ export function KBFolderDialog({ open, onOpenChange, onSubmit }: KBFolderDialogP
             form.reset()
             onOpenChange(false)
         } catch (error) {
-            // Error handling is done in parent
         }
     }
 

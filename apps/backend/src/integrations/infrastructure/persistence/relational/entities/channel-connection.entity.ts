@@ -11,21 +11,17 @@ import {
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 import { ChannelCredentialEntity } from './channel-credential.entity';
 
-/**
- * Stores actual connected channel instances (e.g., specific Facebook pages)
- * Each connection uses credentials from ChannelCredentialEntity
- */
 @Entity({ name: 'channel_connection' })
 export class ChannelConnectionEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ type: String })
-  name: string; // User-friendly name
+  name: string;
 
   @Index()
   @Column({ type: String })
-  type: string; // facebook, messenger, instagram, etc.
+  type: string;
 
   @Index()
   @Column({ type: 'uuid', nullable: true })
@@ -40,19 +36,19 @@ export class ChannelConnectionEntity extends EntityRelationalHelper {
   workspaceId?: string | null;
 
   @Column({ type: String, nullable: true })
-  accessToken?: string | null; // Should be encrypted in production
+  accessToken?: string | null;
 
   @Column({ type: String, nullable: true })
-  refreshToken?: string | null; // Should be encrypted in production
+  refreshToken?: string | null;
 
   @Column({ type: 'timestamp', nullable: true })
   expiresAt?: Date | null;
 
   @Column({ type: 'jsonb', nullable: true, default: {} })
-  metadata?: Record<string, any>; // Channel-specific data (page ID, etc.)
+  metadata?: Record<string, any>;
 
   @Column({ type: String, default: 'active' })
-  status: string; // active, expired, error
+  status: string;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   connectedAt: Date;

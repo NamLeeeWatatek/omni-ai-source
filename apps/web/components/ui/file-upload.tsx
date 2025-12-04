@@ -20,7 +20,7 @@ export function FileUpload({
   onUploadComplete,
   onUploadError,
   accept = 'image/*',
-  maxSize = 5 * 1024 * 1024, // 5MB
+  maxSize = 5 * 1024 * 1024,
   bucket = 'images',
   multiple = false,
   className = '',
@@ -38,7 +38,6 @@ export function FileUpload({
     const file = files[0];
     setFileName(file.name);
 
-    // Validate file
     const validation = fileUploadService.validateFile(file, {
       maxSize,
       allowedTypes: accept.split(',').map((type) => type.trim()),
@@ -49,7 +48,6 @@ export function FileUpload({
       return;
     }
 
-    // Show preview for images
     if (file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -58,7 +56,6 @@ export function FileUpload({
       reader.readAsDataURL(file);
     }
 
-    // Upload file
     setUploading(true);
     setProgress(0);
 
@@ -154,7 +151,6 @@ export function FileUpload({
   );
 }
 
-// Dropzone variant
 interface FileDropzoneProps extends FileUploadProps {
   height?: string;
 }

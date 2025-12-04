@@ -15,7 +15,6 @@ export const axiosServer = axios.create({
   },
 })
 
-// Helper function to create axios instance with auth token
 export async function getAuthenticatedAxios() {
   const session = await auth()
   

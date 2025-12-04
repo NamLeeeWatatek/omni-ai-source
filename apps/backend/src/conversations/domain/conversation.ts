@@ -44,7 +44,6 @@ export class Conversation {
   @ApiPropertyOptional({ type: String })
   handoverTicketId?: string | null;
 
-  // Legacy
   @ApiPropertyOptional({ type: String, deprecated: true })
   externalId?: string;
 
@@ -120,7 +119,6 @@ export class Message {
   @ApiPropertyOptional({ type: String })
   feedbackComment?: string | null;
 
-  // Legacy
   @ApiPropertyOptional({ type: String, deprecated: true })
   sender?: string;
 

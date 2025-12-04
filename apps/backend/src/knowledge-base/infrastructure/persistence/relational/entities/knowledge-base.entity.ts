@@ -14,10 +14,6 @@ import { EntityRelationalHelper } from '../../../../../utils/relational-entity-h
 import { UserEntity } from '../../../../../users/infrastructure/persistence/relational/entities/user.entity';
 import { WorkspaceEntity } from '../../../../../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
 
-/**
- * KnowledgeBase entity - theo schema mới
- * Table: knowledge_bases
- */
 @Entity({ name: 'knowledge_base' })
 export class KnowledgeBaseEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
@@ -58,7 +54,6 @@ export class KnowledgeBaseEntity extends EntityRelationalHelper {
   @Column({ name: 'created_by', type: 'uuid' })
   createdBy: string;
 
-  // Legacy/additional fields
   @Column({ type: String, nullable: true })
   icon?: string | null;
 
@@ -101,10 +96,6 @@ export class KnowledgeBaseEntity extends EntityRelationalHelper {
   updatedAt: Date;
 }
 
-/**
- * KbFolder entity - theo schema mới
- * Table: kb_folders
- */
 @Entity({ name: 'kb_folder' })
 export class KbFolderEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
@@ -146,10 +137,6 @@ export class KbFolderEntity extends EntityRelationalHelper {
   createdAt: Date;
 }
 
-/**
- * KbDocument entity - theo schema mới
- * Table: kb_documents
- */
 @Entity({ name: 'kb_document' })
 export class KbDocumentEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
@@ -200,7 +187,6 @@ export class KbDocumentEntity extends EntityRelationalHelper {
   @Column({ name: 'created_by', type: 'uuid' })
   createdBy: string;
 
-  // Legacy fields
   @Column({ type: String, nullable: true })
   name?: string | null;
 
@@ -248,10 +234,6 @@ export class KbDocumentEntity extends EntityRelationalHelper {
   updatedAt: Date;
 }
 
-/**
- * KbDocumentVersion entity - theo schema mới
- * Table: kb_document_versions
- */
 @Entity({ name: 'kb_document_version' })
 @Index(['documentId', 'version'], { unique: true })
 export class KbDocumentVersionEntity extends EntityRelationalHelper {
@@ -322,10 +304,6 @@ export class KbDocumentVersionEntity extends EntityRelationalHelper {
   createdAt: Date;
 }
 
-/**
- * RagFeedback entity - theo schema mới
- * Table: rag_feedback
- */
 @Entity({ name: 'rag_feedback' })
 export class RagFeedbackEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
@@ -352,7 +330,6 @@ export class RagFeedbackEntity extends EntityRelationalHelper {
   createdAt: Date;
 }
 
-// Legacy entity aliases for backward compatibility
 export const KnowledgeBaseFolderEntity = KbFolderEntity;
 export const KnowledgeBaseDocumentEntity = KbDocumentEntity;
-export const AgentKnowledgeBaseEntity = RagFeedbackEntity; // Deprecated, use BotKnowledgeBaseEntity in bots module
+export const AgentKnowledgeBaseEntity = RagFeedbackEntity;

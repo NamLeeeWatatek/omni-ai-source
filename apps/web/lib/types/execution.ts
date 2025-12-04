@@ -1,7 +1,3 @@
-/**
- * Execution & Workflow Run Types
- * Centralized type definitions for workflow execution
- */
 
 export interface Execution {
   id: string | number

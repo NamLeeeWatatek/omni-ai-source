@@ -25,7 +25,6 @@ export function AISuggestWorkflow({ onSuggest }: AISuggestProps) {
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
 
-            // Get token from NextAuth session
             const { getSession } = await import('next-auth/react')
             const session = await getSession()
             const token = session?.accessToken

@@ -1,6 +1,3 @@
-﻿/**
- * Settings related type definitions (Categories and Tags)
- */
 
 export interface Category {
   id: number

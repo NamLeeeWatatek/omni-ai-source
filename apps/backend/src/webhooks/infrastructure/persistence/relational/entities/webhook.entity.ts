@@ -7,10 +7,6 @@ import {
 } from 'typeorm';
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 
-/**
- * WebhookEvent entity - theo schema mới
- * Table: webhook_events
- */
 @Entity({ name: 'webhook_event' })
 export class WebhookEventEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')

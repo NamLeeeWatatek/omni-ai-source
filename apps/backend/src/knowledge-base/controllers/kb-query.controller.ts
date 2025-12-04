@@ -21,7 +21,7 @@ export class KBQueryController {
       queryDto.query,
       queryDto.knowledgeBaseId,
       queryDto.limit || 5,
-      queryDto.similarityThreshold || 0.5, // Lowered from 0.7
+      queryDto.similarityThreshold || 0.5,
     );
 
     return {

@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { FiFileText, FiTrash2, FiCheckCircle, FiClock, FiAlertCircle } from 'react-icons/fi'
+import { FiFileText, FiTrash2, FiCheckCircle, FiClock, FiAlertCircle, FiCircle } from 'react-icons/fi'
 import type { KBDocument } from '@/lib/types/knowledge-base'
 
 interface KBDocumentItemProps {
@@ -48,7 +48,7 @@ export function KBDocumentItem({ document, onDelete }: KBDocumentItemProps) {
                             <span>{document.fileType || document.type || 'document'}</span>
                             {document.sourceUrl && (
                                 <>
-                                    <span>•</span>
+                                    <FiCircle className="w-1 h-1 fill-current" />
                                     <span className="truncate max-w-xs" title={document.sourceUrl}>
                                         {new URL(document.sourceUrl).hostname}
                                     </span>
@@ -56,7 +56,7 @@ export function KBDocumentItem({ document, onDelete }: KBDocumentItemProps) {
                             )}
                             {document.fileSize && (
                                 <>
-                                    <span>•</span>
+                                    <FiCircle className="w-1 h-1 fill-current" />
                                     <span>{formatFileSize(document.fileSize)}</span>
                                 </>
                             )}

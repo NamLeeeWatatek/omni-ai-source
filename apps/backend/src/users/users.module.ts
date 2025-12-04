@@ -6,13 +6,11 @@ import { RelationalUserPersistenceModule } from './infrastructure/persistence/re
 import { DatabaseConfig } from '../database/config/database-config.type';
 import databaseConfig from '../database/config/database.config';
 
-// <database-block>
 const infrastructurePersistenceModule = (databaseConfig() as DatabaseConfig)
   .isDocumentDatabase
-  ? // Dynamic import for document database if needed
+  ?
     RelationalUserPersistenceModule
   : RelationalUserPersistenceModule;
-// </database-block>
 
 @Module({
   imports: [
@@ -41,7 +39,6 @@ export class UsersModule implements OnModuleInit {
       const usersService = this.moduleRef.get(UsersService);
       usersService.setCasdoorSyncService(casdoorSyncService);
     } catch {
-      console.log('CasdoorSyncService not available');
     }
   }
 }

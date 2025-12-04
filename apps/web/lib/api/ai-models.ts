@@ -1,7 +1,3 @@
-/**
- * AI Models API
- * API client for AI provider management
- */
 
 import { axiosClient } from '../axios-client'
 import type {

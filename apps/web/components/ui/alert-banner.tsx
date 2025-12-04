@@ -78,7 +78,6 @@ export function AlertBanner({
     )
 }
 
-// Compact version for inline usage
 interface AlertInlineProps {
     variant?: AlertVariant
     children: ReactNode
@@ -101,7 +100,6 @@ export function AlertInline({ variant = 'info', children, className }: AlertInli
     )
 }
 
-// Code block variant for displaying URLs, commands, etc.
 interface CodeBlockProps {
     children: ReactNode
     label?: string

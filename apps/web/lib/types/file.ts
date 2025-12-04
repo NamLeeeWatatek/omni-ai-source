@@ -1,9 +1,4 @@
-/**
- * File Management Types
- * Centralized type definitions for file upload and management
- */
 
-// File Upload
 export interface UploadResponse {
   file: {
     id: string
@@ -22,7 +17,6 @@ export interface UseFileUploadOptions extends FileUploadOptions {
   onError?: (error: Error) => void
 }
 
-// File Items
 export interface FileItem {
   id?: string
   name: string
@@ -37,7 +31,6 @@ export interface FileListProps {
   onDelete?: (id: string) => void
 }
 
-// Image Gallery
 export interface ImageGalleryProps {
   images: Array<{
     url: string
@@ -47,7 +40,6 @@ export interface ImageGalleryProps {
   onDelete?: (id: string) => void
 }
 
-// Media Uploader
 export interface MediaUploaderProps {
   value?: string
   onChange: (url: string) => void

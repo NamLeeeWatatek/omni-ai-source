@@ -57,7 +57,6 @@ export function CategoryDialog({
   const handleNameChange = (value: string) => {
     setName(value);
     if (!category) {
-      // Auto-generate slug from name
       setSlug(value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
     }
   };

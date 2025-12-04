@@ -74,7 +74,6 @@ export function CreateVersionDialog({ botId, open, onOpenChange, onSuccess }: Pr
             reset();
             onSuccess();
         } catch (error) {
-            // Error handled in hook
         }
     };
 

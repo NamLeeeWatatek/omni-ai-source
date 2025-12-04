@@ -27,7 +27,6 @@ const workspaceSlice = createSlice({
     },
     setWorkspaces: (state, action: PayloadAction<Workspace[]>) => {
       state.workspaces = action.payload;
-      // Set current workspace to first one if not set
       if (!state.currentWorkspace && action.payload.length > 0) {
         state.currentWorkspace = action.payload[0];
       }
@@ -54,7 +53,6 @@ const workspaceSlice = createSlice({
       const workspace = state.workspaces.find(w => w.id === action.payload);
       if (workspace) {
         state.currentWorkspace = workspace;
-        // Save to localStorage
         if (typeof window !== 'undefined') {
           localStorage.setItem('currentWorkspaceId', workspace.id);
         }

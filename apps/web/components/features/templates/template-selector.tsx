@@ -18,7 +18,6 @@ export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
         return nodeTypes.find((nt: any) => nt.id === typeId)
     }
 
-    // const [activeTab, setActiveTab] = useState<'n8n' | 'standard'>('n8n')
     const [templates, setTemplates] = useState<Template[]>([])
     const [loading, setLoading] = useState(true)
     const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -36,7 +35,6 @@ export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
             setTemplates(data)
 
             if (data.length === 0) {
-                // toast.error('No templates found. Please seed templates first.')
             }
         } catch (e: any) {
 
@@ -52,11 +50,7 @@ export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
         try {
             const template = await (await axiosClient.get(`/templates/${selectedId}`)).data
 
-
-            // Enrich nodes with node type definition
             const enrichedNodes = (template.template_data?.nodes || []).map((node: any) => {
-                // Get the node type ID from the template node
-                // In template, 'type' is at root level (e.g. "type": "trigger-webhook")
                 const nodeTypeId = node.type
                 const nodeType = getNodeType(nodeTypeId)
 
@@ -65,27 +59,19 @@ export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
                     return node
                 }
 
-                // Reconstruct node data
-                // We ONLY keep 'config' from the template, everything else comes from the standard Node Type
                 return {
                     ...node,
                     data: {
-                        // CRITICAL: CustomNode needs data.type to lookup the node definition
                         type: nodeTypeId,
 
-                        // Use standard label from Node Type (unless template overrides it specifically, but usually we want standard)
                         label: nodeType.label,
 
-                        // Keep config from template (this is the only unique thing about a template node)
                         config: node.data?.config || {},
 
-                        // No need to manually copy icon/color/description here because CustomNode 
-                        // will look them up from NodeTypesContext using data.type
                     }
                 }
             })
 
-            // Extract nodes and edges from template_data
             const templateData = {
                 id: template.id,
                 name: template.name,
@@ -96,9 +82,6 @@ export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
                 edges: template.template_data?.edges || []
             }
 
-
-
-            // Ensure data is properly formatted
             if (!templateData.nodes || !Array.isArray(templateData.nodes)) {
                 throw new Error('Invalid template data: missing nodes')
             }
@@ -128,12 +111,10 @@ export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
         }
     }
 
-
-
     return (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
             <div className="bg-card text-card-foreground rounded-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden border border-border shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
-                {/* Header */}
+                {}
                 <div className="p-6 border-b border-border flex items-center justify-between shrink-0 bg-muted/10">
                     <div>
                         <h2 className="text-2xl font-bold tracking-tight">Workflow Templates</h2>
@@ -149,7 +130,7 @@ export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
                     </button>
                 </div>
 
-                {/* Content */}
+                {}
                 <div className="p-6 overflow-y-auto flex-1 bg-muted/5">
                     {loading ? (
                         <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
@@ -181,7 +162,7 @@ export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
                         </div>
                     ) : (
                         <>
-                            {/* Update Templates Button */}
+                            {}
                             <div className="mb-6 flex justify-end">
                                 <Button
                                     variant="ghost"
@@ -194,7 +175,7 @@ export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
                                 </Button>
                             </div>
 
-                            {/* Templates Grid */}
+                            {}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {templates.map((template: any) => (
                                     <button
@@ -242,7 +223,7 @@ export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
                     )}
                 </div>
 
-                {/* Footer */}
+                {}
                 <div className="p-6 border-t border-border flex items-center justify-between shrink-0 bg-muted/10">
                     <Button variant="ghost" onClick={onClose} className="hover:bg-muted">
                         Cancel
@@ -257,7 +238,7 @@ export function TemplateSelector({ onSelect, onClose }: TemplateSelectorProps) {
                 </div>
             </div>
 
-            {/* Update Templates Confirmation Dialog */}
+            {}
             <AlertDialogConfirm
                 open={showUpdateConfirm}
                 onOpenChange={setShowUpdateConfirm}

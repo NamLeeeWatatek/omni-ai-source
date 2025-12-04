@@ -39,7 +39,6 @@ export class NodeTypesController {
     return this.nodeTypesService.findOne(id);
   }
 
-  // Admin endpoints for managing node types
   @Post()
   @ApiOperation({ summary: 'Create new node type (Admin)' })
   @ApiBody({ type: NodeTypeEntity })

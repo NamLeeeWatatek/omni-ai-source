@@ -20,7 +20,6 @@ export class AIChatExecutor implements NodeExecutor {
 
   async execute(input: NodeExecutionInput): Promise<NodeExecutionOutput> {
     if (!this.openai) {
-      // Try to initialize again if key was added later (or just fail)
       const apiKey = this.configService.get<string>('OPENAI_API_KEY');
       if (!apiKey) {
         return {
@@ -35,7 +34,6 @@ export class AIChatExecutor implements NodeExecutor {
     try {
       const { model, prompt, temperature, maxTokens } = input.data;
 
-      // Interpolate prompt with input data
       const interpolatedPrompt = this.interpolate(prompt, input.input);
 
       const completion = await this.openai.chat.completions.create({
@@ -62,7 +60,6 @@ export class AIChatExecutor implements NodeExecutor {
   }
 
   private interpolate(template: string, data: any): string {
-    // Simple {{variable}} interpolation
     return template.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
       const keys = key.trim().split('.');
       let value = data;

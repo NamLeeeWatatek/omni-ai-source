@@ -24,12 +24,11 @@ export class ConversationsGateway
   server: Server;
 
   private readonly logger = new Logger(ConversationsGateway.name);
-  private userSockets = new Map<string, Set<string>>(); // userId -> Set of socketIds
+  private userSockets = new Map<string, Set<string>>();
 
   handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
     
-    // Get user ID from handshake query or auth
     const userId = client.handshake.query.userId as string;
     
     if (userId) {
@@ -38,7 +37,6 @@ export class ConversationsGateway
       }
       this.userSockets.get(userId)?.add(client.id);
       
-      // Join user's personal room
       client.join(`user:${userId}`);
       this.logger.log(`User ${userId} joined with socket ${client.id}`);
     }
@@ -47,7 +45,6 @@ export class ConversationsGateway
   handleDisconnect(client: Socket) {
     this.logger.log(`Client disconnected: ${client.id}`);
     
-    // Remove socket from user's set
     for (const [userId, sockets] of this.userSockets.entries()) {
       if (sockets.has(client.id)) {
         sockets.delete(client.id);
@@ -79,25 +76,21 @@ export class ConversationsGateway
     return { success: true };
   }
 
-  // Emit new message to conversation room
   emitNewMessage(conversationId: string, message: any) {
     this.server.to(`conversation:${conversationId}`).emit('new-message', message);
     this.logger.log(`Emitted new message to conversation ${conversationId}`);
   }
 
-  // Emit conversation update (new conversation or status change)
   emitConversationUpdate(userId: string, conversation: any) {
     this.server.to(`user:${userId}`).emit('conversation-update', conversation);
     this.logger.log(`Emitted conversation update to user ${userId}`);
   }
 
-  // Emit new conversation to all users in workspace
   emitNewConversation(workspaceId: string, conversation: any) {
     this.server.to(`workspace:${workspaceId}`).emit('new-conversation', conversation);
     this.logger.log(`Emitted new conversation to workspace ${workspaceId}`);
   }
 
-  // Broadcast to all connected clients (for testing)
   broadcastConversationUpdate(conversation: any) {
     this.server.emit('conversation-update', conversation);
     this.logger.log('Broadcasted conversation update to all clients');

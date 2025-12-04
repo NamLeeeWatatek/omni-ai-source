@@ -28,7 +28,6 @@ export class KBSyncController {
       'Use this when Qdrant collection is lost or corrupted. Regenerates all embeddings from stored chunks.',
   })
   async rebuildCollection(@Param('id') id: string, @Request() req) {
-    // Verify ownership
     await this.kbManagementService.findOne(id, req.user.id);
 
     const result = await this.syncService.rebuildCollection(id);
@@ -42,7 +41,6 @@ export class KBSyncController {
       'Syncs chunks that are missing vectors or have failed embeddings.',
   })
   async syncMissing(@Param('id') id: string, @Request() req) {
-    // Verify ownership
     await this.kbManagementService.findOne(id, req.user.id);
 
     const result = await this.syncService.syncMissingVectors(id);
@@ -56,7 +54,6 @@ export class KBSyncController {
       'Check how many chunks are missing vectors or have failed embeddings.',
   })
   async verifyCollection(@Param('id') id: string, @Request() req) {
-    // Verify ownership
     await this.kbManagementService.findOne(id, req.user.id);
 
     const result = await this.syncService.verifyCollection(id);

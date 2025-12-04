@@ -11,9 +11,6 @@ import {
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 import { FlowExecutionEntity } from './flow-execution.entity';
 
-/**
- * Stores individual node execution details
- */
 @Entity({ name: 'node_execution' })
 export class NodeExecutionEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
@@ -58,7 +55,7 @@ export class NodeExecutionEntity extends EntityRelationalHelper {
   endTime?: number | null;
 
   @Column({ type: String })
-  status: string; // pending, running, success, error
+  status: string;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -39,7 +39,6 @@ export class Bot {
   @ApiProperty({ type: String })
   createdBy: string;
 
-  // Legacy fields
   @ApiPropertyOptional({ type: String, deprecated: true })
   icon?: string;
 
@@ -49,7 +48,6 @@ export class Bot {
   @ApiPropertyOptional({ type: String, deprecated: true })
   flowId?: string | null;
 
-  // Advanced bot features
   @ApiPropertyOptional({ type: String })
   systemPrompt?: string | null;
 
@@ -59,7 +57,6 @@ export class Bot {
   @ApiPropertyOptional({ type: Object })
   functionConfig?: Record<string, any> | null;
 
-  // AI Provider reference
   @ApiPropertyOptional({
     type: String,
     description: 'AI Provider ID from workspace or user providers',
@@ -84,7 +81,6 @@ export class Bot {
   @ApiPropertyOptional({ type: Boolean, default: false })
   enableAutoLearn?: boolean;
 
-  // Widget Configuration
   @ApiPropertyOptional({
     type: [String],
     description: 'Allowed origins for CORS (e.g., ["https://example.com", "*"])',
@@ -193,11 +189,9 @@ export class FlowVersion {
   @ApiProperty({ type: String })
   createdBy: string;
 
-  // Flow data
   @ApiProperty({ type: Object })
   flow: Record<string, any>;
 
-  // Legacy
   @ApiPropertyOptional({ type: Boolean, deprecated: true })
   isPublished?: boolean;
 

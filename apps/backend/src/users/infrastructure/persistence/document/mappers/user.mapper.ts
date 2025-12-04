@@ -10,7 +10,7 @@ import { StatusSchema } from '../../../../../statuses/infrastructure/persistence
 export class UserMapper {
   static toDomain(raw: UserSchemaClass): User {
     const domainEntity = new User();
-    domainEntity.id = raw._id.toString() as any; // Document DB uses string IDs
+    domainEntity.id = raw._id.toString() as any;
     domainEntity.email = raw.email;
     domainEntity.password = raw.password;
     domainEntity.provider = raw.provider;
@@ -20,7 +20,7 @@ export class UserMapper {
         ? `${raw.firstName} ${raw.lastName}`.trim()
         : raw.firstName || raw.lastName || null;
     domainEntity.role = raw.role?._id === '1' ? 'admin' : 'user';
-    domainEntity.isActive = true; // Default for document DB users
+    domainEntity.isActive = true;
 
     domainEntity.createdAt = raw.createdAt;
     domainEntity.updatedAt = raw.updatedAt;
@@ -45,7 +45,6 @@ export class UserMapper {
     persistenceSchema.password = domainEntity.password;
     persistenceSchema.provider = domainEntity.provider;
     persistenceSchema.socialId = domainEntity.socialId;
-    // Split name into firstName and lastName for document DB
     const nameParts = domainEntity.name?.split(' ') || [];
     persistenceSchema.firstName = nameParts[0] || null;
     persistenceSchema.lastName = nameParts.slice(1).join(' ') || null;

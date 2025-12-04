@@ -37,9 +37,6 @@ export class AuthCasdoorService {
     this.orgName = process.env.CASDOOR_ORG_NAME || 'built-in';
   }
 
-  /**
-   * Generate Casdoor login URL
-   */
   async getLoginUrl(): Promise<{ loginUrl: string }> {
     const frontendUrl = process.env.FRONTEND_DOMAIN || 'http://localhost:3000';
     const redirectUri = `${frontendUrl}/auth/callback`;
@@ -74,21 +71,17 @@ export class AuthCasdoorService {
     }
 
     try {
-      // 1. Exchange code for access token
       const tokenResponse = await this.exchangeCodeForToken(code);
       this.logger.log('Successfully exchanged code for token');
 
-      // 2. Get user info from Casdoor
       const casdoorUser = await this.getCasdoorUserInfo(
         tokenResponse.access_token,
       );
       this.logger.log(`Retrieved user info for: ${casdoorUser.name}`);
 
-      // 3. Create or update user in database
       const user = await this.syncUser(casdoorUser);
       this.logger.log(`Synced user: ${user.email}`);
 
-      // 4. Create session and generate JWT tokens
       const hash = crypto
         .createHash('sha256')
         .update(Math.random().toString())
@@ -99,7 +92,6 @@ export class AuthCasdoorService {
         hash,
       });
 
-      // Generate tokens manually since AuthService.getTokensData is private
       const tokenExpiresIn = this.configService.getOrThrow('auth.expires', {
         infer: true,
       });
@@ -134,7 +126,6 @@ export class AuthCasdoorService {
         },
       );
 
-      // 5. Ensure user has workspace and get workspace info
       const workspace = await this.workspaceHelper.ensureUserHasWorkspace(
         user.id,
         user.name || undefined,
@@ -178,7 +169,7 @@ export class AuthCasdoorService {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         httpsAgent: new (require('https').Agent)({
-          rejectUnauthorized: false, // Disable SSL verification for development
+          rejectUnauthorized: false,
         }),
       });
 
@@ -195,7 +186,6 @@ export class AuthCasdoorService {
   }
 
   private async getCasdoorUserInfo(accessToken: string): Promise<any> {
-    // First, get basic user info from /api/userinfo
     const userInfoUrl = `${this.casdoorEndpoint}/api/userinfo`;
 
     try {
@@ -211,27 +201,20 @@ export class AuthCasdoorService {
       const userInfo = userInfoResponse.data;
       this.logger.log(`Basic userinfo: ${JSON.stringify(userInfo)}`);
 
-    // Now get the full user object with all fields including isAdmin, tag, type, roles
-    // The userinfo returns 'name' field which is the username, and 'preferred_username' which is owner/name
-    // We need to use owner and name separately, or use the preferred_username if available
     let getUserUrl: string;
 
     if (
       userInfo.preferred_username &&
       userInfo.preferred_username.includes('/')
     ) {
-      // Use preferred_username if it's in owner/name format
       getUserUrl = `${this.casdoorEndpoint}/api/get-user?id=${encodeURIComponent(userInfo.preferred_username)}`;
       this.logger.log(
         `Using preferred_username: ${userInfo.preferred_username}`,
       );
     } else if (userInfo.name) {
-      // Use owner and name parameters separately
-      // Owner is the organization name from config
       getUserUrl = `${this.casdoorEndpoint}/api/get-user?owner=${encodeURIComponent(this.orgName)}&name=${encodeURIComponent(userInfo.name)}`;
       this.logger.log(`Using owner=${this.orgName}, name=${userInfo.name}`);
     } else {
-      // Last resort: try to use the sub (UUID) with owner parameter
       getUserUrl = `${this.casdoorEndpoint}/api/get-user?owner=${encodeURIComponent(this.orgName)}&userId=${encodeURIComponent(userInfo.sub)}`;
       this.logger.log(`Using owner=${this.orgName}, userId=${userInfo.sub}`);
     }
@@ -248,12 +231,10 @@ export class AuthCasdoorService {
       const fullUserResult = fullUserResponse.data;
       this.logger.log(`Full user response: ${JSON.stringify(fullUserResult)}`);
 
-      // Casdoor wraps response in {status, msg, data}
       if (fullUserResult.status === 'ok' && fullUserResult.data) {
         return fullUserResult.data;
       } else if (fullUserResult.status === 'error') {
         this.logger.error(`Casdoor API error: ${fullUserResult.msg}`);
-        // Fallback to basic userinfo
         return userInfo;
       }
 
@@ -265,8 +246,6 @@ export class AuthCasdoorService {
   }
 
   private async syncUser(casdoorUser: any): Promise<any> {
-    // Find or create user based on Casdoor ID or email
-    // Casdoor user object structure: { owner, name, displayName, email, isAdmin, tag, type, roles, ... }
     const userName = casdoorUser.name || casdoorUser.id;
     const email =
       casdoorUser.email ||
@@ -276,7 +255,6 @@ export class AuthCasdoorService {
       `Syncing user: ${email} (Casdoor ID: ${casdoorUser.owner}/${casdoorUser.name})`,
     );
 
-    // Debug: Log the fields we're checking
     this.logger.log(`Checking admin status:`);
     this.logger.log(`  - casdoorUser.isAdmin: ${casdoorUser.isAdmin}`);
     this.logger.log(`  - casdoorUser.tag: ${casdoorUser.tag}`);
@@ -285,19 +263,12 @@ export class AuthCasdoorService {
       `  - casdoorUser.roles: ${JSON.stringify(casdoorUser.roles)}`,
     );
 
-    // Map Casdoor role to backend role
-    // Priority:
-    // 1. isAdmin field (boolean)
-    // 2. tag field (string) - this is what you set in Casdoor UI
-    // 3. roles array
-    // 4. type field
     let isAdmin = false;
 
     if (casdoorUser.isAdmin === true) {
       isAdmin = true;
       this.logger.log(`User is admin via isAdmin field`);
     } else if (casdoorUser.tag) {
-      // Tag is the role you set in Casdoor UI (super_admin, admin, manager, etc.)
       const tag = casdoorUser.tag.toLowerCase();
       isAdmin = tag === 'super_admin' || tag === 'admin';
       this.logger.log(
@@ -307,7 +278,6 @@ export class AuthCasdoorService {
       Array.isArray(casdoorUser.roles) &&
       casdoorUser.roles.length > 0
     ) {
-      // Check roles array
       const roleNames = casdoorUser.roles.map((r: any) =>
         (typeof r === 'string' ? r : r.name).toLowerCase(),
       );
@@ -328,11 +298,10 @@ export class AuthCasdoorService {
     let user = await this.usersService.findByEmail(email);
 
     if (!user) {
-      // Create new user
       user = await this.usersService.create({
         email,
         name: casdoorUser.displayName || casdoorUser.name,
-        password: undefined, // No password for OAuth users
+        password: undefined,
         provider: 'casdoor',
         socialId: casdoorUser.id || `${casdoorUser.owner}/${casdoorUser.name}`,
         role,
@@ -340,7 +309,6 @@ export class AuthCasdoorService {
       });
       this.logger.log(`Created new user: ${email} with role: ${role}`);
     } else {
-      // Update existing user role if changed
       if (user.role !== role) {
         user = await this.usersService.update(user.id, {
           role,

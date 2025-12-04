@@ -74,7 +74,6 @@ export default function KnowledgeBaseCollectionsPage() {
 
     const loadKnowledgeBases = async () => {
         if (!workspaceId) {
-            console.log('[KB] No workspace ID available')
             setLoading(false)
             return
         }
@@ -83,9 +82,7 @@ export default function KnowledgeBaseCollectionsPage() {
             setLoading(true)
             const response = await getKnowledgeBases(workspaceId)
             setKnowledgeBases(Array.isArray(response) ? response : [])
-            console.log('Loaded knowledge bases:', response)
         } catch (error) {
-            console.error('Failed to load knowledge bases:', error)
             toast.error('Failed to load knowledge bases')
         } finally {
             setLoading(false)
@@ -201,7 +198,7 @@ export default function KnowledgeBaseCollectionsPage() {
 
     return (
         <div className="h-full">
-            {/* Header */}
+            {}
             <div className="page-header flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold mb-2">Knowledge Base Collections</h1>
@@ -225,7 +222,7 @@ export default function KnowledgeBaseCollectionsPage() {
                 </div>
             </div>
 
-            {/* Stats Cards */}
+            {}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <Card className="p-4 hover:shadow-lg transition-shadow">
                     <div className="flex items-center gap-3">
@@ -273,7 +270,7 @@ export default function KnowledgeBaseCollectionsPage() {
                 </Card>
             </div>
 
-            {/* Search & View Mode */}
+            {}
             <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="flex-1 relative">
                     <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -294,7 +291,7 @@ export default function KnowledgeBaseCollectionsPage() {
                             Delete {selectedIds.size} selected
                         </Button>
                     )}
-                    <div className="glass p-1 rounded-lg flex items-center">
+                    <Card className="p-1 flex items-center">
                         <button
                             onClick={() => setViewMode('table')}
                             className={`p-2 rounded-md transition-all ${viewMode === 'table' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
@@ -307,11 +304,11 @@ export default function KnowledgeBaseCollectionsPage() {
                         >
                             <FiGrid className="w-4 h-4" />
                         </button>
-                    </div>
+                    </Card>
                 </div>
             </div>
 
-            {/* Collections Content */}
+            {}
             {loading ? (
                 <div className="flex justify-center items-center py-20">
                     <Spinner className="w-8 h-8" />
@@ -335,7 +332,6 @@ export default function KnowledgeBaseCollectionsPage() {
                     )}
                 </Card>
             ) : viewMode === 'table' ? (
-                /* Table View */
                 <Card>
                     <Table>
                         <TableHeader>
@@ -433,7 +429,6 @@ export default function KnowledgeBaseCollectionsPage() {
                     </Table>
                 </Card>
             ) : (
-                /* Grid View */
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredKBs.map((kb) => (
                         <Card key={kb.id} className="p-6 hover:shadow-xl transition-all hover:scale-[1.02] group h-full relative">
@@ -527,7 +522,7 @@ export default function KnowledgeBaseCollectionsPage() {
                 </div>
             )}
 
-            {/* Create/Edit Dialog */}
+            {}
             <KBCollectionDialog
                 open={dialogOpen}
                 onOpenChange={setDialogOpen}
@@ -535,7 +530,7 @@ export default function KnowledgeBaseCollectionsPage() {
                 onSubmit={handleSubmit}
             />
 
-            {/* Delete Confirmation */}
+            {}
             <AlertDialogConfirm
                 open={deleteKBId !== null}
                 onOpenChange={(open) => !open && setDeleteKBId(null)}
@@ -547,7 +542,7 @@ export default function KnowledgeBaseCollectionsPage() {
                 variant="destructive"
             />
 
-            {/* Bulk Delete Confirmation */}
+            {}
             <AlertDialogConfirm
                 open={showBulkDelete}
                 onOpenChange={setShowBulkDelete}

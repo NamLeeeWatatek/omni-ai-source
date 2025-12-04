@@ -1,11 +1,3 @@
-/**
- * Conversations Types
- * Types for bot conversations and AI chat sessions
- */
-
-// ============================================================================
-// Bot Conversations (External users via channels)
-// ============================================================================
 
 export interface BotConversation {
   id: string;
@@ -41,10 +33,6 @@ export interface CreateMessageDto {
   sender: string;
   metadata?: Record<string, any>;
 }
-
-// ============================================================================
-// AI Conversations (Internal users - AI chat sessions)
-// ============================================================================
 
 export interface AiConversation {
   id: string;
@@ -88,18 +76,12 @@ export interface AddAiMessageDto {
   metadata?: any;
 }
 
-// ============================================================================
-// API Response Types
-// ============================================================================
-
-// Bot Conversations
 export type GetConversationsResponse = BotConversation[];
 export type GetConversationResponse = BotConversation;
 export type CreateConversationResponse = BotConversation;
 export type GetMessagesResponse = BotMessage[];
 export type AddMessageResponse = BotMessage;
 
-// AI Conversations
 export type GetAiConversationsResponse = AiConversation[];
 export type GetAiConversationResponse = AiConversation;
 export type CreateAiConversationResponse = AiConversation;

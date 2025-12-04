@@ -13,10 +13,6 @@ import {
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 import { UserEntity } from '../../../../../users/infrastructure/persistence/relational/entities/user.entity';
 
-/**
- * Workspace entity - theo schema mới
- * Table: workspaces
- */
 @Entity({ name: 'workspace' })
 export class WorkspaceEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
@@ -55,11 +51,6 @@ export class WorkspaceEntity extends EntityRelationalHelper {
   updatedAt: Date;
 }
 
-/**
- * WorkspaceMember entity - theo schema mới
- * Table: workspace_members
- * Primary key: (workspace_id, user_id)
- */
 @Entity({ name: 'workspace_member' })
 @Index(['workspaceId', 'userId'], { unique: true })
 export class WorkspaceMemberEntity extends EntityRelationalHelper {

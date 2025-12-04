@@ -35,12 +35,10 @@ export class UsersRelationalRepository implements UserRepository {
   }): Promise<User[]> {
     const where: FindOptionsWhere<UserEntity> = {};
 
-    // Filter by roles (support both new string format and legacy)
     if (filterOptions?.roles?.length) {
       const roleValues = filterOptions.roles.map((role) => {
         if (typeof role === 'string') return role;
         if (typeof role === 'object' && role.id) {
-          // Legacy: convert role id to string
           return role.id === 1 ? 'admin' : 'user';
         }
         return 'user';
@@ -48,7 +46,6 @@ export class UsersRelationalRepository implements UserRepository {
       where.role = In(roleValues) as any;
     }
 
-    // Filter by isActive
     if (filterOptions && 'isActive' in filterOptions) {
       where.isActive = (filterOptions as any).isActive;
     }
@@ -101,7 +98,6 @@ export class UsersRelationalRepository implements UserRepository {
   }): Promise<NullableType<User>> {
     if (!socialId || !provider) return null;
 
-    // Try new providerId field first, then fallback to legacy socialId
     let entity = await this.usersRepository.findOne({
       where: { providerId: socialId, provider },
     });

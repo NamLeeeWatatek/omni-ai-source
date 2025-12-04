@@ -30,7 +30,6 @@ export class OAuthController {
   ) {
     let url: string;
 
-    // Get credential by ID if provided, otherwise get first one for provider
     const credential = configId
       ? await this.integrationsService.findById(configId)
       : await this.integrationsService.findOne(provider);
@@ -81,11 +80,9 @@ export class OAuthController {
 
     let accessToken: string;
     let refreshToken: string | undefined;
-    // let expiresIn: number | undefined;
     let pages: any[] = [];
 
     try {
-      // Exchange code for token based on provider
       switch (provider) {
         case 'facebook': {
           const tokenData = await this.oauthService.exchangeFacebookCode(
@@ -94,9 +91,7 @@ export class OAuthController {
             code,
           );
           accessToken = tokenData.accessToken;
-          // expiresIn = tokenData.expiresIn;
 
-          // Get user's Facebook pages
           pages = await this.oauthService.getFacebookPages(accessToken);
           break;
         }
@@ -108,7 +103,6 @@ export class OAuthController {
           );
           accessToken = tokenData.accessToken;
           refreshToken = tokenData.refreshToken;
-          // expiresIn = tokenData.expiresIn;
           break;
         }
         default:
@@ -118,10 +112,8 @@ export class OAuthController {
           };
       }
 
-      // For Facebook, create a connection for each page
       if (provider === 'facebook' && pages.length > 0) {
         for (const page of pages) {
-          // Create Facebook Page channel
           await this.channelsService.create(
             {
               name: page.name,
@@ -135,7 +127,6 @@ export class OAuthController {
             userId,
           );
 
-          // Auto-create Messenger channel (same page, same token)
           await this.channelsService.create(
             {
               name: `${page.name} (Messenger)`,
@@ -149,8 +140,6 @@ export class OAuthController {
             userId,
           );
 
-          // Auto-create Instagram channel if page has Instagram connected
-          // Note: In production, you should check if page.instagram_business_account exists
           try {
             await this.channelsService.create(
               {
@@ -165,12 +154,9 @@ export class OAuthController {
               userId,
             );
           } catch {
-            // Instagram connection might fail if page doesn't have Instagram linked
-            console.log(`Instagram not available for page ${page.name}`);
           }
         }
       } else {
-        // For other providers, create a single connection
         await this.channelsService.create(
           {
             name: `${provider} Account`,
@@ -192,7 +178,6 @@ export class OAuthController {
         },
       };
     } catch (error) {
-      console.error('OAuth callback error:', error.response?.data || error);
       return {
         status: 'error',
         message:

@@ -1,7 +1,3 @@
-/**
- * Permission Gate Component
- * Conditionally renders children based on permissions
- */
 'use client'
 
 import { ReactNode } from 'react'
@@ -38,32 +34,26 @@ export function PermissionGate({
     capabilities,
   } = usePermissions()
 
-  // Show loading fallback if requested
   if (isLoading && showLoadingFallback) {
     return <>{fallback}</>
   }
 
-  // Wait for capabilities to load
   if (isLoading || !capabilities) {
     return null
   }
 
-  // Check super admin requirement
   if (requireSuperAdmin && !isSuperAdmin()) {
     return <>{fallback}</>
   }
 
-  // Check admin requirement
   if (requireAdmin && !isAdmin()) {
     return <>{fallback}</>
   }
 
-  // Check single permission
   if (permission && !hasPermission(permission)) {
     return <>{fallback}</>
   }
 
-  // Check multiple permissions
   if (permissions) {
     const hasAccess = requireAll
       ? hasAllPermissions(permissions)
@@ -74,7 +64,6 @@ export function PermissionGate({
     }
   }
 
-  // Check resource action
   if (resource && action) {
     let hasAccess = false
     switch (action) {
@@ -97,21 +86,17 @@ export function PermissionGate({
     }
   }
 
-  // Check widget access
   if (widget && !canAccessWidget(widget as any)) {
     return <>{fallback}</>
   }
 
-  // Check feature access
   if (feature && !canAccessFeature(feature as any)) {
     return <>{fallback}</>
   }
 
-  // All checks passed
   return <>{children}</>
 }
 
-// Convenience components
 export function AdminOnly({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) {
   return (
     <PermissionGate requireAdmin fallback={fallback}>

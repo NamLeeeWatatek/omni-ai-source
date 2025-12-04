@@ -34,10 +34,6 @@ import {
 export class PublicBotController {
     constructor(private readonly publicBotService: PublicBotService) { }
 
-    /**
-     * Get bot configuration for widget
-     * No authentication required
-     */
     @Get(':botId/config')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -96,9 +92,6 @@ export class PublicBotController {
         );
     }
 
-    /**
-     * Create a new public conversation
-     */
     @Post(':botId/conversations')
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({
@@ -138,9 +131,6 @@ export class PublicBotController {
         return this.publicBotService.createConversation(botId, dto, origin);
     }
 
-    /**
-     * Send message to bot
-     */
     @Post('conversations/:conversationId/messages')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
@@ -174,9 +164,6 @@ export class PublicBotController {
         return this.publicBotService.sendMessage(conversationId, dto);
     }
 
-    /**
-     * Get conversation messages
-     */
     @Get('conversations/:conversationId/messages')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({
