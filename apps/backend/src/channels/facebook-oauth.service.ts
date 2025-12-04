@@ -4,8 +4,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ChannelConnectionEntity } from '../integrations/infrastructure/persistence/relational/entities/channel-connection.entity';
 import { ChannelCredentialEntity } from '../integrations/infrastructure/persistence/relational/entities/channel-credential.entity';
+import { BaseOAuthService } from './services/base-oauth.service';
+import axios from 'axios';
 
-interface FacebookPage {
+export interface FacebookPage {
   id: string;
   name: string;
   access_token: string;
@@ -13,23 +15,26 @@ interface FacebookPage {
   tasks: string[];
 }
 
-interface FacebookUserPages {
+export interface FacebookUserPages {
   data: FacebookPage[];
 }
 
 @Injectable()
-export class FacebookOAuthService {
-  private readonly logger = new Logger(FacebookOAuthService.name);
+export class FacebookOAuthService extends BaseOAuthService {
+  protected readonly logger = new Logger(FacebookOAuthService.name);
+  protected readonly providerName = 'facebook';
   private readonly baseUrl = 'https://graph.facebook.com';
   private readonly apiVersion = 'v24.0';
 
   constructor(
     private configService: ConfigService,
     @InjectRepository(ChannelConnectionEntity)
-    private connectionRepository: Repository<ChannelConnectionEntity>,
+    connectionRepository: Repository<ChannelConnectionEntity>,
     @InjectRepository(ChannelCredentialEntity)
-    private credentialRepository: Repository<ChannelCredentialEntity>,
-  ) {}
+    credentialRepository: Repository<ChannelCredentialEntity>,
+  ) {
+    super(connectionRepository, credentialRepository);
+  }
 
   /**
    * Get OAuth URL for user to login and grant permissions
@@ -45,9 +50,12 @@ export class FacebookOAuthService {
     const url = new URL('https://www.facebook.com/v24.0/dialog/oauth');
     url.searchParams.set('client_id', appId);
     url.searchParams.set('redirect_uri', redirectUri);
-    url.searchParams.set('scope', 'pages_show_list,pages_messaging,pages_manage_metadata,pages_read_engagement');
+    url.searchParams.set(
+      'scope',
+      'pages_show_list,pages_messaging,pages_manage_metadata,pages_read_engagement',
+    );
     url.searchParams.set('response_type', 'code');
-    
+
     if (state) {
       url.searchParams.set('state', state);
     }
@@ -61,40 +69,29 @@ export class FacebookOAuthService {
   async exchangeCodeForToken(
     code: string,
     redirectUri: string,
-    appId: string,
-    appSecret: string,
+    appId?: string,
+    appSecret?: string,
   ): Promise<string> {
-    if (!appId || !appSecret) {
-      throw new HttpException(
-        'Facebook credentials not configured',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    const tokenUrl = new URL(`${this.baseUrl}/${this.apiVersion}/oauth/access_token`);
-    tokenUrl.searchParams.set('client_id', appId);
-    tokenUrl.searchParams.set('client_secret', appSecret);
-    tokenUrl.searchParams.set('redirect_uri', redirectUri);
-    tokenUrl.searchParams.set('code', code);
+    this.validateCredentials(appId, appSecret);
 
     try {
-      const response = await fetch(tokenUrl.toString());
-      
-      if (!response.ok) {
-        const error = await response.json();
-        this.logger.error('Token exchange failed:', error);
-        throw new HttpException(
-          error.error?.message || 'Failed to exchange code for token',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
+      const response = await axios.get(
+        `${this.baseUrl}/${this.apiVersion}/oauth/access_token`,
+        {
+          params: {
+            client_id: appId,
+            client_secret: appSecret,
+            redirect_uri: redirectUri,
+            code: code,
+          },
+        },
+      );
 
-      const data = await response.json();
-      return data.access_token;
-    } catch (error) {
-      this.logger.error('Token exchange error:', error);
+      return response.data.access_token;
+    } catch (error: any) {
+      this.logger.error('Token exchange failed:', error.response?.data || error.message);
       throw new HttpException(
-        'Failed to exchange code for token',
+        error.response?.data?.error?.message || 'Failed to exchange code for token',
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -102,30 +99,33 @@ export class FacebookOAuthService {
 
   /**
    * Get user's Facebook Pages with access tokens
+   * Implements getConnectableAccounts from OAuthProviderInterface
+   */
+  async getConnectableAccounts(accessToken: string): Promise<FacebookPage[]> {
+    return this.getUserPages(accessToken);
+  }
+
+  /**
+   * Get user's Facebook Pages with access tokens
    */
   async getUserPages(userAccessToken: string): Promise<FacebookPage[]> {
-    const pagesUrl = new URL(`${this.baseUrl}/${this.apiVersion}/me/accounts`);
-    pagesUrl.searchParams.set('access_token', userAccessToken);
-    pagesUrl.searchParams.set('fields', 'id,name,access_token,category,tasks');
-
     try {
-      const response = await fetch(pagesUrl.toString());
-      
-      if (!response.ok) {
-        const error = await response.json();
-        this.logger.error('Get pages failed:', error);
-        throw new HttpException(
-          error.error?.message || 'Failed to get Facebook pages',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
+      const response = await axios.get(
+        `${this.baseUrl}/${this.apiVersion}/me/accounts`,
+        {
+          params: {
+            access_token: userAccessToken,
+            fields: 'id,name,access_token,category,tasks',
+          },
+        },
+      );
 
-      const data: FacebookUserPages = await response.json();
+      const data: FacebookUserPages = response.data;
       return data.data || [];
-    } catch (error) {
-      this.logger.error('Get pages error:', error);
+    } catch (error: any) {
+      this.logger.error('Get pages failed:', error.response?.data || error.message);
       throw new HttpException(
-        'Failed to get Facebook pages',
+        error.response?.data?.error?.message || 'Failed to get Facebook pages',
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -140,28 +140,27 @@ export class FacebookOAuthService {
     first_name?: string;
     last_name?: string;
   }> {
-    const userUrl = new URL(`${this.baseUrl}/${this.apiVersion}/${userId}`);
-    userUrl.searchParams.set('access_token', pageAccessToken);
-    userUrl.searchParams.set('fields', 'name,first_name,last_name,profile_pic');
-
     try {
-      const response = await fetch(userUrl.toString());
-      
-      if (!response.ok) {
-        const error = await response.json();
-        this.logger.warn(`Get user info failed for ${userId}:`, error);
-        return {};
-      }
+      const response = await axios.get(
+        `${this.baseUrl}/${this.apiVersion}/${userId}`,
+        {
+          params: {
+            access_token: pageAccessToken,
+            fields: 'name,first_name,last_name,profile_pic',
+          },
+        },
+      );
 
-      return await response.json();
-    } catch (error) {
-      this.logger.warn(`Get user info error for ${userId}:`, error);
+      return response.data;
+    } catch (error: any) {
+      this.logger.warn(`Get user info failed for ${userId}:`, error.response?.data || error.message);
       return {};
     }
   }
 
   /**
    * Connect a Facebook Page to the system
+   * Overrides base method to use Facebook-specific logic
    */
   async connectPage(
     pageId: string,
@@ -171,89 +170,39 @@ export class FacebookOAuthService {
     userId: string,
     metadata?: any,
   ): Promise<ChannelConnectionEntity> {
-    try {
-      // Check if page already connected
-      const existing = await this.connectionRepository.findOne({
-        where: {
-          type: 'facebook',
-          workspaceId: workspaceId,
-          metadata: { pageId } as any,
-        },
-      });
-
-      if (existing) {
-        // Update existing connection
-        existing.accessToken = pageAccessToken;
-        existing.status = 'active';
-        existing.connectedAt = new Date();
-        existing.metadata = {
-          ...existing.metadata,
-          ...metadata,
-          pageId,
-          pageName,
-        };
-        
-        return this.connectionRepository.save(existing);
-      }
-
-      // Create new connection
-      const connection = this.connectionRepository.create({
-        name: `${pageName} - Facebook`,
-        type: 'facebook',
-        workspaceId: workspaceId,
-        accessToken: pageAccessToken,
-        status: 'active',
-        connectedAt: new Date(),
-        metadata: {
-          pageId,
-          pageName,
-          ...metadata,
-          connectedBy: userId,
-        },
-      });
-
-      return this.connectionRepository.save(connection);
-    } catch (error) {
-      this.logger.error('Connect page error:', error);
-      throw new HttpException(
-        'Failed to connect Facebook page',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    return this.connectAccount(
+      pageId,
+      pageName,
+      pageAccessToken,
+      workspaceId,
+      userId,
+      {
+        pageId, // Keep for backward compatibility
+        pageName,
+        ...metadata,
+      },
+    );
   }
 
   /**
    * Disconnect a Facebook Page
+   * Alias for base disconnectAccount method
    */
-  async disconnectPage(connectionId: string, workspaceId: string): Promise<void> {
-    try {
-      await this.connectionRepository.delete({
-        id: connectionId,
-        workspaceId: workspaceId,
-      });
-    } catch (error) {
-      this.logger.error('Disconnect page error:', error);
-      throw new HttpException(
-        'Failed to disconnect Facebook page',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+  async disconnectPage(
+    connectionId: string,
+    workspaceId: string,
+  ): Promise<void> {
+    return this.disconnectAccount(connectionId, workspaceId);
   }
 
   /**
    * Get all connected Facebook pages for a workspace
+   * Alias for base getConnectedAccounts method
    */
-  async getConnectedPages(workspaceId: string): Promise<ChannelConnectionEntity[]> {
-    return this.connectionRepository.find({
-      where: {
-        type: 'facebook',
-        workspaceId: workspaceId,
-        status: 'active',
-      },
-      order: {
-        connectedAt: 'DESC',
-      },
-    });
+  async getConnectedPages(
+    workspaceId: string,
+  ): Promise<ChannelConnectionEntity[]> {
+    return this.getConnectedAccounts(workspaceId);
   }
 
   /**
@@ -266,29 +215,16 @@ export class FacebookOAuthService {
     verifyToken?: string,
   ): Promise<ChannelCredentialEntity> {
     // Try to find existing credential
-    let credential = await this.credentialRepository.findOne({
-      where: {
-        provider: 'facebook',
-        workspaceId: workspaceId,
-        isActive: true,
-      },
-    });
+    let credential = await this.getCredential(workspaceId);
 
     // If not found and credentials provided, create new
     if (!credential && appId && appSecret) {
-      credential = this.credentialRepository.create({
-        provider: 'facebook',
-        workspaceId: workspaceId,
-        name: 'Facebook App',
-        clientId: appId,
-        clientSecret: appSecret,
-        isActive: true,
-        metadata: {
-          verifyToken: verifyToken || 'wataomi_verify_token',
-          apiVersion: 'v24.0',
-        },
-      });
-      await this.credentialRepository.save(credential);
+      credential = await this.updateCredential(
+        workspaceId,
+        appId,
+        appSecret,
+        verifyToken ? { verifyToken } : undefined,
+      );
     }
 
     if (!credential) {
@@ -302,85 +238,48 @@ export class FacebookOAuthService {
   }
 
   /**
-   * Update Facebook credential
+   * Update Facebook credential with verify token
+   * Overrides base method to add Facebook-specific metadata
    */
   async updateCredential(
     workspaceId: string,
     appId: string,
     appSecret: string,
-    verifyToken?: string,
+    metadata?: Record<string, any>,
   ): Promise<ChannelCredentialEntity> {
-    let credential = await this.credentialRepository.findOne({
-      where: {
-        provider: 'facebook',
-        workspaceId: workspaceId,
-      },
-    });
-
-    if (credential) {
-      credential.clientId = appId;
-      credential.clientSecret = appSecret;
-      credential.isActive = true;
-      credential.metadata = {
-        ...credential.metadata,
-        verifyToken: verifyToken || credential.metadata?.verifyToken || 'wataomi_verify_token',
-        apiVersion: 'v24.0',
-      };
-    } else {
-      credential = this.credentialRepository.create({
-        provider: 'facebook',
-        workspaceId: workspaceId,
-        name: 'Facebook App',
-        clientId: appId,
-        clientSecret: appSecret,
-        isActive: true,
-        metadata: {
-          verifyToken: verifyToken || 'wataomi_verify_token',
-          apiVersion: 'v24.0',
-        },
-      });
-    }
-
-    return this.credentialRepository.save(credential);
-  }
-
-  /**
-   * Get Facebook credential for workspace
-   */
-  async getCredential(workspaceId: string): Promise<ChannelCredentialEntity | null> {
-    return this.credentialRepository.findOne({
-      where: {
-        provider: 'facebook',
-        workspaceId: workspaceId,
-        isActive: true,
-      },
+    const verifyToken = metadata?.verifyToken as string | undefined;
+    return super.updateCredential(workspaceId, appId, appSecret, {
+      verifyToken: verifyToken || 'wataomi_verify_token',
+      apiVersion: this.apiVersion,
+      ...metadata,
     });
   }
 
   /**
    * Subscribe app to page webhooks
    */
-  async subscribePageWebhooks(pageId: string, pageAccessToken: string): Promise<boolean> {
-    const subscribeUrl = new URL(`${this.baseUrl}/${this.apiVersion}/${pageId}/subscribed_apps`);
-    subscribeUrl.searchParams.set('access_token', pageAccessToken);
-    subscribeUrl.searchParams.set('subscribed_fields', 'messages,messaging_postbacks,messaging_optins,message_deliveries,message_reads');
-
+  async subscribePageWebhooks(
+    pageId: string,
+    pageAccessToken: string,
+  ): Promise<boolean> {
     try {
-      const response = await fetch(subscribeUrl.toString(), {
-        method: 'POST',
-      });
+      const response = await axios.post(
+        `${this.baseUrl}/${this.apiVersion}/${pageId}/subscribed_apps`,
+        null,
+        {
+          params: {
+            access_token: pageAccessToken,
+            subscribed_fields:
+              'messages,messaging_postbacks,messaging_optins,message_deliveries,message_reads',
+          },
+        },
+      );
 
-      if (!response.ok) {
-        const error = await response.json();
-        this.logger.error('Subscribe webhooks failed:', error);
-        return false;
-      }
-
-      const data = await response.json();
+      const data = response.data;
       this.logger.log(`Subscribed to webhooks for page ${pageId}:`, data);
       return data.success === true;
-    } catch (error) {
-      this.logger.error('Subscribe webhooks error:', error);
+    } catch (error: any) {
+      this.logger.error('Subscribe webhooks error:', error.response?.data || error.message);
       return false;
     }
   }

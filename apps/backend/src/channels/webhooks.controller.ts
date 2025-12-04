@@ -7,18 +7,17 @@ import {
   Param,
   Query,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { ChannelStrategy } from './channel.strategy';
 import { ChannelsService } from './channels.service';
 import { FacebookOAuthService } from './facebook-oauth.service';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { 
-  ConversationEntity,
-  MessageEntity 
-} from '../conversations/infrastructure/persistence/relational/entities/conversation.entity';
-import { BotExecutionService } from '../bots/bot-execution.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { MessageReceivedEvent } from '../shared/events';
+import { ConversationsService } from '../conversations/conversations.service';
+import { ConversationsGateway } from '../conversations/conversations.gateway';
 
 /**
  * Controller for handling incoming webhooks from different channels
@@ -32,12 +31,12 @@ export class WebhooksController {
     private readonly channelStrategy: ChannelStrategy,
     private readonly channelsService: ChannelsService,
     private readonly facebookOAuthService: FacebookOAuthService,
-    @InjectRepository(ConversationEntity)
-    private conversationRepository: Repository<ConversationEntity>,
-    @InjectRepository(MessageEntity)
-    private messageRepository: Repository<MessageEntity>,
-    private readonly botExecutionService: BotExecutionService,
-  ) {}
+    @Inject(forwardRef(() => ConversationsService))
+    private readonly conversationsService: ConversationsService,
+    @Inject(forwardRef(() => ConversationsGateway))
+    private readonly conversationsGateway: ConversationsGateway,
+    private readonly eventEmitter: EventEmitter2,
+  ) { }
 
   /**
    * Generic webhook endpoint for all channels
@@ -235,7 +234,7 @@ export class WebhooksController {
     try {
       // Find channel by pageId
       const channel = await this.channelsService.findByExternalId(pageId);
-      
+
       if (!channel) {
         this.logger.warn(`No channel found for Facebook page ${pageId}`);
         return;
@@ -243,7 +242,7 @@ export class WebhooksController {
 
       // Get botId from channel metadata
       const botId = channel.metadata?.botId as string | undefined;
-      
+
       if (!botId) {
         this.logger.warn(`No botId found for channel ${channel.id}`);
         return;
@@ -252,7 +251,7 @@ export class WebhooksController {
       // Get user info from Facebook
       let contactName = 'Facebook User';
       let contactAvatar: string | undefined;
-      
+
       if (channel.accessToken) {
         try {
           const userInfo = await this.facebookOAuthService.getUserInfo(
@@ -266,46 +265,33 @@ export class WebhooksController {
         }
       }
 
-      // Find or create conversation
-      let conversation = await this.conversationRepository.findOne({
-        where: {
-          externalId: senderId,
-          channelId: channel.id,
+      // Use ConversationsService to find or create conversation
+      const conversation = await this.conversationsService.findOrCreateFromWebhook({
+        botId,
+        channelId: channel.id,
+        channelType: 'facebook',
+        externalId: senderId,
+        contactName,
+        contactAvatar,
+        metadata: {
+          pageId,
+          recipientId,
         },
       });
 
-      if (!conversation) {
-        // Create new conversation
-        conversation = this.conversationRepository.create({
-          botId,
-          channelId: channel.id,
-          channelType: 'facebook',
-          externalId: senderId,
-          contactName,
-          contactAvatar,
-          status: 'active',
-          lastMessageAt: new Date(),
-          metadata: {
-            pageId,
-            recipientId,
-          },
-        });
-      } else {
-        // Update existing conversation
-        conversation.contactName = contactName;
-        conversation.contactAvatar = contactAvatar;
-        conversation.lastMessageAt = new Date();
-        conversation.status = 'active';
+      // Emit WebSocket event for new/updated conversation
+      try {
+        this.conversationsGateway.broadcastConversationUpdate(conversation);
+      } catch (error) {
+        this.logger.warn('Failed to emit WebSocket event:', error);
       }
-
-      await this.conversationRepository.save(conversation);
 
       // Save incoming message to database
       if (message.text) {
-        const userMessage = this.messageRepository.create({
+        const savedMessage = await this.conversationsService.addMessageFromWebhook({
           conversationId: conversation.id,
-          role: 'user',
           content: message.text,
+          role: 'user',
           metadata: {
             externalId: message.mid,
             senderId,
@@ -314,22 +300,32 @@ export class WebhooksController {
             channelType: 'facebook',
           },
         });
-        await this.messageRepository.save(userMessage);
 
-        // Trigger bot execution
-        await this.botExecutionService.processMessage({
-          channel: 'facebook',
-          senderId,
-          message: message.text,
-          conversationId: conversation.id,
-          metadata: {
-            pageId,
-            recipientId,
-            messageId: message.mid,
-            channelId: channel.id,
-            botId,
-          },
-        });
+        // Emit WebSocket event for new message
+        try {
+          this.conversationsGateway.emitNewMessage(conversation.id, savedMessage);
+        } catch (error) {
+          this.logger.warn('Failed to emit message WebSocket event:', error);
+        }
+
+        // Emit message received event
+        this.eventEmitter.emit(
+          'message.received',
+          new MessageReceivedEvent(
+            conversation.id,
+            savedMessage.id,
+            message.text,
+            senderId,
+            'facebook',
+            {
+              pageId,
+              recipientId,
+              messageId: message.mid,
+              channelId: channel.id,
+              botId,
+            },
+          ),
+        );
       }
     } catch (error) {
       this.logger.error(`Error processing Facebook message: ${error.message}`);
@@ -347,33 +343,83 @@ export class WebhooksController {
 
     this.logger.log(`Processing Instagram message from ${senderId}`);
 
-    const conversation = this.conversationRepository.create({
-      externalId: senderId,
-      status: 'active',
-      metadata: {
-        channel: 'instagram',
-        igId,
-        senderId,
-        messageId: message.mid,
-        lastMessage: message.text || '[Media]',
-        lastMessageAt: new Date().toISOString(),
-      },
-    });
+    try {
+      // Find channel by igId
+      const channel = await this.channelsService.findByExternalId(igId);
 
-    await this.conversationRepository.save(conversation);
+      if (!channel) {
+        this.logger.warn(`No channel found for Instagram account ${igId}`);
+        return;
+      }
 
-    // Trigger bot execution
-    if (message.text) {
-      await this.botExecutionService.processMessage({
-        channel: 'instagram',
-        senderId,
-        message: message.text,
-        conversationId: conversation.id,
+      const botId = channel.metadata?.botId as string | undefined;
+
+      if (!botId) {
+        this.logger.warn(`No botId found for channel ${channel.id}`);
+        return;
+      }
+
+      // Use ConversationsService to find or create conversation
+      const conversation = await this.conversationsService.findOrCreateFromWebhook({
+        botId,
+        channelId: channel.id,
+        channelType: 'instagram',
+        externalId: senderId,
+        contactName: 'Instagram User',
         metadata: {
           igId,
           messageId: message.mid,
         },
       });
+
+      // Emit WebSocket event
+      try {
+        this.conversationsGateway.broadcastConversationUpdate(conversation);
+      } catch (error) {
+        this.logger.warn('Failed to emit WebSocket event:', error);
+      }
+
+      // Save incoming message
+      if (message.text) {
+        const savedMessage = await this.conversationsService.addMessageFromWebhook({
+          conversationId: conversation.id,
+          content: message.text,
+          role: 'user',
+          metadata: {
+            externalId: message.mid,
+            senderId,
+            igId,
+            channelType: 'instagram',
+          },
+        });
+
+        // Emit message event
+        try {
+          this.conversationsGateway.emitNewMessage(conversation.id, savedMessage);
+        } catch (error) {
+          this.logger.warn('Failed to emit message WebSocket event:', error);
+        }
+
+        // Emit message received event
+        this.eventEmitter.emit(
+          'message.received',
+          new MessageReceivedEvent(
+            conversation.id,
+            savedMessage.id,
+            message.text,
+            senderId,
+            'instagram',
+            {
+              igId,
+              messageId: message.mid,
+              channelId: channel.id,
+              botId,
+            },
+          ),
+        );
+      }
+    } catch (error) {
+      this.logger.error(`Error processing Instagram message: ${error.message}`);
     }
   }
 
@@ -386,34 +432,86 @@ export class WebhooksController {
 
     this.logger.log(`Processing Telegram message from ${chatId}`);
 
-    const conversation = this.conversationRepository.create({
-      externalId: chatId.toString(),
-      status: 'active',
-      metadata: {
-        channel: 'telegram',
-        chatId,
-        userId: message.from.id,
-        messageId: message.message_id,
-        customerName: message.from.first_name || message.from.username,
-        lastMessage: text || '[Media]',
-        lastMessageAt: new Date().toISOString(),
-      },
-    });
+    try {
+      // Find Telegram channel - you may need to adjust this based on your setup
+      const channel = await this.channelsService.findByType('telegram');
 
-    await this.conversationRepository.save(conversation);
+      if (!channel) {
+        this.logger.warn('No Telegram channel found');
+        return;
+      }
 
-    // Trigger bot execution
-    if (text) {
-      await this.botExecutionService.processMessage({
-        channel: 'telegram',
-        senderId: chatId.toString(),
-        message: text,
-        conversationId: conversation.id,
+      const botId = channel.metadata?.botId as string | undefined;
+
+      if (!botId) {
+        this.logger.warn(`No botId found for channel ${channel.id}`);
+        return;
+      }
+
+      const contactName = message.from.first_name || message.from.username || 'Telegram User';
+
+      // Use ConversationsService to find or create conversation
+      const conversation = await this.conversationsService.findOrCreateFromWebhook({
+        botId,
+        channelId: channel.id,
+        channelType: 'telegram',
+        externalId: chatId.toString(),
+        contactName,
         metadata: {
+          chatId,
           userId: message.from.id,
           messageId: message.message_id,
         },
       });
+
+      // Emit WebSocket event
+      try {
+        this.conversationsGateway.broadcastConversationUpdate(conversation);
+      } catch (error) {
+        this.logger.warn('Failed to emit WebSocket event:', error);
+      }
+
+      // Save incoming message
+      if (text) {
+        const savedMessage = await this.conversationsService.addMessageFromWebhook({
+          conversationId: conversation.id,
+          content: text,
+          role: 'user',
+          metadata: {
+            userId: message.from.id,
+            messageId: message.message_id,
+            chatId,
+            channelType: 'telegram',
+          },
+        });
+
+        // Emit message event
+        try {
+          this.conversationsGateway.emitNewMessage(conversation.id, savedMessage);
+        } catch (error) {
+          this.logger.warn('Failed to emit message WebSocket event:', error);
+        }
+
+        // Emit message received event
+        this.eventEmitter.emit(
+          'message.received',
+          new MessageReceivedEvent(
+            conversation.id,
+            savedMessage.id,
+            text,
+            chatId.toString(),
+            'telegram',
+            {
+              userId: message.from.id,
+              messageId: message.message_id,
+              channelId: channel.id,
+              botId,
+            },
+          ),
+        );
+      }
+    } catch (error) {
+      this.logger.error(`Error processing Telegram message: ${error.message}`);
     }
   }
 }

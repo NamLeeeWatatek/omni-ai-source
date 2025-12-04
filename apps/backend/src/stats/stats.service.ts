@@ -41,11 +41,11 @@ export class StatsService {
     private readonly flowExecutionRepository: Repository<FlowExecutionEntity>,
     @InjectRepository(WorkspaceEntity)
     private readonly workspaceRepository: Repository<WorkspaceEntity>,
-  ) {}
+  ) { }
   /**
    * Get comprehensive dashboard statistics
    */
-  async getDashboardStats(query: StatsQueryDto): Promise<DashboardStatsDto> {
+  async getDashboardStats(query: StatsQueryDto, workspaceId?: string): Promise<DashboardStatsDto> {
     const { startDate, endDate } = this.getDateRange(query);
 
     // Execute all stats queries in parallel for better performance
@@ -59,15 +59,15 @@ export class StatsService {
       topFlows,
       activityTrend,
     ] = await Promise.all([
-      this.getUserStats(query, startDate, endDate),
-      this.getBotStats(query, startDate, endDate),
-      this.getConversationStats(query, startDate, endDate),
-      this.getFlowStats(query, startDate, endDate),
-      this.getWorkspaceStats(query, startDate, endDate),
-      this.getTopBots(query, startDate, endDate),
-      this.getTopFlows(query, startDate, endDate),
+      this.getUserStats(query, startDate, endDate, workspaceId),
+      this.getBotStats(query, startDate, endDate, workspaceId),
+      this.getConversationStats(query, startDate, endDate, workspaceId),
+      this.getFlowStats(query, startDate, endDate, workspaceId),
+      this.getWorkspaceStats(query, startDate, endDate, workspaceId),
+      this.getTopBots(query, startDate, endDate, workspaceId),
+      this.getTopFlows(query, startDate, endDate, workspaceId),
       query.includeTrend !== false
-        ? this.getActivityTrend(query, startDate, endDate)
+        ? this.getActivityTrend(query, startDate, endDate, workspaceId)
         : Promise.resolve([]),
     ]);
 
@@ -91,27 +91,35 @@ export class StatsService {
     query: StatsQueryDto,
     startDate: Date,
     endDate: Date,
+    workspaceId?: string,
   ): Promise<UserStatsDto> {
     // Calculate previous period dates for comparison
     const periodDuration = endDate.getTime() - startDate.getTime();
     const previousStartDate = new Date(startDate.getTime() - periodDuration);
     const previousEndDate = new Date(startDate);
 
+    // Build where clause with optional workspaceId filter
+    const buildWhere = (dateFilter: any) => {
+      const where: any = { ...dateFilter };
+      if (workspaceId) {
+        where.workspaceId = workspaceId;
+      }
+      return where;
+    };
+
     // Get total users count
-    const total = await this.userRepository.count();
+    const total = await this.userRepository.count({
+      where: workspaceId ? { workspaceId } : {},
+    });
 
     // Get users created in current period
     const current = await this.userRepository.count({
-      where: {
-        createdAt: Between(startDate, endDate),
-      },
+      where: buildWhere({ createdAt: Between(startDate, endDate) }),
     });
 
     // Get users created in previous period
     const previous = await this.userRepository.count({
-      where: {
-        createdAt: Between(previousStartDate, previousEndDate),
-      },
+      where: buildWhere({ createdAt: Between(previousStartDate, previousEndDate) }),
     });
 
     // Count active users (users who have conversations or activities)
@@ -130,7 +138,7 @@ export class StatsService {
       newUsers,
       trend:
         query.includeTrend !== false
-          ? await this.getUserTrend(startDate, endDate)
+          ? await this.getUserTrend(startDate, endDate, workspaceId)
           : undefined,
     };
   }
@@ -142,29 +150,35 @@ export class StatsService {
     query: StatsQueryDto,
     startDate: Date,
     endDate: Date,
+    workspaceId?: string,
   ): Promise<BotStatsDto> {
     const periodDuration = endDate.getTime() - startDate.getTime();
     const previousStartDate = new Date(startDate.getTime() - periodDuration);
     const previousEndDate = new Date(startDate);
 
-    const total = await this.botRepository.count();
+    // Build where clause with optional workspaceId filter
+    const buildWhere = (additionalFilter: any = {}) => {
+      const where: any = { ...additionalFilter };
+      if (workspaceId) {
+        where.workspaceId = workspaceId;
+      }
+      return where;
+    };
+
+    const total = await this.botRepository.count({
+      where: buildWhere(),
+    });
 
     const current = await this.botRepository.count({
-      where: {
-        createdAt: Between(startDate, endDate),
-      },
+      where: buildWhere({ createdAt: Between(startDate, endDate) }),
     });
 
     const previous = await this.botRepository.count({
-      where: {
-        createdAt: Between(previousStartDate, previousEndDate),
-      },
+      where: buildWhere({ createdAt: Between(previousStartDate, previousEndDate) }),
     });
 
     const active = await this.botRepository.count({
-      where: {
-        isActive: true,
-      },
+      where: buildWhere({ isActive: true }),
     });
 
     const inactive = total - active;
@@ -183,7 +197,7 @@ export class StatsService {
       avgSuccessRate,
       trend:
         query.includeTrend !== false
-          ? await this.getBotTrend(startDate, endDate)
+          ? await this.getBotTrend(startDate, endDate, workspaceId)
           : undefined,
     };
   }
@@ -195,39 +209,55 @@ export class StatsService {
     query: StatsQueryDto,
     startDate: Date,
     endDate: Date,
+    workspaceId?: string,
   ): Promise<ConversationStatsDto> {
     const periodDuration = endDate.getTime() - startDate.getTime();
     const previousStartDate = new Date(startDate.getTime() - periodDuration);
     const previousEndDate = new Date(startDate);
 
-    const total = await this.conversationRepository.count();
+    // Build query with workspace filter through bot relation
+    const buildQuery = (additionalWhere: any = {}) => {
+      const query = this.conversationRepository
+        .createQueryBuilder('conversation')
+        .leftJoin('conversation.bot', 'bot');
 
-    const current = await this.conversationRepository.count({
-      where: {
-        createdAt: Between(startDate, endDate),
-      },
-    });
+      if (workspaceId) {
+        query.where('bot.workspaceId = :workspaceId', { workspaceId });
+      }
 
-    const previous = await this.conversationRepository.count({
-      where: {
-        createdAt: Between(previousStartDate, previousEndDate),
-      },
-    });
+      Object.keys(additionalWhere).forEach(key => {
+        const condition = `conversation.${key} ${Array.isArray(additionalWhere[key]) ? 'IN (:...value)' : '= :value'}`;
+        query.andWhere(condition, { value: additionalWhere[key] });
+      });
 
-    const active = await this.conversationRepository.count({
-      where: {
-        status: 'active',
-      },
-    });
+      return query;
+    };
 
-    const completed = await this.conversationRepository.count({
-      where: {
-        status: 'closed',
-      },
-    });
+    const total = await buildQuery().getCount();
+
+    const current = await buildQuery()
+      .andWhere('conversation.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate })
+      .getCount();
+
+    const previous = await buildQuery()
+      .andWhere('conversation.createdAt BETWEEN :previousStartDate AND :previousEndDate', {
+        previousStartDate,
+        previousEndDate
+      })
+      .getCount();
+
+    const active = await buildQuery({ status: 'active' }).getCount();
+
+    const completed = await buildQuery({ status: 'closed' }).getCount();
 
     // Calculate average messages per conversation
-    const totalMessages = await this.messageRepository.count();
+    const totalMessages = await this.messageRepository
+      .createQueryBuilder('message')
+      .leftJoin('message.conversation', 'conversation')
+      .leftJoin('conversation.bot', 'bot')
+      .where(workspaceId ? 'bot.workspaceId = :workspaceId' : '1=1', { workspaceId })
+      .getCount();
+
     const avgMessagesPerConversation =
       total > 0 ? Number((totalMessages / total).toFixed(2)) : 0;
 
@@ -241,7 +271,7 @@ export class StatsService {
       avgMessagesPerConversation,
       trend:
         query.includeTrend !== false
-          ? await this.getConversationTrend(startDate, endDate)
+          ? await this.getConversationTrend(startDate, endDate, workspaceId)
           : undefined,
     };
   }
@@ -253,47 +283,55 @@ export class StatsService {
     query: StatsQueryDto,
     startDate: Date,
     endDate: Date,
+    workspaceId?: string,
   ): Promise<FlowStatsDto> {
     const periodDuration = endDate.getTime() - startDate.getTime();
     const previousStartDate = new Date(startDate.getTime() - periodDuration);
     const previousEndDate = new Date(startDate);
 
-    const totalExecutions = await this.flowExecutionRepository.count();
+    // Build query with workspace filter through flow relation
+    const buildQuery = () => {
+      const query = this.flowExecutionRepository
+        .createQueryBuilder('execution')
+        .leftJoin('execution.flow', 'flow')
+        .leftJoin('flow.bot', 'bot');
 
-    const current = await this.flowExecutionRepository.count({
-      where: {
-        createdAt: Between(startDate, endDate),
-      },
-    });
+      if (workspaceId) {
+        query.where('bot.workspaceId = :workspaceId', { workspaceId });
+      }
 
-    const previous = await this.flowExecutionRepository.count({
-      where: {
-        createdAt: Between(previousStartDate, previousEndDate),
-      },
-    });
+      return query;
+    };
 
-    const successfulExecutions = await this.flowExecutionRepository.count({
-      where: {
-        status: 'completed',
-      },
-    });
+    const totalExecutions = await buildQuery().getCount();
 
-    const failedExecutions = await this.flowExecutionRepository.count({
-      where: {
-        status: 'failed',
-      },
-    });
+    const current = await buildQuery()
+      .andWhere('execution.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate })
+      .getCount();
+
+    const previous = await buildQuery()
+      .andWhere('execution.createdAt BETWEEN :previousStartDate AND :previousEndDate', {
+        previousStartDate,
+        previousEndDate,
+      })
+      .getCount();
+
+    const successfulExecutions = await buildQuery()
+      .andWhere('execution.status = :status', { status: 'completed' })
+      .getCount();
+
+    const failedExecutions = await buildQuery()
+      .andWhere('execution.status = :status', { status: 'failed' })
+      .getCount();
 
     const successRate =
       totalExecutions > 0 ? (successfulExecutions / totalExecutions) * 100 : 0;
 
     // Calculate average execution time
-    const executions = await this.flowExecutionRepository.find({
-      where: {
-        endTime: MoreThanOrEqual(0),
-      },
-      select: ['startTime', 'endTime'],
-    });
+    const executions = await buildQuery()
+      .andWhere('execution.endTime >= :minTime', { minTime: 0 })
+      .select(['execution.startTime', 'execution.endTime'])
+      .getMany();
 
     let avgExecutionTime = 0;
     if (executions.length > 0) {
@@ -320,7 +358,7 @@ export class StatsService {
       avgExecutionTime,
       trend:
         query.includeTrend !== false
-          ? await this.getFlowTrend(startDate, endDate)
+          ? await this.getFlowTrend(startDate, endDate, workspaceId)
           : undefined,
     };
   }
@@ -332,23 +370,31 @@ export class StatsService {
     query: StatsQueryDto,
     startDate: Date,
     endDate: Date,
+    workspaceId?: string,
   ): Promise<WorkspaceStatsDto> {
     const periodDuration = endDate.getTime() - startDate.getTime();
     const previousStartDate = new Date(startDate.getTime() - periodDuration);
     const previousEndDate = new Date(startDate);
 
-    const total = await this.workspaceRepository.count();
+    // If workspaceId is provided, only count that specific workspace
+    const buildWhere = (additionalFilter: any = {}) => {
+      const where: any = { ...additionalFilter };
+      if (workspaceId) {
+        where.id = workspaceId;
+      }
+      return where;
+    };
+
+    const total = await this.workspaceRepository.count({
+      where: buildWhere(),
+    });
 
     const current = await this.workspaceRepository.count({
-      where: {
-        createdAt: Between(startDate, endDate),
-      },
+      where: buildWhere({ createdAt: Between(startDate, endDate) }),
     });
 
     const previous = await this.workspaceRepository.count({
-      where: {
-        createdAt: Between(previousStartDate, previousEndDate),
-      },
+      where: buildWhere({ createdAt: Between(previousStartDate, previousEndDate) }),
     });
 
     // Consider all workspaces as active for now
@@ -362,7 +408,7 @@ export class StatsService {
       active,
       trend:
         query.includeTrend !== false
-          ? await this.getWorkspaceTrend(startDate, endDate)
+          ? await this.getWorkspaceTrend(startDate, endDate, workspaceId)
           : undefined,
     };
   }

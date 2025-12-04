@@ -3,8 +3,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ExecutionGateway } from './execution.gateway';
 import { NodeExecutorStrategy } from './execution/node-executor.strategy';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { FlowExecutionEntity } from './infrastructure/persistence/relational/entities/flow-execution.entity';
 import { NodeExecutionEntity } from './infrastructure/persistence/relational/entities/node-execution.entity';
+import {
+  FlowExecutionCompletedEvent,
+  FlowExecutionFailedEvent,
+} from '../shared/events';
 
 export interface NodeExecution {
   nodeId: string;
@@ -27,6 +32,7 @@ export interface FlowExecution {
   nodes: NodeExecution[];
   result?: any;
   error?: any;
+  metadata?: any;
 }
 
 @Injectable()
@@ -40,16 +46,25 @@ export class ExecutionService {
     private flowExecutionRepository: Repository<FlowExecutionEntity>,
     @InjectRepository(NodeExecutionEntity)
     private nodeExecutionRepository: Repository<NodeExecutionEntity>,
-  ) {}
+    private readonly eventEmitter: EventEmitter2,
+  ) { }
 
-  executeFlow(flowId: string, flowData: any, inputData?: any): Promise<string> {
-    return Promise.resolve(this.executeFlowSync(flowId, flowData, inputData));
+  executeFlow(
+    flowId: string,
+    flowData: any,
+    inputData?: any,
+    metadata?: any,
+  ): Promise<string> {
+    return Promise.resolve(
+      this.executeFlowSync(flowId, flowData, inputData, metadata),
+    );
   }
 
   private executeFlowSync(
     flowId: string,
     flowData: any,
     inputData?: any,
+    metadata?: any,
   ): string {
     const executionId = `exec-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -59,6 +74,7 @@ export class ExecutionService {
       status: 'running',
       startTime: Date.now(),
       nodes: [],
+      metadata,
     };
 
     this.executions.set(executionId, execution);
@@ -72,6 +88,15 @@ export class ExecutionService {
       execution.error = error.message;
       execution.endTime = Date.now();
       this.executionGateway.emitExecutionError(executionId, error.message);
+
+      // Emit failure event
+      const failureEvent = new FlowExecutionFailedEvent(
+        flowId,
+        executionId,
+        error.message,
+        execution.metadata,
+      );
+      this.eventEmitter.emit('flow.execution.failed', failureEvent);
 
       // Save failed execution to database
       this.saveExecutionToDatabase(execution, flowId).catch(console.error);
@@ -169,6 +194,20 @@ export class ExecutionService {
     execution.result = currentInput;
 
     this.executionGateway.emitExecutionComplete(executionId, execution.result);
+
+    // Emit completion event
+    const completionEvent = new FlowExecutionCompletedEvent(
+      execution.flowId,
+      executionId,
+      execution.result,
+      true,
+      undefined,
+    );
+    // Attach metadata if available
+    if (execution.metadata) {
+      (completionEvent as any).metadata = execution.metadata;
+    }
+    this.eventEmitter.emit('flow.execution.completed', completionEvent);
 
     // Save successful execution to database
     await this.saveExecutionToDatabase(execution, execution.flowId);

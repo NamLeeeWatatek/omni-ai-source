@@ -13,11 +13,13 @@ import {
   ChannelConnectionEntity,
   ChannelCredentialEntity,
 } from '../integrations/infrastructure/persistence/relational/entities';
-import { 
+import {
   ConversationEntity,
-  MessageEntity 
+  MessageEntity
 } from '../conversations/infrastructure/persistence/relational/entities/conversation.entity';
 import { BotsModule } from '../bots/bots.module';
+import { ConversationsModule } from '../conversations/conversations.module';
+import { ChannelEventListener } from './listeners/channel-event.listener';
 
 @Module({
   imports: [
@@ -27,7 +29,8 @@ import { BotsModule } from '../bots/bots.module';
       ConversationEntity,
       MessageEntity,
     ]),
-    forwardRef(() => BotsModule),
+    // forwardRef(() => BotsModule), // Removed circular dependency
+    forwardRef(() => ConversationsModule),
   ],
   controllers: [ChannelsController, WebhooksController, FacebookOAuthController],
   providers: [
@@ -37,8 +40,9 @@ import { BotsModule } from '../bots/bots.module';
     GoogleProvider,
     OmiProvider,
     FacebookOAuthService,
+    ChannelEventListener,
   ],
-  exports: [ChannelStrategy, ChannelsService, FacebookOAuthService],
+  exports: [ChannelStrategy, ChannelsService, FacebookOAuthService, ChannelEventListener],
 })
 export class ChannelsModule implements OnModuleInit {
   constructor(
@@ -46,7 +50,7 @@ export class ChannelsModule implements OnModuleInit {
     private readonly facebookProvider: FacebookProvider,
     private readonly googleProvider: GoogleProvider,
     private readonly omiProvider: OmiProvider,
-  ) {}
+  ) { }
 
   onModuleInit() {
     // Register all channel providers

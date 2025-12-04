@@ -20,7 +20,7 @@ export interface SendMessageResult {
 @Injectable()
 export class MessengerService {
   private readonly logger = new Logger(MessengerService.name);
-  private readonly apiVersion = 'v18.0';
+  private readonly apiVersion = 'v24.0';
 
   constructor(
     private configService: ConfigService,
@@ -44,7 +44,8 @@ export class MessengerService {
         };
       }
 
-      const pageAccessToken = connection.metadata?.accessToken;
+      // Try to get token from accessToken column first, then fallback to metadata
+      const pageAccessToken = connection.accessToken || connection.metadata?.accessToken;
       if (!pageAccessToken) {
         return {
           success: false,
@@ -105,7 +106,7 @@ export class MessengerService {
       const connection = await this.getConnection('facebook', channelId);
       if (!connection) return;
 
-      const pageAccessToken = connection.metadata?.accessToken;
+      const pageAccessToken = connection.accessToken || connection.metadata?.accessToken;
       if (!pageAccessToken) return;
 
       const url = `https://graph.facebook.com/${this.apiVersion}/me/messages`;
@@ -141,7 +142,7 @@ export class MessengerService {
         return { success: false, error: 'Facebook page not connected' };
       }
 
-      const pageAccessToken = connection.metadata?.accessToken;
+      const pageAccessToken = connection.accessToken || connection.metadata?.accessToken;
       if (!pageAccessToken) {
         return { success: false, error: 'Page access token not found' };
       }

@@ -28,6 +28,8 @@ import { AiProvidersModule } from '../ai-providers/ai-providers.module';
 import { KnowledgeBaseModule } from '../knowledge-base/knowledge-base.module';
 import { MessagingModule } from '../channels/messaging.module';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
+import { BotEventListener } from './listeners/bot-event.listener';
+import { BotExecutionEventService } from './listeners/bot-execution-event.service';
 
 @Module({
   imports: [
@@ -55,6 +57,9 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
     BotExecutionService,
     BotFunctionsService,
     BotInteractionService,
+    // Event Listeners
+    BotEventListener,
+    BotExecutionEventService,
   ],
   exports: [
     BotsService,
@@ -63,6 +68,7 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
     BotExecutionService,
     BotFunctionsService,
     BotInteractionService,
+    BotExecutionEventService,
   ],
 })
 export class BotsModule { }

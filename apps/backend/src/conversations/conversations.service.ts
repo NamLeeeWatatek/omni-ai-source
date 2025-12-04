@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { Repository, MoreThanOrEqual } from 'typeorm';
 import {
   ConversationEntity,
   MessageEntity,
@@ -16,6 +16,8 @@ import {
 
 @Injectable()
 export class ConversationsService {
+  private readonly logger = new Logger(ConversationsService.name);
+
   constructor(
     @InjectRepository(ConversationEntity)
     private conversationRepository: Repository<ConversationEntity>,
@@ -49,8 +51,6 @@ export class ConversationsService {
     const query = this.conversationRepository
       .createQueryBuilder('conversation')
       .leftJoinAndSelect('conversation.bot', 'bot')
-      .leftJoin('channel_connection', 'channel', 'channel.id = conversation.channelId')
-      .addSelect(['channel.name', 'channel.type', 'channel.metadata'])
       .where('conversation.deletedAt IS NULL');
 
     // Filter by conversation source
@@ -106,7 +106,16 @@ export class ConversationsService {
       .skip((page - 1) * limit)
       .take(limit);
 
+    // Debug logging
+    console.log('=== Conversations Query Debug ===');
+    console.log('Options:', JSON.stringify(options, null, 2));
+    console.log('SQL:', query.getSql());
+    console.log('Parameters:', query.getParameters());
+
     const [items, total] = await query.getManyAndCount();
+    
+    console.log(`Found ${total} conversations, returning ${items.length} items`);
+    console.log('================================');
 
     // Format items with channel info and last message
     const formattedItems = await Promise.all(
@@ -117,19 +126,17 @@ export class ConversationsService {
         
         if (item.channelId) {
           try {
-            const channel = await this.conversationRepository.manager
-              .getRepository('channel_connection')
-              .findOne({ 
-                where: { id: item.channelId },
-                select: ['name', 'type', 'metadata']
-              });
+            const channel = await this.conversationRepository.manager.query(
+              'SELECT name, type, metadata FROM channel_connection WHERE id = $1',
+              [item.channelId]
+            );
             
-            if (channel) {
-              channelName = (channel as any).name || channelName;
-              channelMetadata = (channel as any).metadata || {};
+            if (channel && channel.length > 0) {
+              channelName = channel[0].name || channelName;
+              channelMetadata = channel[0].metadata || {};
             }
           } catch (error) {
-            // Ignore channel fetch errors
+            this.logger.warn(`Failed to fetch channel info for ${item.channelId}: ${error.message}`);
           }
         }
 
@@ -218,7 +225,28 @@ export class ConversationsService {
     conversation.lastMessageAt = new Date();
     await this.conversationRepository.save(conversation);
 
+    // If this is an assistant/agent message and conversation has external channel, send it
+    if (createDto.role === 'assistant' && conversation.externalId && conversation.channelType) {
+      await this.sendMessageToExternalChannel(conversation, createDto.content);
+    }
+
     return savedMessage;
+  }
+
+  /**
+   * Send message to external channel (Facebook, Instagram, Telegram, etc.)
+   * Note: This method is a placeholder. Actual sending is handled by BotExecutionService
+   * to avoid circular dependencies. Messages are sent after bot processing.
+   */
+  private async sendMessageToExternalChannel(
+    conversation: ConversationEntity,
+    message: string,
+  ): Promise<void> {
+    // This is now handled by BotExecutionService after processing
+    // to avoid circular dependencies with channels module
+    this.logger.log(
+      `Message queued for ${conversation.channelType} channel (handled by BotExecutionService)`,
+    );
   }
 
   async getMessages(
@@ -362,5 +390,73 @@ export class ConversationsService {
     }
 
     return conversation;
+  }
+
+  /**
+   * Find or create conversation from webhook
+   * Handles all the logic for webhook-based conversation creation
+   */
+  async findOrCreateFromWebhook(params: {
+    botId: string;
+    channelId: string;
+    channelType: string;
+    externalId: string;
+    contactName?: string;
+    contactAvatar?: string;
+    metadata?: Record<string, any>;
+  }): Promise<ConversationEntity> {
+    // Find existing conversation
+    let conversation = await this.conversationRepository.findOne({
+      where: {
+        externalId: params.externalId,
+        channelId: params.channelId,
+      },
+    });
+
+    if (!conversation) {
+      // Create new conversation
+      conversation = this.conversationRepository.create({
+        botId: params.botId,
+        channelId: params.channelId,
+        channelType: params.channelType,
+        externalId: params.externalId,
+        contactName: params.contactName,
+        contactAvatar: params.contactAvatar,
+        status: 'active',
+        lastMessageAt: new Date(),
+        metadata: params.metadata || {},
+      });
+    } else {
+      // Update existing conversation
+      conversation.contactName = params.contactName || conversation.contactName;
+      conversation.contactAvatar = params.contactAvatar || conversation.contactAvatar;
+      conversation.lastMessageAt = new Date();
+      conversation.status = 'active';
+      if (params.metadata) {
+        conversation.metadata = { ...conversation.metadata, ...params.metadata };
+      }
+    }
+
+    return this.conversationRepository.save(conversation);
+  }
+
+  /**
+   * Add message from webhook
+   * Handles message creation from external channels
+   */
+  async addMessageFromWebhook(params: {
+    conversationId: string;
+    content: string;
+    role: 'user' | 'assistant';
+    metadata?: Record<string, any>;
+  }): Promise<MessageEntity> {
+    const message = this.messageRepository.create({
+      conversationId: params.conversationId,
+      role: params.role,
+      content: params.content,
+      metadata: params.metadata || {},
+    });
+
+    return this.messageRepository.save(message);
   }
 }

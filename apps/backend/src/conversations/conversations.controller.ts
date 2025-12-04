@@ -47,6 +47,8 @@ export class ConversationsController {
     return this.conversationsService.create(createDto);
   }
 
+
+
   @Get()
   @ApiOperation({ summary: 'Get all conversations with pagination' })
   @ApiQuery({ name: 'botId', required: false })

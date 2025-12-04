@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   ConversationEntity,
@@ -10,6 +10,8 @@ import { ConversationsService } from './conversations.service';
 import { ConversationsController } from './conversations.controller';
 import { AiConversationsService } from './ai-conversations.service';
 import { AiConversationsController } from './ai-conversations.controller';
+import { ConversationsGateway } from './conversations.gateway';
+import { ConversationEventListener } from './listeners/conversation-event.listener';
 
 @Module({
   imports: [
@@ -21,7 +23,7 @@ import { AiConversationsController } from './ai-conversations.controller';
     ]),
   ],
   controllers: [ConversationsController, AiConversationsController],
-  providers: [ConversationsService, AiConversationsService],
-  exports: [ConversationsService, AiConversationsService],
+  providers: [ConversationsService, AiConversationsService, ConversationsGateway, ConversationEventListener],
+  exports: [ConversationsService, AiConversationsService, ConversationsGateway, ConversationEventListener],
 })
-export class ConversationsModule {}
+export class ConversationsModule { }

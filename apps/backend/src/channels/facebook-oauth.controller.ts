@@ -14,11 +14,17 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { FacebookOAuthService } from './facebook-oauth.service';
+import { ChannelsService } from './channels.service';
+import { ChannelStrategy } from './channel.strategy';
 
 @ApiTags('Facebook OAuth')
 @Controller({ path: 'channels/facebook', version: '1' })
 export class FacebookOAuthController {
-  constructor(private readonly facebookOAuthService: FacebookOAuthService) {}
+  constructor(
+    private readonly facebookOAuthService: FacebookOAuthService,
+    private readonly channelsService: ChannelsService,
+    private readonly channelStrategy: ChannelStrategy,
+  ) { }
 
   /**
    * Step 1: Get OAuth URL for user to login
@@ -30,29 +36,29 @@ export class FacebookOAuthController {
   @ApiOperation({ summary: 'Get Facebook OAuth URL' })
   async getOAuthUrl(@Request() req, @Query('redirect_uri') redirectUri?: string) {
     const workspaceId = req.user.workspaceId || req.user.id;
-    
+
     // Get Facebook credentials from database
     const credential = await this.facebookOAuthService.getCredential(workspaceId);
-    
+
     if (!credential) {
       throw new HttpException(
         'Facebook App not configured. Please setup your Facebook App in Settings.',
         HttpStatus.NOT_FOUND,
       );
     }
-    
+
     const defaultRedirectUri = `${process.env.FRONTEND_DOMAIN}/channels/callback?provider=facebook`;
     const uri = redirectUri || defaultRedirectUri;
-    
+
     // Use user ID as state for security
     const state = req.user?.id || 'anonymous';
-    
+
     const oauthUrl = this.facebookOAuthService.getOAuthUrl(
       credential.clientId,
       uri,
       state,
     );
-    
+
     return {
       url: oauthUrl,
       redirectUri: uri,
@@ -90,10 +96,10 @@ export class FacebookOAuthController {
     try {
       // Get workspace ID from state or query param
       const wsId = workspaceId || state;
-      
+
       // Get Facebook credentials from database
       const credential = await this.facebookOAuthService.getCredential(wsId);
-      
+
       if (!credential) {
         throw new HttpException(
           'Facebook App not configured',
@@ -161,9 +167,9 @@ export class FacebookOAuthController {
       const pages = await this.facebookOAuthService.getUserPages(
         body.userAccessToken,
       );
-      
+
       const page = pages.find(p => p.id === body.pageId);
-      
+
       if (!page) {
         throw new HttpException(
           'Page not found or no permission',
@@ -220,7 +226,7 @@ export class FacebookOAuthController {
   @ApiOperation({ summary: 'Get connected Facebook pages' })
   async getConnections(@Request() req) {
     const workspaceId = req.user.workspaceId || req.user.id;
-    
+
     const connections = await this.facebookOAuthService.getConnectedPages(
       workspaceId,
     );
@@ -247,7 +253,7 @@ export class FacebookOAuthController {
   @ApiOperation({ summary: 'Disconnect a Facebook page' })
   async disconnectPage(@Request() req, @Param('id') connectionId: string) {
     const workspaceId = req.user.workspaceId || req.user.id;
-    
+
     await this.facebookOAuthService.disconnectPage(connectionId, workspaceId);
 
     return {
@@ -268,10 +274,42 @@ export class FacebookOAuthController {
     @Param('id') connectionId: string,
     @Body() body: { recipientId: string; message: string },
   ) {
-    // TODO: Implement test message sending
+    const workspaceId = req.user.workspaceId || req.user.id;
+
+    // 1. Get connection
+    const connection = await this.channelsService.findOne(connectionId, workspaceId);
+    if (!connection) {
+      throw new HttpException('Connection not found', HttpStatus.NOT_FOUND);
+    }
+
+    // 2. Get provider
+    const provider = this.channelStrategy.getProvider('facebook');
+
+    // 3. Set credentials manually (since we are bypassing strategy lookup which might pick wrong connection)
+    if ('setCredentials' in provider) {
+      (provider as any).setCredentials(
+        connection.accessToken,
+        connection.credential?.clientSecret || ''
+      );
+    }
+
+    // 4. Send message
+    const result = await provider.sendMessage({
+      to: body.recipientId,
+      content: body.message,
+    });
+
+    if (!result.success) {
+      throw new HttpException(
+        result.error || 'Failed to send test message',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     return {
       success: true,
       message: 'Test message sent',
+      messageId: result.messageId,
     };
   }
 
@@ -296,7 +334,7 @@ export class FacebookOAuthController {
       workspaceId,
       body.appId,
       body.appSecret,
-      body.verifyToken,
+      body.verifyToken ? { verifyToken: body.verifyToken } : undefined,
     );
 
     return {

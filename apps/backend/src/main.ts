@@ -16,7 +16,10 @@ import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    cors: true,
+    cors: {
+      origin: process.env.FRONTEND_DOMAIN || 'http://localhost:3000',
+      credentials: true,
+    },
   });
 
   // Cấu hình helmet để cho phép nhúng widget vào các trang web khác

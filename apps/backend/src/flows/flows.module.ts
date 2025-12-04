@@ -19,6 +19,7 @@ import { ConditionExecutor } from './execution/executors/condition.executor';
 import { SendMessageExecutor } from './execution/executors/send-message.executor';
 import { ChannelsModule } from '../channels/channels.module';
 import { TemplatesModule } from '../templates/templates.module';
+import { FlowEventListener } from './listeners/flow-event.listener';
 
 @Module({
   imports: [
@@ -42,8 +43,9 @@ import { TemplatesModule } from '../templates/templates.module';
     AIChatExecutor,
     ConditionExecutor,
     SendMessageExecutor,
+    FlowEventListener,
   ],
-  exports: [FlowsService, ExecutionService, ExecutionGateway],
+  exports: [FlowsService, ExecutionService, ExecutionGateway, FlowEventListener],
 })
 export class FlowsModule implements OnModuleInit {
   constructor(
@@ -53,7 +55,7 @@ export class FlowsModule implements OnModuleInit {
     private readonly aiChatExecutor: AIChatExecutor,
     private readonly conditionExecutor: ConditionExecutor,
     private readonly sendMessageExecutor: SendMessageExecutor,
-  ) {}
+  ) { }
 
   onModuleInit() {
     // Register all node type executors
