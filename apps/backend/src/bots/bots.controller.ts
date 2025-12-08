@@ -25,6 +25,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { BotsService } from './bots.service';
 import { BotFunctionsService } from './bot-functions.service';
 import { BotInteractionService } from './bot-interaction.service';
+import { MessageBufferService } from './services/message-buffer.service';
 import { CreateBotDto } from './dto/create-bot.dto';
 import {
   UpdateBotDto,
@@ -49,6 +50,7 @@ export class BotsController {
     private readonly botsService: BotsService,
     private readonly botFunctionsService: BotFunctionsService,
     private readonly botInteractionService: BotInteractionService,
+    private readonly messageBufferService: MessageBufferService,
   ) {}
 
   @Post()
@@ -377,5 +379,28 @@ export class BotsController {
     @Request() req,
   ) {
     return this.botsService.updateAppearance(id, dto, req.user.id);
+  }
+
+  @Get('debug/message-buffers')
+  @ApiOperation({ summary: 'Get all message buffers (debug)' })
+  @ApiOkResponse({ description: 'List of active message buffers' })
+  getMessageBuffers() {
+    return {
+      buffers: this.messageBufferService.getBufferStats(),
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  @Delete('debug/message-buffers/:conversationId/:botId')
+  @ApiOperation({ summary: 'Clear message buffer (debug)' })
+  @ApiParam({ name: 'conversationId', type: String })
+  @ApiParam({ name: 'botId', type: String })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  clearMessageBuffer(
+    @Param('conversationId') conversationId: string,
+    @Param('botId') botId: string,
+  ) {
+    this.messageBufferService.clearBuffer(conversationId, botId);
+    return { message: 'Buffer cleared' };
   }
 }

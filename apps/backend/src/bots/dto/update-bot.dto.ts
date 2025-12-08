@@ -57,6 +57,11 @@ export class UpdateBotDto extends PartialType(CreateBotDto) {
   @IsObject()
   functionConfig?: Record<string, any> | null;
 
+  @ApiPropertyOptional({ description: 'Flow ID' })
+  @IsOptional()
+  @IsUUID()
+  flowId?: string | null;
+
   @ApiPropertyOptional({ description: 'AI Provider ID' })
   @IsOptional()
   @IsUUID()
@@ -122,6 +127,11 @@ export class UpdateBotDto extends PartialType(CreateBotDto) {
   @IsOptional()
   @IsBoolean()
   widgetEnabled?: boolean;
+
+  @ApiPropertyOptional({ type: Boolean })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()

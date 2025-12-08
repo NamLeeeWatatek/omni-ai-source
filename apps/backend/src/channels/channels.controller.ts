@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Body,
   Param,
@@ -48,6 +49,27 @@ export class ChannelsController {
       type: connection.type,
       status: connection.status,
       connected_at: connection.connectedAt,
+    };
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update channel connection' })
+  async update(
+    @Param('id') id: string,
+    @Body() dto: { botId?: string | null; name?: string; metadata?: any },
+    @Request() req,
+  ) {
+    const userId = req.user.id;
+    const connection = await this.channelsService.update(id, dto, userId);
+
+    return {
+      id: connection.id,
+      name: connection.name,
+      type: connection.type,
+      status: connection.status,
+      botId: connection.botId,
+      connected_at: connection.connectedAt,
+      metadata: connection.metadata,
     };
   }
 

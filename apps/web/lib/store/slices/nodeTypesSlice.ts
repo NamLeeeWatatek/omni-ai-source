@@ -52,7 +52,7 @@ export const fetchNodeTypes = createAsyncThunk<ApiNodeType[], string | undefined
   async (category?: string) => {
     const url = category ? `/node-types/?category=${category}` : '/node-types/'
     const response: any = await axiosClient.get(url)
-    return response as ApiNodeType[]
+    return (response.data || response) as ApiNodeType[]
   }
 )
 
@@ -60,7 +60,7 @@ export const fetchNodeCategories = createAsyncThunk<NodeCategory[], void>(
   'nodeTypes/fetchNodeCategories',
   async () => {
     const response: any = await axiosClient.get('/node-types/categories')
-    return response as NodeCategory[]
+    return (response.data || response) as NodeCategory[]
   }
 )
 
@@ -68,7 +68,7 @@ export const fetchNodeType = createAsyncThunk<ApiNodeType, string>(
   'nodeTypes/fetchNodeType',
   async (nodeId: string) => {
     const response: any = await axiosClient.get(`/node-types/${nodeId}`)
-    return response as ApiNodeType
+    return (response.data || response) as ApiNodeType
   }
 )
 
@@ -88,7 +88,8 @@ const nodeTypesSlice = createSlice({
       })
       .addCase(fetchNodeTypes.fulfilled, (state: Draft<NodeTypesState>, action: PayloadAction<ApiNodeType[]>) => {
         state.loading = false
-        state.items = action.payload.map((apiNode: ApiNodeType) => ({
+        const payload = Array.isArray(action.payload) ? action.payload : []
+        state.items = payload.map((apiNode: ApiNodeType) => ({
           id: apiNode.id,
           label: apiNode.label,
           category: apiNode.category,

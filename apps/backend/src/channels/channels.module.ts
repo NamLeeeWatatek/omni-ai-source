@@ -20,6 +20,10 @@ import {
 import { BotsModule } from '../bots/bots.module';
 import { ConversationsModule } from '../conversations/conversations.module';
 import { ChannelEventListener } from './listeners/channel-event.listener';
+import { FacebookWebhookProcessor } from './webhooks/facebook-webhook.processor';
+import { WebhookLoggerInterceptor } from './interceptors/webhook-logger.interceptor';
+import { FacebookSyncService } from './services/facebook-sync.service';
+import { FacebookConversationSyncService } from './services/facebook-conversation-sync.service';
 
 @Module({
   imports: [
@@ -39,7 +43,11 @@ import { ChannelEventListener } from './listeners/channel-event.listener';
     GoogleProvider,
     OmiProvider,
     FacebookOAuthService,
+    FacebookSyncService,
+    FacebookConversationSyncService,
     ChannelEventListener,
+    FacebookWebhookProcessor,
+    WebhookLoggerInterceptor,
   ],
   exports: [ChannelStrategy, ChannelsService, FacebookOAuthService, ChannelEventListener],
 })

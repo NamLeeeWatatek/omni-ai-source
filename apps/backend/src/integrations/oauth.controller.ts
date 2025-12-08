@@ -19,7 +19,7 @@ export class OAuthController {
     private readonly oauthService: OAuthService,
     private readonly channelsService: ChannelsService,
     private readonly integrationsService: IntegrationsService,
-  ) {}
+  ) { }
 
   @Get('login/:provider')
   @ApiOperation({ summary: 'Start OAuth flow' })
@@ -40,10 +40,10 @@ export class OAuthController {
 
     switch (provider) {
       case 'facebook':
-        url = this.oauthService.getFacebookAuthUrl(credential.clientId, state);
+        url = this.oauthService.getFacebookAuthUrl(credential.clientId!, state);
         break;
       case 'google':
-        url = this.oauthService.getGoogleAuthUrl(credential.clientId, state);
+        url = this.oauthService.getGoogleAuthUrl(credential.clientId!, state);
         break;
       default:
         return { error: 'Unsupported provider' };
@@ -86,8 +86,8 @@ export class OAuthController {
       switch (provider) {
         case 'facebook': {
           const tokenData = await this.oauthService.exchangeFacebookCode(
-            credential.clientId,
-            credential.clientSecret,
+            credential.clientId!,
+            credential.clientSecret!,
             code,
           );
           accessToken = tokenData.accessToken;
@@ -97,8 +97,8 @@ export class OAuthController {
         }
         case 'google': {
           const tokenData = await this.oauthService.exchangeGoogleCode(
-            credential.clientId,
-            credential.clientSecret,
+            credential.clientId!,
+            credential.clientSecret!,
             code,
           );
           accessToken = tokenData.accessToken;

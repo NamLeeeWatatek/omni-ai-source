@@ -29,6 +29,9 @@ export class AiConversationEntity extends EntityRelationalHelper {
   @Column({ name: 'use_knowledge_base', type: Boolean, default: false })
   useKnowledgeBase: boolean;
 
+  @Column({ type: 'jsonb', default: {} })
+  metadata: Record<string, any>;
+
   @Column({ type: 'jsonb', default: [] })
   messages: Array<{
     role: 'user' | 'assistant' | 'system';

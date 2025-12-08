@@ -13,6 +13,7 @@ import validationOptions from './utils/validation-options';
 import { AllConfigType } from './config/config.type';
 import { ResolvePromisesInterceptor } from './utils/serializer.interceptor';
 import helmet from 'helmet';
+import * as bodyParser from 'body-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -21,6 +22,18 @@ async function bootstrap() {
       credentials: true,
     },
   });
+
+  // ✅ FIX: Add raw body middleware for webhook signature verification
+  // This must be BEFORE any other body parsing middleware
+  app.use('/api/v1/webhooks', bodyParser.json({
+    verify: (req: any, res, buf) => {
+      req.rawBody = buf.toString('utf8');
+    }
+  }));
+  
+  // ✅ Add default body parser for all other routes
+  app.use(bodyParser.json({ limit: '10mb' }));
+  app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
   app.use(
     helmet({

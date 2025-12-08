@@ -15,7 +15,7 @@ export const axiosServer = axios.create({
   },
 })
 
-export async function getAuthenticatedAxios() {
+export async function getAuthenticatedAxios(workspaceId?: string) {
   const session = await auth()
   
   const instance = axios.create({
@@ -26,6 +26,10 @@ export async function getAuthenticatedAxios() {
       ...(session?.accessToken && {
         Authorization: `Bearer ${session.accessToken}`,
       }),
+      // Add workspace context header
+      ...(workspaceId || session?.workspace?.id) && {
+        'X-Workspace-Id': workspaceId || session?.workspace?.id,
+      },
     },
   })
 

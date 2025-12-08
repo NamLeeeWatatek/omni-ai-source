@@ -3,16 +3,18 @@
 import { Button } from '@/components/ui/button'
 import { AlertBanner } from '@/components/ui/alert-banner'
 import { MdAutoAwesome, MdCheckCircle, MdArrowBack } from 'react-icons/md'
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { LoadingLogo } from '@/components/ui/loading-logo'
 
-export default function LoginPage() {
+function LoginPageContent() {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const { isAuthenticated, isLoading } = useAuth()
-    const [configError, setConfigError] = useState<string | null>(null)
-    const [showSetupGuide, setShowSetupGuide] = useState(false)
+    
+    // ✅ State for errors from user actions (not from URL)
+    const [userActionError, setUserActionError] = useState<string | null>(null)
 
     useEffect(() => {
         if (!isLoading && isAuthenticated) {
@@ -20,22 +22,26 @@ export default function LoginPage() {
         }
     }, [isAuthenticated, isLoading, router])
 
+    // ✅ Read and process error from URL on mount only
     useEffect(() => {
-        const endpoint = process.env.NEXT_PUBLIC_CASDOOR_ENDPOINT
-        const clientId = process.env.NEXT_PUBLIC_CASDOOR_CLIENT_ID
-        const orgName = process.env.NEXT_PUBLIC_CASDOOR_ORG_NAME
-        const appName = process.env.NEXT_PUBLIC_CASDOOR_APP_NAME
-
-        if (!endpoint || !clientId || !orgName || !appName) {
-            const missing = []
-            if (!endpoint) missing.push('NEXT_PUBLIC_CASDOOR_ENDPOINT')
-            if (!clientId) missing.push('NEXT_PUBLIC_CASDOOR_CLIENT_ID')
-            if (!orgName) missing.push('NEXT_PUBLIC_CASDOOR_ORG_NAME')
-            if (!appName) missing.push('NEXT_PUBLIC_CASDOOR_APP_NAME')
-
-            setConfigError(`Missing environment variables: ${missing.join(', ')}`)
+        const urlError = searchParams.get('error')
+        if (urlError) {
+            const errorMessages: Record<string, string> = {
+                'no_code': 'No authorization code received from Casdoor',
+                'signin_failed': 'Failed to sign in. Please try again.',
+                'auth_failed': 'Authentication failed. Please try again.',
+            }
+            const message = errorMessages[urlError] || decodeURIComponent(urlError)
+            setUserActionError(message)
+            
+            // Clear URL immediately to prevent persistence
+            window.history.replaceState({}, '', '/login')
         }
-    }, [])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []) // Only run once on mount
+
+    // ✅ Display error from user actions
+    const configError = userActionError
 
     if (isLoading) {
         return (
@@ -54,68 +60,68 @@ export default function LoginPage() {
     }
 
     const handleLogin = async () => {
+        // Clear previous errors
+        setUserActionError(null);
+        
         try {
+            // ✅ Validate frontend env variables first
+            const endpoint = process.env.NEXT_PUBLIC_CASDOOR_ENDPOINT
+            const clientId = process.env.NEXT_PUBLIC_CASDOOR_CLIENT_ID
+            const orgName = process.env.NEXT_PUBLIC_CASDOOR_ORG_NAME
+            const appName = process.env.NEXT_PUBLIC_CASDOOR_APP_NAME
+
+            if (!endpoint || !clientId || !orgName || !appName) {
+                const missing = []
+                if (!endpoint) missing.push('NEXT_PUBLIC_CASDOOR_ENDPOINT')
+                if (!clientId) missing.push('NEXT_PUBLIC_CASDOOR_CLIENT_ID')
+                if (!orgName) missing.push('NEXT_PUBLIC_CASDOOR_ORG_NAME')
+                if (!appName) missing.push('NEXT_PUBLIC_CASDOOR_APP_NAME')
+
+                throw new Error(`Missing environment variables: ${missing.join(', ')}`)
+            }
+            
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
-            const response = await fetch(`${apiUrl}/auth/casdoor/login-url`);
+            
+            // ✅ Better error handling with detailed messages
+            let response;
+            try {
+                response = await fetch(`${apiUrl}/auth/casdoor/login-url`);
+            } catch (fetchError: any) {
+                console.error('Network error:', fetchError);
+                throw new Error(`Cannot connect to backend at ${apiUrl}. Please check if backend is running.`);
+            }
             
             if (!response.ok) {
-                throw new Error('Failed to get login URL from backend');
+                const errorText = await response.text();
+                console.error('Backend error:', response.status, errorText);
+                throw new Error(`Backend returned error ${response.status}: ${errorText || 'Unknown error'}`);
             }
 
             const data = await response.json();
             const casdoorLoginUrl = data.loginUrl;
 
+            console.log('Casdoor Login URL:', casdoorLoginUrl);
+            
+            // Extract redirect_uri from URL for debugging
+            try {
+                const url = new URL(casdoorLoginUrl);
+                const redirectUri = url.searchParams.get('redirect_uri');
+                console.log('Redirect URI:', redirectUri);
+            } catch (e) {
+                console.error('Failed to parse login URL:', e);
+            }
+
             if (!casdoorLoginUrl || casdoorLoginUrl === 'undefined') {
-                setConfigError('Casdoor is not properly configured. Please check your environment variables.')
-                setShowSetupGuide(true)
+                setUserActionError('Casdoor is not properly configured. Please check your environment variables.')
                 return
             }
 
-            const width = 500
-            const height = 650
-            const left = window.screen.width / 2 - width / 2
-            const top = window.screen.height / 2 - height / 2
-
-            const popup = window.open(
-                casdoorLoginUrl,
-                'casdoor_login',
-                `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
-            )
-
-            if (!popup) {
-                setConfigError('Popup blocked! Please allow popups for this site.')
-                return
-            }
-
-            const handleMessage = (event: MessageEvent) => {
-                if (event.origin !== window.location.origin) return
-                
-                if (event.data.type === 'CASDOOR_LOGIN_SUCCESS') {
-                    if (popup && !popup.closed) {
-                        popup.close()
-                    }
-                    window.location.href = '/dashboard'
-                }
-                
-                if (event.data.type === 'CASDOOR_LOGIN_ERROR') {
-                    if (popup && !popup.closed) {
-                        popup.close()
-                    }
-                    setConfigError(event.data.error || 'Login failed')
-                }
-            }
-
-            window.addEventListener('message', handleMessage)
-
-            const checkPopup = setInterval(() => {
-                if (popup.closed) {
-                    clearInterval(checkPopup)
-                    window.removeEventListener('message', handleMessage)
-                }
-            }, 500)
-        } catch {
-            setConfigError('Failed to initialize Casdoor login. Please check the console for details.')
-            setShowSetupGuide(true)
+            // Direct redirect instead of popup for easier debugging
+            console.log('Redirecting to Casdoor...')
+            window.location.href = casdoorLoginUrl
+        } catch (error: any) {
+            console.error('Login error:', error);
+            setUserActionError(error.message || 'Failed to initialize Casdoor login. Please check the console for details.')
         }
     }
 
@@ -154,7 +160,6 @@ export default function LoginPage() {
                         <Button
                             onClick={handleLogin}
                             className="btn-primary btn-lg w-full"
-                            disabled={!!configError}
                         >
                             Sign in with Casdoor
                         </Button>
@@ -199,5 +204,17 @@ export default function LoginPage() {
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-background force-light">
+                <LoadingLogo size="lg" text="Loading..." />
+            </div>
+        }>
+            <LoginPageContent />
+        </Suspense>
     )
 }

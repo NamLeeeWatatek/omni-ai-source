@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
@@ -6,6 +6,7 @@ import {
     MessageSentEvent,
 } from '../../shared/events';
 import { ChannelStrategy } from '../channel.strategy';
+import { ChannelsService } from '../channels.service';
 
 @Injectable()
 export class ChannelEventListener {
@@ -14,6 +15,8 @@ export class ChannelEventListener {
     constructor(
         private readonly channelStrategy: ChannelStrategy,
         private readonly eventEmitter: EventEmitter2,
+        @Inject(forwardRef(() => ChannelsService))
+        private readonly channelsService: ChannelsService,
     ) { }
 
     @OnEvent('channel.message.send')
@@ -23,6 +26,35 @@ export class ChannelEventListener {
         );
 
         try {
+            // ✅ Get channel info to set credentials
+            const channelId = event.metadata?.channelId;
+            if (!channelId) {
+                throw new Error('No channelId in event metadata');
+            }
+
+            const channel = await this.channelsService.findOne(channelId);
+            if (!channel) {
+                throw new Error(`Channel ${channelId} not found`);
+            }
+
+            this.logger.debug(`Found channel: ${channel.name} (${channel.type})`);
+
+            // ✅ Get provider and set credentials BEFORE sending
+            const provider = this.channelStrategy.getProvider(event.channelType);
+            if (!provider) {
+                throw new Error(`No provider found for ${event.channelType}`);
+            }
+
+            // Set credentials if provider supports it (Facebook, Instagram, etc.)
+            if ('setCredentials' in provider && channel.accessToken) {
+                (provider as any).setCredentials(
+                    channel.accessToken,
+                    channel.credential?.clientSecret || '',
+                );
+                this.logger.debug('✅ Credentials set for provider');
+            }
+
+            // ✅ NOW send message with configured provider
             const result = await this.channelStrategy.sendMessage(
                 event.channelType,
                 {
@@ -43,11 +75,11 @@ export class ChannelEventListener {
 
             if (result.success) {
                 this.logger.log(
-                    `Message sent successfully to ${event.channelType}: ${result.messageId}`,
+                    `✅ Message sent successfully to ${event.channelType}: ${result.messageId}`,
                 );
             } else {
                 this.logger.error(
-                    `Failed to send message to ${event.channelType}: ${result.error}`,
+                    `❌ Failed to send message to ${event.channelType}: ${result.error}`,
                 );
             }
         } catch (error) {

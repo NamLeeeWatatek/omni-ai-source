@@ -52,6 +52,18 @@ export class AiConversationsService {
       conversation.title = updateDto.title;
     }
 
+    if (updateDto.botId !== undefined) {
+      conversation.botId = updateDto.botId;
+    }
+
+    if (updateDto.useKnowledgeBase !== undefined) {
+      conversation.useKnowledgeBase = updateDto.useKnowledgeBase;
+    }
+
+    if (updateDto.metadata !== undefined) {
+      conversation.metadata = updateDto.metadata;
+    }
+
     if (updateDto.messages !== undefined) {
       conversation.messages = updateDto.messages;
     }

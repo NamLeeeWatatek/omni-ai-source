@@ -27,27 +27,23 @@ import { getKnowledgeBases } from '@/lib/api/knowledge-base'
 import type { AiConversation, AiMessage } from '@/lib/types/conversations'
 import type { KnowledgeBase } from '@/lib/types/knowledge-base'
 import {
-    FiSend,
-    FiCopy,
-    FiCheck,
     FiMessageCircle,
     FiSettings,
     FiZap,
     FiBook,
-    FiRefreshCw,
-    FiUser,
-    FiCpu,
+    FiCheck,
     FiPlus,
     FiTrash2,
     FiEdit2,
+    FiRefreshCw,
 } from 'react-icons/fi'
+import { AiChatInterface } from '@/components/chat/ai-chat-interface'
 
 export default function ChatWithAIPage() {
     const { currentWorkspace } = useWorkspace()
     const [conversations, setConversations] = useState<AiConversation[]>([])
     const [currentConversation, setCurrentConversation] = useState<AiConversation | null>(null)
     const [messages, setMessages] = useState<AiMessage[]>([])
-    const [input, setInput] = useState('')
     const [loading, setLoading] = useState(false)
     const [loadingConversations, setLoadingConversations] = useState(true)
     const [bots, setBots] = useState<Bot[]>([])
@@ -55,7 +51,6 @@ export default function ChatWithAIPage() {
     const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([])
     const [selectedKnowledgeBases, setSelectedKnowledgeBases] = useState<string[]>([])
     const [useKnowledgeBase, setUseKnowledgeBase] = useState(false)
-    const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
     const [showSettings, setShowSettings] = useState(false)
     const [editingConversationId, setEditingConversationId] = useState<string | null>(null)
     const [editingTitle, setEditingTitle] = useState('')
@@ -63,7 +58,6 @@ export default function ChatWithAIPage() {
     const [conversationToDelete, setConversationToDelete] = useState<string | null>(null)
     const [creatingConversation, setCreatingConversation] = useState(false)
     const [savingSettings, setSavingSettings] = useState(false)
-    const messagesEndRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         if (currentWorkspace?.id) {
@@ -76,13 +70,7 @@ export default function ChatWithAIPage() {
         loadConversations()
     }, [])
 
-    useEffect(() => {
-        scrollToBottom()
-    }, [messages])
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }
 
     const loadBots = async () => {
         try {
@@ -152,6 +140,11 @@ export default function ChatWithAIPage() {
     }
 
     const selectConversation = (conv: AiConversation) => {
+        // Prevent re-selecting the same conversation
+        if (currentConversation?.id === conv.id) {
+            return;
+        }
+
         console.log('[Select Conversation]', {
             id: conv.id,
             botId: conv.botId,
@@ -159,19 +152,20 @@ export default function ChatWithAIPage() {
             metadata: conv.metadata,
         });
 
+        // Batch all state updates together
         setCurrentConversation(conv)
         setMessages(conv.messages || [])
-        
+
         if (conv.botId) {
             setSelectedBot(conv.botId)
         } else {
             setSelectedBot('none')
         }
-        
+
         if (conv.useKnowledgeBase !== undefined) {
             setUseKnowledgeBase(conv.useKnowledgeBase)
         }
-        
+
         if (conv.metadata?.knowledgeBaseIds && Array.isArray(conv.metadata.knowledgeBaseIds)) {
             setSelectedKnowledgeBases(conv.metadata.knowledgeBaseIds)
         } else {
@@ -239,7 +233,7 @@ export default function ChatWithAIPage() {
         }
     }
 
-    const handleSend = async () => {
+    const handleSend = async (input: string) => {
         if (!input.trim() || loading) return
 
         let conversationId = currentConversation?.id
@@ -252,6 +246,9 @@ export default function ChatWithAIPage() {
                     title: input.substring(0, 50) + (input.length > 50 ? '...' : ''),
                     botId: selectedBot !== 'none' ? selectedBot : undefined,
                     useKnowledgeBase: useKnowledgeBase,
+                    metadata: {
+                        knowledgeBaseIds: selectedKnowledgeBases,
+                    },
                 })
                 newConversation = newConv
                 conversationId = newConv.id
@@ -262,7 +259,7 @@ export default function ChatWithAIPage() {
             } catch {
                 toast.error('Failed to create conversation')
                 setCreatingConversation(false)
-                return
+                throw new Error('Failed to create conversation')
             }
         }
 
@@ -275,13 +272,12 @@ export default function ChatWithAIPage() {
         const currentMessages = newConversation ? [] : messages
         const updatedMessages = [...currentMessages, userMessage]
         setMessages(updatedMessages)
-        setInput('')
         setLoading(true)
 
         try {
             let responseText = ''
             let sources: any[] = []
-            let modelName = selectedBot !== 'none' 
+            let modelName = selectedBot !== 'none'
                 ? bots.find(b => b.id === selectedBot)?.aiModelName || 'gemini-2.5-flash'
                 : 'gemini-2.5-flash'
 
@@ -331,8 +327,9 @@ export default function ChatWithAIPage() {
                 await updateConversationMessages(conversationId, finalMessages)
             }
 
-        } catch {
+        } catch (error) {
             toast.error('Failed to get AI response')
+            throw error
         } finally {
             setLoading(false)
         }
@@ -369,34 +366,34 @@ export default function ChatWithAIPage() {
                     knowledgeBaseIds: selectedKnowledgeBases,
                 },
             })
-            
+
             setConversations((prev) =>
                 prev.map((c) =>
                     c.id === currentConversation.id
                         ? {
-                              ...c,
-                              botId: selectedBot !== 'none' ? selectedBot : null,
-                              useKnowledgeBase,
-                              metadata: {
-                                  ...c.metadata,
-                                  knowledgeBaseIds: selectedKnowledgeBases,
-                              },
-                          }
+                            ...c,
+                            botId: selectedBot !== 'none' ? selectedBot : null,
+                            useKnowledgeBase,
+                            metadata: {
+                                ...c.metadata,
+                                knowledgeBaseIds: selectedKnowledgeBases,
+                            },
+                        }
                         : c
                 )
             )
-            
+
             setCurrentConversation((prev) =>
                 prev
                     ? {
-                          ...prev,
-                          botId: selectedBot !== 'none' ? selectedBot : null,
-                          useKnowledgeBase,
-                          metadata: {
-                              ...prev.metadata,
-                              knowledgeBaseIds: selectedKnowledgeBases,
-                          },
-                      }
+                        ...prev,
+                        botId: selectedBot !== 'none' ? selectedBot : null,
+                        useKnowledgeBase,
+                        metadata: {
+                            ...prev.metadata,
+                            knowledgeBaseIds: selectedKnowledgeBases,
+                        },
+                    }
                     : null
             )
 
@@ -408,46 +405,39 @@ export default function ChatWithAIPage() {
         }
     }
 
-    const handleCopy = (content: string, index: number) => {
-        navigator.clipboard.writeText(content)
-        setCopiedIndex(index)
-        setTimeout(() => setCopiedIndex(null), 2000)
-        toast.success('Copied!')
-    }
-
     const clearChat = () => {
         setCurrentConversation(null)
         setMessages([])
         toast.success('Ready for new chat')
     }
 
-    const formatTime = (timestamp: string) => {
-        const date = new Date(timestamp)
-        return date.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-        })
-    }
-
     const formatDate = (dateString: string) => {
-        const date = new Date(dateString)
-        const now = new Date()
-        const diff = now.getTime() - date.getTime()
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+        try {
+            const date = new Date(dateString)
+            if (isNaN(date.getTime())) {
+                return 'Recently'
+            }
 
-        if (days === 0) return 'Today'
-        if (days === 1) return 'Yesterday'
-        if (days < 7) return `${days} days ago`
-        return date.toLocaleDateString()
+            const now = new Date()
+            const diff = now.getTime() - date.getTime()
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+
+            if (days === 0) return 'Today'
+            if (days === 1) return 'Yesterday'
+            if (days < 7) return `${days} days ago`
+            return date.toLocaleDateString()
+        } catch {
+            return 'Recently'
+        }
     }
 
     const selectedBotData = bots.find((b) => b.id === selectedBot)
 
     return (
         <div className="h-full flex">
-            {}
+            { }
             <aside className="w-80 border-r border-border/40 flex flex-col bg-background">
-                {}
+                { }
                 <div className="p-4 border-b border-border/40">
                     <Button
                         onClick={createNewConversation}
@@ -469,7 +459,7 @@ export default function ChatWithAIPage() {
                     </Button>
                 </div>
 
-                {}
+                { }
                 <div className="flex-1 overflow-y-auto p-3 space-y-2">
                     {loadingConversations ? (
                         <div className="flex flex-col items-center justify-center py-12 gap-3">
@@ -574,9 +564,9 @@ export default function ChatWithAIPage() {
                 </div>
             </aside>
 
-            {}
+            { }
             <div className="flex-1 flex flex-col">
-                {}
+                { }
                 <header className="border-b border-border/40 bg-background flex-shrink-0">
                     <div className="px-6 py-4 flex items-center justify-between">
                         <div>
@@ -607,11 +597,11 @@ export default function ChatWithAIPage() {
                         </div>
                     </div>
 
-                    {}
+                    { }
                     {showSettings && (
                         <div className="border-t border-border/40 bg-gradient-to-b from-muted/30 to-muted/10">
                             <div className="max-w-6xl mx-auto p-6 space-y-6">
-                                {}
+                                { }
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -641,14 +631,14 @@ export default function ChatWithAIPage() {
                                     </Button>
                                 </div>
 
-                                {}
+                                { }
                                 <div className="space-y-3">
                                     <label className="text-sm font-semibold flex items-center gap-2">
                                         <FiMessageCircle className="w-4 h-4" />
                                         Select Bot
                                     </label>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                        {}
+                                        { }
                                         <Card
                                             className={`p-4 cursor-pointer transition-all duration-200 ${selectedBot === 'none'
                                                 ? 'border-primary bg-primary/5 shadow-md'
@@ -658,7 +648,7 @@ export default function ChatWithAIPage() {
                                         >
                                             <div className="flex items-start gap-3">
                                                 <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center flex-shrink-0">
-                                                    <FiCpu className="w-5 h-5 text-white" />
+                                                    <FiZap className="w-5 h-5 text-white" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <h4 className="font-semibold text-sm">Direct AI</h4>
@@ -669,7 +659,7 @@ export default function ChatWithAIPage() {
                                             </div>
                                         </Card>
 
-                                        {}
+                                        { }
                                         {bots.map((bot) => (
                                             <Card
                                                 key={bot.id}
@@ -701,7 +691,7 @@ export default function ChatWithAIPage() {
                                     </div>
                                 </div>
 
-                                {}
+                                { }
                                 {selectedBot !== 'none' && (
                                     <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                                         <div className="flex items-center justify-between">
@@ -799,7 +789,7 @@ export default function ChatWithAIPage() {
                                     </div>
                                 )}
 
-                                {}
+                                { }
                                 {selectedBot !== 'none' && selectedBotData && (
                                     <div className="bg-muted/50 rounded-lg p-4 border border-border/40">
                                         <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
@@ -832,241 +822,17 @@ export default function ChatWithAIPage() {
                     )}
                 </header>
 
-                {}
-                <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4 min-h-0">
-                    {messages.length === 0 ? (
-                        <div className="h-full flex items-center justify-center">
-                            <div className="text-center max-w-2xl">
-                                <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-blue-600/30">
-                                    <FiMessageCircle className="w-10 h-10 text-white" />
-                                </div>
-                                <h2 className="text-2xl font-bold mb-3">
-                                    Start chatting with AI
-                                </h2>
-                                <p className="text-muted-foreground mb-8">
-                                    Select a bot to test its behavior, or chat directly with AI.
-                                    Enable knowledge base to get answers from your documents.
-                                </p>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <Card
-                                        className="p-4 cursor-pointer hover:border-primary/40 transition-colors"
-                                        onClick={() => setInput('How can you help me?')}
-                                    >
-                                        <h3 className="font-semibold mb-1">General Question</h3>
-                                        <p className="text-sm text-muted-foreground">
-                                            How can you help me?
-                                        </p>
-                                    </Card>
-                                    <Card
-                                        className="p-4 cursor-pointer hover:border-primary/40 transition-colors"
-                                        onClick={() =>
-                                            setInput('Explain your capabilities')
-                                        }
-                                    >
-                                        <h3 className="font-semibold mb-1">Capabilities</h3>
-                                        <p className="text-sm text-muted-foreground">
-                                            Explain your capabilities
-                                        </p>
-                                    </Card>
-                                    <Card
-                                        className="p-4 cursor-pointer hover:border-primary/40 transition-colors"
-                                        onClick={() =>
-                                            setInput('What documents do you have access to?')
-                                        }
-                                    >
-                                        <h3 className="font-semibold mb-1">Knowledge Base</h3>
-                                        <p className="text-sm text-muted-foreground">
-                                            What documents do you have?
-                                        </p>
-                                    </Card>
-                                    <Card
-                                        className="p-4 cursor-pointer hover:border-primary/40 transition-colors"
-                                        onClick={() =>
-                                            setInput('Tell me about your features')
-                                        }
-                                    >
-                                        <h3 className="font-semibold mb-1">Features</h3>
-                                        <p className="text-sm text-muted-foreground">
-                                            Tell me about your features
-                                        </p>
-                                    </Card>
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="max-w-4xl mx-auto space-y-6">
-                            {messages.map((message, index) => (
-                                <div
-                                    key={index}
-                                    className={`flex gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500 ${message.role === 'user' ? 'justify-end' : 'justify-start'
-                                        }`}
-                                    style={{ animationDelay: `${index * 50}ms` }}
-                                >
-                                    {message.role === 'assistant' && (
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-600/30">
-                                            <FiCpu className="w-5 h-5 text-white" />
-                                        </div>
-                                    )}
-
-                                    <div
-                                        className={`flex-1 max-w-[80%] ${message.role === 'user' ? 'order-first' : ''
-                                            }`}
-                                    >
-                                        <div
-                                            className={`rounded-2xl p-4 ${message.role === 'user'
-                                                ? 'bg-primary text-primary-foreground ml-auto'
-                                                : 'bg-muted'
-                                                }`}
-                                        >
-                                            <div className="flex items-start justify-between gap-3 mb-2">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-semibold text-sm">
-                                                        {message.role === 'user' ? 'You' : message.metadata?.bot || 'AI'}
-                                                    </span>
-                                                    {message.metadata?.model && (
-                                                        <Badge variant="secondary" className="text-xs">
-                                                            {message.metadata.model}
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs opacity-70">
-                                                        {formatTime(message.timestamp)}
-                                                    </span>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-6 w-6 p-0"
-                                                        onClick={() => handleCopy(message.content, index)}
-                                                    >
-                                                        {copiedIndex === index ? (
-                                                            <FiCheck className="w-3 h-3" />
-                                                        ) : (
-                                                            <FiCopy className="w-3 h-3" />
-                                                        )}
-                                                    </Button>
-                                                </div>
-                                            </div>
-
-                                            <div className="prose prose-sm max-w-none dark:prose-invert">
-                                                <p className="whitespace-pre-wrap">{message.content}</p>
-                                            </div>
-
-                                            {}
-                                            {/* {message.metadata?.sources && message.metadata.sources.length > 0 && (
-                                                <div className="mt-3 pt-3 border-t border-border/40">
-                                                    <div className="flex items-center gap-2 text-xs font-medium mb-2">
-                                                        <FiBook className="w-3 h-3" />
-                                                        Sources ({message.metadata.sources.length})
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        {message.metadata.sources.slice(0, 3).map((source: any, idx: number) => (
-                                                            <div
-                                                                key={idx}
-                                                                className="text-xs p-2 rounded bg-background/50 border border-border/40"
-                                                            >
-                                                                <div className="font-medium truncate">
-                                                                    {source.metadata?.filename || source.metadata?.title || 'Document'}
-                                                                </div>
-                                                                <div className="text-muted-foreground truncate">
-                                                                    {source.content?.substring(0, 100)}...
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )} */}
-                                        </div>
-                                    </div>
-
-                                    {message.role === 'user' && (
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-purple-600/30">
-                                            <FiUser className="w-5 h-5 text-white" />
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-
-                            {loading && (
-                                <div className="flex gap-4 justify-start animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-600/30 animate-pulse">
-                                        <FiCpu className="w-5 h-5 text-white" />
-                                    </div>
-                                    <div className="flex-1 max-w-[80%]">
-                                        <div className="rounded-2xl p-4 bg-muted">
-                                            <div className="flex items-center gap-3">
-                                                <Spinner className="w-4 h-4" />
-                                                <span className="text-sm text-muted-foreground">
-                                                    AI is thinking...
-                                                </span>
-                                                <div className="flex gap-1">
-                                                    <div className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                                                    <div className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                                                    <div className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div ref={messagesEndRef} />
-                        </div>
-                    )}
-                </div>
-
-                {}
-                <div className="border-t border-border/40 bg-background p-6 flex-shrink-0">
-                    <div className="max-w-4xl mx-auto">
-                        <div className="flex gap-3">
-                            <div className="flex-1 relative">
-                                <textarea
-                                    value={input}
-                                    onChange={(e) => setInput(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && !e.shiftKey) {
-                                            e.preventDefault()
-                                            handleSend()
-                                        }
-                                    }}
-                                    placeholder="Type your message... (Shift+Enter for new line)"
-                                    className="w-full px-4 py-3 pr-12 rounded-xl border border-border/40 bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 min-h-[56px] max-h-[200px]"
-                                    rows={1}
-                                    disabled={loading}
-                                />
-                            </div>
-                            <Button
-                                onClick={handleSend}
-                                disabled={!input.trim() || loading}
-                                size="lg"
-                                className="px-6 rounded-xl"
-                            >
-                                {loading ? (
-                                    <Spinner className="w-4 h-4" />
-                                ) : (
-                                    <>
-                                        <FiSend className="w-5 h-5 mr-2" />
-                                        Send
-                                    </>
-                                )}
-                            </Button>
-                        </div>
-
-                        {selectedBot !== 'none' && (
-                            <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                                <FiZap className="w-3 h-3" />
-                                <span>
-                                    Chatting with {selectedBotData?.name || 'bot'}
-                                    {useKnowledgeBase && ' with knowledge base'}
-                                </span>
-                            </div>
-                        )}
-                    </div>
-                </div>
+                {/* ✅ PROFESSIONAL: Use dedicated AI Chat Interface */}
+                <AiChatInterface
+                    messages={messages}
+                    onSendMessage={handleSend}
+                    loading={loading}
+                    botName={selectedBotData?.name || 'AI Assistant'}
+                    modelName={selectedBotData?.aiModelName || undefined}
+                />
             </div>
 
-            {}
+            { }
             <AlertDialogConfirm
                 open={deleteDialogOpen}
                 onOpenChange={setDeleteDialogOpen}

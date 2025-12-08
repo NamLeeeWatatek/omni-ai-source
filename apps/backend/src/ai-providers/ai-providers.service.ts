@@ -17,7 +17,7 @@ import {
   CreateWorkspaceAiProviderDto,
   UpdateWorkspaceAiProviderDto,
 } from './dto/ai-provider.dto';
-import * as crypto from 'crypto';
+import { EncryptionUtil } from '../common/utils/encryption.util';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
@@ -30,7 +30,6 @@ export interface ChatMessage {
 @Injectable()
 export class AiProvidersService {
   private readonly logger = new Logger(AiProvidersService.name);
-  private readonly encryptionKey: string;
 
   constructor(
     @InjectRepository(UserAiProviderEntity)
@@ -39,34 +38,16 @@ export class AiProvidersService {
     private workspaceProviderRepo: Repository<WorkspaceAiProviderEntity>,
     @InjectRepository(AiUsageLogEntity)
     private usageLogRepo: Repository<AiUsageLogEntity>,
+    private readonly encryptionUtil: EncryptionUtil,
   ) {
-    this.encryptionKey =
-      process.env.ENCRYPTION_KEY || 'default-key-32-chars-long!!!!!';
+    this.logger.log('✅ AI Providers Service initialized with secure encryption');
   }
 
-  private encrypt(text: string): string {
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv(
-      'aes-256-cbc',
-      Buffer.from(this.encryptionKey.padEnd(32).slice(0, 32)),
-      iv,
-    );
-    let encrypted = cipher.update(text, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return iv.toString('hex') + ':' + encrypted;
-  }
-
-  private decrypt(text: string): string {
-    const [ivHex, encrypted] = text.split(':');
-    const iv = Buffer.from(ivHex, 'hex');
-    const decipher = crypto.createDecipheriv(
-      'aes-256-cbc',
-      Buffer.from(this.encryptionKey.padEnd(32).slice(0, 32)),
-      iv,
-    );
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
+  /**
+   * Mask API key for safe display
+   */
+  private maskApiKey(apiKey: string): string {
+    return this.encryptionUtil.maskSensitiveData(apiKey, 4);
   }
 
   async createUserProvider(userId: string, dto: CreateUserAiProviderDto) {
@@ -74,7 +55,7 @@ export class AiProvidersService {
       userId,
       provider: dto.provider,
       displayName: dto.displayName,
-      apiKeyEncrypted: this.encrypt(dto.apiKey),
+      apiKeyEncrypted: this.encryptionUtil.encrypt(dto.apiKey),
       modelList: dto.modelList,
       isActive: true,
       isVerified: false,
@@ -83,9 +64,24 @@ export class AiProvidersService {
   }
 
   async getUserProviders(userId: string) {
-    return this.userProviderRepo.find({
+    const providers = await this.userProviderRepo.find({
       where: { userId },
       order: { createdAt: 'DESC' },
+    });
+
+    return providers.map(p => {
+      const masked = { ...p };
+      if (p.apiKeyEncrypted) {
+        try {
+          const decrypted = this.encryptionUtil.decrypt(p.apiKeyEncrypted);
+          (masked as any).apiKeyMasked = this.maskApiKey(decrypted);
+        } catch (error) {
+          this.logger.error(`Failed to decrypt API key for provider ${p.id}`, error);
+          (masked as any).apiKeyMasked = '****';
+        }
+      }
+      delete (masked as any).apiKeyEncrypted; // Don't expose encrypted key
+      return masked;
     });
   }
 
@@ -96,7 +92,20 @@ export class AiProvidersService {
     if (!provider) {
       throw new NotFoundException('AI provider not found');
     }
-    return provider;
+
+    // ✅ Mask API key before returning
+    const masked = { ...provider };
+    if (provider.apiKeyEncrypted) {
+      try {
+        const decrypted = this.encryptionUtil.decrypt(provider.apiKeyEncrypted);
+        (masked as any).apiKeyMasked = this.maskApiKey(decrypted);
+      } catch (error) {
+        this.logger.error(`Failed to decrypt API key for provider ${id}`, error);
+        (masked as any).apiKeyMasked = '****';
+      }
+    }
+    delete (masked as any).apiKeyEncrypted;
+    return masked;
   }
 
   async updateUserProvider(
@@ -104,27 +113,77 @@ export class AiProvidersService {
     id: string,
     dto: UpdateUserAiProviderDto,
   ) {
-    const provider = await this.getUserProvider(userId, id);
+    const provider = await this.userProviderRepo.findOne({
+      where: { id, userId },
+    });
+    
+    if (!provider) {
+      throw new NotFoundException('AI provider not found');
+    }
+
+    this.logger.log(`[UPDATE] Provider ${id} BEFORE update:`, {
+      displayName: provider.displayName,
+      hasKey: !!provider.apiKeyEncrypted,
+      keyLength: provider.apiKeyEncrypted?.length,
+      isVerified: provider.isVerified,
+      isActive: provider.isActive,
+    });
 
     if (dto.displayName) provider.displayName = dto.displayName;
     if (dto.apiKey) {
-      provider.apiKeyEncrypted = this.encrypt(dto.apiKey);
-      provider.isVerified = false;
+      const oldKeyLength = provider.apiKeyEncrypted?.length;
+      provider.apiKeyEncrypted = this.encryptionUtil.encrypt(dto.apiKey);
+      provider.isVerified = false;  // ✅ Reset verification when API key changes
+      provider.verifiedAt = null;
+      
+      this.logger.log(`[UPDATE] API key updated for provider ${id}:`, {
+        oldKeyLength,
+        newKeyLength: provider.apiKeyEncrypted?.length,
+        keysAreDifferent: oldKeyLength !== provider.apiKeyEncrypted?.length,
+        verificationReset: true,
+      });
     }
     if (dto.modelList) provider.modelList = dto.modelList;
     if (dto.isActive !== undefined) provider.isActive = dto.isActive;
 
-    return this.userProviderRepo.save(provider);
+    const saved = await this.userProviderRepo.save(provider);
+    
+    this.logger.log(`[UPDATE] Provider ${id} SAVED to database:`, {
+      id: saved.id,
+      displayName: saved.displayName,
+      keyLength: saved.apiKeyEncrypted?.length,
+      isVerified: saved.isVerified,
+      isActive: saved.isActive,
+    });
+
+    return saved;
   }
 
   async deleteUserProvider(userId: string, id: string) {
-    const provider = await this.getUserProvider(userId, id);
+    const provider = await this.userProviderRepo.findOne({
+      where: { id, userId },
+    });
+    if (!provider) {
+      throw new NotFoundException('AI provider not found');
+    }
     await this.userProviderRepo.remove(provider);
   }
 
   async verifyUserProvider(userId: string, id: string) {
-    const provider = await this.getUserProvider(userId, id);
-    const apiKey = this.decrypt(provider.apiKeyEncrypted!);
+    // ✅ Get provider directly from DB (not through getUserProvider which masks the key)
+    const provider = await this.userProviderRepo.findOne({
+      where: { id, userId },
+    });
+    
+    if (!provider) {
+      throw new NotFoundException('AI provider not found');
+    }
+
+    if (!provider.apiKeyEncrypted) {
+      throw new BadRequestException('No API key configured for this provider');
+    }
+
+    const apiKey = this.encryptionUtil.decrypt(provider.apiKeyEncrypted);
 
     const isValid = await this.verifyApiKey(provider.provider, apiKey);
     if (!isValid) {
@@ -133,7 +192,10 @@ export class AiProvidersService {
 
     provider.isVerified = true;
     provider.verifiedAt = new Date();
-    return this.userProviderRepo.save(provider);
+    await this.userProviderRepo.save(provider);
+
+    // ✅ Return masked version for response
+    return this.getUserProvider(userId, id);
   }
 
   async createWorkspaceProvider(
@@ -144,7 +206,7 @@ export class AiProvidersService {
       workspaceId,
       provider: dto.provider,
       displayName: dto.displayName,
-      apiKeyEncrypted: this.encrypt(dto.apiKey),
+      apiKeyEncrypted: this.encryptionUtil.encrypt(dto.apiKey),
       modelList: dto.modelList,
       isActive: true,
     });
@@ -173,10 +235,19 @@ export class AiProvidersService {
     id: string,
     dto: UpdateWorkspaceAiProviderDto,
   ) {
-    const provider = await this.getWorkspaceProvider(workspaceId, id);
+    const provider = await this.workspaceProviderRepo.findOne({
+      where: { id, workspaceId },
+    });
+    
+    if (!provider) {
+      throw new NotFoundException('AI provider not found');
+    }
 
     if (dto.displayName) provider.displayName = dto.displayName;
-    if (dto.apiKey) provider.apiKeyEncrypted = this.encrypt(dto.apiKey);
+    if (dto.apiKey) {
+      provider.apiKeyEncrypted = this.encryptionUtil.encrypt(dto.apiKey);
+      this.logger.log(`API key updated for workspace provider ${id}`);
+    }
     if (dto.modelList) provider.modelList = dto.modelList;
     if (dto.isActive !== undefined) provider.isActive = dto.isActive;
 
@@ -312,29 +383,21 @@ export class AiProvidersService {
     if (type === 'user') {
       const provider = await this.userProviderRepo.findOne({ where: { id } });
       if (!provider?.apiKeyEncrypted) return null;
-      return this.decrypt(provider.apiKeyEncrypted);
+      return this.encryptionUtil.decrypt(provider.apiKeyEncrypted);
     } else {
       const provider = await this.workspaceProviderRepo.findOne({
         where: { id },
       });
       if (!provider?.apiKeyEncrypted) return null;
-      return this.decrypt(provider.apiKeyEncrypted);
+      return this.encryptionUtil.decrypt(provider.apiKeyEncrypted);
     }
   }
 
   private getApiKey(provider: string): string {
-    const envKeys: Record<string, string | undefined> = {
-      google: process.env.GOOGLE_API_KEY,
-      openai: process.env.OPENAI_API_KEY,
-      anthropic: process.env.ANTHROPIC_API_KEY,
-    };
-    const key = envKeys[provider];
-    if (!key) {
-      throw new BadRequestException(
-        `API key not configured for provider: ${provider}. Please set ${provider.toUpperCase()}_API_KEY in .env or add it in Settings > AI Providers`,
-      );
-    }
-    return key;
+    // ❌ NO LONGER USE .ENV FALLBACK - Force users to configure in Settings
+    throw new BadRequestException(
+      `No API key configured for ${provider}. Please add your API key in Settings > AI Providers.`,
+    );
   }
 
   private async getApiKeyForModel(
@@ -347,8 +410,8 @@ export class AiProvidersService {
     // Try workspace provider first
     if (workspaceId) {
       const workspaceProviders = await this.workspaceProviderRepo.find({
-        where: { 
-          workspaceId, 
+        where: {
+          workspaceId,
           provider: provider as any,
           isActive: true,
         },
@@ -357,7 +420,7 @@ export class AiProvidersService {
       for (const wp of workspaceProviders) {
         if (!wp.modelList || wp.modelList.length === 0 || wp.modelList.includes(model)) {
           if (wp.apiKeyEncrypted) {
-            return this.decrypt(wp.apiKeyEncrypted);
+            return this.encryptionUtil.decrypt(wp.apiKeyEncrypted);
           }
         }
       }
@@ -366,8 +429,8 @@ export class AiProvidersService {
     // Try user provider
     if (userId) {
       const userProviders = await this.userProviderRepo.find({
-        where: { 
-          userId, 
+        where: {
+          userId,
           provider: provider as any,
           isActive: true,
         },
@@ -376,7 +439,7 @@ export class AiProvidersService {
       for (const up of userProviders) {
         if (!up.modelList || up.modelList.length === 0 || up.modelList.includes(model)) {
           if (up.apiKeyEncrypted) {
-            return this.decrypt(up.apiKeyEncrypted);
+            return this.encryptionUtil.decrypt(up.apiKeyEncrypted);
           }
         }
       }
@@ -387,13 +450,13 @@ export class AiProvidersService {
   }
 
   async chat(
-    prompt: string, 
+    prompt: string,
     model?: string,
     userId?: string,
     workspaceId?: string
   ): Promise<string> {
     const modelName = model || 'gemini-2.0-flash';
-    
+
     // Try to get user/workspace provider first
     const apiKey = await this.getApiKeyForModel(modelName, userId, workspaceId);
     const provider = this.getProviderFromModel(modelName);
@@ -411,6 +474,74 @@ export class AiProvidersService {
         return this.chatWithAnthropic(prompt, modelName, apiKey);
       default:
         throw new BadRequestException(`Unsupported provider: ${provider}`);
+    }
+  }
+
+  /**
+   * Get API key from specific provider ID (workspace or user provider)
+   */
+  async getApiKeyByProviderId(
+    providerId: string,
+    type: 'workspace' | 'user' = 'workspace'
+  ): Promise<{ apiKey: string; provider: string } | null> {
+    try {
+      this.logger.log(`[GET_KEY] Getting API key for provider ${providerId}, type: ${type}`);
+      
+      if (type === 'workspace') {
+        const provider = await this.workspaceProviderRepo.findOne({
+          where: { id: providerId, isActive: true }
+        });
+        
+        if (!provider?.apiKeyEncrypted) {
+          this.logger.warn(`[GET_KEY] Workspace provider ${providerId} not found or has no key`);
+          return null;
+        }
+        
+        this.logger.log(`[GET_KEY] Found workspace provider:`, {
+          id: provider.id,
+          provider: provider.provider,
+          displayName: provider.displayName,
+          keyLength: provider.apiKeyEncrypted?.length,
+          isActive: provider.isActive,
+        });
+        
+        const decrypted = this.encryptionUtil.decrypt(provider.apiKeyEncrypted);
+        this.logger.log(`[GET_KEY] Decrypted key length: ${decrypted.length}, first 10 chars: ${decrypted.substring(0, 10)}...`);
+        
+        return {
+          apiKey: decrypted,
+          provider: provider.provider
+        };
+      } else {
+        const provider = await this.userProviderRepo.findOne({
+          where: { id: providerId, isActive: true }
+        });
+        
+        if (!provider?.apiKeyEncrypted) {
+          this.logger.warn(`[GET_KEY] User provider ${providerId} not found or has no key`);
+          return null;
+        }
+        
+        this.logger.log(`[GET_KEY] Found user provider:`, {
+          id: provider.id,
+          provider: provider.provider,
+          displayName: provider.displayName,
+          keyLength: provider.apiKeyEncrypted?.length,
+          isActive: provider.isActive,
+          isVerified: provider.isVerified,
+        });
+        
+        const decrypted = this.encryptionUtil.decrypt(provider.apiKeyEncrypted);
+        this.logger.log(`[GET_KEY] Decrypted key length: ${decrypted.length}, first 10 chars: ${decrypted.substring(0, 10)}...`);
+        
+        return {
+          apiKey: decrypted,
+          provider: provider.provider
+        };
+      }
+    } catch (error) {
+      this.logger.error(`[GET_KEY] Error getting API key for provider ${providerId}:`, error);
+      return null;
     }
   }
 
@@ -437,6 +568,84 @@ export class AiProvidersService {
         return this.chatWithAnthropicHistory(messages, modelName, apiKey);
       default:
         throw new BadRequestException(`Unsupported provider: ${provider}`);
+    }
+  }
+
+  /**
+   * Chat with history using specific provider ID (for bots with configured AI provider)
+   */
+  async chatWithHistoryUsingProvider(
+    messages: ChatMessage[],
+    model: string,
+    providerId?: string,
+    workspaceId?: string,
+    userId?: string,
+  ): Promise<string> {
+    let apiKey: string | null = null;
+    let providerName: string = this.getProviderFromModel(model);  // ✅ Initialize with default
+
+    // ✅ Priority 1: Use specific provider ID if provided (bot's configured provider)
+    if (providerId) {
+      this.logger.log(`Using bot's configured AI provider: ${providerId}`);
+      const providerData = await this.getApiKeyByProviderId(providerId, 'workspace');
+      
+      if (!providerData) {
+        // Try user provider
+        const userProviderData = await this.getApiKeyByProviderId(providerId, 'user');
+        if (userProviderData) {
+          apiKey = userProviderData.apiKey;
+          providerName = userProviderData.provider;
+        }
+      } else {
+        apiKey = providerData.apiKey;
+        providerName = providerData.provider;
+      }
+      
+      if (!apiKey) {
+        throw new BadRequestException(
+          `AI Provider ${providerId} not found or has no API key configured. Please check bot settings.`
+        );
+      }
+    } else {
+      // ✅ Priority 2: Find provider by workspace/user + model (fallback)
+      this.logger.log(`No specific provider configured, auto-detecting by model: ${model}`);
+      apiKey = await this.getApiKeyForModel(model, userId, workspaceId);
+      providerName = this.getProviderFromModel(model);
+    }
+
+    // ❌ NO FALLBACK - User must configure API key
+    if (!apiKey) {
+      this.logger.error(`❌ No API key available for model ${model}`);
+      this.logger.error(`providerId: ${providerId}, workspaceId: ${workspaceId}, userId: ${userId}`);
+      
+      if (!providerId) {
+        throw new BadRequestException(
+          `No AI provider configured for this bot. Please:\n` +
+          `1. Go to Settings > AI Providers\n` +
+          `2. Add your ${providerName.toUpperCase()} API key\n` +
+          `3. Assign the provider to your bot in Bot Settings`
+        );
+      } else {
+        throw new BadRequestException(
+          `AI Provider ${providerId} not found or has no API key configured.\n` +
+          `Please check Settings > AI Providers and ensure your API key is valid.`
+        );
+      }
+    }
+
+    this.logger.log(
+      `Chat with history - Provider: ${providerName}, Model: ${model}, Using specific providerId: ${!!providerId}`,
+    );
+
+    switch (providerName) {
+      case 'google':
+        return this.chatWithGoogleHistory(messages, model, apiKey);
+      case 'openai':
+        return this.chatWithOpenAIHistory(messages, model, apiKey);
+      case 'anthropic':
+        return this.chatWithAnthropicHistory(messages, model, apiKey);
+      default:
+        throw new BadRequestException(`Unsupported provider: ${providerName}`);
     }
   }
 
@@ -495,11 +704,11 @@ export class AiProvidersService {
   ): Promise<string> {
     const key = apiKey || this.getApiKey('google');
     const genAI = new GoogleGenerativeAI(key);
-    
+
     const systemMessage = messages.find((m) => m.role === 'system');
     const chatMessages = messages.filter((m) => m.role !== 'system');
 
-    const modelConfig: any = { 
+    const modelConfig: any = {
       model,
       safetySettings: [
         {
@@ -520,13 +729,13 @@ export class AiProvidersService {
         },
       ],
     };
-    
+
     if (systemMessage?.content) {
       modelConfig.systemInstruction = {
         parts: [{ text: systemMessage.content }],
       };
     }
-    
+
     const genModel = genAI.getGenerativeModel(modelConfig);
 
     const history = chatMessages.slice(0, -1).map((m) => ({
@@ -534,8 +743,19 @@ export class AiProvidersService {
       parts: [{ text: m.content }],
     }));
 
+    // ✅ Fix: Google AI requires first message to be 'user', not 'model'
+    // If history starts with 'model', remove it or skip it
+    const validHistory = history.filter((msg, index) => {
+      // If first message is 'model', skip it
+      if (index === 0 && msg.role === 'model') {
+        this.logger.warn('Skipping first message with role "model" for Google AI compatibility');
+        return false;
+      }
+      return true;
+    });
+
     const chat = genModel.startChat({
-      history,
+      history: validHistory,
     });
 
     const lastMessage = chatMessages[chatMessages.length - 1];
@@ -633,3 +853,4 @@ export class AiProvidersService {
     return content.type === 'text' ? content.text : '';
   }
 }
+

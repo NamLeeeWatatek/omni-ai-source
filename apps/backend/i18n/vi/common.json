@@ -1,0 +1,15 @@
+{
+    "welcome": "Chào mừng",
+    "hello": "Xin chào",
+    "error": {
+        "general": "Đã xảy ra lỗi",
+        "notFound": "Không tìm thấy",
+        "unauthorized": "Không được phép",
+        "forbidden": "Bị cấm"
+    },
+    "success": {
+        "saved": "Lưu thành công",
+        "deleted": "Xóa thành công",
+        "updated": "Cập nhật thành công"
+    }
+}

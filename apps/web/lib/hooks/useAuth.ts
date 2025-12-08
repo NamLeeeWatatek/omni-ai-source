@@ -15,6 +15,7 @@ export function useAuth() {
   const accessToken = (session as any)?.accessToken;
   const workspace = (session as any)?.workspace;
   const workspaces = (session as any)?.workspaces;
+  const error = (session as any)?.error;
 
   const fetchWorkspaceFromAPI = useCallback(async () => {
     if (!accessToken) return;
@@ -44,6 +45,16 @@ export function useAuth() {
     }
   }, [accessToken, dispatch]);
 
+  // Handle refresh token error - auto logout
+  useEffect(() => {
+    if (error === "RefreshAccessTokenError") {
+      console.log('[Auth] ⚠️ Refresh token expired, logging out...');
+      nextAuthSignOut({ redirect: false }).then(() => {
+        router.push("/login?error=session_expired");
+      });
+    }
+  }, [error, router]);
+
   useEffect(() => {
     if (workspace) {
       dispatch(setCurrentWorkspace(workspace));
@@ -56,7 +67,8 @@ export function useAuth() {
     if (isAuthenticated && !workspace && accessToken) {
       fetchWorkspaceFromAPI();
     }
-  }, [workspace, workspaces, dispatch, isAuthenticated, accessToken, fetchWorkspaceFromAPI]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspace, workspaces, isAuthenticated, accessToken]);
 
   const signOut = async () => {
     await nextAuthSignOut({ redirect: false });

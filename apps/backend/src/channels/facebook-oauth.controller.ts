@@ -16,6 +16,8 @@ import { AuthGuard } from '@nestjs/passport';
 import { FacebookOAuthService } from './facebook-oauth.service';
 import { ChannelsService } from './channels.service';
 import { ChannelStrategy } from './channel.strategy';
+import { FacebookSyncService } from './services/facebook-sync.service';
+import { FacebookConversationSyncService } from './services/facebook-conversation-sync.service';
 
 @ApiTags('Facebook OAuth')
 @Controller({ path: 'channels/facebook', version: '1' })
@@ -24,6 +26,8 @@ export class FacebookOAuthController {
     private readonly facebookOAuthService: FacebookOAuthService,
     private readonly channelsService: ChannelsService,
     private readonly channelStrategy: ChannelStrategy,
+    private readonly facebookSyncService: FacebookSyncService,
+    private readonly facebookConversationSyncService: FacebookConversationSyncService,
   ) { }
 
   @Get('oauth/url')
@@ -48,7 +52,7 @@ export class FacebookOAuthController {
     const state = req.user?.id || 'anonymous';
 
     const oauthUrl = this.facebookOAuthService.getOAuthUrl(
-      credential.clientId,
+      credential.clientId!,
       uri,
       state,
     );
@@ -68,6 +72,7 @@ export class FacebookOAuthController {
     @Query('error') error?: string,
     @Query('error_description') errorDescription?: string,
   ) {
+    // ✅ Handle Facebook OAuth errors
     if (error) {
       throw new HttpException(
         errorDescription || 'Facebook OAuth failed',
@@ -95,11 +100,13 @@ export class FacebookOAuthController {
       }
 
       const redirectUri = `${process.env.FRONTEND_DOMAIN}/channels/callback?provider=facebook`;
+      
+      // ✅ Exchange code for token (may fail if code already used)
       const accessToken = await this.facebookOAuthService.exchangeCodeForToken(
         code,
         redirectUri,
-        credential.clientId,
-        credential.clientSecret,
+        credential.clientId!,
+        credential.clientSecret!,
       );
 
       const pages = await this.facebookOAuthService.getUserPages(accessToken);
@@ -116,10 +123,11 @@ export class FacebookOAuthController {
         tempToken: accessToken,
       };
     } catch (error) {
-      throw new HttpException(
-        error.message || 'Failed to process OAuth callback',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      // ✅ Better error handling
+      const statusCode = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+      const message = error.message || 'Failed to process OAuth callback';
+      
+      throw new HttpException(message, statusCode);
     }
   }
 
@@ -336,6 +344,104 @@ export class FacebookOAuthController {
         isActive: credential.isActive,
         createdAt: credential.createdAt,
       },
+    };
+  }
+
+  @Get('connections/:id/sync')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Sync conversations and messages from Facebook' })
+  async syncMessages(
+    @Request() req,
+    @Param('id') connectionId: string,
+    @Query('conversation_limit') conversationLimit?: number,
+    @Query('message_limit') messageLimit?: number,
+  ) {
+    const workspaceId = req.user.workspaceId || req.user.id;
+
+    // Get connection
+    const connection = await this.channelsService.findOne(connectionId, workspaceId);
+    if (!connection) {
+      throw new HttpException('Connection not found', HttpStatus.NOT_FOUND);
+    }
+
+    if (connection.type !== 'facebook') {
+      throw new HttpException(
+        'This endpoint only supports Facebook connections',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    if (!connection.accessToken) {
+      throw new HttpException(
+        'No access token found for this connection',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const pageId = connection.metadata?.pageId as string;
+    if (!pageId) {
+      throw new HttpException(
+        'No pageId found in connection metadata',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Sync messages using the stored page access token
+    const result = await this.facebookSyncService.syncChannelMessages(
+      pageId,
+      connection.accessToken,
+      conversationLimit || 10,
+      messageLimit || 25,
+    );
+
+    return {
+      success: true,
+      pageInfo: result.pageInfo,
+      conversationCount: result.conversations.length,
+      conversations: result.conversations.map((c) => ({
+        id: c.conversation.id,
+        updated_time: c.conversation.updated_time,
+        message_count: c.conversation.message_count,
+        unread_count: c.conversation.unread_count,
+        participants: c.conversation.participants?.data,
+        messages: c.messages.map((m) => ({
+          id: m.id,
+          created_time: m.created_time,
+          from: m.from,
+          message: m.message,
+        })),
+      })),
+    };
+  }
+
+  @Post('connections/:id/sync-to-db')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Sync Facebook conversations into database' })
+  async syncConversationsToDatabase(
+    @Request() req,
+    @Param('id') connectionId: string,
+    @Body() body?: {
+      conversationLimit?: number;
+      messageLimit?: number;
+    },
+  ) {
+    const workspaceId = req.user.workspaceId || req.user.id;
+
+    const result = await this.facebookConversationSyncService.syncConversationsForChannel(
+      connectionId,
+      workspaceId,
+      {
+        conversationLimit: body?.conversationLimit || 25,
+        messageLimit: body?.messageLimit || 50,
+      },
+    );
+
+    return {
+      success: true,
+      synced: result.synced,
+      conversations: result.conversations,
     };
   }
 }

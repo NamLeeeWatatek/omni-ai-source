@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Bot, Settings, Zap, MessageSquare, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import React from 'react';
+import { axiosClient } from '@/lib/axios-client';
 
 interface BotConfigData {
     name: string;
@@ -186,26 +187,23 @@ interface AIConfigSectionProps {
 }
 
 export function AIConfigSection({ data, onChange }: AIConfigSectionProps) {
-    const [models, setModels] = React.useState<any[]>([]);
+    const [providers, setProviders] = React.useState<any[]>([]);
     const [loading, setLoading] = React.useState(true);
 
     React.useEffect(() => {
-        const loadModels = async () => {
+        const loadProviders = async () => {
             try {
-                const response = await fetch('/api/v1/ai-providers/models', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    },
-                });
-                const data = await response.json();
-                const allModels = data.flatMap((p: any) => p.models);
-                setModels(allModels);
+                const response = await axiosClient.get('/ai-providers/user');
+                // Only show active and verified providers
+                const activeProviders = response.data.filter((p: any) => p.isActive && p.isVerified);
+                setProviders(activeProviders);
             } catch {
+                toast.error('Failed to load AI providers');
             } finally {
                 setLoading(false);
             }
         };
-        loadModels();
+        loadProviders();
     }, []);
 
     return (
@@ -220,44 +218,84 @@ export function AIConfigSection({ data, onChange }: AIConfigSectionProps) {
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className="space-y-2">
-                    <Label htmlFor="ai-model">AI Model *</Label>
-                    <Select
-                        value={data.aiModelName}
-                        onValueChange={(value) => onChange({ aiModelName: value })}
-                        disabled={loading}
-                    >
-                        <SelectTrigger id="ai-model">
-                            <SelectValue placeholder={loading ? "Loading models..." : "Select a model"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {models.map((model) => (
-                                <SelectItem
-                                    key={model.model_name}
-                                    value={model.model_name}
-                                    disabled={!model.is_available}
+                {providers.length === 0 && !loading && (
+                    <div className="p-4 border border-dashed rounded-lg bg-muted/30">
+                        <p className="text-sm text-muted-foreground text-center">
+                            No AI providers configured. 
+                            <a href="/settings" className="text-primary hover:underline ml-1">
+                                Add one in Settings
+                            </a>
+                        </p>
+                    </div>
+                )}
+
+                {providers.length > 0 && (
+                    <>
+                        <div className="space-y-2">
+                            <Label htmlFor="ai-provider">AI Provider *</Label>
+                            <Select
+                                value={data.aiProviderId}
+                                onValueChange={(value) => {
+                                    const provider = providers.find(p => p.id === value);
+                                    onChange({ 
+                                        aiProviderId: value,
+                                        aiModelName: provider?.modelList?.[0] || ''
+                                    });
+                                }}
+                                disabled={loading}
+                            >
+                                <SelectTrigger id="ai-provider">
+                                    <SelectValue placeholder={loading ? "Loading providers..." : "Select a provider"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {providers.map((provider) => (
+                                        <SelectItem key={provider.id} value={provider.id}>
+                                            <div className="flex items-center gap-2">
+                                                <span>{provider.displayName}</span>
+                                                <Badge variant="secondary" className="text-xs">
+                                                    {provider.provider}
+                                                </Badge>
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                                Select which AI provider to use for this bot
+                            </p>
+                        </div>
+
+                        {data.aiProviderId && (
+                            <div className="space-y-2">
+                                <Label htmlFor="ai-model">AI Model *</Label>
+                                <Select
+                                    value={data.aiModelName}
+                                    onValueChange={(value) => onChange({ aiModelName: value })}
                                 >
-                                    <div className="flex items-center gap-2">
-                                        <span>{model.display_name}</span>
-                                        {model.is_recommended && (
-                                            <Badge variant="secondary" className="text-xs">
-                                                Recommended
-                                            </Badge>
+                                    <SelectTrigger id="ai-model">
+                                        <SelectValue placeholder="Select a model" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {providers
+                                            .find(p => p.id === data.aiProviderId)
+                                            ?.modelList?.map((model: string) => (
+                                                <SelectItem key={model} value={model}>
+                                                    {model}
+                                                </SelectItem>
+                                            )) || (
+                                            <SelectItem value="default" disabled>
+                                                No models available
+                                            </SelectItem>
                                         )}
-                                        {!model.is_available && (
-                                            <Badge variant="outline" className="text-xs">
-                                                Not Available
-                                            </Badge>
-                                        )}
-                                    </div>
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                        Choose the AI model that best fits your needs. Configure API keys in Settings.
-                    </p>
-                </div>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">
+                                    Choose the specific model to use
+                                </p>
+                            </div>
+                        )}
+                    </>
+                )}
 
                 <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
                     <h4 className="font-medium text-sm">Model Parameters</h4>

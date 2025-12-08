@@ -7,6 +7,7 @@ import {
   WorkspaceAiProviderEntity,
   AiUsageLogEntity,
 } from './infrastructure/persistence/relational/entities/ai-provider.entity';
+import { EncryptionUtil } from '../common/utils/encryption.util';
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import {
     ]),
   ],
   controllers: [AiProvidersController],
-  providers: [AiProvidersService],
+  providers: [AiProvidersService, EncryptionUtil],
   exports: [AiProvidersService],
 })
-export class AiProvidersModule {}
+export class AiProvidersModule { }

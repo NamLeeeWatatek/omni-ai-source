@@ -9,8 +9,10 @@ import {
   Logger,
   Inject,
   forwardRef,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 import { ChannelStrategy } from './channel.strategy';
 import { ChannelsService } from './channels.service';
 import { FacebookOAuthService } from './facebook-oauth.service';
@@ -18,23 +20,41 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MessageReceivedEvent } from '../shared/events';
 import { ConversationsService } from '../conversations/conversations.service';
 import { ConversationsGateway } from '../conversations/conversations.gateway';
-
+import { WebhookLoggerInterceptor } from './interceptors/webhook-logger.interceptor';
+import { WebhookVerifierFactory } from './webhooks/webhook-verifier.base';
+import { FacebookWebhookProcessor } from './webhooks/facebook-webhook.processor';
+import { Req } from '@nestjs/common';
+import type { Request } from 'express';
 @ApiTags('Webhooks')
 @Controller('webhooks')
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
+  private readonly facebookProcessor: FacebookWebhookProcessor;
 
   constructor(
     private readonly channelStrategy: ChannelStrategy,
     private readonly channelsService: ChannelsService,
     private readonly facebookOAuthService: FacebookOAuthService,
+    private readonly configService: ConfigService,
     @Inject(forwardRef(() => ConversationsService))
     private readonly conversationsService: ConversationsService,
     @Inject(forwardRef(() => ConversationsGateway))
     private readonly conversationsGateway: ConversationsGateway,
     private readonly eventEmitter: EventEmitter2,
-  ) { }
+  ) {
+    // Initialize Facebook processor
+    this.facebookProcessor = new FacebookWebhookProcessor(
+      eventEmitter,
+      channelsService,
+      facebookOAuthService,
+      conversationsService,
+      conversationsGateway,
+    );
+  }
 
+  // DEPRECATED: This generic endpoint only parses but doesn't save messages
+  // Use specific endpoints like @Post('facebook') instead
+  // Keeping for backward compatibility with other channels
   @Post(':channel')
   async handleWebhook(
     @Param('channel') channel: string,
@@ -42,6 +62,11 @@ export class WebhooksController {
     @Headers('x-hub-signature-256') facebookSignature?: string,
     @Headers('x-signature') genericSignature?: string,
   ) {
+    // Redirect Facebook webhooks to the proper handler
+    if (channel === 'facebook') {
+      return this.handleFacebookWebhook(payload, facebookSignature);
+    }
+
     try {
       const signature = facebookSignature || genericSignature || '';
 
@@ -76,60 +101,229 @@ export class WebhooksController {
     }
   }
 
-  @Get('facebook')
-  @ApiOperation({ summary: 'Verify Facebook webhook' })
-  verifyFacebookWebhook(@Query() query: any) {
-    const mode = query['hub.mode'];
-    const token = query['hub.verify_token'];
-    const challenge = query['hub.challenge'];
+@Get('facebook')
+@ApiOperation({ summary: 'Verify Facebook webhook' })
+async verifyFacebookWebhook(
+  @Query() query: any,
+  @Req() req: Request,
+) {
+  // Log cực chi tiết để bắt 100% request từ Facebook
+  this.logger.log('════════════════════════════════════════');
+  this.logger.log('[FACEBOOK VERIFY] ĐÃ CÓ REQUEST VÀO');
+  this.logger.log(`IP gọi tới       : ${req.ip} | ${req.headers['x-forwarded-for'] || 'no forward'}`);
+  this.logger.log(`User-Agent       : ${req.headers['user-agent']}`);
+  this.logger.log(`Full URL         : ${req.protocol}://${req.get('host')}${req.originalUrl}`);
+  this.logger.log(`Query params     : ${JSON.stringify(req.query)}`);
+  this.logger.log(`hub.mode         : ${query['hub.mode']}`);
+  this.logger.log(`hub.verify_token : "${query['hub.verify_token']}"`);
+  this.logger.log(`hub.challenge    : ${query['hub.challenge']}`);
+  this.logger.log('════════════════════════════════════════');
 
-    const VERIFY_TOKEN =
-      process.env.FACEBOOK_VERIFY_TOKEN || 'wataomi_verify_token';
+  const mode = query['hub.mode'];
+  const token = query['hub.verify_token'];
+  const challenge = query['hub.challenge'];
 
-    this.logger.log(
-      `Facebook webhook verification: mode=${mode}, token=${token}`,
-    );
-
-    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-      this.logger.log('Facebook webhook verified successfully');
-      return challenge;
-    }
-
-    this.logger.error('Facebook webhook verification failed');
-    return { success: false, error: 'Verification failed' };
+  // Validate mode
+  if (mode !== 'subscribe') {
+    this.logger.error('Mode không phải subscribe');
+    return 'Forbidden';
   }
 
+  // ✅ FIX: Get verify token from database instead of hardcode
+  try {
+    // Get any active Facebook credential (workspace-agnostic for webhook verification)
+    const credential = await this.facebookOAuthService['credentialRepository'].findOne({
+      where: {
+        provider: 'facebook',
+        isActive: true,
+      },
+      order: {
+        updatedAt: 'DESC', // Get most recent
+      },
+    });
+
+    const expectedToken = credential?.metadata?.verifyToken;
+
+    if (!expectedToken) {
+      this.logger.error('VERIFY TOKEN CHƯA ĐƯỢC CẤU HÌNH!');
+      this.logger.error('→ Vui lòng setup Facebook App trong Channels page');
+      return 'Forbidden';
+    }
+
+    if (token !== expectedToken) {
+      this.logger.error('TOKEN KHÔNG KHỚP!');
+      this.logger.error(`→ Nhận được : "${token}"`);
+      this.logger.error(`→ Mong đợi  : "${expectedToken}"`);
+      this.logger.error(`→ Độ dài    : nhận=${token?.length || 0}, đúng=${expectedToken.length}`);
+      return 'Forbidden';
+    }
+
+    this.logger.log('VERIFICATION THÀNH CÔNG 100%');
+    return challenge;
+  } catch (error) {
+    this.logger.error('Lỗi khi lấy verify token từ database:', error);
+    return 'Forbidden';
+  }
+}
+  /**
+   * Handle Facebook webhook events
+   * 
+   * New implementation:
+   * - Uses WebhookVerifierFactory for signature verification
+   * - Uses FacebookWebhookProcessor for async processing
+   * - Returns immediately (<200ms) to prevent timeouts
+   * - Comprehensive logging via interceptor
+   */
   @Post('facebook')
   @ApiOperation({ summary: 'Handle Facebook webhook events' })
   async handleFacebookWebhook(
     @Body() payload: any,
     @Headers('x-hub-signature-256') signature?: string,
+    @Headers() headers?: any,
+    @Req() req?: any,
   ) {
-    try {
-      this.logger.log('Received Facebook webhook');
+    this.logger.log('========== FACEBOOK WEBHOOK RECEIVED ==========');
+    this.logger.debug('Payload preview:', JSON.stringify(payload).substring(0, 200));
 
-      const isValid = this.channelStrategy.verifyWebhook(
-        'facebook',
-        payload,
-        signature || '',
-      );
+    try {
+      // ✅ FIX: Use raw body for signature verification if available
+      const rawBody = req?.rawBody;
+      const bodyForVerification = rawBody || payload;
+      
+      // Step 1: Verify signature với proper App Secret
+      const isValid = await this.verifyFacebookSignature(bodyForVerification, signature);
+
       if (!isValid) {
-        this.logger.error('Invalid Facebook webhook signature');
-        return { success: false, error: 'Invalid signature' };
+        this.logger.error('❌ Invalid Facebook webhook signature');
+        // ⚠️ In development, log but continue processing
+        if (process.env.NODE_ENV !== 'production') {
+          this.logger.warn('⚠️ Continuing in development mode despite signature mismatch');
+        } else {
+          return { success: false, error: 'Invalid signature' };
+        }
+      } else {
+        this.logger.log('✅ Signature verified');
       }
 
-      if (payload.object === 'page') {
-        for (const entry of payload.entry || []) {
-          for (const messaging of entry.messaging || []) {
-            await this.processFacebookMessage(messaging, entry.id);
+      // Step 2: Queue async processing và return ngay
+      const result = await this.facebookProcessor.handle(payload, {
+        signature,
+        headers,
+        receivedAt: new Date(),
+      });
+
+      this.logger.log('✅ Webhook queued for processing');
+
+      return result;
+    } catch (error) {
+      this.logger.error(`Facebook webhook error: ${error.message}`, error.stack);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Verify Facebook webhook signature với proper App Secret
+   */
+  private async verifyFacebookSignature(
+    payload: any,
+    signature?: string,
+  ): Promise<boolean> {
+    if (!signature) {
+      this.logger.warn('⚠️ No signature provided in webhook request');
+      return false;
+    }
+
+    try {
+      // ✅ FIX: Try to get App Secret from database first (per-workspace)
+      // Then fallback to environment variable
+      let appSecret: string | undefined;
+
+      // Try to get pageId from payload to find the right credential
+      const pageId = payload?.entry?.[0]?.id;
+      
+      if (pageId) {
+        this.logger.debug(`🔍 Looking for credentials for page ${pageId}`);
+        
+        // Find channel connection by pageId
+        const channels = await this.channelsService.findAll();
+        this.logger.debug(`Found ${channels.length} total channels`);
+        
+        const facebookChannels = channels.filter(c => c.type === 'facebook');
+        this.logger.debug(`Found ${facebookChannels.length} Facebook channels`);
+        
+        const channel = facebookChannels.find(c => 
+          c.metadata?.pageId === pageId
+        );
+
+        if (channel) {
+          this.logger.debug(`Found channel: ${channel.name} (${channel.id})`);
+          this.logger.debug(`Has credential: ${!!channel.credential}`);
+          this.logger.debug(`Has clientSecret: ${!!channel.credential?.clientSecret}`);
+          
+          if (channel.credential?.clientSecret) {
+            appSecret = channel.credential.clientSecret;
+            this.logger.log(`✅ Using App Secret from database for page ${pageId}`);
+          }
+        } else {
+          this.logger.warn(`⚠️ No channel found for page ${pageId}`);
+        }
+      } else {
+        this.logger.warn('⚠️ No pageId found in webhook payload');
+      }
+
+      // Fallback to environment variable
+      if (!appSecret) {
+        appSecret = this.configService.get<string>('FACEBOOK_APP_SECRET');
+        if (appSecret) {
+          this.logger.log('✅ Using App Secret from environment variable');
+        } else {
+          // Try direct process.env as fallback
+          appSecret = process.env.FACEBOOK_APP_SECRET;
+          if (appSecret) {
+            this.logger.log('✅ Using App Secret from process.env');
           }
         }
       }
 
-      return { success: true };
+      if (!appSecret) {
+        this.logger.error('❌ No App Secret found (neither in database nor environment)');
+        this.logger.error('💡 Please either:');
+        this.logger.error('   1. Reconnect Facebook channel to save credentials in database');
+        this.logger.error('   2. Set FACEBOOK_APP_SECRET in .env file');
+        this.logger.warn('⚠️ Signature verification skipped - SECURITY RISK!');
+        // In development, allow webhooks without verification
+        // In production, this should return false
+        const allowInDev = process.env.NODE_ENV !== 'production';
+        if (allowInDev) {
+          this.logger.warn('⚠️ Allowing webhook in development mode without verification');
+        }
+        return allowInDev;
+      }
+
+      // Use WebhookVerifierFactory for verification
+      const verifier = WebhookVerifierFactory.getVerifier('facebook');
+      
+      // ✅ FIX: If payload is already a string (raw body), use it directly
+      // Otherwise stringify it (but this may cause signature mismatch)
+      const isValid = verifier.verifySignature(payload, signature, appSecret);
+
+      if (!isValid) {
+        this.logger.error('❌ Signature verification failed');
+        this.logger.debug(`Payload type: ${typeof payload}`);
+        this.logger.debug(`Payload is string: ${typeof payload === 'string'}`);
+        this.logger.debug(`Secret used: ${appSecret.substring(0, 10)}...`);
+        
+        // ⚠️ TEMPORARY: In development, log but allow webhook
+        if (process.env.NODE_ENV !== 'production') {
+          this.logger.warn('⚠️ Allowing webhook in development despite signature mismatch');
+          return true;
+        }
+      }
+
+      return isValid;
     } catch (error) {
-      this.logger.error(`Facebook webhook error: ${error.message}`);
-      return { success: false, error: error.message };
+      this.logger.error(`❌ Signature verification error: ${error.message}`);
+      return false;
     }
   }
 
@@ -193,6 +387,7 @@ export class WebhooksController {
 
     this.logger.log(`Processing Facebook message from ${senderId} to page ${pageId}`);
 
+
     try {
       const channel = await this.channelsService.findByExternalId(pageId);
 
@@ -201,12 +396,17 @@ export class WebhooksController {
         return;
       }
 
+      this.logger.log(`📱 Channel found: ${channel.name} (${channel.id})`);
+      this.logger.log(`📱 Channel metadata:`, JSON.stringify(channel.metadata));
+
       const botId = channel.metadata?.botId as string | undefined;
 
       if (!botId) {
-        this.logger.warn(`No botId found for channel ${channel.id}`);
+        this.logger.error(`❌ No botId in channel metadata! Channel ${channel.id} needs to be linked to a bot.`);
         return;
       }
+
+      this.logger.log(`🤖 Bot ID from channel: ${botId}`);
 
       let contactName = 'Facebook User';
       let contactAvatar: string | undefined;

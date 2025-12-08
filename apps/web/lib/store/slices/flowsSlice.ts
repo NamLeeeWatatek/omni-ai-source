@@ -7,7 +7,7 @@ import axiosClient from '@/lib/axios-client'
 import type { PaginatedResponse, PaginationParams } from '@/lib/types/pagination'
 
 export interface Flow {
-  id: number
+  id: string  // Changed from number to string (UUID)
   name: string
   description: string
   status: 'draft' | 'published' | 'archived'
@@ -84,28 +84,29 @@ export const fetchFlows = createAsyncThunk<
     
     const url = `/flows/${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
     const response: any = await axiosClient.get(url)
+    const data = response.data || response
     
-    if (Array.isArray(response)) {
+    if (Array.isArray(data)) {
       return {
-        items: response,
-        total: response.length,
+        items: data,
+        total: data.length,
         page: 1,
-        page_size: response.length,
+        page_size: data.length,
         total_pages: 1,
         has_next: false,
         has_prev: false,
       }
     }
     
-    return response as PaginatedResponse<Flow>
+    return data as PaginatedResponse<Flow>
   }
 )
 
-export const fetchFlow = createAsyncThunk<Flow, number>(
+export const fetchFlow = createAsyncThunk<Flow, string>(
   'flows/fetchFlow',
-  async (id: number) => {
+  async (id: string) => {
     const response: any = await axiosClient.get(`/flows/${id}`)
-    return response as Flow
+    return (response.data || response) as Flow
   }
 )
 
@@ -113,39 +114,39 @@ export const createFlow = createAsyncThunk<Flow, Partial<Flow>>(
   'flows/createFlow',
   async (data: Partial<Flow>) => {
     const response: any = await axiosClient.post('/flows/', data)
-    return response as Flow
+    return (response.data || response) as Flow
   }
 )
 
-export const updateFlow = createAsyncThunk<Flow, { id: number; data: Partial<Flow> }>(
+export const updateFlow = createAsyncThunk<Flow, { id: string; data: Partial<Flow> }>(
   'flows/updateFlow',
-  async ({ id, data }: { id: number; data: Partial<Flow> }) => {
+  async ({ id, data }: { id: string; data: Partial<Flow> }) => {
     const response: any = await axiosClient.patch(`/flows/${id}`, data)
-    return response as Flow
+    return (response.data || response) as Flow
   }
 )
 
-export const deleteFlow = createAsyncThunk<number, number>(
+export const deleteFlow = createAsyncThunk<string, string>(
   'flows/deleteFlow',
-  async (id: number) => {
+  async (id: string) => {
     await axiosClient.delete(`/flows/${id}`)
     return id
   }
 )
 
-export const duplicateFlow = createAsyncThunk<Flow, number>(
+export const duplicateFlow = createAsyncThunk<Flow, string>(
   'flows/duplicateFlow',
-  async (id: number) => {
+  async (id: string) => {
     const response: any = await axiosClient.post(`/flows/${id}/duplicate`)
-    return response as Flow
+    return (response.data || response) as Flow
   }
 )
 
-export const archiveFlow = createAsyncThunk<Flow, number>(
+export const archiveFlow = createAsyncThunk<Flow, string>(
   'flows/archiveFlow',
-  async (id: number) => {
+  async (id: string) => {
     const response: any = await axiosClient.post(`/flows/${id}/archive`)
-    return response as Flow
+    return (response.data || response) as Flow
   }
 )
 
@@ -203,7 +204,7 @@ const flowsSlice = createSlice({
       }
     })
 
-    builder.addCase(deleteFlow.fulfilled, (state: Draft<FlowsState>, action: PayloadAction<number>) => {
+    builder.addCase(deleteFlow.fulfilled, (state: Draft<FlowsState>, action: PayloadAction<string>) => {
       state.items = state.items.filter((f: Flow) => f.id !== action.payload)
       if (state.currentFlow?.id === action.payload) {
         state.currentFlow = null

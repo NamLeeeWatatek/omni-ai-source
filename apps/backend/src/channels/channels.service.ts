@@ -75,11 +75,57 @@ export class ChannelsService {
     return this.connectionRepository.save(connection);
   }
 
-  async delete(id: string, userId?: string): Promise<void> {
+  async update(
+    id: string,
+    dto: { botId?: string | null; name?: string; metadata?: any },
+    userId?: string,
+  ): Promise<ChannelConnectionEntity> {
     const where: any = { id };
     if (userId) {
       where.workspaceId = userId;
     }
-    await this.connectionRepository.delete(where);
+
+    const connection = await this.connectionRepository.findOne({ where });
+    if (!connection) {
+      throw new Error('Channel connection not found');
+    }
+
+    // Update fields
+    if (dto.botId !== undefined) {
+      connection.botId = dto.botId;
+    }
+    if (dto.name !== undefined) {
+      connection.name = dto.name;
+    }
+    if (dto.metadata !== undefined) {
+      connection.metadata = { ...connection.metadata, ...dto.metadata };
+    }
+
+    return this.connectionRepository.save(connection);
+  }
+
+  async delete(id: string, userId?: string): Promise<void> {
+    try {
+      // ✅ FIX: Update conversations first to prevent orphaned references
+      // Use snake_case column names as they appear in database
+      const updateResult = await this.connectionRepository.manager.query(
+        `UPDATE conversation SET channel_id = NULL, channel_type = 'internal' WHERE channel_id = $1`,
+        [id],
+      );
+
+      console.log(`✅ Updated ${updateResult[1] || 0} conversations before deleting channel ${id}`);
+
+      // Then delete the channel
+      const where: any = { id };
+      if (userId) {
+        where.workspaceId = userId;
+      }
+      await this.connectionRepository.delete(where);
+
+      console.log(`✅ Deleted channel ${id}`);
+    } catch (error) {
+      console.error(`❌ Error deleting channel ${id}:`, error);
+      throw error;
+    }
   }
 }

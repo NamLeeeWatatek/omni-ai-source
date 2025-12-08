@@ -11,7 +11,7 @@ import { LoginResponseDto } from '../auth/dto/login-response.dto';
   version: '1',
 })
 export class AuthCasdoorController {
-  constructor(private readonly authCasdoorService: AuthCasdoorService) {}
+  constructor(private readonly authCasdoorService: AuthCasdoorService) { }
 
   @Get('login-url')
   @Public()
@@ -22,11 +22,22 @@ export class AuthCasdoorController {
   }
 
   @Post('callback')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Handle Casdoor OAuth callback' })
   async callback(
     @Body() casdoorCallbackDto: CasdoorCallbackDto,
   ): Promise<LoginResponseDto> {
-    return this.authCasdoorService.handleCallback(casdoorCallbackDto);
+    const result = await this.authCasdoorService.handleCallback(casdoorCallbackDto);
+    
+    // Debug log to check response structure
+    console.log('[Casdoor Callback] Response:', {
+      hasToken: !!result.token,
+      hasUser: !!result.user,
+      userEmail: result.user?.email,
+      userId: result.user?.id
+    });
+    
+    return result;
   }
 }

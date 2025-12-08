@@ -115,6 +115,22 @@ export class AuthController {
     });
   }
 
+  /**
+   * ✅ NEW: Refresh token endpoint for frontend (no guard needed)
+   * Accepts refreshToken in body instead of header
+   */
+  @Post('refresh-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({
+    type: RefreshResponseDto,
+  })
+  public async refreshTokenFromBody(
+    @Body() body: { refreshToken: string }
+  ): Promise<RefreshResponseDto> {
+    // Validate and decode refresh token to get session info
+    return this.service.refreshTokenFromBody(body.refreshToken);
+  }
+
   @ApiBearerAuth()
   @Post('logout')
   @UseGuards(AuthGuard('jwt'))

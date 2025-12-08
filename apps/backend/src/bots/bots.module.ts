@@ -28,8 +28,10 @@ import { AiProvidersModule } from '../ai-providers/ai-providers.module';
 import { KnowledgeBaseModule } from '../knowledge-base/knowledge-base.module';
 import { MessagingModule } from '../channels/messaging.module';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
+import { ConversationsModule } from '../conversations/conversations.module';
 import { BotEventListener } from './listeners/bot-event.listener';
 import { BotExecutionEventService } from './listeners/bot-execution-event.service';
+import { MessageBufferService } from './services/message-buffer.service';
 
 @Module({
   imports: [
@@ -47,6 +49,7 @@ import { BotExecutionEventService } from './listeners/bot-execution-event.servic
     forwardRef(() => FlowsModule),
     forwardRef(() => AiProvidersModule),
     forwardRef(() => KnowledgeBaseModule),
+    forwardRef(() => ConversationsModule),
     MessagingModule,
   ],
   controllers: [BotsController, PublicBotController, PublicWidgetController, WidgetVersionController, WidgetDeploymentController],
@@ -59,6 +62,7 @@ import { BotExecutionEventService } from './listeners/bot-execution-event.servic
     BotInteractionService,
     BotEventListener,
     BotExecutionEventService,
+    MessageBufferService,
   ],
   exports: [
     BotsService,
@@ -68,6 +72,7 @@ import { BotExecutionEventService } from './listeners/bot-execution-event.servic
     BotFunctionsService,
     BotInteractionService,
     BotExecutionEventService,
+    MessageBufferService,
   ],
 })
 export class BotsModule { }

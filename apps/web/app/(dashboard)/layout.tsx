@@ -525,13 +525,14 @@ export default function DashboardLayout({
                 </header>
 
                 {}
-                <div className="flex-1 overflow-auto relative">
+                <div className="flex-1 overflow-hidden relative min-h-0">
                     <div className={`h-full ${pathname.includes('/edit') ||
                         pathname === '/ai-assistant' ||
                         pathname === '/inbox' ||
-                        pathname === '/chat'
+                        pathname === '/chat' ||
+                        pathname === '/conversations'
                         ? ''
-                        : 'page-container'
+                        : 'page-container overflow-auto'
                         }`}>
                         {children}
                     </div>

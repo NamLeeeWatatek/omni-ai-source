@@ -536,6 +536,34 @@ export class AuthService {
     };
   }
 
+  /**
+   * ✅ NEW: Refresh token from body (for frontend)
+   * Decodes refresh token to get session info, then calls refreshToken
+   */
+  async refreshTokenFromBody(
+    refreshTokenString: string,
+  ): Promise<Omit<LoginResponseDto, 'user'>> {
+    try {
+      // Decode refresh token to get session info
+      const payload = await this.jwtService.verifyAsync<JwtRefreshPayloadType>(
+        refreshTokenString,
+        {
+          secret: this.configService.getOrThrow('auth.refreshSecret', {
+            infer: true,
+          }),
+        },
+      );
+
+      // Call existing refreshToken method
+      return this.refreshToken({
+        sessionId: payload.sessionId,
+        hash: payload.hash,
+      });
+    } catch (error) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+  }
+
   async softDelete(user: User): Promise<void> {
     await this.usersService.remove(user.id);
   }

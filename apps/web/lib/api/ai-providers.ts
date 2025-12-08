@@ -4,6 +4,7 @@ export interface UserAiProvider {
   id: string;
   provider: 'openai' | 'anthropic' | 'google' | 'azure' | 'custom';
   displayName: string;
+  apiKeyMasked?: string;  // ✅ Masked API key for display (e.g., "sk-...xyz123")
   modelList?: string[];
   isActive: boolean;
   isVerified: boolean;

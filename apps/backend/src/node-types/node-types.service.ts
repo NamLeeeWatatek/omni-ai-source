@@ -9,7 +9,7 @@ export class NodeTypesService {
   constructor(
     @InjectRepository(NodeTypeEntity)
     private readonly nodeTypeRepository: Repository<NodeTypeEntity>,
-  ) {}
+  ) { }
 
   private readonly fallbackNodeTypes: NodeType[] = [
     {
@@ -240,6 +240,439 @@ export class NodeTypesService {
         },
       ],
     },
+
+    // === NEW INTEGRATION NODES ===
+    {
+      id: 'webhook-trigger',
+      label: 'Webhook Trigger',
+      category: 'integration',
+      icon: 'Webhook',
+      color: '#00C853',
+      description: 'Call external webhooks (n8n, Zapier, Make, custom)',
+      properties: [
+        {
+          name: 'webhookUrl',
+          label: 'Webhook URL',
+          type: 'url',
+          required: true,
+          placeholder: 'https://n8n.example.com/webhook/xxx',
+          description: 'URL of the external webhook to call',
+        },
+        {
+          name: 'method',
+          label: 'HTTP Method',
+          type: 'select',
+          required: true,
+          options: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+          default: 'POST',
+        },
+        {
+          name: 'payloadType',
+          label: 'Payload Type',
+          type: 'select',
+          options: ['json', 'form-data', 'raw'],
+          default: 'json',
+        },
+        {
+          name: 'payload',
+          label: 'Custom Payload',
+          type: 'json',
+          description: 'Leave empty to pass previous node output. Use {{variable}} for interpolation',
+        },
+        {
+          name: 'headers',
+          label: 'Custom Headers',
+          type: 'key-value',
+        },
+        {
+          name: 'authentication',
+          label: 'Authentication',
+          type: 'dynamic-form',
+          properties: [
+            {
+              name: 'type',
+              label: 'Auth Type',
+              type: 'select',
+              options: ['none', 'bearer', 'basic', 'api-key', 'custom'],
+            },
+            {
+              name: 'token',
+              label: 'Bearer Token',
+              type: 'password',
+              showWhen: { type: 'bearer' },
+            },
+            {
+              name: 'username',
+              label: 'Username',
+              type: 'text',
+              showWhen: { type: 'basic' },
+            },
+            {
+              name: 'password',
+              label: 'Password',
+              type: 'password',
+              showWhen: { type: 'basic' },
+            },
+            {
+              name: 'key',
+              label: 'API Key',
+              type: 'password',
+              showWhen: { type: 'api-key' },
+            },
+          ],
+        },
+        {
+          name: 'responseMapping',
+          label: 'Response Field Mapping',
+          type: 'key-value',
+          description: 'Map response fields to output: outputKey -> response.path',
+        },
+        {
+          name: 'timeout',
+          label: 'Timeout (ms)',
+          type: 'number',
+          default: 30000,
+        },
+        {
+          name: 'retryCount',
+          label: 'Retry on Failure',
+          type: 'number',
+          default: 0,
+        },
+      ],
+    },
+    {
+      id: 'api-connector',
+      label: 'API Connector',
+      category: 'integration',
+      icon: 'Plug',
+      color: '#7C4DFF',
+      description: 'Advanced API integration with pagination & auth',
+      isPremium: false,
+      properties: [
+        {
+          name: 'baseUrl',
+          label: 'Base URL',
+          type: 'url',
+          required: true,
+          placeholder: 'https://api.example.com',
+        },
+        {
+          name: 'endpoint',
+          label: 'Endpoint',
+          type: 'text',
+          required: true,
+          placeholder: '/v1/users/:id',
+          description: 'Use :paramName for path parameters',
+        },
+        {
+          name: 'method',
+          label: 'HTTP Method',
+          type: 'select',
+          required: true,
+          options: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+          default: 'GET',
+        },
+        {
+          name: 'pathParams',
+          label: 'Path Parameters',
+          type: 'key-value',
+          description: 'Replace :paramName in endpoint',
+        },
+        {
+          name: 'queryParams',
+          label: 'Query Parameters',
+          type: 'key-value',
+        },
+        {
+          name: 'headers',
+          label: 'Headers',
+          type: 'key-value',
+        },
+        {
+          name: 'bodyType',
+          label: 'Body Type',
+          type: 'select',
+          options: ['json', 'form', 'graphql', 'raw'],
+          default: 'json',
+          showWhen: { method: ['POST', 'PUT', 'PATCH'] },
+        },
+        {
+          name: 'body',
+          label: 'Request Body',
+          type: 'json',
+          showWhen: { method: ['POST', 'PUT', 'PATCH'] },
+        },
+        {
+          name: 'auth',
+          label: 'Authentication',
+          type: 'dynamic-form',
+          properties: [
+            {
+              name: 'type',
+              label: 'Auth Type',
+              type: 'select',
+              options: ['none', 'bearer', 'basic', 'api-key', 'oauth2', 'custom'],
+            },
+            {
+              name: 'token',
+              label: 'Bearer Token',
+              type: 'password',
+              showWhen: { type: 'bearer' },
+            },
+            {
+              name: 'username',
+              label: 'Username',
+              type: 'text',
+              showWhen: { type: 'basic' },
+            },
+            {
+              name: 'password',
+              label: 'Password',
+              type: 'password',
+              showWhen: { type: 'basic' },
+            },
+            {
+              name: 'name',
+              label: 'Key Name',
+              type: 'text',
+              showWhen: { type: 'api-key' },
+            },
+            {
+              name: 'value',
+              label: 'Key Value',
+              type: 'password',
+              showWhen: { type: 'api-key' },
+            },
+            {
+              name: 'in',
+              label: 'Key Location',
+              type: 'select',
+              options: ['header', 'query'],
+              showWhen: { type: 'api-key' },
+            },
+          ],
+        },
+        {
+          name: 'extractPath',
+          label: 'Extract Data Path',
+          type: 'text',
+          placeholder: 'data.items',
+          description: 'JSONPath to extract from response',
+        },
+        {
+          name: 'pagination',
+          label: 'Pagination',
+          type: 'dynamic-form',
+          properties: [
+            {
+              name: 'enabled',
+              label: 'Enable Pagination',
+              type: 'boolean',
+              default: false,
+            },
+            {
+              name: 'type',
+              label: 'Pagination Type',
+              type: 'select',
+              options: ['page', 'offset', 'cursor'],
+              showWhen: { enabled: true },
+            },
+            {
+              name: 'pageParam',
+              label: 'Page Parameter',
+              type: 'text',
+              default: 'page',
+              showWhen: { enabled: true, type: 'page' },
+            },
+            {
+              name: 'limitParam',
+              label: 'Limit Parameter',
+              type: 'text',
+              default: 'limit',
+              showWhen: { enabled: true },
+            },
+            {
+              name: 'limit',
+              label: 'Items per Page',
+              type: 'number',
+              default: 100,
+              showWhen: { enabled: true },
+            },
+            {
+              name: 'maxPages',
+              label: 'Max Pages',
+              type: 'number',
+              default: 10,
+              showWhen: { enabled: true },
+            },
+            {
+              name: 'dataPath',
+              label: 'Data Path in Response',
+              type: 'text',
+              placeholder: 'data.items',
+              showWhen: { enabled: true },
+            },
+          ],
+        },
+        {
+          name: 'timeout',
+          label: 'Timeout (ms)',
+          type: 'number',
+          default: 30000,
+        },
+        {
+          name: 'continueOnError',
+          label: 'Continue on Error',
+          type: 'boolean',
+          default: false,
+        },
+      ],
+    },
+    {
+      id: 'response-handler',
+      label: 'Response Handler',
+      category: 'transform',
+      icon: 'Shuffle',
+      color: '#FF6D00',
+      description: 'Process and transform API/webhook responses',
+      properties: [
+        {
+          name: 'extractPaths',
+          label: 'Extract Fields',
+          type: 'dynamic-form',
+          description: 'Extract specific fields from response',
+          properties: [
+            {
+              name: 'key',
+              label: 'Output Key',
+              type: 'text',
+            },
+            {
+              name: 'path',
+              label: 'Source Path',
+              type: 'text',
+              placeholder: 'data.user.name',
+            },
+            {
+              name: 'defaultValue',
+              label: 'Default Value',
+              type: 'text',
+            },
+          ],
+        },
+        {
+          name: 'transformations',
+          label: 'Transformations',
+          type: 'dynamic-form',
+          properties: [
+            {
+              name: 'type',
+              label: 'Transform Type',
+              type: 'select',
+              options: ['pick', 'omit', 'rename', 'flatten', 'group', 'sort', 'unique', 'format', 'calculate'],
+            },
+            {
+              name: 'fields',
+              label: 'Fields',
+              type: 'text',
+              placeholder: 'field1, field2',
+            },
+            {
+              name: 'mapping',
+              label: 'Field Mapping',
+              type: 'key-value',
+            },
+          ],
+        },
+        {
+          name: 'filters',
+          label: 'Filter Conditions',
+          type: 'dynamic-form',
+          description: 'Filter array data',
+          properties: [
+            {
+              name: 'field',
+              label: 'Field',
+              type: 'text',
+            },
+            {
+              name: 'operator',
+              label: 'Operator',
+              type: 'select',
+              options: ['equals', 'notEquals', 'contains', 'gt', 'gte', 'lt', 'lte', 'exists', 'in'],
+            },
+            {
+              name: 'value',
+              label: 'Value',
+              type: 'text',
+            },
+          ],
+        },
+        {
+          name: 'aggregate',
+          label: 'Aggregation',
+          type: 'dynamic-form',
+          properties: [
+            {
+              name: 'operation',
+              label: 'Operation',
+              type: 'select',
+              options: ['sum', 'avg', 'count', 'min', 'max', 'first', 'last'],
+            },
+            {
+              name: 'field',
+              label: 'Field',
+              type: 'text',
+            },
+          ],
+        },
+        {
+          name: 'conditions',
+          label: 'Routing Conditions',
+          type: 'dynamic-form',
+          description: 'Define conditions for conditional routing',
+          properties: [
+            {
+              name: 'name',
+              label: 'Route Name',
+              type: 'text',
+            },
+            {
+              name: 'field',
+              label: 'Field',
+              type: 'text',
+            },
+            {
+              name: 'operator',
+              label: 'Operator',
+              type: 'select',
+              options: ['equals', 'notEquals', 'contains', 'gt', 'gte', 'lt', 'lte', 'exists'],
+            },
+            {
+              name: 'value',
+              label: 'Value',
+              type: 'text',
+            },
+          ],
+        },
+        {
+          name: 'outputFormat',
+          label: 'Output Format',
+          type: 'select',
+          options: ['object', 'array', 'flatten'],
+          default: 'object',
+        },
+        {
+          name: 'debug',
+          label: 'Debug Mode',
+          type: 'boolean',
+          default: false,
+          description: 'Include original input in output for debugging',
+        },
+      ],
+    },
+
     {
       id: 'database-query',
       label: 'Database Query',
@@ -365,6 +798,7 @@ export class NodeTypesService {
     { id: 'trigger', label: 'Triggers', color: '#4CAF50' },
     { id: 'messaging', label: 'Messaging', color: '#9C27B0' },
     { id: 'ai', label: 'AI', color: '#00BCD4' },
+    { id: 'integration', label: 'Integrations', color: '#7C4DFF' },
     { id: 'data', label: 'Data', color: '#607D8B' },
     { id: 'logic', label: 'Logic', color: '#FFC107' },
     { id: 'transform', label: 'Transform', color: '#3F51B5' },

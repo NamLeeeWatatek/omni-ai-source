@@ -17,6 +17,9 @@ import { CodeExecutor } from './execution/executors/code.executor';
 import { AIChatExecutor } from './execution/executors/ai-chat.executor';
 import { ConditionExecutor } from './execution/executors/condition.executor';
 import { SendMessageExecutor } from './execution/executors/send-message.executor';
+import { WebhookTriggerExecutor } from './execution/executors/webhook-trigger.executor';
+import { ApiConnectorExecutor } from './execution/executors/api-connector.executor';
+import { ResponseHandlerExecutor } from './execution/executors/response-handler.executor';
 import { ChannelsModule } from '../channels/channels.module';
 import { TemplatesModule } from '../templates/templates.module';
 import { FlowEventListener } from './listeners/flow-event.listener';
@@ -43,6 +46,9 @@ import { FlowEventListener } from './listeners/flow-event.listener';
     AIChatExecutor,
     ConditionExecutor,
     SendMessageExecutor,
+    WebhookTriggerExecutor,
+    ApiConnectorExecutor,
+    ResponseHandlerExecutor,
     FlowEventListener,
   ],
   exports: [FlowsService, ExecutionService, ExecutionGateway, FlowEventListener],
@@ -55,20 +61,49 @@ export class FlowsModule implements OnModuleInit {
     private readonly aiChatExecutor: AIChatExecutor,
     private readonly conditionExecutor: ConditionExecutor,
     private readonly sendMessageExecutor: SendMessageExecutor,
+    private readonly webhookTriggerExecutor: WebhookTriggerExecutor,
+    private readonly apiConnectorExecutor: ApiConnectorExecutor,
+    private readonly responseHandlerExecutor: ResponseHandlerExecutor,
   ) { }
 
   onModuleInit() {
+    // Core executors
     this.strategy.register('http-request', this.httpExecutor);
     this.strategy.register('code', this.codeExecutor);
     this.strategy.register('ai-chat', this.aiChatExecutor);
     this.strategy.register('condition', this.conditionExecutor);
     this.strategy.register('send-message', this.sendMessageExecutor);
 
+    // Integration executors - for third-party connections
+    this.strategy.register('webhook-trigger', this.webhookTriggerExecutor);
+    this.strategy.register('api-connector', this.apiConnectorExecutor);
+    this.strategy.register('response-handler', this.responseHandlerExecutor);
+
+    // Legacy webhook trigger (passthrough)
     this.strategy.register('webhook', {
       execute: (input) =>
         Promise.resolve({ success: true, output: input.input }),
     });
 
+    // Manual trigger (passthrough)
+    this.strategy.register('manual', {
+      execute: (input) =>
+        Promise.resolve({ success: true, output: input.input }),
+    });
+
+    // Schedule trigger (passthrough)
+    this.strategy.register('schedule', {
+      execute: (input) =>
+        Promise.resolve({ success: true, output: input.input }),
+    });
+
+    // Receive message trigger (passthrough)
+    this.strategy.register('receive-message', {
+      execute: (input) =>
+        Promise.resolve({ success: true, output: input.input }),
+    });
+
+    // Custom node handler
     this.strategy.register('custom', {
       execute: async (input) => {
         const actualType = input.data?.nodeType || input.data?.type;

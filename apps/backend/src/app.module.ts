@@ -46,18 +46,20 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { AuditModule } from './audit/audit.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PermissionsModule } from './permissions/permissions.module';
+import { SharedModule } from './shared/shared.module';
+import { TemplateFormsModule } from './template-forms/template-forms.module';
 
 const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
   .isDocumentDatabase
   ? MongooseModule.forRootAsync({
-      useClass: MongooseConfigService,
-    })
+    useClass: MongooseConfigService,
+  })
   : TypeOrmModule.forRootAsync({
-      useClass: TypeOrmConfigService,
-      dataSourceFactory: async (options: DataSourceOptions) => {
-        return new DataSource(options).initialize();
-      },
-    });
+    useClass: TypeOrmConfigService,
+    dataSourceFactory: async (options: DataSourceOptions) => {
+      return new DataSource(options).initialize();
+    },
+  });
 
 @Module({
   imports: [
@@ -86,7 +88,10 @@ const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
         fallbackLanguage: configService.getOrThrow('app.fallbackLanguage', {
           infer: true,
         }),
-        loaderOptions: { path: path.join(__dirname, '/i18n/'), watch: true },
+        loaderOptions: {
+          path: path.join(__dirname, '../i18n/'),
+          watch: true
+        },
       }),
       resolvers: [
         {
@@ -104,6 +109,9 @@ const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
       imports: [ConfigModule],
       inject: [ConfigService],
     }),
+
+    // Global shared services (encryption, etc.)
+    SharedModule,
 
     UsersModule,
     FilesModule,
@@ -126,9 +134,11 @@ const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
 
     ConversationsModule,
     ChannelsModule,
+    KnowledgeBaseModule,
 
     HomeModule,
     TemplatesModule,
+    TemplateFormsModule,
     IntegrationsModule,
     StatsModule,
 
@@ -140,4 +150,4 @@ const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
     PermissionsModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }

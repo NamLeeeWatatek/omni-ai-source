@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { axiosClient } from '@/lib/axios-client';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,16 @@ import {
   DialogTitle,
   DialogFooter 
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
@@ -23,9 +33,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FiPlus, FiEdit2, FiTrash2, FiCheck, FiX, FiEye, FiEyeOff, FiKey, FiCpu } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiCheck, FiX, FiEye, FiEyeOff, FiKey, FiZap, FiActivity, FiAlertCircle } from 'react-icons/fi';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface UserAiProvider {
   id: string;
@@ -40,39 +50,53 @@ interface UserAiProvider {
   createdAt: string;
 }
 
-interface ModelConfig {
-  provider: string;
-  model_name: string;
-  display_name: string;
-  api_key_configured: boolean;
-  is_available: boolean;
-  capabilities: string[];
-  max_tokens: number;
-  is_recommended?: boolean;
-  is_default?: boolean;
-  description?: string;
-}
-
-interface ProviderModels {
-  provider: string;
-  models: ModelConfig[];
-}
-
 const PROVIDER_OPTIONS = [
-  { value: 'google', label: 'Google (Gemini)', color: 'bg-blue-500' },
-  { value: 'openai', label: 'OpenAI (GPT)', color: 'bg-green-500' },
-  { value: 'anthropic', label: 'Anthropic (Claude)', color: 'bg-orange-500' },
-  { value: 'azure', label: 'Azure OpenAI', color: 'bg-purple-500' },
-  { value: 'custom', label: 'Custom Provider', color: 'bg-gray-500' },
+  { 
+    value: 'google', 
+    label: 'Google Gemini', 
+    color: 'from-blue-500 to-cyan-500',
+    icon: '🔷',
+    description: 'Fast and efficient AI models'
+  },
+  { 
+    value: 'openai', 
+    label: 'OpenAI', 
+    color: 'from-green-500 to-emerald-500',
+    icon: '🤖',
+    description: 'GPT models for advanced tasks'
+  },
+  { 
+    value: 'anthropic', 
+    label: 'Anthropic Claude', 
+    color: 'from-orange-500 to-amber-500',
+    icon: '🧠',
+    description: 'Balanced and reliable AI'
+  },
+  { 
+    value: 'azure', 
+    label: 'Azure OpenAI', 
+    color: 'from-purple-500 to-pink-500',
+    icon: '☁️',
+    description: 'Enterprise-grade AI'
+  },
+  { 
+    value: 'custom', 
+    label: 'Custom Provider', 
+    color: 'from-gray-500 to-slate-500',
+    icon: '⚙️',
+    description: 'Your own AI endpoint'
+  },
 ];
 
 export default function AIModelsPage() {
   const [providers, setProviders] = useState<UserAiProvider[]>([]);
-  const [availableModels, setAvailableModels] = useState<ProviderModels[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [editingProvider, setEditingProvider] = useState<UserAiProvider | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
+  const [isChangingApiKey, setIsChangingApiKey] = useState(false);  // ✅ New state for change key mode
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [providerToDelete, setProviderToDelete] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<{
     provider: 'openai' | 'anthropic' | 'google' | 'azure' | 'custom';
@@ -93,12 +117,8 @@ export default function AIModelsPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [providersRes, modelsRes] = await Promise.all([
-        axiosClient.get('/ai-providers/user'),
-        axiosClient.get('/ai-providers/models'),
-      ]);
+      const providersRes = await axiosClient.get('/ai-providers/user');
       setProviders(providersRes.data);
-      setAvailableModels(modelsRes.data);
     } catch {
       toast.error('Failed to load data');
     } finally {
@@ -115,6 +135,7 @@ export default function AIModelsPage() {
         apiKey: '',
         modelList: provider.modelList?.join(', ') || '',
       });
+      setIsChangingApiKey(false);  // ✅ Reset change key mode
     } else {
       setEditingProvider(null);
       setFormData({
@@ -123,6 +144,7 @@ export default function AIModelsPage() {
         apiKey: '',
         modelList: '',
       });
+      setIsChangingApiKey(false);
     }
     setShowDialog(true);
     setShowApiKey(false);
@@ -131,6 +153,7 @@ export default function AIModelsPage() {
   const handleCloseDialog = () => {
     setShowDialog(false);
     setEditingProvider(null);
+    setIsChangingApiKey(false);  // ✅ Reset
     setFormData({
       provider: 'google',
       displayName: '',
@@ -147,25 +170,41 @@ export default function AIModelsPage() {
       return;
     }
 
+    // ✅ For create, API key is required
     if (!editingProvider && !formData.apiKey.trim()) {
       toast.error('Please enter an API key');
       return;
     }
 
+    // ✅ For edit, if user enters API key, it must not be empty
+    if (editingProvider && formData.apiKey && !formData.apiKey.trim()) {
+      toast.error('API key cannot be empty. Leave it blank to keep current key.');
+      return;
+    }
+
     try {
-      const payload = {
+      const payload: any = {
         provider: formData.provider,
         displayName: formData.displayName,
-        ...(formData.apiKey && { apiKey: formData.apiKey }),
         modelList: formData.modelList
           ? formData.modelList.split(',').map(m => m.trim()).filter(Boolean)
           : undefined,
       };
 
+      // ✅ Only include apiKey if it's not empty (for both create and update)
+      if (formData.apiKey && formData.apiKey.trim() !== '') {
+        payload.apiKey = formData.apiKey.trim();
+      }
+
       if (editingProvider) {
         await axiosClient.patch(`/ai-providers/user/${editingProvider.id}`, payload);
         toast.success('API key updated successfully');
       } else {
+        // ✅ For create, apiKey is required
+        if (!payload.apiKey) {
+          toast.error('API key is required');
+          return;
+        }
         await axiosClient.post('/ai-providers/user', payload);
         toast.success('API key added successfully');
       }
@@ -185,18 +224,24 @@ export default function AIModelsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this API key?')) {
-      return;
-    }
+  const handleDelete = async () => {
+    if (!providerToDelete) return;
 
     try {
-      await axiosClient.delete(`/ai-providers/user/${id}`);
+      await axiosClient.delete(`/ai-providers/user/${providerToDelete}`);
       toast.success('API key deleted successfully');
       loadData();
     } catch {
       toast.error('Failed to delete API key');
+    } finally {
+      setDeleteDialogOpen(false);
+      setProviderToDelete(null);
     }
+  };
+
+  const openDeleteDialog = (id: string) => {
+    setProviderToDelete(id);
+    setDeleteDialogOpen(true);
   };
 
   const handleToggleActive = async (provider: UserAiProvider) => {
@@ -211,6 +256,19 @@ export default function AIModelsPage() {
     }
   };
 
+  const [activeTab, setActiveTab] = useState('ai-providers');
+  const totalUsage = providers.reduce((sum, p) => sum + p.quotaUsed, 0);
+  const activeProviders = providers.filter(p => p.isActive).length;
+
+  const tabs = [
+    { id: 'account', label: 'Account' },
+    { id: 'ai-providers', label: 'AI Providers' },
+    { id: 'notifications', label: 'Notifications' },
+    { id: 'sharing', label: 'Sharing' },
+    { id: 'billing', label: 'Billing' },
+    { id: 'questions', label: 'Questions' },
+  ];
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full min-h-[400px]">
@@ -220,190 +278,169 @@ export default function AIModelsPage() {
   }
 
   return (
-    <div className="h-full">
-      <header className="page-header">
-        <div>
-          <h1 className="text-2xl font-bold">AI Models & Providers</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage AI providers and configure your API keys
+    <div className="h-full overflow-y-auto">
+      <div className="max-w-7xl mx-auto p-8">
+        {}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">Settings</h1>
+          <p className="text-muted-foreground">
+            Manage your account settings and preferences
           </p>
         </div>
-      </header>
 
-      <Tabs defaultValue="models" className="w-full">
-        <TabsList className="mb-6">
-          <TabsTrigger value="models" className="gap-2">
-            <FiCpu className="size-4" />
-            Available Models
-          </TabsTrigger>
-          <TabsTrigger value="providers" className="gap-2">
-            <FiKey className="size-4" />
-            My API Keys
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="models" className="space-y-4">
-          {availableModels.map((providerGroup) => (
-            <Card key={providerGroup.provider} className="overflow-hidden">
-              <div className="px-6 py-4 border-b border-border/40 flex justify-between items-center">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  {providerGroup.provider === 'google' && (
-                    <span className="text-blue-500">Google Gemini</span>
-                  )}
-                  {providerGroup.provider === 'openai' && (
-                    <span className="text-green-500">OpenAI</span>
-                  )}
-                  {providerGroup.provider === 'anthropic' && (
-                    <span className="text-orange-500">Anthropic</span>
-                  )}
-                  {!['google', 'openai', 'anthropic'].includes(providerGroup.provider) && 
-                    <span className="capitalize">{providerGroup.provider}</span>
-                  }
-                </h3>
-                <Badge variant="secondary">
-                  {providerGroup.models?.length || 0} Models
-                </Badge>
-              </div>
-
-              <div className="divide-y divide-border/40">
-                {(providerGroup.models || []).map((model) => (
-                  <div key={model.model_name} className="p-6 hover:bg-muted/30 transition-colors">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h4 className="text-base font-medium">
-                            {model.display_name}
-                          </h4>
-                          {model.is_recommended && (
-                            <Badge variant="default" className="text-xs bg-blue-500/10 text-blue-500 border-blue-500/20">
-                              Recommended
-                            </Badge>
-                          )}
-                          {model.is_default && (
-                            <Badge variant="outline" className="text-xs">
-                              Default
-                            </Badge>
-                          )}
-                        </div>
-                        <code className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                          {model.model_name}
-                        </code>
-                      </div>
-                      <Badge 
-                        variant={model.is_available ? 'default' : 'secondary'} 
-                        className={model.is_available ? 'bg-green-500 hover:bg-green-600' : ''}
-                      >
-                        {model.is_available ? 'Active' : 'Not Configured'}
-                      </Badge>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {(model.capabilities || []).map((cap) => (
-                        <Badge key={cap} variant="outline" className="text-xs">
-                          {cap}
-                        </Badge>
-                      ))}
-                      <Badge variant="outline" className="text-xs">
-                        {(model.max_tokens || 0).toLocaleString()} tokens
-                      </Badge>
-                    </div>
-
-                    {!model.is_available && (
-                      <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                        <p className="text-xs text-amber-600 dark:text-amber-400">
-                          <strong>Setup Required:</strong> Add your {providerGroup.provider} API key in the "My API Keys" tab
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </Card>
+        {}
+        <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                'px-6 py-2.5 rounded-full text-sm font-medium transition-all whitespace-nowrap',
+                activeTab === tab.id
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+              )}
+            >
+              {tab.label}
+            </button>
           ))}
-        </TabsContent>
+        </div>
 
-        <TabsContent value="providers" className="space-y-4">
-          <div className="flex justify-end mb-4">
-            <Button onClick={() => handleOpenDialog()}>
+        {}
+        {activeTab === 'ai-providers' && (
+          <div className="space-y-8">
+            {}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardDescription>Total Providers</CardDescription>
+            <CardTitle className="text-3xl">{providers.length}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <FiKey className="size-4" />
+              <span>{activeProviders} active</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardDescription>Total Usage</CardDescription>
+            <CardTitle className="text-3xl">{totalUsage.toLocaleString()}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <FiActivity className="size-4" />
+              <span>API requests</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardDescription>Quick Action</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => handleOpenDialog()} className="w-full">
               <FiPlus className="mr-2" />
-              Add API Key
+              Add New Provider
             </Button>
-          </div>
+          </CardContent>
+        </Card>
+      </div>
 
-          {providers.length === 0 ? (
-            <Card className="p-12 text-center">
-              <div className="flex flex-col items-center gap-4">
-                <div className="size-16 rounded-full bg-muted flex items-center justify-center">
-                  <FiKey className="size-8 text-muted-foreground" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">No API Keys Yet</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Add your first API key to start using AI models
-                  </p>
-                  <Button onClick={() => handleOpenDialog()}>
-                    <FiPlus className="mr-2" />
-                    Add Your First API Key
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ) : (
-            providers.map((provider) => (
-              <Card key={provider.id} className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <h3 className="text-lg font-semibold">{provider.displayName}</h3>
+            {}
+            {providers.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="size-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-6">
+              <FiKey className="size-10 text-primary" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No API Keys Configured</h3>
+            <p className="text-muted-foreground text-center max-w-md mb-6">
+              Add your first AI provider API key to start using AI models in your bots and workflows
+            </p>
+            <Button onClick={() => handleOpenDialog()} size="lg">
+              <FiPlus className="mr-2" />
+              Add Your First API Key
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {providers.map((provider) => {
+            const providerInfo = PROVIDER_OPTIONS.find(p => p.value === provider.provider);
+            return (
+              <Card key={provider.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                <div className={`h-2 bg-gradient-to-r ${providerInfo?.color || 'from-gray-500 to-slate-500'}`} />
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="text-3xl">{providerInfo?.icon || '⚙️'}</div>
+                      <div>
+                        <CardTitle className="text-lg">{provider.displayName}</CardTitle>
+                        <CardDescription>{providerInfo?.label || provider.provider}</CardDescription>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
                       <Badge 
                         variant={provider.isActive ? 'default' : 'secondary'}
-                        className={provider.isActive ? 'bg-green-500 hover:bg-green-600' : ''}
+                        className={provider.isActive ? 'bg-green-500' : ''}
                       >
                         {provider.isActive ? 'Active' : 'Inactive'}
                       </Badge>
-                      {provider.isVerified ? (
+                      {provider.isVerified && (
                         <Badge variant="outline" className="text-green-600 border-green-600">
-                          <FiCheck className="mr-1 size-3" /> Verified
+                          <FiCheck className="size-3" />
                         </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-amber-600 border-amber-600">
-                          <FiX className="mr-1 size-3" /> Not Verified
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    <Badge variant="outline" className="mb-3">
-                      {PROVIDER_OPTIONS.find(p => p.value === provider.provider)?.label || provider.provider}
-                    </Badge>
-
-                    {provider.modelList && provider.modelList.length > 0 && (
-                      <div className="mb-3">
-                        <p className="text-sm text-muted-foreground mb-2">Configured Models:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {provider.modelList.map((model) => (
-                            <code key={model} className="text-xs bg-muted px-2 py-1 rounded">
-                              {model}
-                            </code>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex gap-4 text-sm text-muted-foreground">
-                      <span>Usage: {provider.quotaUsed.toLocaleString()} requests</span>
-                      {provider.lastUsedAt && (
-                        <span>Last Used: {new Date(provider.lastUsedAt).toLocaleDateString()}</span>
                       )}
                     </div>
                   </div>
+                </CardHeader>
 
-                  <div className="flex gap-2">
+                <CardContent className="space-y-4">
+                  {}
+                  {provider.modelList && provider.modelList.length > 0 && (
+                    <div>
+                      <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                        <FiZap className="size-4" />
+                        Configured Models
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {provider.modelList.map((model) => (
+                          <Badge key={model} variant="secondary" className="font-mono text-xs">
+                            {model}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {}
+                  <div className="flex items-center justify-between pt-4 border-t">
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Usage</p>
+                      <p className="text-lg font-semibold">{provider.quotaUsed.toLocaleString()}</p>
+                    </div>
+                    {provider.lastUsedAt && (
+                      <div className="space-y-1 text-right">
+                        <p className="text-sm text-muted-foreground">Last Used</p>
+                        <p className="text-sm font-medium">{new Date(provider.lastUsedAt).toLocaleDateString()}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {}
+                  <div className="flex gap-2 pt-2">
                     {!provider.isVerified && (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleVerify(provider.id)}
+                        className="flex-1"
                       >
+                        <FiCheck className="mr-2 size-4" />
                         Verify
                       </Button>
                     )}
@@ -411,6 +448,7 @@ export default function AIModelsPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleToggleActive(provider)}
+                      className="flex-1"
                     >
                       {provider.isActive ? 'Deactivate' : 'Activate'}
                     </Button>
@@ -419,57 +457,205 @@ export default function AIModelsPage() {
                       size="sm"
                       onClick={() => handleOpenDialog(provider)}
                     >
-                      <FiEdit2 />
+                      <FiEdit2 className="size-4" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDelete(provider.id)}
+                      onClick={() => openDeleteDialog(provider.id)}
+                      className="text-destructive hover:text-destructive"
                     >
-                      <FiTrash2 />
+                      <FiTrash2 className="size-4" />
                     </Button>
                   </div>
-                </div>
+                </CardContent>
               </Card>
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
+            );
+          })}
+            </div>
+            )}
+          </div>
+        )}
+
+        {}
+        {activeTab === 'account' && (
+          <div className="space-y-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>Profile</CardTitle>
+                <CardDescription>Set your account details</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input id="firstName" placeholder="Enter your first name" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input id="lastName" placeholder="Enter your last name" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" placeholder="your.email@example.com" />
+                </div>
+                <Button>Save Changes</Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Timezone & Preferences</CardTitle>
+                <CardDescription>Let us know the time zone and format</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>City</Label>
+                    <Input placeholder="New York" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Timezone</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="UTC/GMT -4 hours" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="utc-4">UTC/GMT -4 hours</SelectItem>
+                        <SelectItem value="utc-5">UTC/GMT -5 hours</SelectItem>
+                        <SelectItem value="utc+7">UTC/GMT +7 hours</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Date & Time Format</Label>
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder="dd/mm/yyyy HH:MM" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="dmy">dd/mm/yyyy HH:MM</SelectItem>
+                        <SelectItem value="mdy">mm/dd/yyyy HH:MM</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {}
+        {activeTab === 'notifications' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Notification Preferences</CardTitle>
+              <CardDescription>Choose how you want to be notified</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">Notification settings coming soon...</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {}
+        {activeTab === 'sharing' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Sharing Settings</CardTitle>
+              <CardDescription>Manage sharing and collaboration</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">Sharing settings coming soon...</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {}
+        {activeTab === 'billing' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Billing & Subscription</CardTitle>
+              <CardDescription>Manage your subscription and payment methods</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">Billing settings coming soon...</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {}
+        {activeTab === 'questions' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Help & Support</CardTitle>
+              <CardDescription>Frequently asked questions and support</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">FAQ coming soon...</p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
-            <DialogTitle>
-              {editingProvider ? 'Edit API Key' : 'Add API Key'}
+            <DialogTitle className="text-2xl">
+              {editingProvider ? 'Edit API Key' : 'Add New API Key'}
             </DialogTitle>
             <DialogDescription>
               {editingProvider 
-                ? 'Update your API key configuration'
-                : 'Add a new API key to enable AI models'
+                ? 'Update your API key configuration and settings'
+                : 'Connect a new AI provider to unlock powerful models'
               }
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="provider">Provider</Label>
-              <Select
-                value={formData.provider}
-                onValueChange={(value: any) => setFormData({ ...formData, provider: value })}
-                disabled={!!editingProvider}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {}
+            {!editingProvider && (
+              <div className="space-y-3">
+                <Label>Select Provider</Label>
+                <div className="grid grid-cols-2 gap-3">
                   {PROVIDER_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, provider: option.value as any })}
+                      className={`p-4 rounded-lg border-2 transition-all text-left ${
+                        formData.provider === option.value
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-2xl">{option.icon}</span>
+                        <span className="font-semibold text-sm">{option.label}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{option.description}</p>
+                    </button>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
+                </div>
+              </div>
+            )}
+
+            {editingProvider && (
+              <div className="p-4 rounded-lg bg-muted/50 border">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">
+                    {PROVIDER_OPTIONS.find(p => p.value === formData.provider)?.icon}
+                  </span>
+                  <div>
+                    <p className="font-semibold">
+                      {PROVIDER_OPTIONS.find(p => p.value === formData.provider)?.label}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Provider cannot be changed</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="displayName">Display Name</Label>
@@ -483,29 +669,82 @@ export default function AIModelsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="apiKey">
-                API Key {editingProvider && '(leave empty to keep current)'}
-              </Label>
-              <div className="relative">
-                <Input
-                  id="apiKey"
-                  type={showApiKey ? 'text' : 'password'}
-                  placeholder="Enter your API key"
-                  value={formData.apiKey}
-                  onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
-                  required={!editingProvider}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showApiKey ? <FiEyeOff /> : <FiEye />}
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Your API key will be encrypted and stored securely
-              </p>
+              <Label htmlFor="apiKey">API Key</Label>
+              
+              {editingProvider && !isChangingApiKey ? (
+                // ✅ View mode: Show masked key with change button
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
+                    <div className="flex-1 font-mono text-sm text-muted-foreground">
+                      {editingProvider.apiKeyMasked || '••••••••••••••••••••'}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setIsChangingApiKey(true);
+                        setFormData({ ...formData, apiKey: '' });
+                      }}
+                    >
+                      <FiEdit2 className="mr-2 size-3" />
+                      Change Key
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Your API key is encrypted and stored securely
+                  </p>
+                </div>
+              ) : (
+                // ✅ Edit mode: Show input field
+                <div className="space-y-2">
+                  {editingProvider && isChangingApiKey && (
+                    <div className="flex items-center gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900">
+                      <FiAlertCircle className="size-4 text-amber-600 dark:text-amber-500" />
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                        Entering a new API key will replace the current one
+                      </p>
+                    </div>
+                  )}
+                  <div className="relative">
+                    <Input
+                      id="apiKey"
+                      type={showApiKey ? 'text' : 'password'}
+                      placeholder={editingProvider ? "Enter new API key" : "Enter your API key"}
+                      value={formData.apiKey}
+                      onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
+                      required={!editingProvider}
+                      className={editingProvider && isChangingApiKey ? "border-amber-300 dark:border-amber-800" : ""}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showApiKey ? <FiEyeOff /> : <FiEye />}
+                    </button>
+                  </div>
+                  {editingProvider && isChangingApiKey && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIsChangingApiKey(false);
+                        setFormData({ ...formData, apiKey: '' });
+                      }}
+                      className="text-xs"
+                    >
+                      Cancel - Keep current key
+                    </Button>
+                  )}
+                  {!editingProvider && (
+                    <p className="text-xs text-muted-foreground">
+                      Your API key will be encrypted and stored securely
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -534,6 +773,23 @@ export default function AIModelsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this API key. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

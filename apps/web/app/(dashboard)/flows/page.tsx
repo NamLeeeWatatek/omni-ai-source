@@ -97,7 +97,7 @@ function FlowDropdownMenu({
 
     const handleDuplicate = async () => {
         try {
-            const duplicated = await dispatch(duplicateFlow(flowId)).unwrap()
+            const duplicated = await dispatch(duplicateFlow(flowId.toString())).unwrap()
             router.push(`/flows/${duplicated.id}/edit`)
         } catch (error) {
             toast.error('Failed to duplicate')
@@ -106,7 +106,7 @@ function FlowDropdownMenu({
 
     const handlePublish = async () => {
         try {
-            await dispatch(updateFlow({ id: flowId, data: { status: 'published' } })).unwrap()
+            await dispatch(updateFlow({ id: flowId.toString(), data: { status: 'published' } })).unwrap()
         } catch (error) {
             toast.error('Failed to publish')
         }
@@ -114,7 +114,7 @@ function FlowDropdownMenu({
 
     const handleUnpublish = async () => {
         try {
-            await dispatch(updateFlow({ id: flowId, data: { status: 'draft' } })).unwrap()
+            await dispatch(updateFlow({ id: flowId.toString(), data: { status: 'draft' } })).unwrap()
         } catch (error) {
             toast.error('Failed to unpublish')
         }
@@ -122,7 +122,7 @@ function FlowDropdownMenu({
 
     const handleArchive = async () => {
         try {
-            await dispatch(archiveFlow(flowId)).unwrap()
+            await dispatch(archiveFlow(flowId.toString())).unwrap()
         } catch (error) {
             toast.error('Failed to archive')
         }
@@ -130,7 +130,7 @@ function FlowDropdownMenu({
 
     const handleUnarchive = async () => {
         try {
-            await dispatch(updateFlow({ id: flowId, data: { status: 'draft' } })).unwrap()
+            await dispatch(updateFlow({ id: flowId.toString(), data: { status: 'draft' } })).unwrap()
         } catch (error) {
             toast.error('Failed to unarchive')
         }
@@ -295,7 +295,7 @@ export default function WorkflowsPage() {
         setFlowToDelete(null)
 
         try {
-            await dispatch(deleteFlow(flowId)).unwrap()
+            await dispatch(deleteFlow(flowId.toString())).unwrap()
         } catch (error) {
             toast.error('Failed to delete')
         }
@@ -314,7 +314,7 @@ export default function WorkflowsPage() {
 
     return (
         <div className="h-full">
-            {}
+
             <div className="page-header flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold mb-2">Workflows</h1>
@@ -341,16 +341,16 @@ export default function WorkflowsPage() {
                 </div>
             </div>
 
-            {}
+
             <WorkflowStats stats={stats} />
 
-            {}
+
             <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="flex-1">
                     <SearchBar onSearch={pagination.handleSearchChange} />
                 </div>
                 <div className="flex items-center gap-2">
-                    {}
+
                     <Card className="p-1 flex items-center gap-1">
                         <button
                             onClick={() => setStatusFilter('all')}
@@ -390,7 +390,7 @@ export default function WorkflowsPage() {
                         </button>
                     </Card>
 
-                    {}
+
                     <Card className="p-1 flex items-center">
                         <button
                             onClick={() => setViewMode('grid')}
@@ -408,7 +408,7 @@ export default function WorkflowsPage() {
                 </div >
             </div >
 
-            {}
+
             {
                 loading ? (
                     <div className="flex justify-center items-center py-20">
@@ -452,7 +452,7 @@ export default function WorkflowsPage() {
                             />
                         )}
 
-                        {}
+
                         {totalPages > 1 && (
                             <Pagination
                                 currentPage={page || pagination.page}
@@ -467,7 +467,7 @@ export default function WorkflowsPage() {
                 )
             }
 
-            {}
+
             {
                 showTemplateSelector && (
                     <TemplateSelector
@@ -487,7 +487,7 @@ export default function WorkflowsPage() {
                 )
             }
 
-            {}
+
             <WorkflowRunModal
                 isOpen={runModalOpen}
                 onClose={() => setRunModalOpen(false)}
@@ -501,7 +501,7 @@ export default function WorkflowsPage() {
                 workflowName={selectedWorkflow?.name || ''}
             />
 
-            {}
+
             <AlertDialog open={deleteDialogOpen} onOpenChange={(open) => {
                 setDeleteDialogOpen(open)
                 if (!open) setFlowToDelete(null)

@@ -143,6 +143,15 @@ export class BotsService {
 
   async update(id: string, updateDto: UpdateBotDto) {
     const bot = await this.findOne(id);
+    
+    // Clean up invalid UUID strings
+    if (updateDto.flowId === 'undefined' || updateDto.flowId === 'null') {
+      updateDto.flowId = null;
+    }
+    if (updateDto.aiProviderId === 'undefined' || updateDto.aiProviderId === 'null') {
+      updateDto.aiProviderId = null;
+    }
+    
     Object.assign(bot, updateDto);
     return this.botRepository.save(bot);
   }

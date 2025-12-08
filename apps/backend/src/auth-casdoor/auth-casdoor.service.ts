@@ -171,12 +171,22 @@ export class AuthCasdoorService {
         httpsAgent: new (require('https').Agent)({
           rejectUnauthorized: false,
         }),
+        timeout: 30000, // 30 seconds timeout
+        validateStatus: (status) => status < 500, // Don't throw on 4xx
       });
 
       this.logger.log(`Token exchange successful`);
       return response.data;
     } catch (error) {
       this.logger.error(`Token exchange error: ${error.message}`);
+      this.logger.error(`Token URL: ${tokenUrl}`);
+      this.logger.error(`Casdoor endpoint: ${this.casdoorEndpoint}`);
+      
+      if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
+        this.logger.error(`Connection timeout - Casdoor server may be down or unreachable`);
+        throw new UnauthorizedException('Casdoor server is not responding. Please try again later.');
+      }
+      
       if (error.response) {
         this.logger.error(`Response status: ${error.response.status}`);
         this.logger.error(`Response data: ${JSON.stringify(error.response.data)}`);

@@ -4,9 +4,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useConversationsSocket } from '@/lib/hooks/useConversationsSocket';
-import { 
-  MessageSquare, 
-  Search, 
+import { useNotifications } from '@/lib/hooks/useNotifications';
+import { useNotificationPreferences } from '@/components/notifications/notification-settings';
+import { ChannelConversationList, type ChannelConversation } from '@/components/conversations/channel-conversation-list';
+import {
+  MessageSquare,
+  Search,
   Filter,
   Clock,
   CheckCircle2,
@@ -16,14 +19,20 @@ import {
   Trash2,
   Inbox,
   Users,
+  User,
   Hash,
-  ChevronRight
+  ChevronRight,
+  RefreshCw,
+  Bell,
+  Settings,
+  Bot,
+  UserPlus
 } from 'lucide-react';
-import { 
-  FiFacebook, 
-  FiInstagram, 
+import {
+  FiFacebook,
+  FiInstagram,
   FiMail,
-  FiMessageCircle 
+  FiMessageCircle
 } from 'react-icons/fi';
 import { FaWhatsapp, FaTelegram, FaFacebookMessenger } from 'react-icons/fa';
 import { Button } from '@/components/ui/button';
@@ -40,25 +49,13 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Spinner } from '@/components/ui/spinner';
 import { ChatInterface } from '@/components/chat/chat-interface';
+import { NotificationSettings } from '@/components/notifications/notification-settings';
 import axiosClient from '@/lib/axios-client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-interface Conversation {
-  id: string;
-  externalId: string;
-  channelId: string;
-  channelType: string;
-  channelName: string;
-  customerName: string;
-  customerAvatar?: string;
-  lastMessage: string;
-  lastMessageAt: string;
-  unreadCount: number;
-  status: 'open' | 'pending' | 'closed';
-  assignedTo?: string;
-  metadata?: any;
-}
+// ✅ Use ChannelConversation type from component
+type Conversation = ChannelConversation;
 
 interface Channel {
   id: string;
@@ -69,10 +66,38 @@ interface Channel {
   unreadCount: number;
 }
 
+// ✅ FIX: Safe date formatting helper
+const formatRelativeTime = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return 'Recently';
+    }
+
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m`;
+    if (diffInHours < 24) return `${diffInHours}h`;
+    if (diffInDays < 7) return `${diffInDays}d`;
+
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric'
+    }).format(date);
+  } catch {
+    return 'Recently';
+  }
+};
+
 export default function ConversationsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,35 +106,116 @@ export default function ConversationsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('active');
   const [selectedChannel, setSelectedChannel] = useState<string>('all');
   const [refreshing, setRefreshing] = useState(false);
-  
-  const selectedId = searchParams.get('id');
+  const [syncing, setSyncing] = useState(false);
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+
+  // ✅ FIX: Use local state instead of URL params for selected conversation
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+
+  // Enterprise features
+  const { showNotification, playSound, permission } = useNotifications();
+  const notificationPrefs = useNotificationPreferences();
+
+  const selectedId = selectedConversationId;
 
   const handleConversationUpdate = useCallback((updatedConversation: any) => {
-    
     setConversations((prev) => {
       const exists = prev.find((c) => c.id === updatedConversation.id);
-      
+      const isNewConversation = !exists;
+      const hasNewMessage = exists && updatedConversation.lastMessageAt !== exists.lastMessageAt;
+
       if (exists) {
         return prev.map((c) =>
           c.id === updatedConversation.id
             ? {
-                ...c,
-                ...mapConversation(updatedConversation),
-                lastMessageAt: updatedConversation.lastMessageAt || c.lastMessageAt,
-              }
+              ...c,
+              ...mapConversation(updatedConversation),
+              lastMessageAt: updatedConversation.lastMessageAt || c.lastMessageAt,
+            }
             : c
-        ).sort((a, b) => 
+        ).sort((a, b) =>
           new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
         );
       } else {
         return [mapConversation(updatedConversation), ...prev];
       }
     });
-    
-    toast.success('New message received!', { duration: 2000 });
-  }, []);
+
+    // 🏢 ENTERPRISE NOTIFICATIONS - Slack/Teams/Intercom style
+    const isCurrentlyViewing = selectedId === updatedConversation.id;
+    const isWindowFocused = typeof document !== 'undefined' && document.hasFocus();
+
+    // Respect notification preferences
+    if (notificationPrefs.doNotDisturb) return;
+    if (notificationPrefs.onlyWhenInactive && isWindowFocused) return;
+
+    if (!isCurrentlyViewing) {
+      const newMessage = mapConversation(updatedConversation);
+
+      // Only notify for new messages from customers
+      if (newMessage.lastMessage && newMessage.lastMessage !== 'No messages yet') {
+        const customerName = newMessage.customerName || 'Customer';
+        const messagePreview = notificationPrefs.messagePreview
+          ? (newMessage.lastMessage.length > 50
+            ? newMessage.lastMessage.substring(0, 50) + '...'
+            : newMessage.lastMessage)
+          : 'New message received';
+
+        // Play sound notification (if enabled)
+        if (notificationPrefs.sound) {
+          playSound('message');
+        }
+
+        // Desktop notification (if enabled and granted)
+        if (notificationPrefs.desktop && permission === 'granted') {
+          showNotification({
+            title: `💬 ${customerName}`,
+            body: messagePreview,
+            icon: newMessage.customerAvatar || '/logo.png',
+            tag: `conversation-${newMessage.id}`,
+            data: { conversationId: newMessage.id },
+          });
+        } else {
+          // Fallback to toast notification
+          toast(`💬 ${customerName}`, {
+            description: messagePreview,
+            duration: 4000,
+          });
+        }
+      }
+    }
+  }, [selectedId, notificationPrefs, permission, showNotification, playSound]);
 
   const handleNewMessage = useCallback((message: any) => {
+    console.log('[Conversations Page] New message received:', message);
+    
+    // Update conversation's last message and move to top
+    setConversations((prev) => {
+      const conversationId = message.conversationId;
+      const conversation = prev.find(c => c.id === conversationId);
+      
+      if (!conversation) {
+        console.log('[Conversations Page] Conversation not found for message');
+        return prev;
+      }
+
+      // Update conversation with new message
+      const updated = prev.map(c => {
+        if (c.id === conversationId) {
+          return {
+            ...c,
+            lastMessage: message.content,
+            lastMessageAt: message.sentAt || message.createdAt || new Date().toISOString(),
+          };
+        }
+        return c;
+      });
+
+      // Sort by lastMessageAt (newest first)
+      return updated.sort((a, b) => 
+        new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+      );
+    });
   }, []);
 
   const { isConnected } = useConversationsSocket({
@@ -123,22 +229,30 @@ export default function ConversationsPage() {
   }, []);
 
   useEffect(() => {
-    loadConversations(false);
+    console.log('[useEffect] Triggered - Loading conversations', {
+      statusFilter,
+      selectedChannel,
+      channelsCount: channels.length,
+      isConnected
+    });
     
+    loadConversations(false);
+
     const interval = setInterval(() => {
       if (!isConnected) {
         loadConversations(true);
       }
     }, 30000);
-    
+
     return () => clearInterval(interval);
-  }, [statusFilter, selectedChannel, channels, isConnected]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, selectedChannel, isConnected]);
 
   const loadChannels = async () => {
     try {
       setChannelsLoading(true);
       const data = await axiosClient.get('/channels').then(r => r.data);
-      
+
       const mappedChannels: Channel[] = (data?.items || data || []).map((channel: any) => ({
         id: channel.id,
         name: channel.name || channel.channelName || 'Unknown',
@@ -147,7 +261,7 @@ export default function ConversationsPage() {
         color: getChannelColor(channel.type || channel.channelType || 'unknown'),
         unreadCount: 0,
       }));
-      
+
       setChannels(mappedChannels);
     } catch (error) {
       toast.error('Failed to load channels');
@@ -165,24 +279,41 @@ export default function ConversationsPage() {
         setRefreshing(true);
       }
       const params = new URLSearchParams();
-      
-      params.set('source', 'channel');
-      
+
+      // 🎯 ONLY load CHANNEL conversations (Facebook, Instagram, etc)
+      // EXCLUDE bot/widget conversations - keep them separate
+      params.set('source', 'channel');  // Add filter for channels only
+
       if (selectedChannel !== 'all') {
         const channel = channels.find(c => c.id === selectedChannel);
         if (channel) {
+          params.set('channelId', channel.id);
           params.set('channelType', channel.type);
         }
       }
-      
+
+      // 🔍 DEBUG: Check workspace context
+      const workspaceId = localStorage.getItem('currentWorkspaceId');
       console.log('[Loading Conversations]', {
         statusFilter,
         selectedChannel,
+        workspaceId,
         params: params.toString(),
       });
+
+      const response = await axiosClient.get(`/conversations?${params.toString()}`);
+      const data = response.data;
+
+      console.log('[API Response]', {
+        status: response.status,
+        dataType: typeof data,
+        isArray: Array.isArray(data),
+        keys: data ? Object.keys(data) : [],
+        data: data,
+      });
       
-      const data = await (await axiosClient.get(`/conversations?${params.toString()}`)).data;
-      
+      console.log('[API Response - Full Data]', JSON.stringify(data, null, 2));
+
       let rawConversations: any[] = [];
       if (Array.isArray(data)) {
         rawConversations = data;
@@ -193,15 +324,16 @@ export default function ConversationsPage() {
       } else if (data?.data && Array.isArray(data.data)) {
         rawConversations = data.data;
       }
-      
+
       const mappedConversations = rawConversations.map(mapConversation);
-      
+
       console.log('[Conversations Loaded]', {
         total: data?.total || rawConversations.length,
         loaded: mappedConversations.length,
+        rawCount: rawConversations.length,
         conversations: mappedConversations,
       });
-      
+
       setConversations(mappedConversations);
     } catch (error) {
       if (!silent) {
@@ -214,13 +346,82 @@ export default function ConversationsPage() {
     }
   };
 
+  const handleSync = async () => {
+    if (selectedChannel === 'all') {
+      toast.error('Please select a specific Facebook channel to sync');
+      return;
+    }
+
+    const channel = channels.find(c => c.id === selectedChannel);
+    if (!channel || channel.type !== 'facebook') {
+      toast.error('Please select a Facebook channel to sync');
+      return;
+    }
+
+    try {
+      setSyncing(true);
+      toast.info('Syncing conversations from Facebook...');
+
+      const response = await axiosClient.post(
+        `/channels/facebook/connections/${channel.id}/sync-to-db`,
+        {
+          conversationLimit: 25,
+          messageLimit: 50,
+        }
+      );
+
+      const data = response.data;
+
+      if (data.success) {
+        toast.success(`Synced ${data.synced} conversation(s) from Facebook`);
+        // Reload conversations to show synced data
+        await loadConversations(false);
+      } else {
+        toast.error('Failed to sync conversations');
+      }
+    } catch (error: any) {
+      console.error('Sync error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to sync conversations';
+      toast.error(errorMessage);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const mapConversation = (conv: any): Conversation => {
+    // ✅ Try multiple sources for last message
     let lastMessage = 'No messages yet';
-    if (conv.metadata?.lastMessage) {
+    
+    if (conv.lastMessage) {
+      lastMessage = conv.lastMessage;
+    } else if (conv.last_message) {
+      lastMessage = conv.last_message;
+    } else if (conv.metadata?.lastMessage) {
       lastMessage = conv.metadata.lastMessage;
     } else if (conv.messages && conv.messages.length > 0) {
       const lastMsg = conv.messages[conv.messages.length - 1];
       lastMessage = lastMsg.content || lastMsg.text || 'No messages yet';
+    }
+    
+    console.log('[mapConversation] Mapping:', {
+      id: conv.id,
+      customerName: conv.customerName || conv.contactName,
+      lastMessage,
+      rawConv: conv
+    });
+
+    // ✅ FIX: Ensure valid date
+    let lastMessageAt = new Date().toISOString();
+    const rawDate = conv.lastMessageAt || conv.last_message_at || conv.updatedAt || conv.updated_at || conv.createdAt || conv.created_at;
+    if (rawDate) {
+      try {
+        const parsedDate = new Date(rawDate);
+        if (!isNaN(parsedDate.getTime())) {
+          lastMessageAt = parsedDate.toISOString();
+        }
+      } catch {
+        // Keep default
+      }
     }
 
     return {
@@ -232,7 +433,7 @@ export default function ConversationsPage() {
       customerName: conv.customerName || conv.contactName || conv.contact_name || 'Unknown',
       customerAvatar: conv.customerAvatar || conv.contactAvatar || conv.contact_avatar,
       lastMessage,
-      lastMessageAt: conv.lastMessageAt || conv.last_message_at || new Date().toISOString(),
+      lastMessageAt,
       unreadCount: conv.unreadCount || conv.unread_count || 0,
       status: conv.status === 'active' ? 'open' : conv.status || 'open',
       assignedTo: conv.assignedTo || conv.assigned_to,
@@ -266,15 +467,16 @@ export default function ConversationsPage() {
     return colors[type] || 'text-gray-500';
   };
 
-  const filteredConversations = Array.isArray(conversations) 
+  const filteredConversations = Array.isArray(conversations)
     ? conversations.filter(conv =>
-        conv.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        conv.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      conv.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      conv.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : [];
 
+  // ✅ FIX: Select conversation without navigation
   const handleSelectConversation = (id: string) => {
-    router.push(`/conversations/${id}`);
+    setSelectedConversationId(id);
   };
 
   const channelsWithCounts = channels.map(channel => ({
@@ -287,19 +489,14 @@ export default function ConversationsPage() {
   const totalUnread = conversations.filter(conv => conv.unreadCount > 0).length;
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex bg-background">
-      {}
+    <div className="h-screen flex bg-background overflow-hidden">
       <div className="w-72 border-r border-border/50 flex flex-col bg-card/30">
-        {}
         <div className="px-6 py-5 border-b border-border/50">
           <h2 className="text-base font-semibold text-foreground">Channels</h2>
           <p className="text-xs text-muted-foreground mt-1">Select a channel to view messages</p>
         </div>
-
-        {}
         <ScrollArea className="flex-1 px-3 py-4">
           <div className="space-y-1">
-            {}
             <button
               onClick={() => setSelectedChannel('all')}
               className={cn(
@@ -319,8 +516,8 @@ export default function ConversationsPage() {
                 <span className="font-medium text-sm">All Messages</span>
               </div>
               {totalUnread > 0 && (
-                <Badge 
-                  variant={selectedChannel === 'all' ? 'secondary' : 'default'} 
+                <Badge
+                  variant={selectedChannel === 'all' ? 'secondary' : 'default'}
                   className="h-6 min-w-[24px] px-2 rounded-full"
                 >
                   {totalUnread}
@@ -328,7 +525,6 @@ export default function ConversationsPage() {
               )}
             </button>
 
-            {}
             <div className="py-3 px-4">
               <div className="h-px bg-border/50" />
             </div>
@@ -371,8 +567,8 @@ export default function ConversationsPage() {
                     <span className="font-medium text-sm truncate">{channel.name}</span>
                   </div>
                   {channel.unreadCount > 0 && (
-                    <Badge 
-                      variant={selectedChannel === channel.id ? 'secondary' : 'default'} 
+                    <Badge
+                      variant={selectedChannel === channel.id ? 'secondary' : 'default'}
                       className="h-6 min-w-[24px] px-2 rounded-full shrink-0 ml-2"
                     >
                       {channel.unreadCount}
@@ -384,7 +580,7 @@ export default function ConversationsPage() {
           </div>
         </ScrollArea>
 
-        {}
+
         <div className="px-6 py-4 border-t border-border/50 bg-muted/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -398,46 +594,84 @@ export default function ConversationsPage() {
         </div>
       </div>
 
-      {}
+
       <div className="w-[420px] border-r border-border/50 flex flex-col bg-background">
-        {}
+
         <div className="px-6 py-5 border-b border-border/50 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <h1 className="text-lg font-semibold text-foreground">
-                  {selectedChannel === 'all' 
-                    ? 'All Messages' 
+                  {selectedChannel === 'all'
+                    ? 'All Messages'
                     : channels.find(c => c.id === selectedChannel)?.name || 'Messages'}
                 </h1>
-                {}
-                <div className={cn(
-                  'w-2 h-2 rounded-full',
-                  isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
-                )} title={isConnected ? 'Connected (Real-time)' : 'Disconnected'} />
+                {/* Connection status - improved */}
+                <div className="flex items-center gap-1.5">
+                  <motion.div
+                    animate={isConnected ? {
+                      scale: [1, 1.2, 1],
+                      opacity: [0.8, 1, 0.8],
+                    } : {}}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className={cn(
+                      'w-2 h-2 rounded-full',
+                      isConnected ? 'bg-green-500' : 'bg-gray-400'
+                    )}
+                    title={isConnected ? 'Connected (Real-time)' : 'Disconnected'}
+                  />
+                  {isConnected && (
+                    <span className="text-[10px] font-medium text-green-600 dark:text-green-400 uppercase tracking-wide">
+                      Live
+                    </span>
+                  )}
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
-                <span>{filteredConversations.length} conversation{filteredConversations.length !== 1 ? 's' : ''}</span>
-                {isConnected && (
-                  <>
-                    <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
-                    <span>Real-time updates active</span>
-                  </>
-                )}
-              </p>
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => loadConversations(false)} 
-              className="h-9 w-9"
-              disabled={loading || refreshing}
-            >
-              <Filter className={cn('w-4 h-4', refreshing && 'animate-spin')} />
-            </Button>
+            <div className="flex items-center gap-2">
+              {/* Notification Settings Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowNotificationSettings(true)}
+                className="h-9 w-9 relative"
+                title="Notification settings"
+              >
+                <Bell className="w-4 h-4" />
+                {permission !== 'granted' && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-500 rounded-full" />
+                )}
+              </Button>
+
+              {selectedChannel !== 'all' && channels.find(c => c.id === selectedChannel)?.type === 'facebook' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSync}
+                  className="h-9 gap-2"
+                  disabled={syncing || loading}
+                >
+                  <RefreshCw className={cn('w-4 h-4', syncing && 'animate-spin')} />
+                  <span className="text-xs">Sync</span>
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => loadConversations(false)}
+                className="h-9 w-9"
+                disabled={loading || refreshing}
+              >
+                <Filter className={cn('w-4 h-4', refreshing && 'animate-spin')} />
+              </Button>
+            </div>
           </div>
 
-          {}
+
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -448,7 +682,7 @@ export default function ConversationsPage() {
             />
           </div>
 
-          {}
+
           <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
             <TabsList className="w-full grid grid-cols-3 h-9 bg-muted/50">
               <TabsTrigger value="active" className="text-xs">Active</TabsTrigger>
@@ -458,7 +692,7 @@ export default function ConversationsPage() {
           </Tabs>
         </div>
 
-        {}
+
         <ScrollArea className="flex-1">
           <AnimatePresence mode="wait">
             {loading ? (
@@ -483,11 +717,21 @@ export default function ConversationsPage() {
                   <MessageSquare className="w-8 h-8 text-muted-foreground" />
                 </div>
                 <h3 className="font-semibold text-base mb-2">No conversations yet</h3>
-                <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
-                  {selectedChannel === 'all' 
+                <p className="text-sm text-muted-foreground max-w-xs leading-relaxed mb-4">
+                  {selectedChannel === 'all'
                     ? 'Conversations from your channels will appear here'
                     : `No conversations from ${channels.find(c => c.id === selectedChannel)?.name || 'this channel'} yet`}
                 </p>
+                {selectedChannel !== 'all' && (
+                  <button
+                    onClick={handleSync}
+                    disabled={syncing}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                    {syncing ? 'Syncing...' : 'Sync Now'}
+                  </button>
+                )}
               </motion.div>
             ) : (
               <motion.div
@@ -500,81 +744,92 @@ export default function ConversationsPage() {
                 {filteredConversations.map((conv, index) => (
                   <motion.button
                     key={conv.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: Math.min(index * 0.03, 0.3) }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: Math.min(index * 0.02, 0.2) }}
                     onClick={() => handleSelectConversation(conv.id)}
                     className={cn(
-                      'w-full px-4 py-4 text-left transition-all duration-200 relative group',
-                      selectedId === conv.id 
-                        ? 'bg-primary/5 border-l-4 border-primary' 
-                        : 'hover:bg-muted/40 border-l-4 border-transparent'
+                      'w-full px-4 py-3 text-left transition-all duration-200 relative group',
+                      'hover:bg-muted/60',
+                      selectedId === conv.id && 'bg-primary/5 border-l-2 border-primary'
                     )}
                   >
-                    <div className="flex gap-3.5">
-                      {}
+                    <div className="flex gap-3 items-start">
+                      {/* Avatar with channel badge - Compact */}
                       <div className="relative shrink-0">
-                        <Avatar className="h-11 w-11 ring-2 ring-background">
+                        <Avatar className="h-11 w-11 ring-1 ring-border">
                           <AvatarImage src={conv.customerAvatar} />
-                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-sm font-semibold">
+                          <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 text-sm font-semibold">
                             {(conv.customerName || 'User').charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        {}
+                        {/* Channel icon badge - Smaller */}
                         <div className={cn(
-                          'absolute -bottom-0.5 -right-0.5 p-1 rounded-full bg-background border-2 border-background shadow-sm',
+                          'absolute -bottom-0.5 -right-0.5 p-1 rounded-full bg-background border border-background shadow-sm',
                           getChannelColor(conv.channelType)
                         )}>
-                          {getChannelIcon(conv.channelType)}
+                          <div className="w-3 h-3 flex items-center justify-center">
+                            {getChannelIcon(conv.channelType)}
+                          </div>
                         </div>
                       </div>
 
-                      {}
+                      {/* Content - Cleaner layout */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-1.5">
-                          <h3 className="font-semibold text-sm truncate text-foreground">
+                        {/* Header row */}
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <h3 className={cn(
+                            "font-semibold text-[15px] truncate",
+                            conv.unreadCount > 0 ? 'text-foreground' : 'text-foreground/90'
+                          )}>
                             {conv.customerName}
                           </h3>
-                          <span className="text-xs text-muted-foreground shrink-0 ml-3">
-                            {formatTime(conv.lastMessageAt)}
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            {formatRelativeTime(conv.lastMessageAt)}
                           </span>
                         </div>
 
-                        <p className="text-sm text-muted-foreground truncate mb-2.5 leading-relaxed">
-                          {conv.lastMessage}
-                        </p>
+                        {/* Badge row - Like image */}
+                        <div className="flex items-center gap-2 mb-1.5">
+                          {conv.metadata?.tags?.includes('VIP') && (
+                            <Badge variant="secondary" className="h-5 px-2 text-[10px] font-medium bg-amber-500/10 text-amber-700 border-amber-500/20">
+                              🔒 VIP Lead
+                            </Badge>
+                          )}
+                          {conv.metadata?.tags?.includes('Hot') && (
+                            <Badge variant="secondary" className="h-5 px-2 text-[10px] font-medium bg-red-500/10 text-red-700 border-red-500/20">
+                              🔥 Hot Lead
+                            </Badge>
+                          )}
+                          {conv.metadata?.tags?.includes('Payment') && (
+                            <Badge variant="secondary" className="h-5 px-2 text-[10px] font-medium bg-green-500/10 text-green-700 border-green-500/20">
+                              💳 Payments
+                            </Badge>
+                          )}
+                          {!conv.metadata?.tags?.length && (
+                            <Badge variant="secondary" className="h-5 px-2 text-[10px] font-medium">
+                              {conv.channelName}
+                            </Badge>
+                          )}
+                        </div>
 
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <StatusBadge status={conv.status} />
-                            {conv.unreadCount > 0 && (
-                              <Badge variant="default" className="h-5 px-2 bg-primary rounded-full">
-                                {conv.unreadCount}
-                              </Badge>
-                            )}
-                          </div>
+                        {/* Message preview */}
+                        <div className="flex items-center justify-between gap-2">
+                          <p className={cn(
+                            "text-[13px] truncate leading-tight",
+                            conv.unreadCount > 0
+                              ? 'text-foreground/80 font-medium'
+                              : 'text-muted-foreground'
+                          )}>
+                            {conv.lastMessage}
+                          </p>
 
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <Archive className="w-4 h-4 mr-2" />
-                                Archive
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive">
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          {/* Unread badge - Compact */}
+                          {conv.unreadCount > 0 && (
+                            <Badge className="h-5 min-w-[20px] px-1.5 rounded-full bg-primary text-[11px] font-semibold shrink-0">
+                              {conv.unreadCount}
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -586,7 +841,7 @@ export default function ConversationsPage() {
         </ScrollArea>
       </div>
 
-      {}
+
       <div className="flex-1 flex flex-col bg-muted/10">
         {selectedId ? (
           <ConversationChat conversationId={selectedId} />
@@ -609,26 +864,32 @@ export default function ConversationsPage() {
           </div>
         )}
       </div>
+
+      {/* Notification Settings Modal */}
+      <NotificationSettings
+        isOpen={showNotificationSettings}
+        onClose={() => setShowNotificationSettings(false)}
+      />
     </div>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
   const config = {
-    open: { 
-      icon: Circle, 
-      label: 'Open', 
-      className: 'bg-green-500/10 text-green-600 border-green-500/30 dark:text-green-400' 
+    open: {
+      icon: Circle,
+      label: 'Open',
+      className: 'bg-green-500/10 text-green-600 border-green-500/30 dark:text-green-400'
     },
-    pending: { 
-      icon: Clock, 
-      label: 'Pending', 
-      className: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/30 dark:text-yellow-400' 
+    pending: {
+      icon: Clock,
+      label: 'Pending',
+      className: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/30 dark:text-yellow-400'
     },
-    closed: { 
-      icon: CheckCircle2, 
-      label: 'Closed', 
-      className: 'bg-gray-500/10 text-gray-600 border-gray-500/30 dark:text-gray-400' 
+    closed: {
+      icon: CheckCircle2,
+      label: 'Closed',
+      className: 'bg-gray-500/10 text-gray-600 border-gray-500/30 dark:text-gray-400'
     },
   };
 
@@ -654,13 +915,13 @@ function formatTime(dateString: string): string {
   if (diffMins < 60) return `${diffMins}m`;
   if (diffHours < 24) return `${diffHours}h`;
   if (diffDays < 7) return `${diffDays}d`;
-  
+
   return date.toLocaleDateString();
 }
 
-function ConversationChat({ 
+function ConversationChat({
   conversationId
-}: { 
+}: {
   conversationId: string;
 }) {
   const [conversation, setConversation] = useState<Conversation | null>(null);
@@ -674,7 +935,7 @@ function ConversationChat({
     try {
       setLoading(true);
       const data = await (await axiosClient.get(`/conversations/${conversationId}`)).data;
-      
+
       const mappedConversation = {
         id: data.id,
         externalId: data.externalId || data.external_id || '',
@@ -690,7 +951,7 @@ function ConversationChat({
         assignedTo: data.assignedTo || data.assigned_to,
         metadata: data.metadata || {},
       };
-      
+
       setConversation(mappedConversation);
     } catch (error) {
       toast.error('Failed to load conversation');
@@ -701,9 +962,10 @@ function ConversationChat({
 
   const handleSendMessage = async (content: string) => {
     try {
-      await axiosClient.post(`/conversations/${conversationId}/messages`, { 
-        content, 
-        sender: 'agent' 
+      // ✅ FIX: Backend requires 'role' not 'sender'
+      await axiosClient.post(`/conversations/${conversationId}/messages`, {
+        content,
+        role: 'assistant' // Agent/Bot message
       });
     } catch (err) {
       toast.error('Failed to send message');
@@ -711,16 +973,25 @@ function ConversationChat({
     }
   };
 
-  const handleLoadMore = async (before: string) => {
+  // 🤖 → 👤 Human Handoff: Agent takes over
+  const handleTakeover = async () => {
     try {
-      const response = await axiosClient.get(
-        `/conversations/${conversationId}/messages?before=${before}&limit=50`
-      );
-      const data = response.data || response;
-      return Array.isArray(data) ? data : data.messages || [];
+      await axiosClient.post(`/conversations/${conversationId}/takeover`);
+      toast.success('You are now handling this conversation');
+      await loadConversation();
     } catch (error) {
-      toast.error('Failed to load more messages');
-      return [];
+      toast.error('Failed to take over conversation');
+    }
+  };
+
+  // 👤 → 🤖 Hand Back: Return to bot
+  const handleHandBack = async () => {
+    try {
+      await axiosClient.post(`/conversations/${conversationId}/handback`);
+      toast.success('Bot will resume auto-reply');
+      await loadConversation();
+    } catch (error) {
+      toast.error('Failed to hand back conversation');
     }
   };
 
@@ -768,7 +1039,7 @@ function ConversationChat({
 
   return (
     <>
-      {}
+
       <div className="border-b border-border/50 px-6 py-4 bg-background/95 backdrop-blur-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -794,7 +1065,43 @@ function ConversationChat({
 
           <div className="flex items-center gap-2">
             <StatusBadge status={conversation.status} />
-            
+
+            {/* 🤖/👤 Human Handoff Indicator */}
+            {conversation.metadata?.humanTakeover ? (
+              <Badge variant="default" className="gap-1.5 bg-gradient-to-r from-green-500 to-emerald-500 h-6 px-2.5">
+                <User className="w-3 h-3" />
+                <span className="text-xs font-medium">Human Agent</span>
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="gap-1.5 h-6 px-2.5">
+                <Bot className="w-3 h-3" />
+                <span className="text-xs font-medium">AI Assistant</span>
+              </Badge>
+            )}
+
+            {/* Takeover / Hand Back Buttons */}
+            {conversation.metadata?.humanTakeover ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleHandBack}
+                className="h-8 gap-2 text-xs"
+              >
+                <Bot className="w-3.5 h-3.5" />
+                Hand Back to Bot
+              </Button>
+            ) : (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleTakeover}
+                className="h-8 gap-2 text-xs bg-gradient-to-r from-primary to-primary/80"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                Take Over
+              </Button>
+            )}
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-9 w-9">
@@ -820,13 +1127,15 @@ function ConversationChat({
         </div>
       </div>
 
-      {}
+
       <div className="flex-1 overflow-hidden bg-background">
+        {/* Chat Interface - Full Width */}
         <ChatInterface
           conversationId={conversationId}
-          botName={conversation.customerName}
+          customerName={conversation.customerName}
+          isChannelConversation={true}
           onSendMessage={handleSendMessage}
-          onLoadMore={handleLoadMore}
+          senderRole="assistant" // ✅ Agent/Bot sending to customer
         />
       </div>
     </>

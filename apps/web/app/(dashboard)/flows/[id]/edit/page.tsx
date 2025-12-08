@@ -288,7 +288,15 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                             }
                         }
 
-                        const created: any = await axiosClient.post('/flows/', flowData)
+                        const response: any = await axiosClient.post('/flows/', flowData)
+                        const created = response.data || response
+                        
+                        console.log('[Flow Create from Template] Response:', created)
+                        
+                        if (!created || !created.id) {
+                            throw new Error('Failed to create flow: No ID returned')
+                        }
+                        
                         setFlow(created)
 
                         const cleanNodes = migratedNodes.map((node: any) => {
@@ -317,7 +325,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                         router.replace(`/flows/${created.id}/edit`)
 
                     } catch (error) {
-
+                        console.error('[Flow Create from Template] Error:', error)
                         toast.error('Failed to save template as new flow')
                     } finally {
                         setIsSaving(false)
@@ -546,7 +554,15 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
             }
 
             if (params.id === 'new') {
-                const created: any = await axiosClient.post('/flows/', flowData)
+                const response: any = await axiosClient.post('/flows/', flowData)
+                const created = response.data || response
+                
+                console.log('[Flow Create] Response:', created)
+                
+                if (!created || !created.id) {
+                    throw new Error('Failed to create flow: No ID returned')
+                }
+                
                 setFlow(created)
 
                 const cleanNodes = nodes.map((node: any) => {
@@ -573,6 +589,8 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                 dispatch(setHasUnsavedChanges(false))
 
                 window.history.replaceState({}, '', `/flows/${created.id}/edit`)
+                
+                toast.success('Flow created successfully!')
 
                 return created
             } else {
@@ -662,7 +680,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
             return
         }
 
-        const flowId = flow?.id || (params.id !== 'new' ? parseInt(params.id) : null)
+        const flowId = flow?.id || (params.id !== 'new' ? params.id : null)
         if (!flowId) {
             toast.error('Please save the workflow before testing')
             return
@@ -695,7 +713,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
             return
         }
 
-        const flowId = flow?.id || (params.id !== 'new' ? parseInt(params.id) : null)
+        const flowId = flow?.id || (params.id !== 'new' ? params.id : null)
         if (!flowId) {
             toast.error('Please save the workflow before executing')
             return
@@ -715,7 +733,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
     }
 
     const handleExecuteWithData = async (inputData: Record<string, any>) => {
-        const flowId = flow?.id || (params.id !== 'new' ? parseInt(params.id) : null)
+        const flowId = flow?.id || (params.id !== 'new' ? params.id : null)
         if (!flowId) {
             toast.error('Please save the workflow before executing')
             return
@@ -761,7 +779,7 @@ export default function WorkflowEditorPage({ params }: { params: { id: string } 
                             className="px-3 py-1.5 rounded-lg border border-border/40 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                         >
                             <option value="">All Channels</option>
-                            {channels.map((channel) => (
+                            {Array.isArray(channels) && channels.map((channel) => (
                                 <option key={channel.id} value={channel.id}>
                                     {channel.name}
                                 </option>

@@ -71,7 +71,7 @@ export function FlowsTable({ flows, onUpdate, onRun }: FlowsTableProps) {
   }
 
   const confirmBulkDelete = async () => {
-    const promises = selectedIds.map(id => dispatch(deleteFlow(parseInt(id))).unwrap())
+    const promises = selectedIds.map(id => dispatch(deleteFlow(id)).unwrap())
 
     toast.promise(Promise.all(promises), {
       loading: `Deleting ${selectedIds.length} workflow(s)...`,
@@ -87,7 +87,7 @@ export function FlowsTable({ flows, onUpdate, onRun }: FlowsTableProps) {
   const handleBulkArchive = async () => {
     if (selectedIds.length === 0) return
 
-    const promises = selectedIds.map(id => dispatch(archiveFlow(parseInt(id))).unwrap())
+    const promises = selectedIds.map(id => dispatch(archiveFlow(id)).unwrap())
 
     toast.promise(Promise.all(promises), {
       loading: `Archiving ${selectedIds.length} workflow(s)...`,
@@ -217,7 +217,7 @@ export function FlowsTable({ flows, onUpdate, onRun }: FlowsTableProps) {
                         <DropdownMenuItem
                           onClick={async () => {
                             try {
-                              const dup = await dispatch(duplicateFlow(parseInt(flow.id))).unwrap()
+                              const dup = await dispatch(duplicateFlow(flow.id)).unwrap()
                               toast.success('Flow duplicated!')
                               router.push(`/flows/${dup.id}/edit`)
                             } catch {
@@ -231,7 +231,7 @@ export function FlowsTable({ flows, onUpdate, onRun }: FlowsTableProps) {
                         <DropdownMenuItem
                           onClick={async () => {
                             try {
-                              await dispatch(archiveFlow(parseInt(flow.id))).unwrap()
+                              await dispatch(archiveFlow(flow.id)).unwrap()
                               toast.success('Flow archived!')
                               onUpdate()
                             } catch {
@@ -290,7 +290,7 @@ export function FlowsTable({ flows, onUpdate, onRun }: FlowsTableProps) {
           setDeleteFlowId(null)
 
           try {
-            await dispatch(deleteFlow(parseInt(idToDelete))).unwrap()
+            await dispatch(deleteFlow(idToDelete)).unwrap()
             toast.success('Flow deleted!')
             onUpdate()
           } catch {

@@ -48,6 +48,9 @@ export class NodeProperty {
 
   @ApiPropertyOptional()
   multiple?: boolean;
+
+  @ApiPropertyOptional({ type: () => [NodeProperty] })
+  properties?: NodeProperty[];
 }
 
 export class NodeType {

@@ -4,7 +4,7 @@ import { TemplateRepository } from './infrastructure/persistence/relational/repo
 
 @Injectable()
 export class TemplatesService {
-  constructor(private readonly templateRepository: TemplateRepository) {}
+  constructor(private readonly templateRepository: TemplateRepository) { }
 
   private readonly templates: Template[] = [
     {
@@ -399,6 +399,283 @@ export class TemplatesService {
       createdAt: new Date('2024-03-01'),
       updatedAt: new Date('2024-03-01'),
     },
+
+    // === NEW INTEGRATION TEMPLATES ===
+    {
+      id: 'n8n-integration',
+      name: 'n8n Workflow Integration',
+      description: 'Connect to n8n workflows and process returned data',
+      category: 'integration',
+      tags: ['n8n', 'webhook', 'automation', 'integration'],
+      isPremium: false,
+      usageCount: 520,
+      nodes: [
+        {
+          id: 'trigger-1',
+          type: 'manual',
+          position: { x: 100, y: 200 },
+          data: {
+            label: 'Start Trigger',
+          },
+        },
+        {
+          id: 'webhook-1',
+          type: 'webhook-trigger',
+          position: { x: 400, y: 200 },
+          data: {
+            label: 'Call n8n Webhook',
+            webhookUrl: 'https://your-n8n.example.com/webhook/xxx',
+            method: 'POST',
+            payloadType: 'json',
+            payload: {
+              action: '{{action}}',
+              data: '{{$input}}',
+            },
+            authentication: {
+              type: 'bearer',
+              token: '{{n8n_token}}',
+            },
+            timeout: 30000,
+            retryCount: 2,
+          },
+        },
+        {
+          id: 'handler-1',
+          type: 'response-handler',
+          position: { x: 700, y: 200 },
+          data: {
+            label: 'Process Response',
+            extractPaths: [
+              { key: 'status', path: 'data.status' },
+              { key: 'result', path: 'data.result' },
+            ],
+            conditions: [
+              { name: 'success', field: 'status', operator: 'equals', value: 'success' },
+              { name: 'error', field: 'status', operator: 'equals', value: 'error' },
+            ],
+          },
+        },
+        {
+          id: 'message-1',
+          type: 'send-message',
+          position: { x: 1000, y: 150 },
+          data: {
+            label: 'Send Success Notification',
+            message: '✅ n8n workflow completed: {{result}}',
+          },
+        },
+        {
+          id: 'message-2',
+          type: 'send-message',
+          position: { x: 1000, y: 300 },
+          data: {
+            label: 'Send Error Notification',
+            message: '❌ n8n workflow failed: {{error}}',
+          },
+        },
+      ],
+      edges: [
+        { id: 'e1', source: 'trigger-1', target: 'webhook-1' },
+        { id: 'e2', source: 'webhook-1', target: 'handler-1' },
+        { id: 'e3', source: 'handler-1', target: 'message-1', sourceHandle: 'success' },
+        { id: 'e4', source: 'handler-1', target: 'message-2', sourceHandle: 'error' },
+      ],
+      createdAt: new Date('2024-03-15'),
+      updatedAt: new Date('2024-03-15'),
+    },
+    {
+      id: 'multi-api-sync',
+      name: 'Multi-API Data Sync Pipeline',
+      description: 'Fetch data from multiple APIs, transform and sync to destination',
+      category: 'integration',
+      tags: ['api', 'sync', 'etl', 'data-pipeline'],
+      isPremium: true,
+      usageCount: 380,
+      nodes: [
+        {
+          id: 'trigger-1',
+          type: 'schedule',
+          position: { x: 100, y: 200 },
+          data: {
+            label: 'Daily Sync at 2 AM',
+            interval: 'cron',
+            cronExpression: '0 2 * * *',
+          },
+        },
+        {
+          id: 'api-1',
+          type: 'api-connector',
+          position: { x: 400, y: 100 },
+          data: {
+            label: 'Fetch from Source API',
+            baseUrl: 'https://api.source.com',
+            endpoint: '/v1/data',
+            method: 'GET',
+            auth: {
+              type: 'api-key',
+              name: 'X-API-Key',
+              value: '{{SOURCE_API_KEY}}',
+              in: 'header',
+            },
+            pagination: {
+              enabled: true,
+              type: 'page',
+              pageParam: 'page',
+              limitParam: 'per_page',
+              limit: 100,
+              maxPages: 10,
+              dataPath: 'data.items',
+            },
+            extractPath: 'data.items',
+          },
+        },
+        {
+          id: 'api-2',
+          type: 'api-connector',
+          position: { x: 400, y: 300 },
+          data: {
+            label: 'Fetch from CRM API',
+            baseUrl: 'https://api.crm.com',
+            endpoint: '/contacts',
+            method: 'GET',
+            auth: {
+              type: 'bearer',
+              token: '{{CRM_TOKEN}}',
+            },
+            extractPath: 'contacts',
+          },
+        },
+        {
+          id: 'handler-1',
+          type: 'response-handler',
+          position: { x: 700, y: 200 },
+          data: {
+            label: 'Merge & Transform Data',
+            transformations: [
+              { type: 'pick', fields: 'id, name, email, status' },
+              { type: 'rename', mapping: { 'status': 'sync_status' } },
+            ],
+            filters: [
+              { field: 'status', operator: 'notEquals', value: 'deleted' },
+            ],
+          },
+        },
+        {
+          id: 'webhook-1',
+          type: 'webhook-trigger',
+          position: { x: 1000, y: 200 },
+          data: {
+            label: 'Sync to Destination',
+            webhookUrl: 'https://api.destination.com/sync',
+            method: 'POST',
+            payload: {
+              records: '{{data}}',
+              syncedAt: '{{$now}}',
+            },
+            authentication: {
+              type: 'bearer',
+              token: '{{DEST_TOKEN}}',
+            },
+          },
+        },
+        {
+          id: 'message-1',
+          type: 'send-message',
+          position: { x: 1300, y: 200 },
+          data: {
+            label: 'Send Sync Report',
+            message: '📊 Data sync completed! Synced {{itemCount}} records.',
+          },
+        },
+      ],
+      edges: [
+        { id: 'e1', source: 'trigger-1', target: 'api-1' },
+        { id: 'e2', source: 'trigger-1', target: 'api-2' },
+        { id: 'e3', source: 'api-1', target: 'handler-1' },
+        { id: 'e4', source: 'api-2', target: 'handler-1' },
+        { id: 'e5', source: 'handler-1', target: 'webhook-1' },
+        { id: 'e6', source: 'webhook-1', target: 'message-1' },
+      ],
+      createdAt: new Date('2024-03-20'),
+      updatedAt: new Date('2024-03-20'),
+    },
+    {
+      id: 'zapier-make-connector',
+      name: 'Zapier/Make Universal Connector',
+      description: 'Connect to Zapier Webhooks or Make (Integromat) scenarios',
+      category: 'integration',
+      tags: ['zapier', 'make', 'integromat', 'webhook'],
+      isPremium: false,
+      usageCount: 690,
+      nodes: [
+        {
+          id: 'trigger-1',
+          type: 'webhook',
+          position: { x: 100, y: 200 },
+          data: {
+            label: 'Incoming Webhook',
+            method: 'POST',
+            path: '/webhook/integration-trigger',
+          },
+        },
+        {
+          id: 'condition-1',
+          type: 'condition',
+          position: { x: 400, y: 200 },
+          data: {
+            label: 'Route by Platform',
+            conditions: [
+              { field: 'platform', operator: 'equals', value: 'zapier' },
+              { field: 'platform', operator: 'equals', value: 'make' },
+            ],
+          },
+        },
+        {
+          id: 'webhook-zapier',
+          type: 'webhook-trigger',
+          position: { x: 700, y: 100 },
+          data: {
+            label: 'Call Zapier Webhook',
+            webhookUrl: '{{zapier_webhook_url}}',
+            method: 'POST',
+            payloadType: 'json',
+          },
+        },
+        {
+          id: 'webhook-make',
+          type: 'webhook-trigger',
+          position: { x: 700, y: 300 },
+          data: {
+            label: 'Call Make Scenario',
+            webhookUrl: '{{make_webhook_url}}',
+            method: 'POST',
+            payloadType: 'json',
+          },
+        },
+        {
+          id: 'handler-1',
+          type: 'response-handler',
+          position: { x: 1000, y: 200 },
+          data: {
+            label: 'Process Response',
+            extractPaths: [
+              { key: 'status', path: '_meta.statusCode' },
+              { key: 'result', path: 'data' },
+            ],
+            outputFormat: 'object',
+          },
+        },
+      ],
+      edges: [
+        { id: 'e1', source: 'trigger-1', target: 'condition-1' },
+        { id: 'e2', source: 'condition-1', target: 'webhook-zapier', sourceHandle: 'zapier' },
+        { id: 'e3', source: 'condition-1', target: 'webhook-make', sourceHandle: 'make' },
+        { id: 'e4', source: 'webhook-zapier', target: 'handler-1' },
+        { id: 'e5', source: 'webhook-make', target: 'handler-1' },
+      ],
+      createdAt: new Date('2024-04-01'),
+      updatedAt: new Date('2024-04-01'),
+    },
   ];
 
   private readonly categories: TemplateCategory[] = [
@@ -413,6 +690,12 @@ export class TemplatesService {
       name: 'AI & ML',
       description: 'AI-powered workflows and machine learning',
       icon: 'Bot',
+    },
+    {
+      id: 'integration',
+      name: 'Integrations',
+      description: 'Connect with third-party services, APIs and webhooks',
+      icon: 'Plug',
     },
     {
       id: 'analytics',

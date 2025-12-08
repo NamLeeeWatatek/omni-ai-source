@@ -83,9 +83,23 @@ export class FacebookOAuthService extends BaseOAuthService {
 
       return response.data.access_token;
     } catch (error: any) {
-      this.logger.error('Token exchange failed:', error.response?.data || error.message);
+      const errorData = error.response?.data;
+      const errorMessage = errorData?.error?.message || error.message;
+      const errorCode = errorData?.error?.code;
+      const errorSubcode = errorData?.error?.error_subcode;
+
+      this.logger.error('Token exchange failed:', errorData || error.message);
+
+      // ✅ FIX: Better error message for used authorization code
+      if (errorCode === 100 && errorSubcode === 36009) {
+        throw new HttpException(
+          'This authorization code has already been used. Please try connecting again from the beginning.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       throw new HttpException(
-        error.response?.data?.error?.message || 'Failed to exchange code for token',
+        errorMessage || 'Failed to exchange code for token',
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -211,8 +225,17 @@ export class FacebookOAuthService extends BaseOAuthService {
     metadata?: Record<string, any>,
   ): Promise<ChannelCredentialEntity> {
     const verifyToken = metadata?.verifyToken as string | undefined;
+    
+    // ✅ FIX: Require verify token, no hardcode fallback
+    if (!verifyToken) {
+      throw new HttpException(
+        'Verify token is required for Facebook webhook setup',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    
     return super.updateCredential(workspaceId, appId, appSecret, {
-      verifyToken: verifyToken || 'wataomi_verify_token',
+      verifyToken,
       apiVersion: this.apiVersion,
       ...metadata,
     });

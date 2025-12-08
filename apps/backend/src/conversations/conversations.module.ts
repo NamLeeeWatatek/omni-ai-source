@@ -12,6 +12,7 @@ import { AiConversationsService } from './ai-conversations.service';
 import { AiConversationsController } from './ai-conversations.controller';
 import { ConversationsGateway } from './conversations.gateway';
 import { ConversationEventListener } from './listeners/conversation-event.listener';
+import { ChannelsModule } from '../channels/channels.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ConversationEventListener } from './listeners/conversation-event.listen
       MessageFeedbackEntity,
       AiConversationEntity,
     ]),
+    forwardRef(() => ChannelsModule),
   ],
   controllers: [ConversationsController, AiConversationsController],
   providers: [ConversationsService, AiConversationsService, ConversationsGateway, ConversationEventListener],

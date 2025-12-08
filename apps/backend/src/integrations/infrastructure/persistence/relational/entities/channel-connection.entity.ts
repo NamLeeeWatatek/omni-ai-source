@@ -35,6 +35,10 @@ export class ChannelConnectionEntity extends EntityRelationalHelper {
   @Column({ type: 'uuid', nullable: true })
   workspaceId?: string | null;
 
+  @Index()
+  @Column({ type: 'uuid', nullable: true, name: 'bot_id' })
+  botId?: string | null;
+
   @Column({ type: String, nullable: true })
   accessToken?: string | null;
 

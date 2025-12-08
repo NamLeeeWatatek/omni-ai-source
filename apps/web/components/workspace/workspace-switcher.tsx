@@ -1,122 +1,170 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { useWorkspace } from '@/lib/hooks/useWorkspace';
+import { useState, useEffect } from 'react'
+import { useWorkspace } from '@/lib/hooks/use-workspace'
+import { useSession } from 'next-auth/react'
+import axiosClient from '@/lib/axios-client'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { MdCheck, MdExpandMore, MdAdd, MdBusiness } from 'react-icons/md';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+
+interface Workspace {
+  id: string
+  name: string
+  slug: string
+  plan: string
+}
 
 export function WorkspaceSwitcher() {
-  const { currentWorkspace, workspaces, switchWorkspace } = useWorkspace();
-  const [open, setOpen] = useState(false);
+  const { data: session } = useSession()
+  const workspace = useWorkspace()
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([])
+  const [loading, setLoading] = useState(true)
+  const [hasFetched, setHasFetched] = useState(false)
 
-  if (!currentWorkspace && workspaces.length === 0) {
-    return (
-      <Button variant="ghost" className="w-full justify-between px-3 h-12" disabled>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-muted animate-pulse" />
-          <span className="text-sm text-muted-foreground">Loading workspace...</span>
-        </div>
-      </Button>
-    );
+  // Safe access to workspace context
+  const currentWorkspaceId = workspace?.currentWorkspaceId || null
+  const setCurrentWorkspaceId = workspace?.setCurrentWorkspaceId || (() => { })
+
+  useEffect(() => {
+    // Only fetch once
+    if (hasFetched) {
+      setLoading(false)
+      return
+    }
+
+    let isMounted = true
+
+    async function fetchWorkspaces() {
+      // If no session yet, wait
+      if (!session) {
+        return
+      }
+
+      // If no accessToken, use session workspace
+      if (!session?.accessToken) {
+        if (isMounted) {
+          setHasFetched(true)
+          setLoading(false)
+          // Set default workspace from session if available
+          if (session?.workspace) {
+            setWorkspaces([session.workspace])
+          }
+        }
+        return
+      }
+
+      setHasFetched(true)
+
+      try {
+        const response = await axiosClient.get('/workspaces')
+        if (isMounted) {
+          const fetchedWorkspaces = response.data || []
+          setWorkspaces(fetchedWorkspaces)
+
+          // If no workspaces from API but session has workspace, use it
+          if (fetchedWorkspaces.length === 0 && session?.workspace) {
+            setWorkspaces([session.workspace])
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch workspaces:', error)
+        // Fallback to session workspaces
+        if (isMounted) {
+          if (session?.workspaces && session.workspaces.length > 0) {
+            setWorkspaces(session.workspaces)
+          } else if (session?.workspace) {
+            setWorkspaces([session.workspace])
+          }
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false)
+        }
+      }
+    }
+
+    fetchWorkspaces()
+
+    return () => {
+      isMounted = false
+    }
+  }, [session, hasFetched])
+
+  const handleWorkspaceChange = (workspaceId: string) => {
+    setCurrentWorkspaceId(workspaceId)
+    // Optionally reload the page to refresh data
+    // window.location.reload()
   }
 
-  const workspace = currentWorkspace || workspaces[0];
+  // Get workspace name from session or workspaces
+  const getWorkspaceName = () => {
+    if (workspaces.length > 0) {
+      const current = workspaces.find(w => w.id === currentWorkspaceId) || workspaces[0]
+      return current.name
+    }
+    if (session?.workspace?.name) {
+      return session.workspace.name
+    }
+    return 'My Workspace'
+  }
 
-  if (!workspace) {
+  const getWorkspacePlan = () => {
+    if (workspaces.length > 0) {
+      const current = workspaces.find(w => w.id === currentWorkspaceId) || workspaces[0]
+      return current.plan || 'Free'
+    }
+    if (session?.workspace?.plan) {
+      return session.workspace.plan
+    }
+    return 'Free'
+  }
+
+  if (loading) {
     return (
-      <Button variant="ghost" className="w-full justify-between px-3 h-12" disabled>
-        <div className="flex items-center gap-3">
-          <MdBusiness className="w-8 h-8 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">No workspace</span>
-        </div>
-      </Button>
-    );
+      <div className="w-full px-3 py-2 rounded-lg bg-accent/50">
+        <div className="h-4 w-24 animate-pulse rounded bg-muted mb-1" />
+        <div className="h-3 w-16 animate-pulse rounded bg-muted" />
+      </div>
+    )
+  }
+
+  // Always show workspace info, even if no workspaces loaded yet
+  if (workspaces.length === 0) {
+    return (
+      <div className="w-full px-3 py-2 rounded-lg bg-accent/50">
+        <p className="text-sm font-medium">{getWorkspaceName()}</p>
+        <p className="text-xs text-muted-foreground">{getWorkspacePlan()} Plan</p>
+      </div>
+    )
+  }
+
+  // Show current workspace name if user only has one workspace
+  if (workspaces.length === 1) {
+    return (
+      <div className="w-full px-3 py-2 rounded-lg bg-accent/50">
+        <p className="text-sm font-medium">{workspaces[0].name}</p>
+        <p className="text-xs text-muted-foreground">{workspaces[0].plan || 'Free'} Plan</p>
+      </div>
+    )
   }
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="w-full justify-between px-3 h-12 hover:bg-accent/50"
-        >
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-              {workspace.avatarUrl ? (
-                <img
-                  src={workspace.avatarUrl}
-                  alt={workspace.name}
-                  className="w-full h-full rounded-lg object-cover"
-                />
-              ) : (
-                <MdBusiness className="w-4 h-4 text-white" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0 text-left">
-              <div className="font-semibold text-sm truncate">
-                {workspace.name}
-              </div>
-              <div className="text-xs text-muted-foreground capitalize">
-                {workspace.plan} Plan
-              </div>
-            </div>
-          </div>
-          <MdExpandMore className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-[280px]">
-        <DropdownMenuLabel className="text-xs text-muted-foreground">
-          Workspaces
-        </DropdownMenuLabel>
-        {workspaces.map((workspace) => (
-          <DropdownMenuItem
-            key={workspace.id}
-            onClick={() => {
-              switchWorkspace(workspace.id);
-              setOpen(false);
-            }}
-            className="cursor-pointer"
-          >
-            <div className="flex items-center gap-3 flex-1">
-              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-                {workspace.avatarUrl ? (
-                  <img
-                    src={workspace.avatarUrl}
-                    alt={workspace.name}
-                    className="w-full h-full rounded-lg object-cover"
-                  />
-                ) : (
-                  <MdBusiness className="w-4 h-4 text-white" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm truncate">
-                  {workspace.name}
-                </div>
-                <div className="text-xs text-muted-foreground capitalize">
-                  {workspace.plan}
-                </div>
-              </div>
-              {(currentWorkspace?.id || workspaces[0]?.id) === workspace.id && (
-                <MdCheck className="w-5 h-5 text-primary flex-shrink-0" />
-              )}
-            </div>
-          </DropdownMenuItem>
+    <Select value={currentWorkspaceId || undefined} onValueChange={handleWorkspaceChange}>
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Select workspace" />
+      </SelectTrigger>
+      <SelectContent>
+        {workspaces.map((ws) => (
+          <SelectItem key={ws.id} value={ws.id}>
+            {ws.name} ({ws.plan})
+          </SelectItem>
         ))}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="cursor-pointer text-primary">
-          <MdAdd className="w-5 h-5 mr-2" />
-          Create Workspace
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+      </SelectContent>
+    </Select>
+  )
 }

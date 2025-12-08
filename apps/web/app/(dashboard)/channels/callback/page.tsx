@@ -23,6 +23,7 @@ export default function ChannelCallbackPage() {
       setStatus('error');
       setMessage('OAuth cancelled or failed');
       notifyParent('error', error);
+      setProcessed(true); // ✅ Mark as processed
       return;
     }
 
@@ -30,6 +31,7 @@ export default function ChannelCallbackPage() {
       setStatus('error');
       setMessage('No authorization code received');
       notifyParent('error', 'No code');
+      setProcessed(true); // ✅ Mark as processed
       return;
     }
 
@@ -48,6 +50,14 @@ export default function ChannelCallbackPage() {
         const response = res.data || res;
 
         if (response.success && response.pages && response.pages.length > 0) {
+          // ✅ FIX: Validate tempToken exists
+          if (!response.tempToken) {
+            setStatus('error');
+            setMessage('Failed to get access token. Please try again.');
+            notifyParent('error', 'No access token received');
+            return;
+          }
+
           setStatus('success');
           setMessage(`Found ${response.pages.length} page(s)`);
           
@@ -67,8 +77,23 @@ export default function ChannelCallbackPage() {
       }
     } catch (error: any) {
       setStatus('error');
-      setMessage(error.message || 'Failed to process callback');
-      notifyParent('error', error.message);
+      
+      // ✅ FIX: Better error messages
+      let errorMessage = 'Failed to process callback';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Special handling for used authorization code
+      if (errorMessage.includes('already been used')) {
+        errorMessage = 'Authorization code expired. Please close this window and try connecting again.';
+      }
+      
+      setMessage(errorMessage);
+      notifyParent('error', errorMessage);
     }
   };
 

@@ -20,6 +20,7 @@ import {
   ApiParam,
   ApiCreatedResponse,
   ApiOkResponse,
+  ApiHeader,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { ConversationsService } from './conversations.service';
@@ -31,13 +32,14 @@ import {
   CreateMessageFeedbackDto,
 } from './dto/create-conversation.dto';
 import { Conversation, Message, MessageFeedback } from './domain/conversation';
+import { CurrentWorkspace } from '../workspaces/decorators/current-workspace.decorator';
 
 @ApiTags('Conversations')
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'))
 @Controller({ path: 'conversations', version: '1' })
 export class ConversationsController {
-  constructor(private readonly conversationsService: ConversationsService) {}
+  constructor(private readonly conversationsService: ConversationsService) { }
 
   @Post()
   @ApiOperation({ summary: 'Create conversation' })
@@ -49,6 +51,11 @@ export class ConversationsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all conversations with pagination' })
+  @ApiHeader({
+    name: 'X-Workspace-Id',
+    description: 'Workspace ID to filter conversations (optional, defaults to user\'s default workspace)',
+    required: false,
+  })
   @ApiQuery({ name: 'botId', required: false })
   @ApiQuery({ name: 'channelType', required: false })
   @ApiQuery({
@@ -60,14 +67,14 @@ export class ConversationsController {
   @ApiQuery({ name: 'endDate', required: false, type: String })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ 
-    name: 'source', 
-    required: false, 
+  @ApiQuery({
+    name: 'source',
+    required: false,
     enum: ['all', 'channel', 'widget'],
     description: 'Filter by conversation source: all, channel (Facebook, WhatsApp, etc.), or widget (AI chat)'
   })
   findAll(
-    @Request() req,
+    @CurrentWorkspace() workspaceId: string | undefined,
     @Query('botId') botId?: string,
     @Query('channelType') channelType?: string,
     @Query('status') status?: string,
@@ -77,15 +84,13 @@ export class ConversationsController {
     @Query('limit') limit?: number,
     @Query('source') source?: 'all' | 'channel' | 'widget',
   ) {
-    const workspaceId = req.user?.workspaceId || req.user?.id;
-    
     let onlyChannelConversations: boolean | undefined;
     if (source === 'channel') {
       onlyChannelConversations = true;
     } else if (source === 'widget') {
       onlyChannelConversations = false;
     }
-    
+
     return this.conversationsService.findAll({
       botId,
       channelType,
@@ -134,6 +139,25 @@ export class ConversationsController {
     return this.conversationsService.archive(id);
   }
 
+  @Post(':id/takeover')
+  @ApiOperation({ summary: 'Agent takes over conversation from bot' })
+  @ApiOkResponse({ type: Conversation })
+  @ApiParam({ name: 'id', type: String })
+  @HttpCode(HttpStatus.OK)
+  async takeover(@Param('id') id: string, @Request() req: any) {
+    const userId = req.user?.id || 'unknown';
+    return this.conversationsService.takeover(id, userId);
+  }
+
+  @Post(':id/handback')
+  @ApiOperation({ summary: 'Agent hands conversation back to bot' })
+  @ApiOkResponse({ type: Conversation })
+  @ApiParam({ name: 'id', type: String })
+  @HttpCode(HttpStatus.OK)
+  async handback(@Param('id') id: string) {
+    return this.conversationsService.handback(id);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Delete conversation (soft delete)' })
   @ApiParam({ name: 'id', type: String })
@@ -166,10 +190,12 @@ export class ConversationsController {
     @Param('id') id: string,
     @Query('limit') limit?: number,
     @Query('before') before?: string,
+    @Query('after') after?: string,
   ) {
     return this.conversationsService.getMessages(id, {
       limit: limit ? Number(limit) : undefined,
       before,
+      after,
     });
   }
 

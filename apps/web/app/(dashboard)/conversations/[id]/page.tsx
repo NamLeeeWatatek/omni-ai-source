@@ -8,10 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Spinner } from '@/components/ui/spinner';
 import axiosClient from '@/lib/axios-client';
@@ -19,12 +19,13 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface ConversationDetails {
-  id: string;
-  customerName: string;
-  customerAvatar?: string;
-  channelType: string;
-  channelName: string;
-  status: string;
+    id: string;
+    contactName: string;      // Match backend field name
+    contactAvatar?: string;   // Match backend field name
+    channelType: string;
+    channelName: string;
+    status: string;
+    channelId?: string;       // Detect if it's a channel conversation
 }
 
 export default function ConversationPage() {
@@ -53,8 +54,8 @@ export default function ConversationPage() {
 
     const handleSendMessage = async (content: string) => {
         try {
-            await axiosClient.post(`/conversations/${conversationId}/messages`, { 
-                content, 
+            await axiosClient.post(`/conversations/${conversationId}/messages`, {
+                content,
                 role: 'assistant'
             });
         } catch (err) {
@@ -63,18 +64,7 @@ export default function ConversationPage() {
         }
     };
 
-    const handleLoadMore = async (before: string) => {
-        try {
-            const response = await axiosClient.get(
-                `/conversations/${conversationId}/messages?before=${before}&limit=50`
-            );
-            const data = response.data || response;
-            return Array.isArray(data) ? data : data.messages || [];
-        } catch (error) {
-            toast.error('Failed to load more messages');
-            return [];
-        }
-    };
+
 
     const handleArchive = async () => {
         try {
@@ -116,35 +106,32 @@ export default function ConversationPage() {
     }
 
     return (
-        <div className="h-[calc(100vh-4rem)] flex flex-col">
-            {}
-            <div className="border-b px-4 py-3 flex items-center justify-between bg-background">
-                <div className="flex items-center gap-3">
+        <div style={{ height: 'calc(100vh - 64px)' }} className="flex flex-col">
+
+            <div className="border-b px-3 py-2 flex items-center justify-between bg-background shrink-0">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Button
                         variant="ghost"
                         size="icon"
+                        className="h-8 w-8 shrink-0"
                         onClick={() => router.push('/conversations')}
                     >
-                        <ArrowLeft className="w-5 h-5" />
+                        <ArrowLeft className="w-4 h-4" />
                     </Button>
 
-                    <Avatar className="h-10 w-10">
-                        <AvatarImage src={conversation.customerAvatar} />
-                        <AvatarFallback>
-                            {(conversation.customerName || 'User').charAt(0).toUpperCase()}
+                    <Avatar className="h-8 w-8 shrink-0">
+                        <AvatarImage src={conversation.contactAvatar} />
+                        <AvatarFallback className="text-xs">
+                            {(conversation.contactName || 'User').charAt(0).toUpperCase()}
                         </AvatarFallback>
                     </Avatar>
 
-                    <div>
-                        <h2 className="font-semibold">{conversation.customerName || 'Unknown User'}</h2>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                            <span>{conversation.channelName}</span>
-                            <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
-                            <span>{conversation.channelType}</span>
-                        </p>
+                    <div className="min-w-0 flex-1">
+                        <h2 className="font-semibold text-sm truncate">{conversation.contactName || 'Unknown User'}</h2>
                     </div>
 
                     <Badge variant="outline" className={cn(
+                        'text-xs h-5 shrink-0',
                         conversation.status === 'open' && 'bg-green-500/10 text-green-500 border-green-500/20',
                         conversation.status === 'pending' && 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
                         conversation.status === 'closed' && 'bg-gray-500/10 text-gray-500 border-gray-500/20'
@@ -153,17 +140,11 @@ export default function ConversationPage() {
                     </Badge>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon">
-                        <Phone className="w-5 h-5" />
-                    </Button>
-                    <Button variant="ghost" size="icon">
-                        <Video className="w-5 h-5" />
-                    </Button>
+                <div className="flex items-center gap-1 shrink-0">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                                <MoreVertical className="w-5 h-5" />
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="w-4 h-4" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -180,15 +161,15 @@ export default function ConversationPage() {
                 </div>
             </div>
 
-            {}
-            <div className="flex-1 overflow-hidden">
-                <ChatInterface
-                    conversationId={conversationId}
-                    botName={conversation.customerName}
-                    onSendMessage={handleSendMessage}
-                    onLoadMore={handleLoadMore}
-                />
-            </div>
+
+            <ChatInterface
+                conversationId={conversationId}
+                customerName={conversation.contactName}
+                isChannelConversation={!!conversation.channelType}
+                onSendMessage={handleSendMessage}
+                senderRole="assistant"
+                className="flex-1"
+            />
         </div>
     );
 }

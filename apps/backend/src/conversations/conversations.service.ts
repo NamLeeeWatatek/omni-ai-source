@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual } from 'typeorm';
 import {
@@ -13,6 +13,9 @@ import {
   MessageFeedbackDto,
   CreateMessageFeedbackDto,
 } from './dto/create-conversation.dto';
+import { ConversationsGateway } from './conversations.gateway';
+import { ChannelStrategy } from '../channels/channel.strategy';
+import { ChannelsService } from '../channels/channels.service';
 
 @Injectable()
 export class ConversationsService {
@@ -25,9 +28,25 @@ export class ConversationsService {
     private messageRepository: Repository<MessageEntity>,
     @InjectRepository(MessageFeedbackEntity)
     private feedbackRepository: Repository<MessageFeedbackEntity>,
-  ) {}
+    @Inject(forwardRef(() => ConversationsGateway))
+    private conversationsGateway: ConversationsGateway,
+    @Inject(forwardRef(() => ChannelStrategy))
+    private channelStrategy: ChannelStrategy,
+    @Inject(forwardRef(() => ChannelsService))
+    private channelsService: ChannelsService,
+  ) { }
 
   async create(createDto: CreateConversationDto) {
+    // ✅ FIX: Validate channel exists if channelId is provided
+    if (createDto.channelId) {
+      const channel = await this.channelsService.findOne(createDto.channelId);
+      if (!channel) {
+        this.logger.error(`❌ Cannot create conversation: Channel ${createDto.channelId} not found`);
+        throw new Error(`Channel ${createDto.channelId} not found. Please reconnect the channel.`);
+      }
+      this.logger.log(`✅ Channel ${createDto.channelId} validated for new conversation`);
+    }
+
     const conversation = this.conversationRepository.create({
       ...createDto,
       channelType: createDto.channelType ?? 'web',
@@ -48,28 +67,36 @@ export class ConversationsService {
     workspaceId?: string;
     onlyChannelConversations?: boolean;
   }) {
+    // 🔍 DEBUG: Log filter options
+    this.logger.log('========== FIND ALL CHANNEL CONVERSATIONS ==========');
+    this.logger.log('Options:', JSON.stringify(options, null, 2));
+
+    // ✅ PROFESSIONAL: This service ONLY handles CHANNEL conversations
+    // AI chat conversations are handled by AiConversationsService
     const query = this.conversationRepository
       .createQueryBuilder('conversation')
-      .leftJoinAndSelect('conversation.bot', 'bot')
-      .where('conversation.deletedAt IS NULL');
+      .where('conversation.deletedAt IS NULL')
+      .andWhere('conversation.channelId IS NOT NULL'); // ✅ ALWAYS filter for channel conversations
 
-    if (options.onlyChannelConversations === true) {
-      query.andWhere('conversation.channelId IS NOT NULL');
-    } else if (options.onlyChannelConversations === false) {
-      query.andWhere('conversation.channelId IS NULL');
-    }
-
+    // If filtering by workspace, use INNER JOIN to ensure bot exists and belongs to workspace
+    // Otherwise use LEFT JOIN to include conversations without bots
     if (options.workspaceId) {
-      query.andWhere('bot.workspaceId = :workspaceId', { 
-        workspaceId: options.workspaceId 
+      this.logger.log(`✅ Filter: workspaceId = ${options.workspaceId}`);
+      query.innerJoinAndSelect('conversation.bot', 'bot', 'bot.workspaceId = :workspaceId', {
+        workspaceId: options.workspaceId
       });
+    } else {
+      this.logger.warn('⚠️ NO workspaceId filter - will return all workspaces!');
+      query.leftJoinAndSelect('conversation.bot', 'bot');
     }
 
     if (options.botId) {
+      this.logger.log(`✅ Filter: botId = ${options.botId}`);
       query.andWhere('conversation.botId = :botId', { botId: options.botId });
     }
 
     if (options.channelType) {
+      this.logger.log(`✅ Filter: channelType = ${options.channelType}`);
       query.andWhere('conversation.channelType = :channelType', {
         channelType: options.channelType,
       });
@@ -101,23 +128,36 @@ export class ConversationsService {
       .skip((page - 1) * limit)
       .take(limit);
 
+    // 🔍 DEBUG: Log SQL query
+    const sql = query.getSql();
+    this.logger.log('📝 Generated SQL:', sql);
+    this.logger.log('📝 Parameters:', JSON.stringify(query.getParameters()));
+
     const [items, total] = await query.getManyAndCount();
-    
+
+    this.logger.log(`📊 Query result: ${items.length} items, ${total} total`);
+    if (items.length > 0) {
+      this.logger.log('Sample result:', {
+        id: items[0].id,
+        botId: items[0].botId,
+        channelId: items[0].channelId,
+        channelType: items[0].channelType,
+      });
+    } else {
+      this.logger.warn('❌ NO RESULTS! Check filters above.');
+    }
+
     const formattedItems = await Promise.all(
       items.map(async (item) => {
         let channelName = item.channelType || 'Unknown';
         let channelMetadata = {};
-        
+
         if (item.channelId) {
           try {
-            const channel = await this.conversationRepository.manager.query(
-              'SELECT name, type, metadata FROM channel_connection WHERE id = $1',
-              [item.channelId]
-            );
-            
-            if (channel && channel.length > 0) {
-              channelName = channel[0].name || channelName;
-              channelMetadata = channel[0].metadata || {};
+            const channel = await this.channelsService.findOne(item.channelId);
+            if (channel) {
+              channelName = channel.name || channelName;
+              channelMetadata = channel.metadata || {};
             }
           } catch (error) {
             this.logger.warn(`Failed to fetch channel info for ${item.channelId}: ${error.message}`);
@@ -181,12 +221,68 @@ export class ConversationsService {
     return this.updateStatus(id, { status: 'archived' });
   }
 
+  /**
+   * Human Takeover - Agent takes over conversation from bot
+   */
+  async takeover(id: string, agentId: string) {
+    const conversation = await this.findOne(id);
+
+    // Update metadata to mark human takeover
+    conversation.metadata = {
+      ...conversation.metadata,
+      humanTakeover: true,
+      takenOverBy: agentId,
+      takenOverAt: new Date().toISOString(),
+    };
+
+    // Save conversation
+    const updated = await this.conversationRepository.save(conversation);
+
+    // Emit event for real-time updates
+    this.conversationsGateway.server.to(id).emit('conversation:updated', updated);
+
+    this.logger.log(`👤 Agent ${agentId} took over conversation ${id}`);
+
+    return updated;
+  }
+
+  /**
+   * Hand Back - Agent returns conversation to bot
+   */
+  async handback(id: string) {
+    const conversation = await this.findOne(id);
+
+    // Update metadata to remove human takeover
+    conversation.metadata = {
+      ...conversation.metadata,
+      humanTakeover: false,
+      handedBackAt: new Date().toISOString(),
+    };
+
+    const updated = await this.conversationRepository.save(conversation);
+
+    // Emit event for real-time updates
+    this.conversationsGateway.server.to(id).emit('conversation:updated', updated);
+
+    this.logger.log(`🤖 Conversation ${id} handed back to bot`);
+
+    return updated;
+  }
+
   async delete(id: string) {
     await this.conversationRepository.softDelete(id);
   }
 
   async addMessage(conversationId: string, createDto: CreateMessageDto) {
-    const conversation = await this.findOne(conversationId);
+    // Load conversation with bot relation to get workspaceId
+    const conversation = await this.conversationRepository.findOne({
+      where: { id: conversationId },
+      relations: ['bot'],
+    });
+
+    if (!conversation) {
+      throw new NotFoundException(`Conversation ${conversationId} not found`);
+    }
 
     const message = this.messageRepository.create({
       conversationId,
@@ -201,11 +297,21 @@ export class ConversationsService {
 
     const savedMessage = await this.messageRepository.save(message);
 
+    // Emit real-time event to WebSocket clients
+    this.conversationsGateway.emitNewMessage(conversationId, savedMessage);
+
     conversation.lastMessageAt = new Date();
     await this.conversationRepository.save(conversation);
 
+    // Try to send to external channel if it's an assistant message
     if (createDto.role === 'assistant' && conversation.externalId && conversation.channelType) {
-      await this.sendMessageToExternalChannel(conversation, createDto.content);
+      try {
+        await this.sendMessageToExternalChannel(conversation, createDto.content);
+      } catch (error) {
+        // Log error but don't fail the request - message is already saved
+        this.logger.error(`Failed to send message to external channel: ${error.message}`);
+        this.logger.warn(`💡 Message saved to database but not sent to ${conversation.channelType}`);
+      }
     }
 
     return savedMessage;
@@ -215,19 +321,95 @@ export class ConversationsService {
     conversation: ConversationEntity,
     message: string,
   ): Promise<void> {
-    this.logger.log(
-      `Message queued for ${conversation.channelType} channel (handled by BotExecutionService)`,
-    );
+    try {
+      this.logger.log(
+        `🔄 Sending message to ${conversation.channelType} channel for conversation ${conversation.id}`,
+      );
+
+      // Debug: Log conversation details
+      this.logger.debug(`Conversation details:`, {
+        id: conversation.id,
+        channelId: conversation.channelId,
+        channelType: conversation.channelType,
+        externalId: conversation.externalId,
+        botId: conversation.botId,
+        hasBot: !!conversation.bot,
+        botWorkspaceId: conversation.bot?.workspaceId,
+      });
+
+      // Get channel connection to get access token
+      if (!conversation.channelId) {
+        this.logger.warn(
+          `⚠️  No channelId for conversation ${conversation.id}. Channel may have been disconnected. Skipping external message send.`,
+        );
+        return; // Gracefully skip if channel was disconnected
+      }
+
+      // Get channel by ID (don't filter by workspace since bot and channel may be in different workspaces)
+      this.logger.debug(`Looking for channel ${conversation.channelId}`);
+
+      const channel = await this.channelsService.findOne(
+        conversation.channelId,
+        undefined, // Don't filter by workspace
+      );
+
+      if (!channel) {
+        this.logger.warn(`⚠️ Channel ${conversation.channelId} not found - conversation may be orphaned`);
+        this.logger.warn(`💡 Message saved to database but not sent to external channel`);
+        // Don't throw error - message is already saved, just can't send to external channel
+        return;
+      }
+
+      this.logger.log(`✅ Found channel: ${channel.name} (${channel.id}, workspace: ${channel.workspaceId})`);
+
+      // Get provider for this channel type
+      const provider = this.channelStrategy.getProvider(conversation.channelType);
+
+      if (!provider) {
+        this.logger.warn(`No provider found for channel type: ${conversation.channelType}`);
+        return;
+      }
+
+      // Set credentials if provider supports it (for Facebook, Instagram, etc.)
+      if ('setCredentials' in provider && channel.accessToken) {
+        (provider as any).setCredentials(
+          channel.accessToken,
+          channel.credential?.clientSecret || '',
+        );
+      }
+
+      // Send message to external channel
+      const result = await provider.sendMessage({
+        to: conversation.externalId || '',
+        content: message,
+      });
+
+      if (result.success) {
+        this.logger.log(
+          `✅ Message sent successfully to ${conversation.channelType} (messageId: ${result.messageId})`,
+        );
+      } else {
+        this.logger.error(
+          `❌ Failed to send message to ${conversation.channelType}: ${result.error}`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Error sending message to external channel: ${error.message}`,
+        error.stack,
+      );
+    }
   }
 
   async getMessages(
     conversationId: string,
-    options?: { limit?: number; before?: string },
+    options?: { limit?: number; before?: string; after?: string },
   ) {
     const query = this.messageRepository
       .createQueryBuilder('message')
       .where('message.conversationId = :conversationId', { conversationId });
 
+    // Load older messages (for scroll up / load more)
     if (options?.before) {
       const beforeMessage = await this.messageRepository.findOne({
         where: { id: options.before },
@@ -239,9 +421,36 @@ export class ConversationsService {
       }
     }
 
+    // Load newer messages (for polling / real-time)
+    if (options?.after) {
+      const afterMessage = await this.messageRepository.findOne({
+        where: { id: options.after },
+      });
+      if (afterMessage) {
+        query.andWhere('message.sentAt > :afterDate', {
+          afterDate: afterMessage.sentAt,
+        });
+      }
+    }
+
     const limit = Math.min(options?.limit ?? 50, 100);
 
-    return query.orderBy('message.sentAt', 'ASC').take(limit).getMany();
+    // ✅ Order by DESC (newest first) for standard chat app behavior
+    // Frontend will display in order received (oldest at top, newest at bottom)
+    const messages = await query
+      .orderBy('message.sentAt', 'DESC')
+      .take(limit)
+      .getMany();
+
+    // ✅ Reverse to get chronological order (oldest first, newest last)
+    // This makes it easier for frontend to append new messages
+    const chronologicalMessages = messages.reverse();
+
+    return {
+      messages: chronologicalMessages,
+      hasMore: messages.length === limit,
+      count: messages.length,
+    };
   }
 
   async getMessage(conversationId: string, messageId: string) {
@@ -368,14 +577,20 @@ export class ConversationsService {
     contactAvatar?: string;
     metadata?: Record<string, any>;
   }): Promise<ConversationEntity> {
+    // Find by externalId + botId + channelType to avoid duplicates when channel changes
     let conversation = await this.conversationRepository.findOne({
       where: {
         externalId: params.externalId,
-        channelId: params.channelId,
+        botId: params.botId,
+        channelType: params.channelType,
+      },
+      order: {
+        createdAt: 'DESC', // Get the most recent one
       },
     });
 
     if (!conversation) {
+      // Create new conversation
       conversation = this.conversationRepository.create({
         botId: params.botId,
         channelId: params.channelId,
@@ -387,11 +602,25 @@ export class ConversationsService {
         lastMessageAt: new Date(),
         metadata: params.metadata || {},
       });
+
+      this.logger.log(
+        `Creating new conversation for ${params.contactName} (${params.externalId})`,
+      );
     } else {
+      // Update existing conversation
       conversation.contactName = params.contactName || conversation.contactName;
       conversation.contactAvatar = params.contactAvatar || conversation.contactAvatar;
       conversation.lastMessageAt = new Date();
       conversation.status = 'active';
+
+      // Update channelId if it changed (reconnected channel)
+      if (conversation.channelId !== params.channelId) {
+        this.logger.log(
+          `Updating channelId for conversation ${conversation.id}: ${conversation.channelId} -> ${params.channelId}`,
+        );
+        conversation.channelId = params.channelId;
+      }
+
       if (params.metadata) {
         conversation.metadata = { ...conversation.metadata, ...params.metadata };
       }

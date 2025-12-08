@@ -24,11 +24,11 @@ export class ChannelCredentialEntity extends EntityRelationalHelper {
   @Column({ type: String, nullable: true })
   name?: string | null;
 
-  @Column({ type: String })
-  clientId: string;
+  @Column({ type: String, nullable: true })
+  clientId?: string | null;
 
-  @Column({ type: String })
-  clientSecret: string;
+  @Column({ type: String, nullable: true })
+  clientSecret?: string | null;
 
   @Column({ type: String, nullable: true })
   scopes?: string | null;

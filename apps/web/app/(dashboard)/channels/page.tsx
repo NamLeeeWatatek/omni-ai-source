@@ -37,6 +37,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
+import { AssignBotDialog } from '@/components/channels/assign-bot-dialog'
 
 export default function ChannelsPage() {
     const { data: session } = useSession()
@@ -62,6 +63,10 @@ export default function ChannelsPage() {
         scopes: '',
         verify_token: ''
     })
+
+    // ✅ NEW: Assign Bot Dialog State
+    const [assignBotDialogOpen, setAssignBotDialogOpen] = useState(false)
+    const [selectedChannel, setSelectedChannel] = useState<any>(null)
 
     useEffect(() => {
         loadData()
@@ -193,7 +198,14 @@ export default function ChannelsPage() {
                         }, 1000)
                     }
                 } else if (event.data?.status === 'error') {
-                    toast.error(`Connection failed: ${event.data.message}`)
+                    toast.error(`Connection failed: ${event.data.message || event.data.channel || 'Unknown error'}`)
+                    
+                    // ✅ FIX: Clear Facebook data on error
+                    if (provider === 'facebook' || provider === 'messenger' || provider === 'instagram') {
+                        setFacebookPages([])
+                        setFacebookTempToken('')
+                    }
+                    
                     popup?.close()
                     window.removeEventListener('message', messageHandler)
                     setConnecting(null)
@@ -244,7 +256,7 @@ export default function ChannelsPage() {
             client_id: existing?.client_id || '',
             client_secret: existing?.client_secret || '',
             scopes: existing?.scopes || '',
-            verify_token: 'wataomi_verify_token'
+            verify_token: existing?.verify_token || '' // ✅ FIX: No hardcode, empty by default
         })
     }
 
@@ -261,10 +273,16 @@ export default function ChannelsPage() {
 
         try {
             if (configForm.provider === 'facebook' || configForm.provider === 'messenger' || configForm.provider === 'instagram') {
+                // ✅ FIX: Require verify token, no hardcode fallback
+                if (!configForm.verify_token) {
+                    toast.error('Verify Token is required for Facebook webhook')
+                    return
+                }
+                
                 await axiosClient.post('/channels/facebook/setup', {
                     appId: configForm.client_id,
                     appSecret: configForm.client_secret,
-                    verifyToken: configForm.verify_token || 'wataomi_verify_token'
+                    verifyToken: configForm.verify_token
                 }).then(r => r.data)
             } else {
                 const url = configForm.id ? `/integrations/${configForm.id}` : '/integrations/'
@@ -299,6 +317,13 @@ export default function ChannelsPage() {
             return
         }
 
+        // ✅ FIX: Validate token exists
+        if (!facebookTempToken) {
+            toast.error('Session expired. Please reconnect Facebook again.')
+            setFacebookPages([])
+            return
+        }
+
         setConnectingPage(true)
 
         try {
@@ -317,7 +342,15 @@ export default function ChannelsPage() {
 
             await loadData()
         } catch (error: any) {
-            toast.error(error.message || 'Failed to connect page')
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to connect page'
+            toast.error(errorMessage)
+            
+            // If token expired or invalid, clear pages
+            if (errorMessage.includes('authorization') || errorMessage.includes('token')) {
+                setFacebookPages([])
+                setFacebookTempToken('')
+                toast.info('Please reconnect Facebook to continue')
+            }
         } finally {
             setConnectingPage(false)
         }
@@ -557,16 +590,36 @@ export default function ChannelsPage() {
                                                         </CardDescription>
                                                     </CardContent>
                                                     <CardFooter className="flex items-center justify-between border-t bg-muted/50 px-6 py-3">
-                                                        <span className="text-xs text-muted-foreground">
-                                                            Connected {new Date(channel.connected_at).toLocaleDateString()}
-                                                        </span>
-                                                        <button
-                                                            onClick={() => handleDisconnect(channel.id)}
-                                                            className="flex items-center gap-1.5 text-xs font-medium text-destructive hover:text-destructive/80 transition-colors px-2 py-1 rounded-lg hover:bg-destructive/10"
-                                                        >
-                                                            <FiTrash2 className="w-3.5 h-3.5" />
-                                                            Disconnect
-                                                        </button>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs text-muted-foreground">
+                                                                Connected {new Date(channel.connected_at).toLocaleDateString()}
+                                                            </span>
+                                                            {channel.metadata?.botId && (
+                                                                <span className="flex items-center gap-1 text-xs font-medium text-blue-600 bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded-full">
+                                                                    <FiSettings className="w-3 h-3" />
+                                                                    Bot Assigned
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedChannel(channel)
+                                                                    setAssignBotDialogOpen(true)
+                                                                }}
+                                                                className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors px-2 py-1 rounded-lg hover:bg-primary/10"
+                                                            >
+                                                                <FiSettings className="w-3.5 h-3.5" />
+                                                                {channel.metadata?.botId ? 'Change Bot' : 'Assign Bot'}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDisconnect(channel.id)}
+                                                                className="flex items-center gap-1.5 text-xs font-medium text-destructive hover:text-destructive/80 transition-colors px-2 py-1 rounded-lg hover:bg-destructive/10"
+                                                            >
+                                                                <FiTrash2 className="w-3.5 h-3.5" />
+                                                                Disconnect
+                                                            </button>
+                                                        </div>
                                                     </CardFooter>
                                                 </Card>
                                             )
@@ -739,7 +792,7 @@ export default function ChannelsPage() {
                                                     <div className="space-y-2 text-xs">
                                                         <div className="flex items-center justify-between p-2 bg-muted rounded-lg">
                                                             <span className="text-muted-foreground">Client ID</span>
-                                                            <span className="font-mono">{config.client_id.slice(0, 12)}...</span>
+                                                            <span className="font-mono">{config.client_id?.slice(0, 12) || 'N/A'}...</span>
                                                         </div>
                                                         <div className="flex items-center justify-between p-2 bg-muted rounded-lg">
                                                             <span className="text-muted-foreground">Status</span>
@@ -917,7 +970,8 @@ export default function ChannelsPage() {
                                             value={configForm.verify_token}
                                             onChange={(e) => setConfigForm({ ...configForm, verify_token: e.target.value })}
                                             className="w-full bg-input rounded-lg px-4 py-3 border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all placeholder:text-muted-foreground/50"
-                                            placeholder="wataomi_verify_token"
+                                            placeholder="Enter your verify token"
+                                            required
                                         />
                                         <p className="text-xs text-muted-foreground mt-2">
                                             Use this token when setting up webhook in Facebook App
@@ -944,7 +998,7 @@ export default function ChannelsPage() {
                                 {}
                                 {(configForm.provider === 'facebook' || configForm.provider === 'messenger' || configForm.provider === 'instagram') && (
                                     <CodeBlock label="Webhook URL">
-                                        {process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}/api/v1/webhooks/facebook
+                                        {process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}/api/webhooks/facebook
                                     </CodeBlock>
                                 )}
 
@@ -1085,7 +1139,6 @@ export default function ChannelsPage() {
                 variant="destructive"
             />
 
-            {}
             <AlertDialogConfirm
                 open={deleteConfigId !== null}
                 onOpenChange={(open) => !open && setDeleteConfigId(null)}
@@ -1096,6 +1149,17 @@ export default function ChannelsPage() {
                 onConfirm={handleDeleteConfig}
                 variant="destructive"
             />
+
+            {/* ✅ Assign Bot Dialog */}
+            {currentWorkspace && (
+                <AssignBotDialog
+                    open={assignBotDialogOpen}
+                    onOpenChange={setAssignBotDialogOpen}
+                    channel={selectedChannel}
+                    workspaceId={currentWorkspace.id}
+                    onSuccess={loadData}
+                />
+            )}
         </div>
     )
 }

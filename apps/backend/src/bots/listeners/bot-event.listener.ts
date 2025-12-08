@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
+import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -7,6 +7,7 @@ import {
     BotMessageProcessingEvent,
 } from '../../shared/events';
 import { BotEntity } from '../infrastructure/persistence/relational/entities/bot.entity';
+import { ConversationEntity } from '../../conversations/infrastructure/persistence/relational/entities/conversation.entity';
 
 @Injectable()
 export class BotEventListener {
@@ -15,6 +16,9 @@ export class BotEventListener {
     constructor(
         @InjectRepository(BotEntity)
         private botRepository: Repository<BotEntity>,
+        @InjectRepository(ConversationEntity)
+        private conversationRepository: Repository<ConversationEntity>,
+        private eventEmitter: EventEmitter2,
     ) { }
 
     @OnEvent('message.received')
@@ -24,33 +28,68 @@ export class BotEventListener {
         );
 
         try {
-            const bot = await this.findActiveBotForChannel(event.channelType);
+            // 1. Get conversation to check human takeover status
+            const conversation = await this.conversationRepository.findOne({
+                where: { id: event.conversationId },
+            });
 
-            if (!bot) {
-                this.logger.warn(
-                    `No active bot found for channel type: ${event.channelType}`,
+            if (!conversation) {
+                this.logger.warn(`Conversation not found: ${event.conversationId}`);
+                return;
+            }
+
+            // 2. Check if human has taken over (agent is actively responding)
+            const humanTakeover = conversation.metadata?.humanTakeover === true;
+            if (humanTakeover) {
+                this.logger.log(
+                    `👤 Human agent is handling conversation ${event.conversationId} - Bot will not respond`
                 );
                 return;
             }
 
+            // 3. Get bot assigned to this channel (from event metadata)
+            const botId = event.metadata?.botId;
+            if (!botId) {
+                this.logger.warn(
+                    `No bot assigned to channel for conversation ${event.conversationId}`
+                );
+                return;
+            }
+
+            const bot = await this.botRepository.findOne({
+                where: { id: botId, isActive: true },
+            });
+
+            if (!bot) {
+                this.logger.warn(`Bot ${botId} not found or inactive`);
+                return;
+            }
+
             this.logger.log(
-                `Bot ${bot.id} will process message from conversation ${event.conversationId}`,
+                `🤖 Bot ${bot.name} (${bot.id}) will process message from conversation ${event.conversationId}`
             );
+
+            // 4. Emit bot.message.processing event for BotExecutionEventService
+            const processingEvent = new BotMessageProcessingEvent(
+                event.conversationId,
+                event.content,  // ✅ Fix: use content, not messageContent
+                bot.id,
+                event.channelType,
+                event.senderId,
+                event.metadata,
+            );
+
+            this.eventEmitter.emit('bot.message.processing', processingEvent);
+
+            this.logger.debug(
+                `✅ Emitted bot.message.processing for bot ${bot.id}`
+            );
+
         } catch (error) {
             this.logger.error(
                 `Error handling message received event: ${error.message}`,
                 error.stack,
             );
         }
-    }
-
-    private async findActiveBotForChannel(
-        channelType: string,
-    ): Promise<BotEntity | null> {
-        return this.botRepository.findOne({
-            where: {
-                isActive: true,
-            },
-        });
     }
 }

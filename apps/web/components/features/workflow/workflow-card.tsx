@@ -56,7 +56,7 @@ export function WorkflowCard({ workflow, onUpdate, onRun }: WorkflowCardProps) {
     const handleDuplicate = async () => {
         setIsDropdownOpen(false)
         try {
-            const dup = await dispatch(duplicateFlow(workflow.id)).unwrap()
+            const dup = await dispatch(duplicateFlow(workflow.id.toString())).unwrap()
             toast.success('Flow duplicated!')
             router.push(`/flows/${dup.id}/edit`)
         } catch {
@@ -67,7 +67,7 @@ export function WorkflowCard({ workflow, onUpdate, onRun }: WorkflowCardProps) {
     const handleArchive = async () => {
         setIsDropdownOpen(false)
         try {
-            await dispatch(archiveFlow(workflow.id)).unwrap()
+            await dispatch(archiveFlow(workflow.id.toString())).unwrap()
             toast.success('Flow archived!')
             onUpdate?.()
         } catch {
@@ -82,7 +82,7 @@ export function WorkflowCard({ workflow, onUpdate, onRun }: WorkflowCardProps) {
 
     const confirmDelete = async () => {
         try {
-            await dispatch(deleteFlow(workflow.id)).unwrap()
+            await dispatch(deleteFlow(workflow.id.toString())).unwrap()
             toast.success('Flow deleted!')
             onUpdate?.()
         } catch {
@@ -111,7 +111,7 @@ export function WorkflowCard({ workflow, onUpdate, onRun }: WorkflowCardProps) {
                         {workflow.status}
                     </span>
 
-                    {}
+
                     <div className="relative">
                         <Button
                             variant="ghost"
@@ -127,13 +127,13 @@ export function WorkflowCard({ workflow, onUpdate, onRun }: WorkflowCardProps) {
 
                         {isDropdownOpen && (
                             <>
-                                {}
+
                                 <div
                                     className="fixed inset-0 z-10"
                                     onClick={() => setIsDropdownOpen(false)}
                                 />
 
-                                {}
+
                                 <div className="absolute right-0 mt-2 w-48 glass rounded-lg shadow-lg border border-border/40 z-20 overflow-hidden">
                                     <button
                                         onClick={handleEdit}
@@ -204,7 +204,7 @@ export function WorkflowCard({ workflow, onUpdate, onRun }: WorkflowCardProps) {
                 </div>
             </div>
 
-            {}
+
             <AlertDialogConfirm
                 open={showDeleteDialog}
                 onOpenChange={setShowDeleteDialog}
