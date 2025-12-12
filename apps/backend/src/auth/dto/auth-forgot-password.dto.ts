@@ -9,4 +9,3 @@ export class AuthForgotPasswordDto {
   @IsEmail()
   email: string;
 }
-

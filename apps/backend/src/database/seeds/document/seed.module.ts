@@ -22,4 +22,3 @@ import { MongooseConfigService } from '../../mongoose-config.service';
   ],
 })
 export class SeedModule {}
-

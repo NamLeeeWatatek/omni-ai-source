@@ -38,4 +38,3 @@ export abstract class UserRepository {
 
   abstract remove(id: User['id']): Promise<void>;
 }
-

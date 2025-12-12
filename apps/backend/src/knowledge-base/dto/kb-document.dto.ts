@@ -179,4 +179,3 @@ export class CrawlSitemapDto {
   @IsOptional()
   maxPages?: number;
 }
-

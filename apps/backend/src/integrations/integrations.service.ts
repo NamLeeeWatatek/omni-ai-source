@@ -61,4 +61,3 @@ export class IntegrationsService {
     await this.credentialRepository.delete(id);
   }
 }
-

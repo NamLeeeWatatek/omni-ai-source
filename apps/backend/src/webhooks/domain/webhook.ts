@@ -31,4 +31,3 @@ export class WebhookEvent {
   @ApiProperty()
   receivedAt: Date;
 }
-

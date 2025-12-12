@@ -11,4 +11,3 @@ export class CasdoorCallbackDto {
   @IsOptional()
   state?: string;
 }
-

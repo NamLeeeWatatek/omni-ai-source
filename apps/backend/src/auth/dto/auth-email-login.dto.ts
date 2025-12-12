@@ -14,4 +14,3 @@ export class AuthEmailLoginDto {
   @IsNotEmpty()
   password: string;
 }
-

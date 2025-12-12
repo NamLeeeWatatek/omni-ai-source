@@ -40,4 +40,3 @@ export class AuthFacebookController {
     return this.authService.validateSocialLogin('facebook', socialData);
   }
 }
-

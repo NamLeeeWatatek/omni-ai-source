@@ -6,4 +6,3 @@
  */
 export const Roles = (...roles: (string | number)[]) =>
   SetMetadata('roles', roles);
-

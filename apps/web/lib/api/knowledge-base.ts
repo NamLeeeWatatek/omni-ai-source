@@ -188,6 +188,7 @@ export async function uploadKBDocument(file: File, kbId: string, folderId?: stri
   }
 
   return axiosClient.post('/knowledge-bases/documents/upload', formData)
+  // axiosClient handles multipart form data automatically with proper encoding
 }
 
 /**
@@ -205,11 +206,33 @@ export async function generateKBAnswer(data: GenerateAnswerDto): Promise<Generat
 }
 
 /**
- * Simple chat (answer only, no sources)
+ * Chat with Bot using RAG (professional - bot-first architecture)
+ * Uses bot's configured AI provider first, then fallbacks to KB/workspace/user providers
  */
-export async function chatWithKB(data: {
+export async function chatWithBotAndRAG(data: {
   message: string
-  botId?: string
+  botId: string                          // Required - bot-first approach
+  knowledgeBaseIds?: string[]           // Optional KB sources
+  conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
+  model?: string                        // Override model (optional)
+}): Promise<{
+  success: boolean
+  answer: string
+  sources: Array<{
+    content: string
+    score: number
+    metadata?: Record<string, any>
+  }>
+}> {
+  return axiosClient.post('/knowledge-bases/chat-with-bot-rag', data)
+}
+
+/**
+ * Simple chat (legacy - not recommended for bot usage)
+ */
+export async function chatWithKBSimple(data: {
+  message: string
+  knowledgeBaseId?: string
   conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
   model?: string
 }): Promise<{ success: boolean; answer: string }> {
@@ -262,4 +285,3 @@ export async function unassignAgentFromKB(kbId: string, agentId: string): Promis
 export async function getKBAgentAssignments(kbId: string): Promise<GetAgentAssignmentsResponse> {
   return axiosClient.get(`/knowledge-bases/${kbId}/agents`)
 }
-

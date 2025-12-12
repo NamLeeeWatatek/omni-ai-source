@@ -55,4 +55,3 @@ export class FlowExecutionFailedEvent extends BaseEvent {
     return 'flow.execution.failed';
   }
 }
-

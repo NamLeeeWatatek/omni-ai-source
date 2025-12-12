@@ -89,4 +89,3 @@ export class QueryUserDto {
   @Type(() => SortUserDto)
   sort?: SortUserDto[] | null;
 }
-

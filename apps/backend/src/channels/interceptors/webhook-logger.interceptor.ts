@@ -87,4 +87,3 @@ export class WebhookLoggerInterceptor implements NestInterceptor {
     }
   }
 }
-

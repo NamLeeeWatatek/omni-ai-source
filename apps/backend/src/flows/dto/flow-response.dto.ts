@@ -161,4 +161,3 @@ export class UGCTemplateDto {
   @Expose()
   createdAt: Date;
 }
-

@@ -31,5 +31,8 @@ export class FileDocumentRepository implements FileRepository {
     const fileObjects = await this.fileModel.find({ _id: { $in: ids } });
     return fileObjects.map((fileObject) => FileMapper.toDomain(fileObject));
   }
-}
 
+  async delete(id: FileType['id']): Promise<void> {
+    await this.fileModel.findByIdAndDelete(id);
+  }
+}

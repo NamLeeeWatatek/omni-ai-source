@@ -79,4 +79,3 @@ export class User {
   @ApiPropertyOptional()
   deletedAt?: Date | null;
 }
-

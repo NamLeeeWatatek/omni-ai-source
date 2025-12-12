@@ -8,4 +8,3 @@ export class Session {
   updatedAt: Date;
   deletedAt: Date;
 }
-

@@ -97,4 +97,3 @@ export class MessageSentEvent extends BaseEvent {
     return 'message.sent';
   }
 }
-

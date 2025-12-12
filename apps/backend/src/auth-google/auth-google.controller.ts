@@ -37,4 +37,3 @@ export class AuthGoogleController {
     return this.authService.validateSocialLogin('google', socialData);
   }
 }
-

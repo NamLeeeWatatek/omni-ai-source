@@ -22,4 +22,3 @@ export default registerAs<FacebookConfig>('facebook', () => {
     appSecret: process.env.FACEBOOK_APP_SECRET,
   };
 });
-

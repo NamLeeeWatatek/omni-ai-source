@@ -6,4 +6,3 @@ export class AuthGoogleLoginDto {
   @IsNotEmpty()
   idToken: string;
 }
-

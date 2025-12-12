@@ -15,4 +15,3 @@ export class PermissionCheckResponseDto {
   @ApiProperty({ type: [String] })
   missingPermissions: string[];
 }
-

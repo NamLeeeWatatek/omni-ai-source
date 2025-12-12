@@ -57,4 +57,3 @@ export class KBChunkEntity extends EntityRelationalHelper {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }
-

@@ -13,7 +13,9 @@ export type FileSchemaDocument = HydratedDocument<FileSchemaClass>;
 export class FileSchemaClass extends EntityDocumentHelper {
   @Prop()
   path: string;
+
+  @Prop({ default: 'images' })
+  bucket: string;
 }
 
 export const FileSchema = SchemaFactory.createForClass(FileSchemaClass);
-

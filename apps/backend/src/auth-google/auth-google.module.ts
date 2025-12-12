@@ -11,4 +11,3 @@ import { AuthModule } from '../auth/auth.module';
   controllers: [AuthGoogleController],
 })
 export class AuthGoogleModule {}
-

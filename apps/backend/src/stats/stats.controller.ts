@@ -44,4 +44,3 @@ export class StatsController {
     return this.statsService.getDashboardStats(query, workspaceId);
   }
 }
-

@@ -1,5 +1,4 @@
-﻿
-import { NodeCategoryId } from '../../types';
+﻿import { NodeCategoryId } from '../../types';
 import { NodeType } from '../../domain/node-type';
 import { NullableType } from 'src/utils/types/nullable.type';
 
@@ -21,4 +20,3 @@ export abstract class NodeTypeRepository {
 
   abstract getCategories(): Promise<{ id: string; label: string }[]>;
 }
-

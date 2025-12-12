@@ -31,12 +31,11 @@ export function isValidText(text: string): boolean {
 }
 
 /**
- * Sanitize filename
+ * Sanitize filename - preserve Vietnamese characters and emojis
  */
 export function sanitizeFilename(filename: string): string {
   return filename
-    .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_')
-    .replace(/\.{2,}/g, '.')
+    .replace(/[\x00-\x1F]/g, '_') // Only remove control characters
     .trim();
 }
 
@@ -130,4 +129,3 @@ export function sanitizeMetadata(
 
   return sanitized;
 }
-

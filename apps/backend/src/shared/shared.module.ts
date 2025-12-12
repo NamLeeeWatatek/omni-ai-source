@@ -15,4 +15,3 @@ import { EncryptionService } from './services/encryption.service';
   exports: [EncryptionService],
 })
 export class SharedModule {}
-

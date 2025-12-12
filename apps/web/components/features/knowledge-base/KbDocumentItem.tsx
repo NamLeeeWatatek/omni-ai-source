@@ -41,7 +41,7 @@ export function KBDocumentItem({ document, onDelete }: KBDocumentItemProps) {
                     </div>
                     <div>
                         <div className="flex items-center gap-2">
-                            <h4 className="font-medium">{document.name || document.title}</h4>
+                            <h4 className="font-medium">{document.metadata?.originalName || document.name || document.title}</h4>
                             {getStatusBadge(document.processingStatus)}
                         </div>
                         <div className="flex items-center gap-3 text-sm text-muted-foreground">

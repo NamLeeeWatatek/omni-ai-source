@@ -63,4 +63,3 @@ export const CHAT_MODEL_OPTIONS = AI_MODELS.filter(
 export const IMAGE_MODEL_OPTIONS = AI_MODELS.filter(
   (m) => m.type === 'image',
 ).map((m) => m.id);
-

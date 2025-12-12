@@ -32,4 +32,3 @@ export interface BotConfig {
   systemPrompt?: string;
   metadata?: Record<string, any>;
 }
-

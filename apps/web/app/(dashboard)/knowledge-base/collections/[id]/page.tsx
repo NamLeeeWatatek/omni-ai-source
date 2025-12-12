@@ -88,9 +88,9 @@ import { Card } from '@/components/ui/Card'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Spinner } from '@/components/ui/Spinner'
 import { TableHeader, TableRow, TableHead, TableBody, TableCell, Table } from '@/components/ui/Table'
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@radix-ui/react-dropdown-menu'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/DropdownMenu'
 
 export default function KnowledgeBaseDetailPageRedux() {
     const params = useParams()
@@ -208,6 +208,43 @@ export default function KnowledgeBaseDetailPageRedux() {
             toast.error(message)
         } finally {
             event.target.value = ''
+        }
+    }
+
+    const handleMultipleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = event.target.files
+        if (!files || files.length === 0) return
+
+        let uploadCount = 0
+        let errorCount = 0
+
+        try {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i]
+                try {
+                    await dispatch(uploadDocument({
+                        file,
+                        kbId,
+                        folderId: currentFolderId || undefined,
+                    })).unwrap()
+                    uploadCount++
+                } catch (error: any) {
+                    errorCount++
+                    console.error(`Failed to upload ${file.name}:`, error)
+                }
+            }
+
+            if (uploadCount > 0) {
+                toast.success(`${uploadCount} file(s) uploaded and processing started${errorCount > 0 ? ` (${errorCount} failed)` : ''}`)
+            }
+            if (errorCount > 0) {
+                toast.error(`${errorCount} file(s) failed to upload`)
+            }
+        } finally {
+            event.target.value = ''
+            if (uploadCount > 0) {
+                dispatch(refreshData({ kbId, folderId: currentFolderId }))
+            }
         }
     }
 
@@ -415,9 +452,6 @@ export default function KnowledgeBaseDetailPageRedux() {
             { }
             <div className="page-header flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => router.push('/knowledge-base/collections')}>
-                        <FiArrowLeft className="w-5 h-5" />
-                    </Button>
                     <div className="flex items-center gap-3">
                         <div
                             className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg"
@@ -432,18 +466,6 @@ export default function KnowledgeBaseDetailPageRedux() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button onClick={() => setChatDialogOpen(true)}>
-                        <FiMessageSquare className="w-4 h-4 mr-2" />
-                        Chat
-                    </Button>
-                    <Button variant="outline" onClick={() => setQueryDialogOpen(true)}>
-                        <FiSearch className="w-4 h-4 mr-2" />
-                        Search
-                    </Button>
-                    <Button variant="outline" onClick={() => setSettingsDialogOpen(true)}>
-                        <FiSettings className="w-4 h-4 mr-2" />
-                        Settings
-                    </Button>
                     <Button
                         variant="outline"
                         onClick={() => dispatch(refreshData({ kbId, folderId: currentFolderId }))}
@@ -487,14 +509,15 @@ export default function KnowledgeBaseDetailPageRedux() {
                             id="file-upload"
                             className="hidden"
                             accept=".pdf,.doc,.docx,.txt,.md,.csv,.json"
-                            onChange={handleFileUpload}
+                            onChange={handleMultipleFileUpload}
+                            multiple
                         />
                         <Button
                             variant="outline"
                             onClick={() => document.getElementById('file-upload')?.click()}
                         >
                             <FiUpload className="w-4 h-4 mr-2" />
-                            Upload File
+                            Upload Files
                         </Button>
                     </div>
                     <Button variant="outline" onClick={() => setCrawlerDialogOpen(true)}>

@@ -46,4 +46,3 @@ export default registerAs<AuthConfig>('auth', () => {
       .AUTH_CONFIRM_EMAIL_TOKEN_EXPIRES_IN as ms.StringValue,
   };
 });
-

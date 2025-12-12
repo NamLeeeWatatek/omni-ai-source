@@ -57,17 +57,38 @@ export const DynamicFormField = memo(function DynamicFormField({
     className
 }: DynamicFormFieldProps) {
     const [jsonError, setJsonError] = useState<string | null>(null)
-    const [uploadingFiles, setUploadingFiles] = useState(false)
-    const [uploadError, setUploadError] = useState<string | null>(null)
     const [dynamicOptions, setDynamicOptions] = useState<any[]>([])
     const [loadingOptions, setLoadingOptions] = useState(false)
+    const [previewFiles, setPreviewFiles] = useState<any[]>([])
 
-    const { uploadFile, uploadMultipleFiles } = useFileUpload({
+    const { uploadFile, uploadMultipleFiles, uploading: uploadLoading, error: uploadHookError } = useFileUpload({
         bucket: 'images',
-        onSuccess: (fileUrl) => {
-            onChange(field.name, fileUrl)
+        onProgress: (progress) => {
+            // Could add progress tracking here if needed
+        },
+        onSuccess: (fileUrl, fileData) => {
+            // Handle successful upload
         },
     })
+
+    const resizeImage = (file: File, maxWidth = 1200): Promise<File> => {
+        return new Promise((resolve) => {
+            const canvas = document.createElement('canvas')
+            const ctx = canvas.getContext('2d')!
+            const img = new Image()
+            img.onload = () => {
+                const ratio = Math.min(1, maxWidth / img.width)
+                canvas.width = img.width * ratio
+                canvas.height = img.height * ratio
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+                canvas.toBlob((blob) => {
+                    const resizedFile = new File([blob!], file.name, { type: file.type })
+                    resolve(resizedFile)
+                }, file.type)
+            }
+            img.src = URL.createObjectURL(file)
+        })
+    }
 
     if (field.showWhen) {
         const conditionMet = Object.entries(field.showWhen).every(
@@ -77,6 +98,7 @@ export const DynamicFormField = memo(function DynamicFormField({
     }
 
     const currentValue = value !== undefined ? value : field.default
+    console.log('📋 DynamicFormField for', field.name, 'currentValue:', currentValue, 'value prop:', value, 'default:', field.default)
 
     const fieldId = `field-${field.name}`
 
@@ -88,6 +110,14 @@ export const DynamicFormField = memo(function DynamicFormField({
             loadDynamicOptions('dynamic:channels')
         }
     }, [field.name])
+
+    useEffect(() => {
+        return () => {
+            previewFiles.forEach(p => URL.revokeObjectURL(p.url))
+        }
+    }, [previewFiles])
+
+
 
     const loadDynamicOptions = async (optionsStr: string) => {
         const optionsConfig = optionsStr.replace('dynamic:', '')
@@ -140,50 +170,76 @@ export const DynamicFormField = memo(function DynamicFormField({
         }
     }
 
-    const handleFileUpload = async (files: FileList) => {
-        setUploadingFiles(true)
-        setUploadError(null)
-
+    const handleFileDelete = async (fileId: string) => {
         try {
-            const uploadedUrls: string[] = []
+            await axiosClient.delete(`/files/${fileId}`)
+        } catch (error) {
+            console.error('Delete error:', error)
+            throw error
+        }
+    }
 
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i]
-                const formData = new FormData()
-                formData.append('file', file)
+    const handleFileUpload = async (files: FileList) => {
+        console.log('🔄 handleFileUpload called with files:', files);
+        if (!files || files.length === 0) {
+            console.error('❌ No files provided to handleFileUpload');
+            return;
+        }
 
-                const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+        if (field.multiple) {
+            const filesArray = Array.from(files)
+            console.log('📁 Processing multiple files:', filesArray.length);
+            const processedFiles = await Promise.all(filesArray.map(file =>
+                file.type.startsWith('image/') ? resizeImage(file) : Promise.resolve(file)
+            ))
 
-                const { getSession } = await import('next-auth/react')
-                const session = await getSession()
-                const token = session?.accessToken
+            try {
+                const uploadedFiles = await uploadMultipleFiles(processedFiles)
+                console.log('✅ Multiple upload result:', uploadedFiles);
 
-                const response = await fetch(`${API_URL}/media/upload/file`, {
-                    method: 'POST',
-                    headers: {
-                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                    },
-                    body: formData
-                })
+                const formattedFiles = uploadedFiles.map((uploadResult, index) => ({
+                    url: uploadResult?.fileUrl || '',
+                    fileId: uploadResult?.fileData?.id || '',
+                    fileKey: uploadResult?.fileData?.path || '',
+                    name: filesArray[index]?.name || `file_${index}`
+                }))
 
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}))
-                    throw new Error(errorData.detail || 'Upload failed')
+                onChange(field.name, formattedFiles)
+                setPreviewFiles([])
+            } catch (error) {
+                console.error('❌ Multiple upload failed:', error)
+            }
+        } else {
+            console.log('📄 Processing single file:', files[0]);
+            if (!files[0]) {
+                console.error('❌ files[0] is undefined');
+                return;
+            }
+
+            let processedFile = files[0]
+
+            // Resize image if necessary
+            if (processedFile.type.startsWith('image/')) {
+                processedFile = await resizeImage(processedFile)
+            }
+
+            try {
+                const uploadResult = await uploadFile(processedFile)
+                console.log('✅ Single upload result:', uploadResult);
+
+                const formattedFile = {
+                    url: uploadResult?.fileUrl || '',
+                    fileId: uploadResult?.fileData?.id || '',
+                    fileKey: uploadResult?.fileData?.path || '',
+                    name: files[0]?.name || 'unknown_file'
                 }
 
-                const data = await response.json()
-                uploadedUrls.push(data.url)
+                console.log('📦 Formatted file object:', formattedFile);
+                onChange(field.name, formattedFile)
+                setPreviewFiles([])
+            } catch (error) {
+                console.error('❌ Single upload failed:', error)
             }
-
-            if (field.multiple) {
-                onChange(field.name, uploadedUrls)
-            } else {
-                onChange(field.name, uploadedUrls[0])
-            }
-        } catch (error) {
-            setUploadError(error instanceof Error ? error.message : 'Upload failed')
-        } finally {
-            setUploadingFiles(false)
         }
     }
 
@@ -351,6 +407,9 @@ export const DynamicFormField = memo(function DynamicFormField({
                 )
 
             case 'file':
+            case 'files':
+                const isMultiple = field.type === 'files' || field.multiple
+
                 return (
                     <div className="space-y-2">
                         <div className="relative">
@@ -359,136 +418,208 @@ export const DynamicFormField = memo(function DynamicFormField({
                                 id={`file-${field.name}`}
                                 onChange={(e) => {
                                     if (e.target.files && e.target.files.length > 0) {
+                                        const filesArray = Array.from(e.target.files)
+                                        // Create previews
+                                        const previews = filesArray.map(file => ({
+                                            url: URL.createObjectURL(file),
+                                            name: file.name,
+                                            isPreview: true
+                                        }))
+                                        if (field.multiple) {
+                                            setPreviewFiles(previews)
+                                        } else {
+                                            setPreviewFiles([previews[0]])
+                                        }
                                         handleFileUpload(e.target.files)
+                                        // Reset input so user can upload the same file again
+                                        e.target.value = ''
                                     }
                                 }}
                                 className="hidden"
                                 accept={field.accept}
-                                multiple={field.multiple}
-                                disabled={uploadingFiles}
+                                multiple={isMultiple}
+                                disabled={uploadLoading}
                             />
                             <label
                                 htmlFor={`file-${field.name}`}
                                 className={cn(
                                     "flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors",
-                                    uploadingFiles
+                                    uploadLoading
                                         ? 'border-gray-400 bg-gray-50 cursor-not-allowed'
                                         : 'border-border/40 hover:border-primary/50 hover:bg-muted/20'
                                 )}
                             >
-                                {uploadingFiles ? (
+                                {uploadLoading ? (
                                     <div className="flex flex-col items-center">
                                         <Spinner className="w-8 h-8 mb-2" />
                                         <span className="text-sm text-muted-foreground">Uploading...</span>
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col items-center">
+                                    <div className="flex flex-col items-center text-center">
                                         <FiUpload className="w-8 h-8 text-muted-foreground mb-2" />
-                                        <span className="text-sm text-muted-foreground">
-                                            Click to upload {field.multiple ? 'files' : 'a file'}
-                                        </span>
-                                        <span className="text-xs text-muted-foreground mt-1">
-                                            {field.accept || 'Files'}
-                                        </span>
+                                        <span className="text-sm text-muted-foreground">Click to upload or drag and drop</span>
                                     </div>
                                 )}
                             </label>
                         </div>
 
-                        {currentValue && (
-                            <div className="space-y-2">
-                                {Array.isArray(currentValue) ? (
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {currentValue.map((url, idx) => {
-                                            const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(url)
-                                            return (
-                                                <div key={idx} className="relative group">
-                                                    {isImage ? (
-                                                        <div className="relative aspect-square rounded-lg overflow-hidden border border-border/40 bg-muted/20">
-                                                            <img
-                                                                src={url}
-                                                                alt={`Upload ${idx + 1}`}
-                                                                className="w-full h-full object-cover"
-                                                                onError={(e) => {
-                                                                    e.currentTarget.style.display = 'none'
-                                                                    e.currentTarget.parentElement!.innerHTML = `<div class="flex items-center justify-center h-full text-xs text-muted-foreground p-2 break-all">${url}</div>`
-                                                                }}
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    const newUrls = currentValue.filter((_: any, i: number) => i !== idx)
-                                                                    onChange(field.name, newUrls.length > 0 ? newUrls : null)
-                                                                }}
-                                                                className="absolute top-1 right-1 p-1.5 bg-red-500 hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                                                            >
-                                                                <FiX className="w-3 h-3 text-white" />
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg border border-border/40">
-                                                            <span className="text-xs flex-1 truncate">{url}</span>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    const newUrls = currentValue.filter((_: any, i: number) => i !== idx)
-                                                                    onChange(field.name, newUrls.length > 0 ? newUrls : null)
-                                                                }}
-                                                                className="p-1 hover:bg-red-500/10 rounded"
-                                                            >
-                                                                <FiX className="w-4 h-4 text-red-500" />
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-                                ) : (
-                                    (() => {
-                                        const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(currentValue)
+                        {uploadHookError && (
+                            <p className="text-xs text-red-500">{uploadHookError.message}</p>
+                        )}
+
+                        {(previewFiles.length > 0 || currentValue) && (() => {
+                            const filesToShow = previewFiles.length > 0 ? previewFiles : currentValue
+                            const canDelete = previewFiles.length === 0
+                            console.log(`Rendering field ${field.name} with value:`, filesToShow)
+                            return (
+                                <div className="space-y-2">
+                                    {Array.isArray(filesToShow) ? (
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {filesToShow.map((item: any, idx: number) => {
+                                                const fileObj = typeof item === 'object' && item.url ? item : { url: item, fileId: null, fileKey: null }
+                                                const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(fileObj.url)
+                                                return (
+                                                    <div key={idx} className="relative group">
+                                                        {isImage ? (
+                                                            <div className="relative aspect-square rounded-lg overflow-hidden border border-border/40 bg-muted/20">
+                                                                <img
+                                                                    src={fileObj.url}
+                                                                    alt={`Upload ${idx + 1}`}
+                                                                    className="w-full h-full object-cover"
+                                                                    onError={(e) => {
+                                                                        const target = e.currentTarget;
+                                                                        target.style.display = 'none';
+                                                                        const parent = target.parentElement;
+                                                                        if (parent) {
+                                                                            const fileName = fileObj.url ? fileObj.url.split('/').pop() || 'File' : 'File';
+                                                                            parent.innerHTML = `<div class="flex items-center justify-center h-full text-xs text-muted-foreground p-2 break-all">${fileName}</div>`;
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                {canDelete && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={async () => {
+                                                                            if (fileObj.fileId) {
+                                                                                try {
+                                                                                    await handleFileDelete(fileObj.fileId)
+                                                                                } catch (error) {
+                                                                                    console.error('Failed to delete file:', error)
+                                                                                }
+                                                                            }
+                                                                            const newFiles = filesToShow.filter((_: any, i: number) => i !== idx)
+                                                                            onChange(field.name, newFiles.length > 0 ? newFiles : null)
+                                                                        }}
+                                                                        className="absolute top-1 right-1 p-1.5 bg-red-500 hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                                                                    >
+                                                                        <FiX className="w-3 h-3 text-white" />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg border border-border/40">
+                                                                <span className="text-xs flex-1 truncate" title={fileObj.url}>
+                                                                    {fileObj.name || fileObj.url.split('/').pop() || 'Unnamed file'}
+                                                                </span>
+                                                                {canDelete && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={async () => {
+                                                                            if (fileObj.fileId) {
+                                                                                try {
+                                                                                    await handleFileDelete(fileObj.fileId)
+                                                                                } catch (error) {
+                                                                                    console.error('Failed to delete file:', error)
+                                                                                }
+                                                                            }
+                                                                            const newFiles = filesToShow.filter((_: any, i: number) => i !== idx)
+                                                                            onChange(field.name, newFiles.length > 0 ? newFiles : null)
+                                                                        }}
+                                                                        className="p-1 hover:bg-red-500/10 rounded"
+                                                                    >
+                                                                        <FiX className="w-4 h-4 text-red-500" />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    ) : (() => {
+                                        const fileObj = typeof filesToShow === 'object' && filesToShow.url
+                                            ? filesToShow
+                                            : { url: filesToShow, fileId: null, fileKey: null }
+                                        const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(fileObj.url)
                                         return isImage ? (
                                             <div className="relative group">
                                                 <div className="relative w-full rounded-lg overflow-hidden border border-border/40 bg-muted/20">
-                                                    <img
-                                                        src={currentValue}
-                                                        alt="Uploaded image"
-                                                        className="w-full h-auto max-h-64 object-contain"
-                                                        onError={(e) => {
-                                                            e.currentTarget.style.display = 'none'
-                                                            e.currentTarget.parentElement!.innerHTML = `<div class="flex items-center justify-center p-4 text-xs text-muted-foreground break-all">${currentValue}</div>`
-                                                        }}
-                                                    />
+                                                <img
+                                                    src={fileObj.url}
+                                                    alt="Uploaded image"
+                                                    className="w-full h-auto max-h-64 object-contain"
+                                                    onLoad={() => console.log('✅ Image loaded successfully:', fileObj.url)}
+                                                    onError={(e) => {
+                                                        console.error('❌ Image failed to load:', fileObj.url, e);
+                                                        const target = e.currentTarget;
+                                                        target.style.display = 'none';
+                                                        const parent = target.parentElement;
+                                                        if (parent) {
+                                                            const fileName = fileObj.url ? fileObj.url.split('/').pop() || 'File' : 'File';
+                                                            parent.innerHTML = `<div class="flex items-center justify-center p-4 text-xs text-muted-foreground break-all">${fileName}</div>`;
+                                                        }
+                                                    }}
+                                                />
+                                                {canDelete && (
                                                     <button
                                                         type="button"
-                                                        onClick={() => onChange(field.name, null)}
+                                                        onClick={async () => {
+                                                            if (fileObj.fileId) {
+                                                                try {
+                                                                    await handleFileDelete(fileObj.fileId)
+                                                                } catch (error) {
+                                                                    console.error('Failed to delete file:', error)
+                                                                }
+                                                            }
+                                                            onChange(field.name, null)
+                                                        }}
                                                         className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
                                                     >
                                                         <FiX className="w-4 h-4 text-white" />
                                                     </button>
+                                                )}
                                                 </div>
-                                                <p className="text-xs text-muted-foreground mt-1 truncate">{currentValue}</p>
+                                                <p className="text-xs text-muted-foreground mt-1 truncate">{fileObj.name || fileObj.url.split('/').pop() || 'Image'}</p>
                                             </div>
                                         ) : (
                                             <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg border border-border/40">
-                                                <span className="text-xs flex-1 truncate">{currentValue}</span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => onChange(field.name, null)}
-                                                    className="p-1 hover:bg-red-500/10 rounded"
-                                                >
-                                                    <FiX className="w-4 h-4 text-red-500" />
-                                                </button>
+                                                <span className="text-xs flex-1 truncate" title={fileObj.url}>
+                                                    {fileObj.name || fileObj.url.split('/').pop() || 'Unnamed file'}
+                                                </span>
+                                                {canDelete && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={async () => {
+                                                            if (fileObj.fileId) {
+                                                                try {
+                                                                    await handleFileDelete(fileObj.fileId)
+                                                                } catch (error) {
+                                                                    console.error('Failed to delete file:', error)
+                                                                }
+                                                            }
+                                                            onChange(field.name, null)
+                                                        }}
+                                                        className="p-1 hover:bg-red-500/10 rounded"
+                                                    >
+                                                        <FiX className="w-4 h-4 text-red-500" />
+                                                    </button>
+                                                )}
                                             </div>
                                         )
-                                    })()
-                                )}
-                            </div>
-                        )}
-
-                        {uploadError && (
-                            <p className="text-xs text-red-500">{uploadError}</p>
-                        )}
+                                    })()}
+                                </div>
+                            )
+                        })()}
                     </div>
                 )
 
@@ -543,6 +674,8 @@ export const DynamicFormField = memo(function DynamicFormField({
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )
+
+break;
 
             default:
                 return (

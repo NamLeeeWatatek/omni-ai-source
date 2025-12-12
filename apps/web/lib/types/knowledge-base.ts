@@ -9,6 +9,8 @@ export interface KnowledgeBase {
   icon?: string | null;
   color: string;
   isPublic: boolean;
+  aiProviderId?: string | null;
+  ragModel?: string | null;
   embeddingModel: string;
   chunkSize: number;
   chunkOverlap: number;
@@ -27,24 +29,28 @@ export interface CreateKnowledgeBaseDto {
   name: string;
   description?: string;
   workspaceId?: string;
-  icon?: string;
-  color?: string;
-  isPublic?: boolean;
+  aiProviderId?: string;
+  ragModel?: string;
   embeddingModel?: string;
   chunkSize?: number;
   chunkOverlap?: number;
+  icon?: string;
+  color?: string;
+  isPublic?: boolean;
   tags?: string[];
 }
 
 export interface UpdateKnowledgeBaseDto {
   name?: string;
   description?: string;
-  icon?: string;
-  color?: string;
-  isPublic?: boolean;
+  aiProviderId?: string;
+  ragModel?: string;
   embeddingModel?: string;
   chunkSize?: number;
   chunkOverlap?: number;
+  icon?: string;
+  color?: string;
+  isPublic?: boolean;
   tags?: string[];
 }
 
@@ -233,4 +239,3 @@ export type MoveDocumentResponse = KBDocument;
 export type GetAgentAssignmentsResponse = AgentKnowledgeBase[];
 export type AssignAgentResponse = AgentKnowledgeBase;
 export type UnassignAgentResponse = { success: boolean };
-

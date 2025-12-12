@@ -230,4 +230,3 @@ export class BotKnowledgeBase {
   @ApiProperty()
   createdAt: Date;
 }
-

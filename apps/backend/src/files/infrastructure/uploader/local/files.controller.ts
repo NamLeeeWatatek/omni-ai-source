@@ -60,4 +60,3 @@ export class FilesLocalController {
     return response.sendFile(path, { root: './files' });
   }
 }
-

@@ -30,10 +30,6 @@ const UGCFactoryFlowGrid = React.memo<UGCFactoryFlowGridProps>(({
                     onClick={() => onFlowSelect(flow.id)}
                 >
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <span className="w-5 h-5">ðŸŽ¨</span>
-                            {flow.name}
-                        </CardTitle>
                         <CardDescription>{flow.description}</CardDescription>
                     </CardHeader>
                 </Card>

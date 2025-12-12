@@ -9,4 +9,3 @@ import { NodeTypeEntity } from '../../../../node-types/infrastructure/persistenc
   exports: [NodeTypeSeedService],
 })
 export class NodeTypeSeedModule {}
-

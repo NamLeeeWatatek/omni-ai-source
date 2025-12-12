@@ -37,4 +37,3 @@ export class AuthAppleController {
     return this.authService.validateSocialLogin('apple', socialData);
   }
 }
-

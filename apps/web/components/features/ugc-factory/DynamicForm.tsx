@@ -4,6 +4,7 @@ import React from 'react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { DynamicFormField } from '@/components/ui/DynamicFormField'
+import toast from '@/lib/toast'
 
 // Using the shared NodeProperty interface that matches backend
 interface NodeProperty {
@@ -44,16 +45,50 @@ export function DynamicForm({
     console.log('DynamicForm render - properties length:', properties.length)
 
     const handleFieldChange = (fieldId: string, value: any) => {
-        console.log('Field change:', fieldId, value)
-        onFormDataChange({
+        console.log('Field change:', fieldId, value, typeof value)
+        console.log('Current formData before update:', formData)
+        const newFormData = {
             ...formData,
             [fieldId]: value
+        }
+        console.log('New formData after update:', newFormData)
+        onFormDataChange(newFormData)
+    }
+
+    const validateForm = () => {
+        const missingFields: string[] = []
+
+        properties.forEach(field => {
+            if (field.required) {
+                const value = formData[field.name]
+
+                // Check if field is empty/null/undefined
+                if (value === null || value === undefined ||
+                    (typeof value === 'string' && value.trim() === '') ||
+                    (Array.isArray(value) && value.length === 0) ||
+                    (typeof value === 'object' && Object.keys(value).length === 0)) {
+                    missingFields.push(field.label)
+                }
+            }
         })
+
+        return missingFields
     }
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
         console.log('Form submit, calling onSubmit')
+
+        // Validate form
+        const missingFields = validateForm()
+
+        if (missingFields.length > 0) {
+            const fieldList = missingFields.join(', ')
+            toast.error(`Vui lòng nhập các trường bắt buộc: ${fieldList}`)
+            return
+        }
+
+        // All validation passed
         onSubmit()
     }
 
@@ -80,7 +115,7 @@ export function DynamicForm({
                         key={field.name}
                         field={field}
                         value={formData[field.name]}
-                        onChange={(value) => handleFieldChange(field.name, value)}
+                        onChange={handleFieldChange}
                     />
                 )
             })}

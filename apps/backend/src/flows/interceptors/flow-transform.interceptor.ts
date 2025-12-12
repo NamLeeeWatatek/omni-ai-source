@@ -14,7 +14,7 @@ import { FlowTransformService } from '../services/flow-transform.service';
  */
 @Injectable()
 export class FlowTransformInterceptor implements NestInterceptor {
-  constructor(private readonly transformService: FlowTransformService) { }
+  constructor(private readonly transformService: FlowTransformService) {}
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     return next.handle().pipe(
       switchMap(async (data) => {
@@ -22,12 +22,17 @@ export class FlowTransformInterceptor implements NestInterceptor {
 
         // Handle array of flows (list view)
         if (Array.isArray(data)) {
-          return Promise.all(data.map(async (flow) => {
-            const request = context.switchToHttp().getRequest();
-            const url = request.url || '';
-            const isDetailView = url.includes('/flows/') && !url.includes('/flows?');
-            return isDetailView ? await this.transformService.toDetailedDto(flow) : this.transformService.toPublicDto(flow);
-          }));
+          return Promise.all(
+            data.map(async (flow) => {
+              const request = context.switchToHttp().getRequest();
+              const url = request.url || '';
+              const isDetailView =
+                url.includes('/flows/') && !url.includes('/flows?');
+              return isDetailView
+                ? await this.transformService.toDetailedDto(flow)
+                : this.transformService.toPublicDto(flow);
+            }),
+          );
         }
 
         // Handle single flow (detail view)
@@ -59,6 +64,4 @@ export class FlowTransformInterceptor implements NestInterceptor {
       }),
     );
   }
-
 }
-

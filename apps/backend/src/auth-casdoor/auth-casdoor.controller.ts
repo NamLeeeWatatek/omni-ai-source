@@ -49,4 +49,3 @@ export class AuthCasdoorController {
     return result;
   }
 }
-

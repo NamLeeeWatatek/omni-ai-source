@@ -13,4 +13,3 @@ export class HomeController {
     return this.service.appInfo();
   }
 }
-

@@ -53,4 +53,3 @@ export class TypeOrmConfigService implements TypeOrmOptionsFactory {
     } as TypeOrmModuleOptions;
   }
 }
-

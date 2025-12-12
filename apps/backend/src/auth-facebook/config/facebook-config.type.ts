@@ -2,4 +2,3 @@
   appId?: string;
   appSecret?: string;
 };
-

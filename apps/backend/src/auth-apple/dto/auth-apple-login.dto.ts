@@ -14,4 +14,3 @@ export class AuthAppleLoginDto {
   @ApiPropertyOptional()
   lastName?: string;
 }
-

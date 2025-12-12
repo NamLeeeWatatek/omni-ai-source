@@ -260,4 +260,3 @@ export class ConversationsController {
     return this.conversationsService.getConversationStats(botId, period);
   }
 }
-

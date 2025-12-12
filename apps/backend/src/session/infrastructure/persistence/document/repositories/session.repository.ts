@@ -78,4 +78,3 @@ export class SessionDocumentRepository implements SessionRepository {
     await this.sessionModel.deleteMany(transformedCriteria);
   }
 }
-

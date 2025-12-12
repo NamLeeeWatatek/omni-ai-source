@@ -279,4 +279,3 @@ export class FacebookOAuthService extends BaseOAuthService {
     }
   }
 }
-

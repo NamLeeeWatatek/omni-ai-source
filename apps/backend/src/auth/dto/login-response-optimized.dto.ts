@@ -25,4 +25,3 @@ export class LoginResponseOptimizedDto {
   @ApiPropertyOptional({ description: "User's default workspace ID" })
   defaultWorkspaceId?: string;
 }
-

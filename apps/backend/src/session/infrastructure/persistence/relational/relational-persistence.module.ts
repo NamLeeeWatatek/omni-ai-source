@@ -15,4 +15,3 @@ import { SessionEntity } from './entities/session.entity';
   exports: [SessionRepository],
 })
 export class RelationalSessionPersistenceModule {}
-

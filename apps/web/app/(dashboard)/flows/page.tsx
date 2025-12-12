@@ -40,8 +40,7 @@ import { SearchBar } from '@/components/features/workflow/SearchBar'
 import { WorkflowCard } from '@/components/features/workflow/WorkflowCard'
 import { WorkflowRunModal } from '@/components/features/workflow/WorkflowRunModal'
 import { WorkflowStats } from '@/components/features/workflow/WorkflowStats'
-import { AlertDialogFooter } from '@/components/ui/AlertDialog'
-import { AlertDialog, AlertDialogContent, AlertDialogCancel, AlertDialogAction } from '@radix-ui/react-alert-dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter } from '@/components/ui/AlertDialog'
 
 interface WorkflowWithNodes {
     id: number

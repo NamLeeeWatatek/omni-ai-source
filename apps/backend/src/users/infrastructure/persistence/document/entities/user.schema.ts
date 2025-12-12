@@ -75,4 +75,3 @@ export class UserSchemaClass extends EntityDocumentHelper {
 export const UserSchema = SchemaFactory.createForClass(UserSchemaClass);
 
 UserSchema.index({ 'role._id': 1 });
-

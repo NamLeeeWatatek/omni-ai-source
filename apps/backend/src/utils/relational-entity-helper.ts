@@ -13,4 +13,3 @@ export class EntityRelationalHelper extends BaseEntity {
     return instanceToPlain(this);
   }
 }
-

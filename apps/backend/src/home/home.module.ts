@@ -9,4 +9,3 @@ import { ConfigModule } from '@nestjs/config';
   providers: [HomeService],
 })
 export class HomeModule {}
-

@@ -7,4 +7,3 @@ export class FileResponseDto {
   })
   file: FileType;
 }
-

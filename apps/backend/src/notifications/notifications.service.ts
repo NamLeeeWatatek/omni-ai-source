@@ -133,4 +133,3 @@ export class NotificationsService {
     return { deleted: result.affected ?? 0 };
   }
 }
-

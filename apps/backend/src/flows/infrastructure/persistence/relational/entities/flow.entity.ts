@@ -71,4 +71,3 @@ export class FlowEntity extends EntityRelationalHelper {
   @UpdateDateColumn()
   updatedAt: Date;
 }
-

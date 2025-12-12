@@ -236,4 +236,3 @@ export class WebhookVerifierFactory {
     this.verifiers.set(channelType.toLowerCase(), verifier);
   }
 }
-

@@ -171,4 +171,3 @@ export class CasdoorSyncService {
     return { isSyncing: this.isSyncing };
   }
 }
-

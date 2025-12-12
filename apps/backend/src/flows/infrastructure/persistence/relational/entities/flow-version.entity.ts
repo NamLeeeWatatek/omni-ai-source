@@ -67,4 +67,3 @@ export class FlowVersionEntity extends EntityRelationalHelper {
   @CreateDateColumn()
   createdAt: Date;
 }
-

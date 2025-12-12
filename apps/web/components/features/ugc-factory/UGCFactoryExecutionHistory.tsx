@@ -114,7 +114,7 @@ export function UGCFactoryExecutionHistory({
     return (
         <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold">All Executions</h3>
+                <h3 className="text-lg font-semibold">Execution History</h3>
                 <Button size="sm" onClick={onStartNew}>
                     Run New Execution
                 </Button>

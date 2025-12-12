@@ -192,4 +192,3 @@ export class MessengerService {
     return this.connectionRepository.findOne({ where });
   }
 }
-

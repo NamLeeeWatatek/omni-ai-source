@@ -17,4 +17,3 @@ export type AllConfigType = {
   google: GoogleConfig;
   mail: MailConfig;
 };
-

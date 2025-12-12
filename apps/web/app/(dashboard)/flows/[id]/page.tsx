@@ -71,9 +71,9 @@ import { TestNodePanel } from '@/components/features/workflow/TestNodePanel'
 import { AlertDialogConfirm } from '@/components/ui/AlertDialogConfirm'
 import { Button } from '@/components/ui/Button'
 import { Textarea } from '@/components/ui/Textarea'
-import { Dialog, DialogContent } from '@radix-ui/react-dialog'
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@radix-ui/react-select'
 import { Input } from 'postcss'
+import { Dialog, DialogContent } from '@/components/ui/Dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 
 function FlowPreview({ nodes, edges, allNodeTypes }: { nodes: any[], edges: any[], allNodeTypes: any[] }) {
     const previewNodeTypes = useMemo(() => {

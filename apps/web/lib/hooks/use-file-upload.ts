@@ -25,16 +25,18 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
         },
       });
 
-      const fileUrl = fileUploadService.getFileUrl(
+      const fileUrl = result.downloadSignedUrl || fileUploadService.getFileUrl(
         result.file.path,
         options.bucket || 'images'
       );
 
+      console.log('🔗 useFileUpload returning:', { fileUrl, fileData: result.file });
+
       options.onSuccess?.(fileUrl, result.file);
       return { fileUrl, fileData: result.file };
-    } catch {
-     
-      throw error;
+    } catch (err) {
+      setError(err as Error);
+      throw err;
     } finally {
       setUploading(false);
       setProgress(0);
@@ -48,7 +50,7 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
     try {
       const results = await fileUploadService.uploadMultipleFiles(files, options);
       const filesData = results.map((result) => ({
-        fileUrl: fileUploadService.getFileUrl(
+        fileUrl: result.downloadSignedUrl || fileUploadService.getFileUrl(
           result.file.path,
           options.bucket || 'images'
         ),
@@ -57,7 +59,7 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
 
       return filesData;
     } catch {
-   
+
       throw error;
     } finally {
       setUploading(false);
@@ -80,4 +82,3 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
     error,
   };
 }
-

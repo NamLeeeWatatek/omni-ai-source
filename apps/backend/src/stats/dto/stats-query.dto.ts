@@ -54,4 +54,3 @@ export class StatsQueryDto {
   @IsOptional()
   includeTrend?: boolean;
 }
-

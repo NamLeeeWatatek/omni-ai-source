@@ -18,7 +18,7 @@ export class FlowSeedService {
     private flowRepository: Repository<FlowEntity>,
     @InjectRepository(UserEntity)
     private userRepository: Repository<UserEntity>,
-  ) { }
+  ) {}
 
   async run() {
     // Get admin user to assign as owner
@@ -66,7 +66,7 @@ export class FlowSeedService {
             data: {
               channels: ['facebook', 'instagram'],
               content: 'AI-generated video ad content',
-              images: ['video_placeholder.jpg']
+              images: ['video_placeholder.jpg'],
             },
           },
           {
@@ -109,7 +109,8 @@ export class FlowSeedService {
             name: 'prompt',
             label: 'MÃ´ táº£ video quáº£ng cÃ¡o',
             type: 'textarea',
-            placeholder: 'VÃ­ dá»¥: Táº¡o video 15 giÃ¢y giá»›i thiá»‡u tÃºi xÃ¡ch ná»¯ sang trá»ng, Ã¡nh sÃ¡ng ban ngÃ y, phong cÃ¡ch tá»± nhiÃªn',
+            placeholder:
+              'VÃ­ dá»¥: Táº¡o video 15 giÃ¢y giá»›i thiá»‡u tÃºi xÃ¡ch ná»¯ sang trá»ng, Ã¡nh sÃ¡ng ban ngÃ y, phong cÃ¡ch tá»± nhiÃªn',
             description: 'MÃ´ táº£ chi tiáº¿t cÃ¡ch video cáº§n Ä‘Æ°á»£c táº¡o',
             required: true,
           },
@@ -170,7 +171,7 @@ export class FlowSeedService {
             type: 'code',
             position: { x: 600, y: 100 },
             data: {
-              code: 'return { optimizedContent: input.content };'
+              code: 'return { optimizedContent: input.content };',
             },
           },
           {
@@ -213,7 +214,8 @@ export class FlowSeedService {
             name: 'topic',
             label: 'Chá»§ Ä‘á» bÃ i viáº¿t',
             type: 'text',
-            placeholder: 'VÃ­ dá»¥: CÃ¡ch chá»n tÃºi xÃ¡ch phÃ¹ há»£p vá»›i phong cÃ¡ch thá»i trang',
+            placeholder:
+              'VÃ­ dá»¥: CÃ¡ch chá»n tÃºi xÃ¡ch phÃ¹ há»£p vá»›i phong cÃ¡ch thá»i trang',
             description: 'Chá»§ Ä‘á» chÃ­nh cá»§a bÃ i viáº¿t SEO',
             required: true,
           },
@@ -221,7 +223,8 @@ export class FlowSeedService {
             name: 'keywords',
             label: 'Tá»« khÃ³a SEO',
             type: 'text',
-            placeholder: 'tÃºi xÃ¡ch ná»¯, tÃºi xÃ¡ch cÃ´ng sá»Ÿ, tÃºi xÃ¡ch da tháº­t, phong cÃ¡ch professional',
+            placeholder:
+              'tÃºi xÃ¡ch ná»¯, tÃºi xÃ¡ch cÃ´ng sá»Ÿ, tÃºi xÃ¡ch da tháº­t, phong cÃ¡ch professional',
             description: 'CÃ¡c tá»« khÃ³a SEO cÃ¡ch nhau bá»Ÿi dáº¥u pháº©y',
             required: true,
           },
@@ -249,7 +252,13 @@ export class FlowSeedService {
         published: true,
         visibility: 'public',
         ownerId: adminUser.id,
-        tags: ['social-media', 'multi-platform', 'automation', 'omnipost', 'n8n'],
+        tags: [
+          'social-media',
+          'multi-platform',
+          'automation',
+          'omnipost',
+          'n8n',
+        ],
         category: 'ugc-factory',
         icon: ICONS.Smartphone,
         nodes: [
@@ -266,7 +275,7 @@ export class FlowSeedService {
             data: {
               channels: ['facebook', 'instagram', 'tiktok'],
               content: '{{content}}',
-              images: '{{media}}'
+              images: '{{media}}',
             },
           },
           {
@@ -274,7 +283,7 @@ export class FlowSeedService {
             type: 'delay',
             position: { x: 600, y: 100 },
             data: {
-              duration: 2
+              duration: 2,
             },
           },
           {
@@ -283,7 +292,7 @@ export class FlowSeedService {
             position: { x: 850, y: 150 },
             data: {
               content: '{{content}}',
-              images: '{{media}}'
+              images: '{{media}}',
             },
           },
           {
@@ -332,8 +341,10 @@ export class FlowSeedService {
             name: 'content',
             label: 'Ná»™i dung bÃ i Ä‘Äƒng',
             type: 'textarea',
-            placeholder: 'Nháº­p ná»™i dung bÃ i Ä‘Äƒng Ä‘á»ƒ Ä‘Äƒng lÃªn cÃ¡c ná»n táº£ng...',
-            description: 'Ná»™i dung sáº½ Ä‘Æ°á»£c Ä‘Äƒng lÃªn táº¥t cáº£ ná»n táº£ng Ä‘Ã£ chá»n',
+            placeholder:
+              'Nháº­p ná»™i dung bÃ i Ä‘Äƒng Ä‘á»ƒ Ä‘Äƒng lÃªn cÃ¡c ná»n táº£ng...',
+            description:
+              'Ná»™i dung sáº½ Ä‘Æ°á»£c Ä‘Äƒng lÃªn táº¥t cáº£ ná»n táº£ng Ä‘Ã£ chá»n',
             required: true,
           },
           {
@@ -386,4 +397,3 @@ export class FlowSeedService {
     }
   }
 }
-

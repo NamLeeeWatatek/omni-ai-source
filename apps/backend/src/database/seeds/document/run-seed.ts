@@ -12,4 +12,3 @@ const runSeed = async () => {
 };
 
 void runSeed();
-

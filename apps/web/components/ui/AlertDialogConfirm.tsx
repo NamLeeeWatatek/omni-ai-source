@@ -1,8 +1,7 @@
 ﻿'use client'
 
-import { AlertDialog, AlertDialogContent, AlertDialogTitle, AlertDialogDescription, AlertDialogCancel, AlertDialogAction } from '@radix-ui/react-alert-dialog'
 import { ReactNode } from 'react'
-import { AlertDialogHeader, AlertDialogFooter } from './AlertDialog'
+import { AlertDialogHeader, AlertDialogFooter, AlertDialogDescription, AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogTitle } from './AlertDialog'
 
 interface AlertDialogConfirmProps {
   open: boolean

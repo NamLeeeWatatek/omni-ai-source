@@ -75,4 +75,3 @@ export class ChannelStrategy {
     return Array.from(this.providers.keys());
   }
 }
-

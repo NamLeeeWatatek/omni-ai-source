@@ -19,4 +19,3 @@ import {
   exports: [UserSeedService],
 })
 export class UserSeedModule {}
-

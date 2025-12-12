@@ -3,31 +3,36 @@ import {
   IsString,
   IsNotEmpty,
   IsOptional,
-  IsEnum,
+  IsUUID,
   IsBoolean,
   IsArray,
+  IsObject,
 } from 'class-validator';
 
-export class CreateUserAiProviderDto {
-  @ApiProperty({ enum: ['openai', 'anthropic', 'google', 'azure', 'custom'] })
+export class CreateUserAiProviderConfigDto {
+  @ApiProperty({ description: 'UUID of the AI provider' })
   @IsNotEmpty()
-  @IsEnum(['openai', 'anthropic', 'google', 'azure', 'custom'])
-  provider: 'openai' | 'anthropic' | 'google' | 'azure' | 'custom';
+  @IsUUID()
+  providerId: string;
 
   @ApiProperty({ example: 'My OpenAI Key' })
   @IsNotEmpty()
   @IsString()
   displayName: string;
 
-  @ApiProperty({ description: 'API key (will be encrypted)' })
+  @ApiProperty({
+    description: 'Configuration object for the provider',
+    type: 'object',
+    additionalProperties: true,
+  })
   @IsNotEmpty()
-  @IsString()
-  apiKey: string;
+  @IsObject()
+  config: Record<string, any>; // e.g., { apiKey: "sk-...", baseUrl: "https://..." }
 
   @ApiPropertyOptional({
     type: [String],
-    example: ['gpt-4', 'gpt-3.5-turbo', 'gemini-2.5-flash'],
-    description: 'List of model names supported by this provider',
+    example: ['gpt-4', 'gpt-3.5-turbo'],
+    description: 'List of model names supported by this configuration',
   })
   @IsOptional()
   @IsArray()
@@ -35,16 +40,20 @@ export class CreateUserAiProviderDto {
   modelList?: string[];
 }
 
-export class UpdateUserAiProviderDto {
+export class UpdateUserAiProviderConfigDto {
   @ApiPropertyOptional({ example: 'My OpenAI Key' })
   @IsOptional()
   @IsString()
   displayName?: string;
 
-  @ApiPropertyOptional({ description: 'New API key (will be encrypted)' })
+  @ApiPropertyOptional({
+    description: 'Updated configuration object for the provider',
+    type: 'object',
+    additionalProperties: true,
+  })
   @IsOptional()
-  @IsString()
-  apiKey?: string;
+  @IsObject()
+  config?: Record<string, any>;
 
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
@@ -58,21 +67,25 @@ export class UpdateUserAiProviderDto {
   isActive?: boolean;
 }
 
-export class CreateWorkspaceAiProviderDto {
-  @ApiProperty({ enum: ['openai', 'anthropic', 'google', 'azure', 'custom'] })
+export class CreateWorkspaceAiProviderConfigDto {
+  @ApiProperty({ description: 'UUID of the AI provider' })
   @IsNotEmpty()
-  @IsEnum(['openai', 'anthropic', 'google', 'azure', 'custom'])
-  provider: 'openai' | 'anthropic' | 'google' | 'azure' | 'custom';
+  @IsUUID()
+  providerId: string;
 
   @ApiProperty({ example: 'Team OpenAI Key' })
   @IsNotEmpty()
   @IsString()
   displayName: string;
 
-  @ApiProperty({ description: 'API key (will be encrypted)' })
+  @ApiProperty({
+    description: 'Configuration object for the provider',
+    type: 'object',
+    additionalProperties: true,
+  })
   @IsNotEmpty()
-  @IsString()
-  apiKey: string;
+  @IsObject()
+  config: Record<string, any>;
 
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
@@ -81,16 +94,20 @@ export class CreateWorkspaceAiProviderDto {
   modelList?: string[];
 }
 
-export class UpdateWorkspaceAiProviderDto {
+export class UpdateWorkspaceAiProviderConfigDto {
   @ApiPropertyOptional({ example: 'Team OpenAI Key' })
   @IsOptional()
   @IsString()
   displayName?: string;
 
-  @ApiPropertyOptional({ description: 'New API key (will be encrypted)' })
+  @ApiPropertyOptional({
+    description: 'Updated configuration object for the provider',
+    type: 'object',
+    additionalProperties: true,
+  })
   @IsOptional()
-  @IsString()
-  apiKey?: string;
+  @IsObject()
+  config?: Record<string, any>;
 
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
@@ -105,14 +122,19 @@ export class UpdateWorkspaceAiProviderDto {
 }
 
 export class VerifyApiKeyDto {
-  @ApiProperty({ description: 'API key to verify' })
+  @ApiProperty({
+    description: 'Configuration to verify',
+    type: 'object',
+    additionalProperties: true,
+  })
+  @IsNotEmpty()
+  @IsObject()
+  config: Record<string, any>;
+
+  @ApiProperty({
+    enum: ['openai', 'anthropic', 'google', 'azure', 'ollama', 'custom'],
+  })
   @IsNotEmpty()
   @IsString()
-  apiKey: string;
-
-  @ApiProperty({ enum: ['openai', 'anthropic', 'google', 'azure', 'custom'] })
-  @IsNotEmpty()
-  @IsEnum(['openai', 'anthropic', 'google', 'azure', 'custom'])
-  provider: 'openai' | 'anthropic' | 'google' | 'azure' | 'custom';
+  providerName: string; // Now it's the provider name for verification
 }
-

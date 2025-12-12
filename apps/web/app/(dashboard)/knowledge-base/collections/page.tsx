@@ -354,8 +354,12 @@ export default function KnowledgeBaseCollectionsPage() {
                         </TableHeader>
                         <TableBody>
                             {filteredKBs.map((kb) => (
-                                <TableRow key={kb.id}>
-                                    <TableCell>
+                                <TableRow
+                                    key={kb.id}
+                                    className="cursor-pointer hover:bg-muted/50"
+                                    onClick={() => router.push(`/knowledge-base/collections/${kb.id}`)}
+                                >
+                                    <TableCell onClick={(e) => e.stopPropagation()}>
                                         <Checkbox
                                             checked={selectedIds.has(kb.id)}
                                             onChange={() => toggleSelection(kb.id)}
@@ -392,36 +396,28 @@ export default function KnowledgeBaseCollectionsPage() {
                                     <TableCell className="text-sm text-muted-foreground">
                                         {new Date(kb.createdAt).toLocaleDateString()}
                                     </TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <Button
-                                                size="sm"
-                                                onClick={() => router.push(`/knowledge-base/collections/${kb.id}`)}
-                                            >
-                                                Open
-                                            </Button>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                        <FiMoreVertical className="w-4 h-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={() => handleEdit(kb)}>
-                                                        <FiEdit2 className="w-4 h-4 mr-2" />
-                                                        Edit
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem
-                                                        onClick={() => setDeleteKBId(kb.id)}
-                                                        className="text-destructive"
-                                                    >
-                                                        <FiTrash2 className="w-4 h-4 mr-2" />
-                                                        Delete
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
+                                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                    <FiMoreVertical className="w-4 h-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => handleEdit(kb)}>
+                                                    <FiEdit2 className="w-4 h-4 mr-2" />
+                                                    Edit
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    onClick={() => setDeleteKBId(kb.id)}
+                                                    className="text-destructive"
+                                                >
+                                                    <FiTrash2 className="w-4 h-4 mr-2" />
+                                                    Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -429,93 +425,119 @@ export default function KnowledgeBaseCollectionsPage() {
                     </Table>
                 </Card>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {filteredKBs.map((kb) => (
-                        <Card key={kb.id} className="p-6 hover:shadow-xl transition-all hover:scale-[1.02] group h-full relative">
-                            <div className="absolute top-4 left-4 z-10">
+                        <Card key={kb.id} className="group relative overflow-hidden border-l-4 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] h-full" style={{ borderLeftColor: kb.color }}>
+                            {/* Selection Checkbox */}
+                            <div className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Checkbox
                                     checked={selectedIds.has(kb.id)}
                                     onChange={() => toggleSelection(kb.id)}
-                                    className="bg-background"
+                                    className="bg-background border-2"
                                 />
                             </div>
+
+                            {/* Content */}
                             <div
-                                className="cursor-pointer"
+                                className="cursor-pointer p-6 h-full"
                                 onClick={() => router.push(`/knowledge-base/collections/${kb.id}`)}
                             >
-                                <div className="flex items-start justify-between mb-4">
-                                    <div
-                                        className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform ml-8"
-                                        style={{ backgroundColor: kb.color }}
-                                    >
-                                        <FiBook className="w-7 h-7 text-white" />
+                                {/* Header Section */}
+                                <div className="flex items-start gap-4 mb-4">
+                                    <div className="relative">
+                                        <div
+                                            className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300"
+                                            style={{ backgroundColor: kb.color }}
+                                        >
+                                            <FiBook className="w-8 h-8 text-white" />
+                                        </div>
+
                                     </div>
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8"
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                handleEdit(kb)
-                                            }}
-                                        >
-                                            <FiEdit2 className="w-4 h-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                setDeleteKBId(kb.id)
-                                            }}
-                                        >
-                                            <FiTrash2 className="w-4 h-4" />
-                                        </Button>
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="text-lg font-bold truncate group-hover:text-primary transition-colors">
+                                            {kb.name}
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2 min-h-[32px]">
+                                            {kb.description || 'No description provided for this knowledge base collection.'}
+                                        </p>
                                     </div>
                                 </div>
 
-                                <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
-                                    {kb.name}
-                                </h3>
-                                <p className="text-sm text-muted-foreground mb-4 line-clamp-2 min-h-[40px]">
-                                    {kb.description || 'No description'}
-                                </p>
-
+                                {/* Stats Grid */}
                                 <div className="grid grid-cols-2 gap-3 mb-4">
-                                    <div className="flex items-center gap-2 text-sm">
-                                        <FiFile className="w-4 h-4 text-muted-foreground" />
-                                        <span className="font-medium">{kb.totalDocuments}</span>
-                                        <span className="text-muted-foreground">docs</span>
+                                    <div className="bg-muted/30 rounded-lg p-3 text-center">
+                                        <div className="flex items-center justify-center gap-1 mb-1">
+                                            <FiFile className="w-4 h-4 text-primary" />
+                                            <span className="text-xs font-medium text-muted-foreground">DOCUMENTS</span>
+                                        </div>
+                                        <p className="text-2xl font-bold">{kb.totalDocuments || 0}</p>
                                     </div>
-                                    <div className="flex items-center gap-2 text-sm">
-                                        <FiHardDrive className="w-4 h-4 text-muted-foreground" />
-                                        <span className="font-medium">{formatSize(kb.totalSize)}</span>
+                                    <div className="bg-muted/30 rounded-lg p-3 text-center">
+                                        <div className="flex items-center justify-center gap-1 mb-1">
+                                            <FiHardDrive className="w-4 h-4 text-primary" />
+                                            <span className="text-xs font-medium text-muted-foreground">SIZE</span>
+                                        </div>
+                                        <p className="text-lg font-bold">{formatSize(kb.totalSize)}</p>
                                     </div>
                                 </div>
 
-                                {kb.botMappings && kb.botMappings.length > 0 && (
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                                        <FiUsers className="w-4 h-4" />
-                                        <span>{kb.botMappings.length} bot(s) assigned</span>
-                                    </div>
-                                )}
+                                {/* Model & Provider Info */}
+                                <div className="mb-4">
+                                    <Badge variant="outline" className="text-xs">
+                                        {kb.embeddingModel || 'text-embedding-004'}
+                                    </Badge>
+                                </div>
 
+                                {/* Bottom Stats */}
+                                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                                    <div className="flex items-center gap-1">
+                                        <FiUsers className="w-4 h-4" />
+                                        <span>{kb.botMappings?.length || 0} bots</span>
+                                    </div>
+                                    <span>{new Date(kb.createdAt).toLocaleDateString()}</span>
+                                </div>
+
+                                {/* Tags (if available) */}
                                 {kb.tags && kb.tags.length > 0 && (
-                                    <div className="flex flex-wrap gap-1">
-                                        {kb.tags.slice(0, 3).map((tag, idx) => (
+                                    <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-border/50">
+                                        {kb.tags.slice(0, 2).map((tag, idx) => (
                                             <Badge key={idx} variant="secondary" className="text-xs">
                                                 {tag}
                                             </Badge>
                                         ))}
-                                        {kb.tags.length > 3 && (
+                                        {kb.tags.length > 2 && (
                                             <Badge variant="secondary" className="text-xs">
-                                                +{kb.tags.length - 3}
+                                                +{kb.tags.length - 2} more
                                             </Badge>
                                         )}
                                     </div>
                                 )}
+                            </div>
+
+                            {/* Action Buttons - Show on hover */}
+                            <div className="absolute bottom-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 hover:bg-background"
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleEdit(kb)
+                                    }}
+                                >
+                                    <FiEdit2 className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        setDeleteKBId(kb.id)
+                                    }}
+                                >
+                                    <FiTrash2 className="w-4 h-4" />
+                                </Button>
                             </div>
                         </Card>
                     ))}
@@ -556,4 +578,3 @@ export default function KnowledgeBaseCollectionsPage() {
         </div>
     )
 }
-

@@ -76,4 +76,3 @@ export class WorkspaceMemberEntity extends EntityRelationalHelper {
   @CreateDateColumn({ name: 'joined_at' })
   joinedAt: Date;
 }
-

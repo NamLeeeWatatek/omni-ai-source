@@ -76,4 +76,3 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsString()
   socialId?: string | null;
 }
-

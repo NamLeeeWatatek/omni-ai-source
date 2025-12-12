@@ -72,4 +72,3 @@ export class SnakeCaseNamingStrategy
     return alias + '__' + propertyPath.replace('.', '_');
   }
 }
-

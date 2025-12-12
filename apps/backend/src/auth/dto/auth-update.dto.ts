@@ -37,4 +37,3 @@ export class AuthUpdateDto {
   @IsNotEmpty({ message: 'mustBeNotEmpty' })
   oldPassword?: string;
 }
-

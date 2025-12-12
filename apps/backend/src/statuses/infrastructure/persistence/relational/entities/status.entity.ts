@@ -12,4 +12,3 @@ export class StatusEntity extends EntityRelationalHelper {
   @Column()
   name?: string;
 }
-

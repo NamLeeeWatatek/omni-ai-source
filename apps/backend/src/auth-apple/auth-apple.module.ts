@@ -11,4 +11,3 @@ import { AuthModule } from '../auth/auth.module';
   controllers: [AuthAppleController],
 })
 export class AuthAppleModule {}
-

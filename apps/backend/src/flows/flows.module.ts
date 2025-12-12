@@ -75,7 +75,7 @@ export class FlowsModule implements OnModuleInit {
     private readonly webhookTriggerExecutor: WebhookTriggerExecutor,
     private readonly apiConnectorExecutor: ApiConnectorExecutor,
     private readonly responseHandlerExecutor: ResponseHandlerExecutor,
-  ) { }
+  ) {}
 
   onModuleInit() {
     // Core executors
@@ -131,4 +131,3 @@ export class FlowsModule implements OnModuleInit {
     });
   }
 }
-

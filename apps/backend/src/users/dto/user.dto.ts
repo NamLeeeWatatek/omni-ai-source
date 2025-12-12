@@ -9,4 +9,3 @@ export class UserDto {
   @IsNotEmpty()
   id: string | number;
 }
-

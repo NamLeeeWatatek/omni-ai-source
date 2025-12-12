@@ -5,14 +5,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { FlowEntity } from './entities/flow.entity';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([FlowEntity])],
-    providers: [
-        {
-            provide: FlowRepository,
-            useClass: RelationalFlowRepository,
-        },
-    ],
-    exports: [FlowRepository],
+  imports: [TypeOrmModule.forFeature([FlowEntity])],
+  providers: [
+    {
+      provide: FlowRepository,
+      useClass: RelationalFlowRepository,
+    },
+  ],
+  exports: [FlowRepository],
 })
-export class RelationalFlowPersistenceModule { }
-
+export class RelationalFlowPersistenceModule {}

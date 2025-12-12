@@ -72,7 +72,18 @@ export class NodeType implements NodeTypeModel {
   @ApiProperty()
   label: string;
 
-  @ApiProperty({ enum: ['trigger', 'action', 'logic', 'transform', 'data', 'ai', 'messaging', 'integration'] })
+  @ApiProperty({
+    enum: [
+      'trigger',
+      'action',
+      'logic',
+      'transform',
+      'data',
+      'ai',
+      'messaging',
+      'integration',
+    ],
+  })
   category: NodeCategoryId;
 
   @ApiProperty()
@@ -116,4 +127,3 @@ export class NodeType implements NodeTypeModel {
 }
 
 export type { NodePropertyType, NodeCategoryId };
-

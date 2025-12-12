@@ -10,4 +10,3 @@ export class Tokens {
   @ApiProperty()
   token2?: string;
 }
-

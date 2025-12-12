@@ -105,7 +105,9 @@ export class UpdateBotDto extends PartialType(CreateBotDto) {
   @IsEnum(['small', 'medium', 'large'])
   widgetButtonSize?: 'small' | 'medium' | 'large';
 
-  @ApiPropertyOptional({ example: 'Xin chÃ o! TÃ´i cÃ³ thá»ƒ giÃºp gÃ¬ cho báº¡n?' })
+  @ApiPropertyOptional({
+    example: 'Xin chÃ o! TÃ´i cÃ³ thá»ƒ giÃºp gÃ¬ cho báº¡n?',
+  })
   @IsOptional()
   @IsString()
   welcomeMessage?: string | null;
@@ -173,4 +175,3 @@ export class LinkKnowledgeBaseDto {
   @IsObject()
   ragSettings?: Record<string, any> | null;
 }
-

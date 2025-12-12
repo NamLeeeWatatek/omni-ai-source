@@ -10,4 +10,3 @@ import { UserEntity } from '../../../../users/infrastructure/persistence/relatio
   exports: [UserSeedService],
 })
 export class UserSeedModule {}
-

@@ -31,4 +31,3 @@ import { WorkspaceEntity } from '../workspaces/infrastructure/persistence/relati
   exports: [StatsService],
 })
 export class StatsModule {}
-

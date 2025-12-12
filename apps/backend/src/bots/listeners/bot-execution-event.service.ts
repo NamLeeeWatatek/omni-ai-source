@@ -192,7 +192,8 @@ export class BotExecutionEventService {
 
       // Gá»­i error message vá»›i thÃ´ng tin chi tiáº¿t hÆ¡n
       try {
-        let errorMessage = 'Xin lá»—i, tÃ´i gáº·p lá»—i khi xá»­ lÃ½ tin nháº¯n cá»§a báº¡n.';
+        let errorMessage =
+          'Xin lá»—i, tÃ´i gáº·p lá»—i khi xá»­ lÃ½ tin nháº¯n cá»§a báº¡n.';
 
         // PhÃ¢n loáº¡i lá»—i Ä‘á»ƒ Ä‘Æ°a ra message phÃ¹ há»£p
         if (
@@ -316,4 +317,3 @@ export class BotExecutionEventService {
     }
   }
 }
-

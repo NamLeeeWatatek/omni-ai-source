@@ -1,5 +1,4 @@
-﻿
-import { Module } from '@nestjs/common';
+﻿import { Module } from '@nestjs/common';
 import { NodeTypesController } from './node-types.controller';
 import { NodeTypesService } from './node-types.service';
 import { RelationalNodeTypePersistenceModule } from './infrastructure/persistence/relational/relational-persistence.module';
@@ -17,5 +16,4 @@ const infrastructurePersistenceModule = (databaseConfig() as DatabaseConfig)
   providers: [NodeTypesService],
   exports: [NodeTypesService, infrastructurePersistenceModule],
 })
-export class NodeTypesModule { }
-
+export class NodeTypesModule {}

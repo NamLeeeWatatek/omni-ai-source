@@ -26,4 +26,3 @@ export class RoleEntity extends EntityRelationalHelper {
   })
   permissions: PermissionEntity[];
 }
-

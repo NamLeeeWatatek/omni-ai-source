@@ -17,4 +17,3 @@ export class CreateFlowFromTemplateDto {
   @IsString()
   description?: string;
 }
-

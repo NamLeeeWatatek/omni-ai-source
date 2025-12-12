@@ -599,4 +599,3 @@ function detectFlowType(
 
   return null;
 }
-

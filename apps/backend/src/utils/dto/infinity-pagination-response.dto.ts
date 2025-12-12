@@ -25,4 +25,3 @@ export function InfinityPaginationResponse<T>(classReference: Type<T>) {
 
   return Pagination;
 }
-

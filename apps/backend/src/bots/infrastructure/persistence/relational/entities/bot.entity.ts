@@ -200,4 +200,3 @@ export class BotKnowledgeBaseEntity extends EntityRelationalHelper {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }
-

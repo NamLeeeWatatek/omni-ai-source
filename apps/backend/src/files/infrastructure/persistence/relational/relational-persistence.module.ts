@@ -15,4 +15,3 @@ import { FileRelationalRepository } from './repositories/file.repository';
   exports: [FileRepository],
 })
 export class RelationalFilePersistenceModule {}
-

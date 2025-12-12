@@ -5,4 +5,3 @@
 
   getConnectableAccounts(accessToken: string): Promise<any[]>;
 }
-

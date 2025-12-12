@@ -4,4 +4,3 @@
   google = 'google',
   apple = 'apple',
 }
-

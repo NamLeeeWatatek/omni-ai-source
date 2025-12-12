@@ -23,4 +23,3 @@ export const WorkspaceId = createParamDecorator(
     return undefined;
   },
 );
-

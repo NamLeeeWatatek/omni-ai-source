@@ -81,4 +81,3 @@ export class ChannelsController {
     return { success: true };
   }
 }
-

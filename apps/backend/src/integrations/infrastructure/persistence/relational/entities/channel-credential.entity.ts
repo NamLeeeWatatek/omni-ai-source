@@ -45,4 +45,3 @@ export class ChannelCredentialEntity extends EntityRelationalHelper {
   @UpdateDateColumn()
   updatedAt: Date;
 }
-

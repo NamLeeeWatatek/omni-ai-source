@@ -37,4 +37,3 @@ export class NotificationEntity extends EntityRelationalHelper {
   @Index()
   createdAt: Date;
 }
-

@@ -24,116 +24,262 @@ import {
   SelectValue,
 } from '@/components/ui/Select';
 import { FiPlus, FiEdit2, FiTrash2, FiCheck, FiX, FiEye, FiEyeOff, FiKey, FiZap, FiActivity, FiAlertCircle } from 'react-icons/fi';
+// Import React Icons for AI providers
+import { AiOutlineOpenAI } from 'react-icons/ai';
+import { SiClaude, SiOllama } from 'react-icons/si';
+import { RiGeminiLine } from 'react-icons/ri';
+import { VscAzure } from 'react-icons/vsc';
+import { MdDashboardCustomize } from 'react-icons/md';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/AlertDialog';
 import { Badge } from '@/components/ui/Badge';
 
-interface UserAiProvider {
+// Icon mapping utility
+const getProviderIcon = (iconName?: string) => {
+  const icons = {
+    AiOutlineOpenAI,
+    SiClaude,
+    RiGeminiLine,
+    VscAzure,
+    SiOllama,
+    MdDashboardCustomize,
+  };
+
+  const IconComponent = icons[iconName as keyof typeof icons];
+  return IconComponent || MdDashboardCustomize; // Fallback icon
+};
+
+interface AiProvider {
   id: string;
-  provider: 'openai' | 'anthropic' | 'google' | 'azure' | 'custom';
-  displayName: string;
-  apiKeyMasked?: string;
-  modelList?: string[];
+  key: string;
+  label: string;
+  icon?: string;
+  description?: string;
+  requiredFields: string[];
+  optionalFields: string[];
+  defaultValues: Record<string, any>;
   isActive: boolean;
-  isVerified: boolean;
-  verifiedAt?: string;
-  quotaUsed: number;
-  lastUsedAt?: string;
-  createdAt: string;
 }
 
-const PROVIDER_OPTIONS = [
-  {
-    value: 'google',
-    label: 'Google Gemini',
-    color: 'from-blue-500 to-cyan-500',
-    icon: 'ðŸ”·',
-    description: 'Fast and efficient AI models'
-  },
-  {
-    value: 'openai',
-    label: 'OpenAI',
-    color: 'from-green-500 to-emerald-500',
-    icon: 'ðŸ¤–',
-    description: 'GPT models for advanced tasks'
-  },
-  {
-    value: 'anthropic',
-    label: 'Anthropic Claude',
-    color: 'from-orange-500 to-amber-500',
-    icon: 'ðŸ§ ',
-    description: 'Balanced and reliable AI'
-  },
-  {
-    value: 'azure',
-    label: 'Azure OpenAI',
-    color: 'from-purple-500 to-pink-500',
-    icon: 'â˜ï¸',
-    description: 'Enterprise-grade AI'
-  },
-  {
-    value: 'custom',
-    label: 'Custom Provider',
-    color: 'from-gray-500 to-slate-500',
-    icon: 'âš™ï¸',
-    description: 'Your own AI endpoint'
-  },
-];
+interface UserAiProviderConfig {
+  id: string;
+  userId: string;
+  providerId: string;
+  provider?: AiProvider;
+  displayName: string;
+  config: Record<string, any>;
+  modelList?: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ProviderDisplayData {
+  id: string;
+  userId?: string;
+  workspaceId?: string;
+  providerId: string;
+  provider?: AiProvider;
+  displayName: string;
+  config: Record<string, any>;
+  modelList?: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  quotaUsed: number;
+  lastUsedAt: string;
+  isVerified: boolean;
+  apiKeyMasked: string | null;
+}
+
+interface WorkspaceAiProviderConfig {
+  id: string;
+  workspaceId: string;
+  providerId: string;
+  provider?: AiProvider;
+  displayName: string;
+  config: Record<string, any>;
+  modelList?: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function AIModelsPage() {
-  const [providers, setProviders] = useState<UserAiProvider[]>([]);
+  const [userConfigs, setUserConfigs] = useState<UserAiProviderConfig[]>([]);
+  const [workspaceConfigs, setWorkspaceConfigs] = useState<WorkspaceAiProviderConfig[]>([]);
+  const [availableProviders, setAvailableProviders] = useState<AiProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
-  const [editingProvider, setEditingProvider] = useState<UserAiProvider | null>(null);
+  const [editingConfig, setEditingConfig] = useState<UserAiProviderConfig | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
-  const [isChangingApiKey, setIsChangingApiKey] = useState(false);  // âœ… New state for change key mode
+  const [isChangingApiKey, setIsChangingApiKey] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [providerToDelete, setProviderToDelete] = useState<string | null>(null);
+  const [configToDelete, setConfigToDelete] = useState<string | null>(null);
+  const [scopeType, setScopeType] = useState<'user' | 'workspace'>('user');
+  const [selectedWorkspace, setSelectedWorkspace] = useState<string>('');
 
-  const [formData, setFormData] = useState<{
-    provider: 'openai' | 'anthropic' | 'google' | 'azure' | 'custom';
+    const [formData, setFormData] = useState<{
+    providerId: string;
+    providerKey: string;
     displayName: string;
+    config: Record<string, any>;
     apiKey: string;
     modelList: string;
   }>({
-    provider: 'google',
+    providerId: '',
+    providerKey: '',
     displayName: '',
+    config: {},
     apiKey: '',
     modelList: '',
   });
+
+  const [availableModels, setAvailableModels] = useState<any[]>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
 
   useEffect(() => {
     loadData();
   }, []);
 
+  useEffect(() => {
+    // Load real models when provider is selected and we have API key for existing configs
+    if (showDialog && (editingConfig || formData.apiKey) && formData.providerId) {
+      loadProviderModels();
+    }
+  }, [showDialog, editingConfig, formData.providerId, formData.apiKey]);
+
+  const loadProviderModels = async () => {
+    try {
+      setLoadingModels(true);
+
+      let models: string[] = [];
+
+      // For existing configs, fetch real models from API
+      if (editingConfig?.id) {
+        try {
+          const response = await axiosClient.get(`/ai-providers/user/models`);
+          const configData = response.find((item: any) =>
+            item.providerId === formData.providerId || item.configId === editingConfig.id
+          );
+          if (configData?.models) {
+            models = configData.models;
+          }
+        } catch (error) {
+          // Fallback to static suggestions if API fails
+          models = getStaticModelSuggestions(formData.providerKey);
+        }
+      } else if (formData.apiKey && formData.providerKey) {
+        // For new configs with API key, try to verify and get models
+        // We'll use the verify endpoint as a way to test the API key and get available models
+        try {
+          // First create a temporary config to test
+          const testPayload = {
+            providerId: formData.providerId,
+            displayName: 'temp-verification',
+            config: { apiKey: formData.apiKey },
+            modelList: [],
+          };
+
+          const tempConfig = await axiosClient.post('/ai-providers/user/configs', testPayload);
+
+          // Now fetch models for this temp config (even if we delete it after)
+          try {
+            const response = await axiosClient.get(`/ai-providers/user/models`);
+            const configData = response.find((item: any) => item.configId === tempConfig.id);
+            if (configData?.models) {
+              models = configData.models;
+            }
+          } catch {}
+
+          // Delete temp config
+          await axiosClient.delete(`/ai-providers/user/configs/${tempConfig.id}`);
+
+        } catch (error) {
+          // Fallback to static suggestions
+          models = getStaticModelSuggestions(formData.providerKey);
+        }
+      } else {
+        // No API key yet, use static suggestions
+        models = getStaticModelSuggestions(formData.providerKey);
+      }
+
+      setAvailableModels(models);
+    } catch (error) {
+      // On error, fallback to static suggestions
+      setAvailableModels(getStaticModelSuggestions(formData.providerKey));
+    } finally {
+      setLoadingModels(false);
+    }
+  };
+
+  const getStaticModelSuggestions = (providerKey: string): string[] => {
+    switch (providerKey) {
+      case 'openai':
+        return ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'];
+      case 'anthropic':
+        return ['claude-3.5-sonnet', 'claude-3-haiku', 'claude-3-sonnet', 'claude-3-opus'];
+      case 'google':
+        return ['gemini-2.0-flash-exp', 'gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-1.0-pro'];
+      case 'ollama':
+        return ['llama3.1:8b', 'llama3.1:70b', 'codellama:13b', 'gemma2:9b'];
+      default:
+        return [];
+    }
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
-      const providersRes = await axiosClient.get('/ai-providers/user');
-      setProviders(providersRes);
-    } catch {
-      toast.error('Failed to load data');
+
+      // Load available providers
+      const providersRes = await axiosClient.get('/ai-providers');
+      setAvailableProviders(providersRes);
+
+      // Load user configs and populate provider relationships
+      const userConfigsRes = await axiosClient.get('/ai-providers/user/configs');
+      // Enhance user configs with provider data from availableProviders
+      const enhancedUserConfigs = userConfigsRes.map((config: any) => ({
+        ...config,
+        provider: providersRes.find((provider: any) => provider.id === config.providerId),
+      }));
+      setUserConfigs(enhancedUserConfigs);
+      try {
+        setWorkspaceConfigs([]);
+      } catch {
+        setWorkspaceConfigs([]);
+      }
+
+    } catch (error) {
+      toast.error('Failed to load AI provider data');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOpenDialog = (provider?: UserAiProvider) => {
-    if (provider) {
-      setEditingProvider(provider);
+  const handleOpenDialog = (config?: UserAiProviderConfig | ProviderDisplayData) => {
+    if (config) {
+      setEditingConfig(config as UserAiProviderConfig);
+      // Find the provider key for display purposes
+      const provider = availableProviders.find(p => p.id === config.providerId);
+      const providerKey = provider?.key || '';
       setFormData({
-        provider: provider.provider,
-        displayName: provider.displayName,
+        providerId: config.providerId,
+        providerKey,
+        displayName: config.displayName,
+        config: { ...config.config }, // Copy existing config
         apiKey: '',
-        modelList: provider.modelList?.join(', ') || '',
+        modelList: config.modelList?.join(', ') || '',
       });
-      setIsChangingApiKey(false);  // âœ… Reset change key mode
+      setIsChangingApiKey(false);
     } else {
-      setEditingProvider(null);
+      setEditingConfig(null);
       setFormData({
-        provider: 'google',
+        providerId: '',
+        providerKey: '',
         displayName: '',
+        config: {},
         apiKey: '',
         modelList: '',
       });
@@ -145,11 +291,13 @@ export default function AIModelsPage() {
 
   const handleCloseDialog = () => {
     setShowDialog(false);
-    setEditingProvider(null);
-    setIsChangingApiKey(false);  // âœ… Reset
+    setEditingConfig(null);
+    setIsChangingApiKey(false);
     setFormData({
-      provider: 'google',
+      providerId: '',
+      providerKey: '',
       displayName: '',
+      config: {},
       apiKey: '',
       modelList: '',
     });
@@ -163,95 +311,115 @@ export default function AIModelsPage() {
       return;
     }
 
-    // âœ… For create, API key is required
-    if (!editingProvider && !formData.apiKey.trim()) {
-      toast.error('Please enter an API key');
+    if (!formData.providerId) {
+      toast.error('Please select a provider');
       return;
     }
 
-    // âœ… For edit, if user enters API key, it must not be empty
-    if (editingProvider && formData.apiKey && !formData.apiKey.trim()) {
-      toast.error('API key cannot be empty. Leave it blank to keep current key.');
-      return;
+    // Prepare config with API key
+    const config = { ...formData.config };
+    if (formData.apiKey) {
+      config.apiKey = formData.apiKey;
+    }
+
+    // For create, API key is required
+    const requiredFields = availableProviders.find(p => p.id === formData.providerId)?.requiredFields || [];
+    if (!editingConfig) {
+      for (const field of requiredFields) {
+        if (!config[field] || !config[field].trim()) {
+          toast.error(`${field} is required`);
+          return;
+        }
+      }
     }
 
     try {
-      const payload: any = {
-        provider: formData.provider,
+      const payload = {
+        providerId: formData.providerId,
         displayName: formData.displayName,
+        config: config,
         modelList: formData.modelList
           ? formData.modelList.split(',').map(m => m.trim()).filter(Boolean)
           : undefined,
       };
 
-      // âœ… Only include apiKey if it's not empty (for both create and update)
-      if (formData.apiKey && formData.apiKey.trim() !== '') {
-        payload.apiKey = formData.apiKey.trim();
-      }
-
-      if (editingProvider) {
-        await axiosClient.patch(`/ai-providers/user/${editingProvider.id}`, payload);
-        toast.success('API key updated successfully');
+      if (editingConfig) {
+        await axiosClient.patch(`/ai-providers/user/configs/${editingConfig.id}`, payload);
+        toast.success('AI provider updated successfully');
       } else {
-        // âœ… For create, apiKey is required
-        if (!payload.apiKey) {
-          toast.error('API key is required');
-          return;
-        }
-        await axiosClient.post('/ai-providers/user', payload);
-        toast.success('API key added successfully');
+        await axiosClient.post('/ai-providers/user/configs', payload);
+        toast.success('AI provider added successfully');
       }
 
       handleCloseDialog();
       loadData();
-    } catch {
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to save AI provider');
     }
   };
 
   const handleVerify = async (id: string) => {
     try {
-      await axiosClient.post(`/ai-providers/user/${id}/verify`);
+      await axiosClient.post(`/ai-providers/user/configs/${id}/verify`);
       toast.success('API key verified successfully');
       loadData();
-    } catch {
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to verify API key');
     }
   };
 
   const handleDelete = async () => {
-    if (!providerToDelete) return;
+    if (!configToDelete) return;
 
     try {
-      await axiosClient.delete(`/ai-providers/user/${providerToDelete}`);
+      await axiosClient.delete(`/ai-providers/user/configs/${configToDelete}`);
       toast.success('API key deleted successfully');
       loadData();
     } catch {
       toast.error('Failed to delete API key');
     } finally {
       setDeleteDialogOpen(false);
-      setProviderToDelete(null);
+      setConfigToDelete(null);
     }
   };
 
   const openDeleteDialog = (id: string) => {
-    setProviderToDelete(id);
+    setConfigToDelete(id);
     setDeleteDialogOpen(true);
   };
 
-  const handleToggleActive = async (provider: UserAiProvider) => {
+  const handleToggleActive = async (provider: { id: string; isActive: boolean }) => {
+    const originalUserConfig = userConfigs.find(c => c.id === provider.id);
+    if (!originalUserConfig) {
+      toast.error('Only user providers can be toggled here');
+      return;
+    }
     try {
-      await axiosClient.patch(`/ai-providers/user/${provider.id}`, {
+      await axiosClient.patch(`/ai-providers/user/configs/${provider.id}`, {
         isActive: !provider.isActive,
       });
-      toast.success(`Provider ${provider.isActive ? 'deactivated' : 'activated'}`);
+      toast.success(`Provider ${!provider.isActive ? 'activated' : 'deactivated'}`);
       loadData();
     } catch {
       toast.error('Failed to update provider status');
     }
   };
 
+  // Calculate combined providers for display - return as is from API
+  const allProviders = [...userConfigs, ...workspaceConfigs].map(config => ({
+    ...config,
+    quotaUsed: config.config?.usage || 0, // This should come from backend or config
+    lastUsedAt: config.updatedAt,
+    isVerified: config.config?.isVerified || false, // Use isVerified from config if available
+    apiKeyMasked: config.config?.apiKey
+      ? '••••••••••••'
+      : (config.config?.baseUrl ? '••••••••••••' : null),
+    // Keep original provider field from API (can be AiProvider or undefined)
+  }));
+
   const [activeTab, setActiveTab] = useState('ai-providers');
-  const totalUsage = providers.reduce((sum, p) => sum + p.quotaUsed, 0);
-  const activeProviders = providers.filter(p => p.isActive).length;
+  const totalUsage = allProviders.reduce((sum, p) => sum + p.quotaUsed, 0);
+  const activeProviders = allProviders.filter(p => p.isActive).length;
 
   const tabs = [
     { id: 'account', label: 'Account' },
@@ -307,7 +475,7 @@ export default function AIModelsPage() {
               <Card>
                 <CardHeader className="pb-3">
                   <CardDescription>Total Providers</CardDescription>
-                  <CardTitle className="text-3xl">{providers.length}</CardTitle>
+                  <CardTitle className="text-3xl">{allProviders.length}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -344,7 +512,7 @@ export default function AIModelsPage() {
             </div>
 
             { }
-            {providers.length === 0 ? (
+            {allProviders.length === 0 ? (
               <Card className="border-dashed">
                 <CardContent className="flex flex-col items-center justify-center py-16">
                   <div className="size-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-6">
@@ -362,18 +530,24 @@ export default function AIModelsPage() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {providers.map((provider) => {
-                  const providerInfo = PROVIDER_OPTIONS.find(p => p.value === provider.provider);
+                {allProviders.map((provider) => {
+                  // Sử dụng provider từ relationship hoặc fallback to availableProviders array
+                  const providerData = provider.provider || availableProviders.find(p => p.id === provider.providerId);
                   return (
                     <Card key={provider.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                      <div className={`h-2 bg-gradient-to-r ${providerInfo?.color || 'from-gray-500 to-slate-500'}`} />
+                      <div className={`h-2 bg-gradient-to-r from-gray-500 to-slate-500`} />
                       <CardHeader>
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="text-3xl">{providerInfo?.icon || 'âš™ï¸'}</div>
+                            <div className="text-3xl">
+                              {(() => {
+                                const IconComponent = getProviderIcon(providerData?.icon);
+                                return <IconComponent className="text-primary" />;
+                              })()}
+                            </div>
                             <div>
                               <CardTitle className="text-lg">{provider.displayName}</CardTitle>
-                              <CardDescription>{providerInfo?.label || provider.provider}</CardDescription>
+                              <CardDescription>{providerData?.label || 'Unknown Provider'}</CardDescription>
                             </div>
                           </div>
                           <div className="flex gap-2">
@@ -593,13 +767,13 @@ export default function AIModelsPage() {
       </div>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="sm:max-w-[550px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl">
-              {editingProvider ? 'Edit API Key' : 'Add New API Key'}
+              {editingConfig ? 'Edit API Key' : 'Add New API Key'}
             </DialogTitle>
             <DialogDescription>
-              {editingProvider
+              {editingConfig
                 ? 'Update your API key configuration and settings'
                 : 'Connect a new AI provider to unlock powerful models'
               }
@@ -608,40 +782,53 @@ export default function AIModelsPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             { }
-            {!editingProvider && (
+            {!editingConfig && (
               <div className="space-y-3">
                 <Label>Select Provider</Label>
                 <div className="grid grid-cols-2 gap-3">
-                  {PROVIDER_OPTIONS.map((option) => (
+                  {availableProviders.map((provider) => (
                     <button
-                      key={option.value}
+                      key={provider.id}
                       type="button"
-                      onClick={() => setFormData({ ...formData, provider: option.value as any })}
-                      className={`p-4 rounded-lg border-2 transition-all text-left ${formData.provider === option.value
+                      onClick={() => setFormData({
+                        ...formData,
+                        providerId: provider.id,
+                        providerKey: provider.key
+                      })}
+                      className={`p-4 rounded-lg border-2 transition-all text-left ${formData.providerId === provider.id
                         ? 'border-primary bg-primary/5'
                         : 'border-border hover:border-primary/50'
                         }`}
                     >
                       <div className="flex items-center gap-3 mb-2">
-                        <span className="text-2xl">{option.icon}</span>
-                        <span className="font-semibold text-sm">{option.label}</span>
+                        <span className="text-2xl">
+                          {(() => {
+                            const IconComponent = getProviderIcon(provider.icon);
+                            return <IconComponent className="text-primary" />;
+                          })()}
+                        </span>
+                        <span className="font-semibold text-sm">{provider.label}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">{option.description}</p>
+                      <p className="text-xs text-muted-foreground">{provider.description}</p>
                     </button>
                   ))}
                 </div>
               </div>
             )}
 
-            {editingProvider && (
+            {editingConfig && (
               <div className="p-4 rounded-lg bg-muted/50 border">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">
-                    {PROVIDER_OPTIONS.find(p => p.value === formData.provider)?.icon}
+                    {(() => {
+                      const provider = availableProviders.find(p => p.id === formData.providerId);
+                      const IconComponent = getProviderIcon(provider?.icon);
+                      return <IconComponent className="text-primary" />;
+                    })()}
                   </span>
                   <div>
                     <p className="font-semibold">
-                      {PROVIDER_OPTIONS.find(p => p.value === formData.provider)?.label}
+                      {availableProviders.find(p => p.id === formData.providerId)?.label || formData.providerKey}
                     </p>
                     <p className="text-xs text-muted-foreground">Provider cannot be changed</p>
                   </div>
@@ -661,14 +848,16 @@ export default function AIModelsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="apiKey">API Key</Label>
+              <Label htmlFor="apiKey">
+                {formData.providerKey === 'ollama' || formData.providerKey === 'custom' ? 'Base URL' : 'API Key'}
+              </Label>
 
-              {editingProvider && !isChangingApiKey ? (
+              {editingConfig && !isChangingApiKey ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
-                    <div className="flex-1 font-mono text-sm text-muted-foreground">
-                      {editingProvider.apiKeyMasked || 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢'}
-                    </div>
+                  <div className="flex-1 font-mono text-sm text-muted-foreground">
+                    {editingConfig && 'apiKeyMasked' in editingConfig ? (editingConfig as ProviderDisplayData).apiKeyMasked : '••••••••••••'}
+                  </div>
                     <Button
                       type="button"
                       variant="outline"
@@ -678,44 +867,66 @@ export default function AIModelsPage() {
                         setFormData({ ...formData, apiKey: '' });
                       }}
                     >
-                      <FiEdit2 className="mr-2 size-3" />
-                      Change Key
+                      {formData.providerKey === 'ollama' || formData.providerKey === 'custom' ? <FiEdit2 className="mr-2 size-3" /> : <FiEdit2 className="mr-2 size-3" />}
+                      {formData.providerKey === 'ollama' || formData.providerKey === 'custom' ? 'Change URL' : 'Change Key'}
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Your API key is encrypted and stored securely
+                    {formData.providerKey === 'ollama' || formData.providerKey === 'custom'
+                      ? 'Your endpoint URL is encrypted and stored securely'
+                      : 'Your API key is encrypted and stored securely'
+                    }
                   </p>
                 </div>
               ) : (
                 // âœ… Edit mode: Show input field
                 <div className="space-y-2">
-                  {editingProvider && isChangingApiKey && (
+                  {editingConfig && isChangingApiKey && (
                     <div className="flex items-center gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900">
                       <FiAlertCircle className="size-4 text-amber-600 dark:text-amber-500" />
                       <p className="text-xs text-amber-700 dark:text-amber-400">
-                        Entering a new API key will replace the current one
+                        Entering a new value will replace the current one
                       </p>
                     </div>
                   )}
                   <div className="relative">
                     <Input
                       id="apiKey"
-                      type={showApiKey ? 'text' : 'password'}
-                      placeholder={editingProvider ? "Enter new API key" : "Enter your API key"}
+                      type={(formData.providerKey === 'ollama' || formData.providerKey === 'custom' || showApiKey) ? 'text' : 'password'}
+                      placeholder={
+                        formData.providerKey === 'ollama'
+                          ? "e.g., http://localhost:11434"
+                          : formData.providerKey === 'custom'
+                          ? "e.g., https://my-endpoint.com"
+                          : editingConfig
+                          ? "Enter new API key"
+                          : "Enter your API key"
+                      }
                       value={formData.apiKey}
                       onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
-                      required={!editingProvider}
-                      className={editingProvider && isChangingApiKey ? "border-amber-300 dark:border-amber-800" : ""}
+                      required={!editingConfig}
+                      className={cn(
+                        editingConfig && isChangingApiKey ? "border-amber-300 dark:border-amber-800" : "",
+                        "pr-10" // Add right padding for eye icon
+                      )}
+                      style={{
+                        fontFamily: showApiKey ? 'monospace' : 'inherit',
+                        fontSize: showApiKey ? '0.75rem' : 'inherit',
+                        letterSpacing: showApiKey ? '0.025em' : 'inherit'
+                      }}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowApiKey(!showApiKey)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showApiKey ? <FiEyeOff /> : <FiEye />}
-                    </button>
+                    {(formData.providerKey === 'ollama' || formData.providerKey === 'custom') ? null : (
+                      <button
+                        type="button"
+                        onClick={() => setShowApiKey(!showApiKey)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
+                      >
+                        {showApiKey ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                      </button>
+                    )}
                   </div>
-                  {editingProvider && isChangingApiKey && (
+                  {editingConfig && isChangingApiKey && (
                     <Button
                       type="button"
                       variant="ghost"
@@ -726,31 +937,192 @@ export default function AIModelsPage() {
                       }}
                       className="text-xs"
                     >
-                      Cancel - Keep current key
+                      Cancel - Keep current value
                     </Button>
                   )}
-                  {!editingProvider && (
+                  {!editingConfig && (
                     <p className="text-xs text-muted-foreground">
-                      Your API key will be encrypted and stored securely
+                      {formData.providerKey === 'ollama' || formData.providerKey === 'custom'
+                        ? 'Your endpoint URL will be encrypted and stored securely'
+                        : 'Your API key will be encrypted and stored securely'
+                      }
                     </p>
                   )}
                 </div>
               )}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label htmlFor="modelList">
-                Model Names (optional)
+                Model Names *
               </Label>
-              <Input
-                id="modelList"
-                placeholder="e.g., gpt-4, claude-3-opus (leave empty for all models)"
-                value={formData.modelList}
-                onChange={(e) => setFormData({ ...formData, modelList: e.target.value })}
-              />
-              <p className="text-xs text-muted-foreground">
-                Comma-separated list of model names. Leave empty to use all models.
-              </p>
+
+              {/* Current Models Display */}
+              {(() => {
+                const models = formData.modelList
+                  ? formData.modelList.split(',').map(m => m.trim()).filter(Boolean)
+                  : [];
+                return models.length > 0 && (
+                  <div className="flex flex-wrap gap-2 p-3 bg-muted/50 rounded-md border">
+                    {models.map((model, index) => (
+                      <div key={index} className="flex items-center gap-1 bg-primary/10 text-primary text-xs px-2 py-1 rounded-md">
+                        <span className="font-mono">{model}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newModels = models.filter((_, i) => i !== index);
+                            setFormData({ ...formData, modelList: newModels.join(', ') });
+                          }}
+                          className="text-primary/60 hover:text-primary ml-1 text-xs"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {/* Add New Model Input */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder={
+                    formData.providerKey === 'openai'
+                      ? "e.g., gpt-4o, gpt-4-turbo..."
+                      : formData.providerKey === 'anthropic'
+                      ? "e.g., claude-3.5-sonnet, claude-3-haiku..."
+                      : formData.providerKey === 'google'
+                      ? "e.g., gemini-2.0-flash, gemini-1.5-pro..."
+                      : formData.providerKey === 'ollama'
+                      ? "e.g., llama3.1:8b, deepseek-r1:8b..."
+                      : "Enter model name..."
+                  }
+                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const input = e.currentTarget;
+                      const newModel = input.value.trim();
+                      if (newModel) {
+                        const existingModels = formData.modelList
+                          ? formData.modelList.split(',').map(m => m.trim()).filter(Boolean)
+                          : [];
+                        if (!existingModels.includes(newModel)) {
+                          const updatedModels = [...existingModels, newModel];
+                          setFormData({ ...formData, modelList: updatedModels.join(', ') });
+                          input.value = '';
+                        }
+                      }
+                    }
+                  }}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    const input = document.querySelector('input[placeholder*="Enter model name"]') as HTMLInputElement;
+                    if (input) {
+                      const newModel = input.value.trim();
+                      if (newModel) {
+                        const existingModels = formData.modelList
+                          ? formData.modelList.split(',').map(m => m.trim()).filter(Boolean)
+                          : [];
+                        if (!existingModels.includes(newModel)) {
+                          const updatedModels = [...existingModels, newModel];
+                          setFormData({ ...formData, modelList: updatedModels.join(', ') });
+                          input.value = '';
+                        }
+                      }
+                    }
+                  }}
+                >
+                  <FiPlus className="mr-2" size={14} />
+                  Add
+                </Button>
+              </div>
+
+              <div className="text-xs text-muted-foreground space-y-1">
+                <div>
+                  <strong>Press Enter or click Add to include model names.</strong>
+                  All models share the same API key/endpoint. Click × to remove models.
+                </div>
+                {!formData.providerKey && (
+                  <div className="text-amber-600 dark:text-amber-400">
+                    Select a provider above to see model suggestions.
+                  </div>
+                )}
+              </div>
+
+              {/* Provider-specific Model Suggestions */}
+              {formData.providerKey && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium text-primary">
+                      {loadingModels
+                        ? `Loading models from ${formData.providerKey}...`
+                        : `Available models from ${formData.providerKey}:`
+                      }
+                    </p>
+                    {!loadingModels && (
+                      <button
+                        type="button"
+                        onClick={loadProviderModels}
+                        className="text-xs text-muted-foreground hover:text-primary underline"
+                      >
+                        Refresh
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {loadingModels ? (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="animate-spin rounded-full h-3 w-3 border border-t-transparent border-primary"></div>
+                        Fetching models...
+                      </div>
+                    ) : availableModels.length > 0 ? (
+                      availableModels.map((model) => {
+                        const existingModels = formData.modelList
+                          ? formData.modelList.split(',').map(m => m.trim()).filter(Boolean)
+                          : [];
+
+                        const alreadyAdded = existingModels.includes(model);
+
+                        return (
+                          <button
+                            key={model}
+                            type="button"
+                            disabled={alreadyAdded}
+                            onClick={() => {
+                              if (!alreadyAdded) {
+                                const updatedModels = [...existingModels, model];
+                                setFormData({ ...formData, modelList: updatedModels.join(', ') });
+                              }
+                            }}
+                            className={`text-xs px-2 py-1 rounded-md border transition-colors ${
+                              alreadyAdded
+                                ? 'bg-muted text-muted-foreground border-border cursor-not-allowed'
+                                : 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20'
+                            }`}
+                          >
+                            {model}
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div className="text-xs text-muted-foreground">
+                        No models available from API. Using static suggestions below.
+                        <div className="mt-2 space-x-1">
+                          {getStaticModelSuggestions(formData.providerKey).slice(0, 3).map((model) => (
+                            <span key={model} className="inline-block bg-muted px-2 py-1 rounded text-xs">
+                              {model}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <DialogFooter>
@@ -758,7 +1130,7 @@ export default function AIModelsPage() {
                 Cancel
               </Button>
               <Button type="submit">
-                {editingProvider ? 'Update' : 'Add'} API Key
+                {editingConfig ? 'Update' : 'Add'} API Key
               </Button>
             </DialogFooter>
           </form>
@@ -784,4 +1156,3 @@ export default function AIModelsPage() {
     </div>
   );
 }
-

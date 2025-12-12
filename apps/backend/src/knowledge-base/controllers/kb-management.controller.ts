@@ -13,6 +13,7 @@
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { KBManagementService } from '../services/kb-management.service';
+import { KBVectorService } from '../services/kb-vector.service';
 import {
   CreateKnowledgeBaseDto,
   UpdateKnowledgeBaseDto,
@@ -24,7 +25,10 @@ import {
 @UseGuards(AuthGuard('jwt'))
 @Controller({ path: 'knowledge-bases', version: '1' })
 export class KBManagementController {
-  constructor(private readonly kbService: KBManagementService) {}
+  constructor(
+    private readonly kbService: KBManagementService,
+    private readonly vectorService: KBVectorService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all knowledge bases' })
@@ -101,5 +105,53 @@ export class KBManagementController {
     const userId = req.user.id;
     return this.kbService.getAgentAssignments(id, userId);
   }
-}
 
+  @Get('vector/diagnostics')
+  @ApiOperation({ summary: 'Get vector service diagnostics' })
+  async getVectorDiagnostics() {
+    return {
+      isAvailable: this.vectorService.isServiceAvailable(),
+      url: process.env.QDRANT_URL,
+      hasApiKey: !!process.env.QDRANT_API_KEY,
+      collectionName: 'knowledge-base',
+    };
+  }
+
+  @Post('vector/test-connection')
+  @ApiOperation({ summary: 'Test vector service connection' })
+  async testVectorConnection() {
+    try {
+      const connected = await this.vectorService.testConnection();
+      return {
+        success: connected,
+        message: connected
+          ? 'Successfully connected to Qdrant'
+          : 'Failed to connect to Qdrant',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Connection test failed: ${error.message}`,
+      };
+    }
+  }
+
+  @Post('vector/ensure-collection')
+  @ApiOperation({ summary: 'Ensure vector collection exists' })
+  async ensureVectorCollection() {
+    try {
+      const success = await this.vectorService.ensureCollection();
+      return {
+        success,
+        message: success
+          ? 'Collection exists or was created successfully'
+          : 'Failed to create or verify collection',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Collection creation failed: ${error.message}`,
+      };
+    }
+  }
+}

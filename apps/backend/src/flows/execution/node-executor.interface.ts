@@ -28,4 +28,3 @@ export interface NodeExecutionOutput {
 export interface NodeExecutor {
   execute(input: NodeExecutionInput): Promise<NodeExecutionOutput>;
 }
-

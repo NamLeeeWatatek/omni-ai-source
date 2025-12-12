@@ -46,4 +46,3 @@ export class WorkspaceAccessGuard implements CanActivate {
     return true;
   }
 }
-

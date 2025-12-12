@@ -23,4 +23,3 @@ import { ChannelsModule } from '../channels/channels.module';
   exports: [IntegrationsService, OAuthService],
 })
 export class IntegrationsModule {}
-

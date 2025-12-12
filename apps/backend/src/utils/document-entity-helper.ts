@@ -15,4 +15,3 @@ export class EntityDocumentHelper {
   )
   public _id: string;
 }
-

@@ -145,4 +145,3 @@ export class InvoiceEntity extends EntityRelationalHelper {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }
-

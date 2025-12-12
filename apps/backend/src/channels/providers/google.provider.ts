@@ -47,4 +47,3 @@ export class GoogleProvider implements ChannelProvider {
     };
   }
 }
-

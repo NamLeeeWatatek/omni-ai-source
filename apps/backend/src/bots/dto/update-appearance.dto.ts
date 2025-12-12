@@ -86,7 +86,9 @@ export class UpdateAppearanceDto {
   @IsBoolean()
   showTimestamp?: boolean;
 
-  @ApiPropertyOptional({ example: 'Xin chÃ o! TÃ´i cÃ³ thá»ƒ giÃºp gÃ¬ cho báº¡n?' })
+  @ApiPropertyOptional({
+    example: 'Xin chÃ o! TÃ´i cÃ³ thá»ƒ giÃºp gÃ¬ cho báº¡n?',
+  })
   @IsOptional()
   @IsString()
   welcomeMessage?: string;
@@ -127,10 +129,11 @@ export class AppearanceResponseDto {
   @ApiPropertyOptional({ example: true })
   showTimestamp: boolean;
 
-  @ApiPropertyOptional({ example: 'Xin chÃ o! TÃ´i cÃ³ thá»ƒ giÃºp gÃ¬ cho báº¡n?' })
+  @ApiPropertyOptional({
+    example: 'Xin chÃ o! TÃ´i cÃ³ thá»ƒ giÃºp gÃ¬ cho báº¡n?',
+  })
   welcomeMessage: string;
 
   @ApiPropertyOptional({ example: 'Nháº­p tin nháº¯n...' })
   placeholderText: string;
 }
-

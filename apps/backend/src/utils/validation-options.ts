@@ -31,4 +31,3 @@ const validationOptions: ValidationPipeOptions = {
 };
 
 export default validationOptions;
-

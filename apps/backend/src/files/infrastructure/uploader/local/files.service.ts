@@ -31,8 +31,8 @@ export class FilesLocalService {
         path: `/${this.configService.get('app.apiPrefix', {
           infer: true,
         })}/v1/${file.path}`,
+        bucket: 'local',
       }),
     };
   }
 }
-

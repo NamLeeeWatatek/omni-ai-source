@@ -745,4 +745,3 @@ export class StatsService {
     return trend;
   }
 }
-

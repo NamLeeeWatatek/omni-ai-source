@@ -50,4 +50,3 @@ export class FilesS3Controller {
     return this.filesService.create(file);
   }
 }
-

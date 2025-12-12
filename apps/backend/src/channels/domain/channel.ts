@@ -50,4 +50,3 @@ export class Channel {
   @ApiProperty()
   updatedAt: Date;
 }
-

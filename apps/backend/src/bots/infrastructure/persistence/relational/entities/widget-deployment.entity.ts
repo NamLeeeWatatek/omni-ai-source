@@ -60,4 +60,3 @@ export class WidgetDeploymentEntity extends EntityRelationalHelper {
   @JoinColumn({ name: 'previous_version_id' })
   previousVersion?: WidgetVersionEntity;
 }
-

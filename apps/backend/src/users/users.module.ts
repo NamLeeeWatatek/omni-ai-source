@@ -40,4 +40,3 @@ export class UsersModule implements OnModuleInit {
     } catch {}
   }
 }
-

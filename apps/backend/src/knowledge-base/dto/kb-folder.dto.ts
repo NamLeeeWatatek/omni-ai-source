@@ -67,4 +67,3 @@ export class UpdateFolderDto {
   @IsOptional()
   order?: number;
 }
-

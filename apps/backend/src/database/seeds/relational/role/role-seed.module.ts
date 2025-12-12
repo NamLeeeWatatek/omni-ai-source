@@ -11,4 +11,3 @@ import { PermissionEntity } from '../../../../permissions/infrastructure/persist
   exports: [RoleSeedService],
 })
 export class RoleSeedModule {}
-

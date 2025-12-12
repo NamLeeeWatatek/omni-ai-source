@@ -25,4 +25,3 @@ export abstract class SessionRepository {
     excludeSessionId: Session['id'];
   }): Promise<void>;
 }
-

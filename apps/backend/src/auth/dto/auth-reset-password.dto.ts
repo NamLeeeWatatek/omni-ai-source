@@ -10,4 +10,3 @@ export class AuthResetPasswordDto {
   @IsNotEmpty()
   hash: string;
 }
-

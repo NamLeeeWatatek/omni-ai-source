@@ -22,4 +22,3 @@ export default registerAs<GoogleConfig>('google', () => {
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
   };
 });
-

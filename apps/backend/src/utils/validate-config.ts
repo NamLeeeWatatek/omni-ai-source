@@ -20,4 +20,3 @@ function validateConfig<T extends object>(
 }
 
 export default validateConfig;
-

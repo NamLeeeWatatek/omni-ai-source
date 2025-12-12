@@ -9,7 +9,9 @@ class EnvironmentVariablesValidator {
   FILE_DRIVER: FileDriver;
 
   @ValidateIf((envValues) =>
-    [FileDriver.S3, FileDriver.S3_PRESIGNED].includes(envValues.FILE_DRIVER),
+    [FileDriver.S3, FileDriver.S3_PRESIGNED, FileDriver.MINIO].includes(
+      envValues.FILE_DRIVER,
+    ),
   )
   @IsString()
   ACCESS_KEY_ID: string;
@@ -53,4 +55,3 @@ export default registerAs<FileConfig>('file', () => {
     maxFileSize: 5242880,
   };
 });
-

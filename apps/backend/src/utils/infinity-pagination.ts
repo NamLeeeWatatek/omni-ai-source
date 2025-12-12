@@ -10,4 +10,3 @@ export const infinityPagination = <T>(
     hasNextPage: data.length === options.limit,
   };
 };
-

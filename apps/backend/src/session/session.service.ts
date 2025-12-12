@@ -43,4 +43,3 @@ export class SessionService {
     return this.sessionRepository.deleteByUserIdWithExclude(conditions);
   }
 }
-

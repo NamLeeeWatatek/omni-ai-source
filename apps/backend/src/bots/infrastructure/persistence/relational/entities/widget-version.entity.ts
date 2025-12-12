@@ -98,4 +98,3 @@ export class WidgetVersionEntity extends EntityRelationalHelper {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }
-

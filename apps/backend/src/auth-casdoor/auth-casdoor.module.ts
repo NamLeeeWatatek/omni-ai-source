@@ -25,4 +25,3 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
   exports: [AuthCasdoorService, CasdoorApiClient, CasdoorSyncService],
 })
 export class AuthCasdoorModule {}
-

@@ -166,4 +166,3 @@ export class AuthController {
     return this.service.softDelete(request.user);
   }
 }
-

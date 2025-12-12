@@ -17,4 +17,3 @@ const infrastructurePersistenceModule = (databaseConfig() as DatabaseConfig)
   exports: [SessionService, infrastructurePersistenceModule],
 })
 export class SessionModule {}
-

@@ -340,4 +340,3 @@ export class AuthCasdoorService {
     return user;
   }
 }
-

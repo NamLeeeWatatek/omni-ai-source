@@ -17,4 +17,3 @@ export default registerAs<AppleConfig>('apple', () => {
     appAudience: JSON.parse(process.env.APPLE_APP_AUDIENCE ?? '[]'),
   };
 });
-

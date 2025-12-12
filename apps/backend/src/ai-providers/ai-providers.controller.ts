@@ -24,15 +24,16 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { AiProvidersService } from './ai-providers.service';
 import {
-  CreateUserAiProviderDto,
-  UpdateUserAiProviderDto,
-  CreateWorkspaceAiProviderDto,
-  UpdateWorkspaceAiProviderDto,
+  CreateUserAiProviderConfigDto,
+  UpdateUserAiProviderConfigDto,
+  CreateWorkspaceAiProviderConfigDto,
+  UpdateWorkspaceAiProviderConfigDto,
   VerifyApiKeyDto,
 } from './dto/ai-provider.dto';
 import {
-  UserAiProvider,
-  WorkspaceAiProvider,
+  AiProvider,
+  UserAiProviderConfig,
+  WorkspaceAiProviderConfig,
   AiUsageLog,
 } from './domain/ai-provider';
 
@@ -43,116 +44,131 @@ import {
 export class AiProvidersController {
   constructor(private readonly aiProvidersService: AiProvidersService) {}
 
-  @Post('user')
-  @ApiOperation({ summary: 'Create user AI provider' })
-  @ApiCreatedResponse({ type: UserAiProvider })
+  // Get all available AI providers (global list)
+  @Get()
+  @ApiOperation({ summary: 'Get all available AI providers' })
+  @ApiOkResponse({ type: [AiProvider] })
+  getAvailableProviders() {
+    return this.aiProvidersService.getAvailableProviders();
+  }
+
+  // Get a specific provider by ID
+  @Get(':id')
+  @ApiOperation({ summary: 'Get AI provider by ID' })
+  @ApiOkResponse({ type: AiProvider })
+  @ApiParam({ name: 'id', type: String })
+  getProviderById(@Param('id') id: string) {
+    return this.aiProvidersService.getProviderById(id);
+  }
+
+  // User configs
+  @Post('user/configs')
+  @ApiOperation({ summary: 'Create user AI provider config' })
+  @ApiCreatedResponse({ type: UserAiProviderConfig })
   @HttpCode(HttpStatus.CREATED)
-  createUserProvider(@Body() dto: CreateUserAiProviderDto, @Request() req) {
-    return this.aiProvidersService.createUserProvider(req.user.id, dto);
+  createUserConfig(@Body() dto: CreateUserAiProviderConfigDto, @Request() req) {
+    return this.aiProvidersService.createUserConfig(req.user.id, dto);
   }
 
-  @Get('user')
-  @ApiOperation({ summary: 'Get user AI providers' })
-  @ApiOkResponse({ type: [UserAiProvider] })
-  getUserProviders(@Request() req) {
-    return this.aiProvidersService.getUserProviders(req.user.id);
+  @Get('user/configs')
+  @ApiOperation({ summary: 'Get user AI provider configs' })
+  @ApiOkResponse({ type: [UserAiProviderConfig] })
+  getUserConfigs(@Request() req) {
+    return this.aiProvidersService.getUserConfigs(req.user.id);
   }
 
-  @Get('user/:id')
-  @ApiOperation({ summary: 'Get user AI provider by ID' })
-  @ApiOkResponse({ type: UserAiProvider })
+  @Get('user/configs/:id')
+  @ApiOperation({ summary: 'Get user AI provider config by ID' })
+  @ApiOkResponse({ type: UserAiProviderConfig })
   @ApiParam({ name: 'id', type: String })
-  getUserProvider(@Param('id') id: string, @Request() req) {
-    return this.aiProvidersService.getUserProvider(req.user.id, id);
+  getUserConfig(@Param('id') id: string, @Request() req) {
+    return this.aiProvidersService.getUserConfig(req.user.id, id);
   }
 
-  @Patch('user/:id')
-  @ApiOperation({ summary: 'Update user AI provider' })
-  @ApiOkResponse({ type: UserAiProvider })
+  @Patch('user/configs/:id')
+  @ApiOperation({ summary: 'Update user AI provider config' })
+  @ApiOkResponse({ type: UserAiProviderConfig })
   @ApiParam({ name: 'id', type: String })
-  updateUserProvider(
+  updateUserConfig(
     @Param('id') id: string,
-    @Body() dto: UpdateUserAiProviderDto,
+    @Body() dto: UpdateUserAiProviderConfigDto,
     @Request() req,
   ) {
-    return this.aiProvidersService.updateUserProvider(req.user.id, id, dto);
+    return this.aiProvidersService.updateUserConfig(req.user.id, id, dto);
   }
 
-  @Delete('user/:id')
-  @ApiOperation({ summary: 'Delete user AI provider' })
+  @Delete('user/configs/:id')
+  @ApiOperation({ summary: 'Delete user AI provider config' })
   @ApiParam({ name: 'id', type: String })
   @HttpCode(HttpStatus.NO_CONTENT)
-  deleteUserProvider(@Param('id') id: string, @Request() req) {
-    return this.aiProvidersService.deleteUserProvider(req.user.id, id);
+  deleteUserConfig(@Param('id') id: string, @Request() req) {
+    return this.aiProvidersService.deleteUserConfig(req.user.id, id);
   }
 
-  @Post('user/:id/verify')
-  @ApiOperation({ summary: 'Verify user AI provider API key' })
-  @ApiOkResponse({ type: UserAiProvider })
+  @Post('user/configs/:id/verify')
+  @ApiOperation({ summary: 'Verify user AI provider config API key' })
+  @ApiOkResponse({ type: UserAiProviderConfig })
   @ApiParam({ name: 'id', type: String })
-  verifyUserProvider(@Param('id') id: string, @Request() req) {
-    return this.aiProvidersService.verifyUserProvider(req.user.id, id);
+  verifyUserConfig(@Param('id') id: string, @Request() req) {
+    return this.aiProvidersService.verifyUserConfig(req.user.id, id);
   }
 
-  @Post('workspace/:workspaceId')
-  @ApiOperation({ summary: 'Create workspace AI provider' })
-  @ApiCreatedResponse({ type: WorkspaceAiProvider })
+  // Workspace configs
+  @Post('workspace/:workspaceId/configs')
+  @ApiOperation({ summary: 'Create workspace AI provider config' })
+  @ApiCreatedResponse({ type: WorkspaceAiProviderConfig })
   @ApiParam({ name: 'workspaceId', type: String })
   @HttpCode(HttpStatus.CREATED)
-  createWorkspaceProvider(
+  createWorkspaceConfig(
     @Param('workspaceId') workspaceId: string,
-    @Body() dto: CreateWorkspaceAiProviderDto,
+    @Body() dto: CreateWorkspaceAiProviderConfigDto,
   ) {
-    return this.aiProvidersService.createWorkspaceProvider(workspaceId, dto);
+    return this.aiProvidersService.createWorkspaceConfig(workspaceId, dto);
   }
 
-  @Get('workspace/:workspaceId')
-  @ApiOperation({ summary: 'Get workspace AI providers' })
-  @ApiOkResponse({ type: [WorkspaceAiProvider] })
+  @Get('workspace/:workspaceId/configs')
+  @ApiOperation({ summary: 'Get workspace AI provider configs' })
+  @ApiOkResponse({ type: [WorkspaceAiProviderConfig] })
   @ApiParam({ name: 'workspaceId', type: String })
-  getWorkspaceProviders(@Param('workspaceId') workspaceId: string) {
-    return this.aiProvidersService.getWorkspaceProviders(workspaceId);
+  getWorkspaceConfigs(@Param('workspaceId') workspaceId: string) {
+    return this.aiProvidersService.getWorkspaceConfigs(workspaceId);
   }
 
-  @Get('workspace/:workspaceId/:id')
-  @ApiOperation({ summary: 'Get workspace AI provider by ID' })
-  @ApiOkResponse({ type: WorkspaceAiProvider })
+  @Get('workspace/:workspaceId/configs/:id')
+  @ApiOperation({ summary: 'Get workspace AI provider config by ID' })
+  @ApiOkResponse({ type: WorkspaceAiProviderConfig })
   @ApiParam({ name: 'workspaceId', type: String })
   @ApiParam({ name: 'id', type: String })
-  getWorkspaceProvider(
+  getWorkspaceConfig(
     @Param('workspaceId') workspaceId: string,
     @Param('id') id: string,
   ) {
-    return this.aiProvidersService.getWorkspaceProvider(workspaceId, id);
+    return this.aiProvidersService.getWorkspaceConfig(workspaceId, id);
   }
 
-  @Patch('workspace/:workspaceId/:id')
-  @ApiOperation({ summary: 'Update workspace AI provider' })
-  @ApiOkResponse({ type: WorkspaceAiProvider })
+  @Patch('workspace/:workspaceId/configs/:id')
+  @ApiOperation({ summary: 'Update workspace AI provider config' })
+  @ApiOkResponse({ type: WorkspaceAiProviderConfig })
   @ApiParam({ name: 'workspaceId', type: String })
   @ApiParam({ name: 'id', type: String })
-  updateWorkspaceProvider(
+  updateWorkspaceConfig(
     @Param('workspaceId') workspaceId: string,
     @Param('id') id: string,
-    @Body() dto: UpdateWorkspaceAiProviderDto,
+    @Body() dto: UpdateWorkspaceAiProviderConfigDto,
   ) {
-    return this.aiProvidersService.updateWorkspaceProvider(
-      workspaceId,
-      id,
-      dto,
-    );
+    return this.aiProvidersService.updateWorkspaceConfig(workspaceId, id, dto);
   }
 
-  @Delete('workspace/:workspaceId/:id')
-  @ApiOperation({ summary: 'Delete workspace AI provider' })
+  @Delete('workspace/:workspaceId/configs/:id')
+  @ApiOperation({ summary: 'Delete workspace AI provider config' })
   @ApiParam({ name: 'workspaceId', type: String })
   @ApiParam({ name: 'id', type: String })
   @HttpCode(HttpStatus.NO_CONTENT)
-  deleteWorkspaceProvider(
+  deleteWorkspaceConfig(
     @Param('workspaceId') workspaceId: string,
     @Param('id') id: string,
   ) {
-    return this.aiProvidersService.deleteWorkspaceProvider(workspaceId, id);
+    return this.aiProvidersService.deleteWorkspaceConfig(workspaceId, id);
   }
 
   @Get('workspace/:workspaceId/usage')
@@ -161,19 +177,16 @@ export class AiProvidersController {
   @ApiParam({ name: 'workspaceId', type: String })
   @ApiQuery({ name: 'startDate', required: false, type: String })
   @ApiQuery({ name: 'endDate', required: false, type: String })
-  @ApiQuery({ name: 'userId', required: false, type: String })
   @ApiQuery({ name: 'provider', required: false, type: String })
   getUsageLogs(
     @Param('workspaceId') workspaceId: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Query('userId') userId?: string,
     @Query('provider') provider?: string,
   ) {
     return this.aiProvidersService.getUsageLogs(workspaceId, {
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
-      userId,
       provider,
     });
   }
@@ -195,179 +208,83 @@ export class AiProvidersController {
     return { valid: true, message: 'API key verification endpoint' };
   }
 
-  @Get('models')
-  @ApiOperation({ summary: 'Get available AI models grouped by provider' })
+  @Get('user/models')
+  @ApiOperation({ summary: 'Get available AI models from user configs' })
   @ApiOkResponse({
-    description: 'List of available AI models grouped by provider',
+    description: 'List of available AI models from user configured providers',
     schema: {
       type: 'array',
       items: {
         type: 'object',
         properties: {
-          provider: { type: 'string' },
+          providerId: { type: 'string' },
+          providerKey: { type: 'string' },
+          providerName: { type: 'string' },
+          configId: { type: 'string' },
           models: {
             type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                provider: { type: 'string' },
-                model_name: { type: 'string' },
-                display_name: { type: 'string' },
-                description: { type: 'string' },
-                api_key_configured: { type: 'boolean' },
-                is_available: { type: 'boolean' },
-                capabilities: { type: 'array', items: { type: 'string' } },
-                max_tokens: { type: 'number' },
-                is_default: { type: 'boolean' },
-                is_recommended: { type: 'boolean' },
-              },
-            },
+            items: { type: 'string' }
           },
         },
       },
     },
   })
-  getAvailableModels() {
-    return [
-      {
-        provider: 'google',
-        models: [
-          {
-            provider: 'google',
-            model_name: 'gemini-2.0-flash',
-            display_name: 'Gemini 2.0 Flash',
-            description: 'Fast and efficient model for general tasks',
-            api_key_configured: true,
-            is_available: true,
-            capabilities: ['chat', 'completion', 'embedding'],
-            max_tokens: 8192,
-            is_default: true,
-            is_recommended: true,
-          },
-          {
-            provider: 'google',
-            model_name: 'gemini-2.5-flash',
-            display_name: 'Gemini 2.5 Flash',
-            description: 'Latest fast model with improved capabilities',
-            api_key_configured: true,
-            is_available: true,
-            capabilities: ['chat', 'completion', 'embedding'],
-            max_tokens: 8192,
-            is_recommended: true,
-          },
-          {
-            provider: 'google',
-            model_name: 'gemini-pro',
-            display_name: 'Gemini Pro',
-            description: 'Advanced model for complex tasks',
-            api_key_configured: true,
-            is_available: true,
-            capabilities: ['chat', 'completion'],
-            max_tokens: 8192,
-          },
-          {
-            provider: 'google',
-            model_name: 'gemini-1.5-pro',
-            display_name: 'Gemini 1.5 Pro',
-            description: 'Long context model with 1M tokens',
-            api_key_configured: true,
-            is_available: true,
-            capabilities: ['chat', 'completion'],
-            max_tokens: 8192,
-          },
-        ],
-      },
-      {
-        provider: 'openai',
-        models: [
-          {
-            provider: 'openai',
-            model_name: 'gpt-4',
-            display_name: 'GPT-4',
-            description: 'Most capable OpenAI model',
-            api_key_configured: false,
-            is_available: false,
-            capabilities: ['chat', 'completion'],
-            max_tokens: 4096,
-          },
-          {
-            provider: 'openai',
-            model_name: 'gpt-4-turbo',
-            display_name: 'GPT-4 Turbo',
-            description: 'Faster GPT-4 with lower cost',
-            api_key_configured: false,
-            is_available: false,
-            capabilities: ['chat', 'completion'],
-            max_tokens: 4096,
-          },
-          {
-            provider: 'openai',
-            model_name: 'gpt-4o',
-            display_name: 'GPT-4o',
-            description: 'Optimized GPT-4 model',
-            api_key_configured: false,
-            is_available: false,
-            capabilities: ['chat', 'completion', 'vision'],
-            max_tokens: 4096,
-          },
-          {
-            provider: 'openai',
-            model_name: 'gpt-3.5-turbo',
-            display_name: 'GPT-3.5 Turbo',
-            description: 'Fast and cost-effective model',
-            api_key_configured: false,
-            is_available: false,
-            capabilities: ['chat', 'completion'],
-            max_tokens: 4096,
-          },
-        ],
-      },
-      {
-        provider: 'anthropic',
-        models: [
-          {
-            provider: 'anthropic',
-            model_name: 'claude-3-opus',
-            display_name: 'Claude 3 Opus',
-            description: 'Most capable Claude model',
-            api_key_configured: false,
-            is_available: false,
-            capabilities: ['chat', 'completion'],
-            max_tokens: 4096,
-          },
-          {
-            provider: 'anthropic',
-            model_name: 'claude-3-sonnet',
-            display_name: 'Claude 3 Sonnet',
-            description: 'Balanced performance and speed',
-            api_key_configured: false,
-            is_available: false,
-            capabilities: ['chat', 'completion'],
-            max_tokens: 4096,
-          },
-          {
-            provider: 'anthropic',
-            model_name: 'claude-3-haiku',
-            display_name: 'Claude 3 Haiku',
-            description: 'Fastest Claude model',
-            api_key_configured: false,
-            is_available: false,
-            capabilities: ['chat', 'completion'],
-            max_tokens: 4096,
-          },
-          {
-            provider: 'anthropic',
-            model_name: 'claude-3.5-sonnet',
-            display_name: 'Claude 3.5 Sonnet',
-            description: 'Latest Claude model with enhanced capabilities',
-            api_key_configured: false,
-            is_available: false,
-            capabilities: ['chat', 'completion', 'vision'],
-            max_tokens: 8192,
-          },
-        ],
-      },
-    ];
+  async getUserAvailableModels(@Request() req) {
+    const userId = req.user.id;
+    const configs = await this.aiProvidersService.getUserConfigs(userId);
+
+    const results = await Promise.all(
+      configs
+        .filter(config => config.isActive)
+        .map(async (config) => {
+          const models = await this.aiProvidersService.fetchProviderModels(
+            config.id,
+            'user',
+            userId,
+          );
+
+          return {
+            providerId: config.providerId,
+            providerKey: config.provider?.key || '',
+            providerName: config.provider?.label || config.providerId,
+            configId: config.id,
+            models,
+          };
+        })
+    );
+
+    return results;
+  }
+
+  @Get('workspace/:workspaceId/models')
+  @ApiOperation({ summary: 'Get available AI models from workspace configs' })
+  @ApiOkResponse({
+    description: 'List of available AI models from workspace configured providers'
+  })
+  @ApiParam({ name: 'workspaceId', type: String })
+  async getWorkspaceAvailableModels(@Param('workspaceId') workspaceId: string) {
+    const configs = await this.aiProvidersService.getWorkspaceConfigs(workspaceId);
+
+    const results = await Promise.all(
+      configs
+        .filter(config => config.isActive)
+        .map(async (config) => {
+          const models = await this.aiProvidersService.fetchProviderModels(
+            config.id,
+            'workspace',
+            workspaceId,
+          );
+
+          return {
+            providerId: config.providerId,
+            providerKey: config.provider?.key || '',
+            providerName: config.provider?.label || config.providerId,
+            configId: config.id,
+            models,
+          };
+        })
+    );
+
+    return results;
   }
 }
-

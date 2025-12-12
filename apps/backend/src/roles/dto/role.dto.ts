@@ -6,4 +6,3 @@ export class RoleDto {
   @IsNumber()
   id: number | string;
 }
-

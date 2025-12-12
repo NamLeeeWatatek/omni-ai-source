@@ -9,4 +9,3 @@ import { StatusEntity } from '../../../../statuses/infrastructure/persistence/re
   exports: [StatusSeedService],
 })
 export class StatusSeedModule {}
-

@@ -58,4 +58,3 @@ export class CreateKnowledgeBaseDto {
   @IsUUID()
   workspaceId?: string;
 }
-

@@ -17,48 +17,48 @@ const pricingPlans: PricingPlan[] = [
   {
     name: "Starter",
     price: 0,
-    description: "HoÃ n háº£o Ä‘á»ƒ dÃ¹ng thá»­ WataOmi",
-    cta: "DÃ¹ng thá»­ miá»…n phÃ­",
+    description: "Perfect for trying out WataOmi",
+    cta: "Try for free",
     featured: false,
     features: [
       "1 bot",
-      "100 cuá»™c há»™i thoáº¡i/thÃ¡ng",
-      "2 kÃªnh",
-      "PhÃ¢n tÃ­ch cÆ¡ báº£n",
-      "Há»— trá»£ cá»™ng Ä‘á»“ng",
+      "100 conversations/month",
+      "2 channels",
+      "Basic analytics",
+      "Community support",
     ],
   },
   {
     name: "Pro",
     price: 49,
-    description: "Cho doanh nghiá»‡p Ä‘ang phÃ¡t triá»ƒn",
-    cta: "DÃ¹ng thá»­ Pro",
+    description: "For growing businesses",
+    cta: "Try Pro",
     featured: true,
     features: [
       "10 bots",
-      "10,000 cuá»™c há»™i thoáº¡i/thÃ¡ng",
-      "KhÃ´ng giá»›i háº¡n kÃªnh",
-      "PhÃ¢n tÃ­ch nÃ¢ng cao",
-      "TÃ­ch há»£p n8n",
-      "Há»— trá»£ Æ°u tiÃªn",
-      "TÃ¹y chá»‰nh thÆ°Æ¡ng hiá»‡u",
+      "10,000 conversations/month",
+      "Unlimited channels",
+      "Advanced analytics",
+      "n8n integration",
+      "Priority support",
+      "Brand customization",
     ],
   },
   {
     name: "Enterprise",
     price: 299,
-    description: "Cho tá»• chá»©c lá»›n",
-    cta: "LiÃªn há»‡ tÆ° váº¥n",
+    description: "For large organizations",
+    cta: "Contact sales",
     featured: false,
     features: [
-      "KhÃ´ng giá»›i háº¡n bots",
-      "KhÃ´ng giá»›i háº¡n cuá»™c há»™i thoáº¡i",
-      "KhÃ´ng giá»›i háº¡n kÃªnh",
-      "TÃ­nh nÄƒng AI nÃ¢ng cao",
-      "Quáº£n lÃ½ tÃ i khoáº£n riÃªng",
-      "Cam káº¿t SLA",
-      "TÃ­ch há»£p tÃ¹y chá»‰nh",
-      "Triá»ƒn khai on-premise",
+      "Unlimited bots",
+      "Unlimited conversations",
+      "Unlimited channels",
+      "Advanced AI features",
+      "Dedicated account management",
+      "SLA guarantee",
+      "Custom integrations",
+      "On-premise deployment",
     ],
   },
 ];
@@ -69,10 +69,10 @@ export default function PricingSection() {
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold text-slate-900 mb-4">
-            Báº£ng giÃ¡ Ä‘Æ¡n giáº£n, minh báº¡ch
+            Simple, transparent pricing
           </h2>
           <p className="text-xl text-slate-600">
-            KhÃ´ng phÃ­ cÃ i Ä‘áº·t, khÃ´ng phÃ­ áº©n
+            No setup fees, no hidden costs
           </p>
         </div>
 
@@ -129,4 +129,3 @@ export default function PricingSection() {
     </section>
   );
 }
-

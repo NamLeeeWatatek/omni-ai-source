@@ -53,4 +53,3 @@ export class ConversationClosedEvent extends BaseEvent {
     return 'conversation.closed';
   }
 }
-

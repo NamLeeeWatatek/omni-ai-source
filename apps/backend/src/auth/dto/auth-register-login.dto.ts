@@ -21,4 +21,3 @@ export class AuthRegisterLoginDto {
   @IsNotEmpty()
   lastName: string;
 }
-

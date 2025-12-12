@@ -2,4 +2,3 @@
   clientId?: string;
   clientSecret?: string;
 };
-

@@ -134,4 +134,3 @@ export class PermissionsService {
     return ['flows:read', 'flows:write', 'templates:read', 'bots:read'];
   }
 }
-

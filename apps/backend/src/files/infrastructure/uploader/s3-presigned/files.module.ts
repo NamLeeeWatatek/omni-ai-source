@@ -2,6 +2,7 @@
   HttpStatus,
   Module,
   UnprocessableEntityException,
+  forwardRef,
 } from '@nestjs/common';
 import { FilesS3PresignedController } from './files.controller';
 import { MulterModule } from '@nestjs/platform-express';
@@ -11,6 +12,7 @@ import { S3Client } from '@aws-sdk/client-s3';
 import multerS3 from 'multer-s3';
 
 import { FilesS3PresignedService } from './files.service';
+import { FilesService } from '../../../files.service';
 
 import { DocumentFilePersistenceModule } from '../../persistence/document/document-persistence.module';
 import { RelationalFilePersistenceModule } from '../../persistence/relational/relational-persistence.module';
@@ -93,4 +95,3 @@ const infrastructurePersistenceModule = (databaseConfig() as DatabaseConfig)
   exports: [FilesS3PresignedService],
 })
 export class FilesS3PresignedModule {}
-

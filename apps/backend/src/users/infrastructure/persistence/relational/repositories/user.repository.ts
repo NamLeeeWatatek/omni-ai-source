@@ -136,4 +136,3 @@ export class UsersRelationalRepository implements UserRepository {
     await this.usersRepository.softDelete(id);
   }
 }
-

@@ -61,4 +61,3 @@ export default registerAs<MailConfig>('mail', () => {
     requireTLS: process.env.MAIL_REQUIRE_TLS === 'true',
   };
 });
-

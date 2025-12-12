@@ -28,4 +28,3 @@ export class ExecuteBotFunctionDto {
   @IsObject()
   context?: Record<string, any>;
 }
-

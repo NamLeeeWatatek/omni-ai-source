@@ -6,4 +6,3 @@ export class AuthFacebookLoginDto {
   @IsNotEmpty()
   accessToken: string;
 }
-

@@ -82,4 +82,3 @@ export class UserEntity extends EntityRelationalHelper {
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt?: Date | null;
 }
-

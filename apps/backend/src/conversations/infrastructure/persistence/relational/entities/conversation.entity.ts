@@ -153,4 +153,3 @@ export class MessageFeedbackEntity extends EntityRelationalHelper {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }
-

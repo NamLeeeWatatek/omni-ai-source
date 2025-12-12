@@ -95,4 +95,3 @@ export class NotificationsController {
     return this.notificationsService.deleteAll(req.user.id, workspaceId);
   }
 }
-

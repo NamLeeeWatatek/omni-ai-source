@@ -40,4 +40,3 @@ export interface ChannelProvider {
 
   parseIncomingMessage(payload: any): IncomingMessage;
 }
-

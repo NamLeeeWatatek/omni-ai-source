@@ -12,4 +12,3 @@ export class AnonymousStrategy extends PassportStrategy(Strategy) {
     return request;
   }
 }
-

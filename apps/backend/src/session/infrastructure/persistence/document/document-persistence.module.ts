@@ -19,4 +19,3 @@ import { SessionDocumentRepository } from './repositories/session.repository';
   exports: [SessionRepository],
 })
 export class DocumentSessionPersistenceModule {}
-

@@ -26,10 +26,7 @@ import { UpdateFlowDto } from './dto/update-flow.dto';
 import { CreateFlowFromTemplateDto } from './dto/create-flow-from-template.dto';
 import { FlowTransformInterceptor } from './interceptors/flow-transform.interceptor';
 import { FlowTransformService } from './services/flow-transform.service';
-import {
-  PublicFlowDto,
-  DetailedFlowDto,
-} from './dto/public-flow.dto';
+import { PublicFlowDto, DetailedFlowDto } from './dto/public-flow.dto';
 
 @ApiTags('Flows')
 @ApiBearerAuth()
@@ -41,7 +38,7 @@ export class FlowsController {
     private readonly flowsService: FlowsService,
     private readonly executionService: ExecutionService,
     private readonly transformService: FlowTransformService,
-  ) { }
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create flow' })
@@ -57,7 +54,6 @@ export class FlowsController {
   ) {
     return this.flowsService.createFromTemplate(createDto, req.user.id);
   }
-
 
   @Get()
   @ApiOperation({ summary: 'Get all flows' })
@@ -102,7 +98,8 @@ export class FlowsController {
     console.log('Execute request for flow ID:', id, 'typeof:', typeof id);
 
     // Validate UUID format first to avoid invalid strings reaching the database
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(id)) {
       throw new BadRequestException(`Invalid flow ID format: ${id}`);
     }
@@ -167,4 +164,3 @@ export class FlowsController {
     return this.flowsService.generateFormSchema(id);
   }
 }
-

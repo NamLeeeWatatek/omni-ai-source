@@ -97,4 +97,3 @@ export default registerAs<DatabaseConfig>('database', () => {
     cert: process.env.DATABASE_CERT,
   };
 });
-

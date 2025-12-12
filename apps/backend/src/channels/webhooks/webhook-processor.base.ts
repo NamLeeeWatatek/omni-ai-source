@@ -246,4 +246,3 @@ export abstract class BaseMessageProcessor<
     }
   }
 }
-

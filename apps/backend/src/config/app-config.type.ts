@@ -9,4 +9,3 @@
   fallbackLanguage: string;
   headerLanguage: string;
 };
-

@@ -35,4 +35,3 @@ export class CreateFolderDto {
   @IsNumber()
   order?: number;
 }
-

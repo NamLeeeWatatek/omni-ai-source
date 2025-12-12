@@ -215,7 +215,6 @@ export default function BotsPage() {
                             <Card key={bot.id} className="p-6">
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="flex items-center gap-3">
-                                        { }
                                         <div className="relative group">
                                             <div className="w-12 h-12 rounded-xl bg-gradient-wata flex items-center justify-center cursor-pointer">
                                                 <BotIcon className="w-6 h-6 text-white" />

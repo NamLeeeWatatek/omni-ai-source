@@ -43,4 +43,3 @@ export class ConditionExecutor implements NodeExecutor {
     return true;
   }
 }
-

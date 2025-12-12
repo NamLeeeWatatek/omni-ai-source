@@ -619,4 +619,3 @@ export class AuthService {
     };
   }
 }
-

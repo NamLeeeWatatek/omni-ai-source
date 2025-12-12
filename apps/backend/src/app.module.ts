@@ -147,4 +147,3 @@ const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
   ],
 })
 export class AppModule {}
-

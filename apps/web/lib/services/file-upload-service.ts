@@ -1,6 +1,5 @@
-﻿import axios from 'axios';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+﻿import { axiosClient } from '@/lib/axios-client';
+import axios from 'axios';
 
 export interface UploadResponse {
   file: {
@@ -8,6 +7,7 @@ export interface UploadResponse {
     path: string;
   };
   uploadSignedUrl?: string;
+  downloadSignedUrl?: string;
 }
 
 export interface FileUploadOptions {
@@ -16,44 +16,30 @@ export interface FileUploadOptions {
 }
 
 class FileUploadService {
-  private getAuthToken(): string | null {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem('accessToken');
-  }
-
   async uploadFile(
     file: File,
     options: FileUploadOptions = {}
   ): Promise<UploadResponse> {
     const { onProgress, bucket = 'images' } = options;
 
-    const token = this.getAuthToken();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const presignedResponse = await axios.post<UploadResponse>(
-      `${API_URL}/api/v1/files/upload`,
+    const presignedResponse = await axiosClient.post<UploadResponse>(
+      '/files/upload',
       {
         fileName: file.name,
         fileSize: file.size,
         bucket,
-      },
-      { headers }
+      }
     );
 
-    const { uploadSignedUrl, file: fileData } = presignedResponse.data;
+    const { uploadSignedUrl, downloadSignedUrl, file: fileData } = presignedResponse;
+    console.log('🔍 Upload response:', { uploadSignedUrl, downloadSignedUrl, file: fileData });
 
     if (uploadSignedUrl) {
       await axios.put(uploadSignedUrl, file, {
         headers: {
           'Content-Type': file.type,
         },
-        onUploadProgress: (progressEvent) => {
+        onUploadProgress: (progressEvent: any) => {
           if (onProgress && progressEvent.total) {
             const progress = Math.round(
               (progressEvent.loaded * 100) / progressEvent.total
@@ -64,7 +50,7 @@ class FileUploadService {
       });
     }
 
-    return presignedResponse.data;
+    return presignedResponse;
   }
 
   getFileUrl(path: string, bucket: string = 'images'): string {
@@ -108,4 +94,3 @@ class FileUploadService {
 }
 
 export const fileUploadService = new FileUploadService();
-

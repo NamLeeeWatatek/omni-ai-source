@@ -68,4 +68,3 @@ export class CreateUserDto {
   @IsString()
   socialId?: string | null;
 }
-

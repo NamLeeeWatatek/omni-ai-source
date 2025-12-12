@@ -6,9 +6,13 @@ import { UserSeedService } from './user/user-seed.service';
 import { PermissionSeedService } from './permission/permission-seed.service';
 import { NodeTypeSeedService } from './node-type/node-type-seed.service';
 import { FlowSeedService } from './flow/flow-seed.service';
+import { AiProviderSeedService } from './ai-provider/ai-provider-seed.service';
 
 const runSeed = async () => {
   const app = await NestFactory.create(SeedModule);
+
+  // Seed AI providers first
+  await app.get(AiProviderSeedService).run();
 
   await app.get(PermissionSeedService).run();
 
@@ -23,8 +27,8 @@ const runSeed = async () => {
   // Run flow seeds after users are created
   await app.get(FlowSeedService).run();
 
+
   await app.close();
 };
 
 void runSeed();
-

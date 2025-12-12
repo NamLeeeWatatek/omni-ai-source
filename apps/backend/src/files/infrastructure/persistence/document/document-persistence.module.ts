@@ -19,4 +19,3 @@ import { FileDocumentRepository } from './repositories/file.repository';
   exports: [FileRepository],
 })
 export class DocumentFilePersistenceModule {}
-

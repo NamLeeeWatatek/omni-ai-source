@@ -34,4 +34,3 @@ export class CreateWorkspaceDto {
   @IsEnum(['free', 'starter', 'pro', 'enterprise'])
   plan?: 'free' | 'starter' | 'pro' | 'enterprise';
 }
-

@@ -44,4 +44,3 @@ export class WidgetDeploymentController {
     return this.widgetVersionService.getDeploymentHistory(botId, req.user.id);
   }
 }
-

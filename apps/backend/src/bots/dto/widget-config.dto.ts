@@ -284,4 +284,3 @@ export class EmbedCodeResponseDto {
   @ApiProperty({ example: 'https://cdn.wataomi.com/widget-loader.js' })
   widgetUrl: string;
 }
-

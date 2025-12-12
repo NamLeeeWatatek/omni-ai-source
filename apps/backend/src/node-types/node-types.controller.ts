@@ -1,5 +1,4 @@
-﻿
-import {
+﻿import {
   Controller,
   Get,
   Post,
@@ -19,7 +18,7 @@ import { NodeType } from './domain/node-type';
 @ApiTags('Node Types')
 @Controller({ path: 'node-types', version: '1' })
 export class NodeTypesController {
-  constructor(private readonly nodeTypesService: NodeTypesService) { }
+  constructor(private readonly nodeTypesService: NodeTypesService) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all node types' })
@@ -42,7 +41,9 @@ export class NodeTypesController {
   @Post()
   @ApiOperation({ summary: 'Create new node type (Admin)' })
   @ApiBody({ type: NodeType })
-  async create(@Body() data: Omit<NodeType, 'createdAt' | 'updatedAt'>): Promise<NodeType> {
+  async create(
+    @Body() data: Omit<NodeType, 'createdAt' | 'updatedAt'>,
+  ): Promise<NodeType> {
     return this.nodeTypesService.create(data);
   }
 
@@ -63,4 +64,3 @@ export class NodeTypesController {
     return this.nodeTypesService.remove(id);
   }
 }
-

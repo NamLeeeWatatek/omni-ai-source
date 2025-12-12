@@ -83,4 +83,3 @@ export class AiConversationsController {
     return this.conversationsService.addMessage(id, userId, message);
   }
 }
-

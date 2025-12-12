@@ -122,4 +122,3 @@ export class InstagramService {
     return this.connectionRepository.findOne({ where });
   }
 }
-

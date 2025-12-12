@@ -193,9 +193,10 @@ export function AIConfigSection({ data, onChange }: AIConfigSectionProps) {
     React.useEffect(() => {
         const loadProviders = async () => {
             try {
-                const response = await axiosClient.get('/ai-providers/user');
+                const response = await axiosClient.get('/ai-providers/user/configs');
                 // Only show active and verified providers
-                const activeProviders = response.filter((p: any) => p.isActive && p.isVerified);
+                // For now, consider active providers as verified (will be improved with proper verification logic)
+                const activeProviders = response.filter((p: any) => p.isActive);
                 setProviders(activeProviders);
             } catch (error) {
                 console.error('Failed to load AI providers:', error);
@@ -254,7 +255,7 @@ export function AIConfigSection({ data, onChange }: AIConfigSectionProps) {
                                             <div className="flex items-center gap-2">
                                                 <span>{provider.displayName}</span>
                                                 <Badge variant="secondary" className="text-xs">
-                                                    {provider.provider}
+                                                    {provider.provider?.key || provider.providerId}
                                                 </Badge>
                                             </div>
                                         </SelectItem>
@@ -462,4 +463,3 @@ export function AdvancedSettingsSection({
         </Card>
     );
 }
-

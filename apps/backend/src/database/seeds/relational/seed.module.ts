@@ -10,8 +10,10 @@ import { UserSeedModule } from './user/user-seed.module';
 import { PermissionSeedModule } from './permission/permission-seed.module';
 import { NodeTypeSeedModule } from './node-type/node-type-seed.module';
 import { FlowSeedModule } from './flow/flow-seed.module';
+import { AiProviderSeedModule } from './ai-provider/ai-provider-seed.module';
 import databaseConfig from '../../config/database.config';
 import appConfig from '../../../config/app.config';
+
 
 @Module({
   imports: [
@@ -21,6 +23,7 @@ import appConfig from '../../../config/app.config';
     UserSeedModule,
     NodeTypeSeedModule,
     FlowSeedModule,
+    AiProviderSeedModule,
     ConfigModule.forRoot({
       isGlobal: true,
       load: [databaseConfig, appConfig],
@@ -35,4 +38,3 @@ import appConfig from '../../../config/app.config';
   ],
 })
 export class SeedModule {}
-

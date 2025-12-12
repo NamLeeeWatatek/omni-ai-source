@@ -40,4 +40,3 @@ export class PermissionsController {
     return this.permissionsService.checkPermissions(req.user, dto.permissions);
   }
 }
-

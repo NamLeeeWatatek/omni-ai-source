@@ -52,4 +52,3 @@ export class FlowExecutionEntity extends EntityRelationalHelper {
   @UpdateDateColumn()
   updatedAt: Date;
 }
-

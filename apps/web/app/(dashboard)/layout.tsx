@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import { useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { LoadingLogo } from '@/components/ui/LoadingLogo'
 import { DashboardSidebar } from '@/components/layout/DashboardSidebar'
@@ -21,8 +21,9 @@ export default function DashboardLayout({
     const [showNotifications, setShowNotifications] = useState(false)
 
     // Auth hooks
-    const { isAuthenticated, isLoading, signOut } = useAuth()
+    const { isAuthenticated, isLoading, signOut, accessToken } = useAuth()
     const pathname = usePathname()
+    const router = useRouter()
 
     if (isLoading) {
         return (
@@ -32,7 +33,12 @@ export default function DashboardLayout({
         )
     }
 
-    if (!isAuthenticated) {
+    // Handle authentication errors - redirect to login if not authenticated
+    if (!isAuthenticated || !accessToken) {
+        // Small delay to prevent flicker and ensure UI stability
+        setTimeout(() => {
+            router.push('/login?error=unauthorized');
+        }, 100);
         return (
             <div className="h-screen flex items-center justify-center bg-background">
                 <LoadingLogo size="lg" text="Redirecting to login..." />
@@ -69,11 +75,12 @@ export default function DashboardLayout({
     }
 
     // Responsive page container logic
-    const isSpecialPage = pathname.includes('/edit') ||
-        pathname === '/ai-assistant' ||
-        pathname === '/inbox' ||
-        pathname === '/chat' ||
-        pathname === '/conversations'
+    // Write mode only: full width, no page-container
+    const isEditMode = pathname.includes('mode=edit')
+    // Other flow/ugc pages: no page-container but need padding
+    const isFlowPage = pathname === '/flows' || pathname.startsWith('/flows/') || pathname.startsWith('/ugc-factory/')
+
+    const isSpecialPage = isEditMode
 
     return (
         <div className="h-screen flex bg-background overflow-hidden">
@@ -105,7 +112,7 @@ export default function DashboardLayout({
 
                 {/* Content area with conditional container classes */}
                 <div className="flex-1 overflow-hidden relative min-h-0">
-                    <div className={`h-full ${isSpecialPage ? '' : 'page-container overflow-auto'}`}>
+                    <div className={`h-full ${isSpecialPage ? '' : isFlowPage ? 'p-5 overflow-auto' : 'page-container overflow-auto'}`}>
                         {children}
                     </div>
                 </div>
@@ -125,4 +132,3 @@ export default function DashboardLayout({
         </div>
     )
 }
-

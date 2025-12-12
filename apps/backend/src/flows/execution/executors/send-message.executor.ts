@@ -68,4 +68,3 @@ export class SendMessageExecutor implements NodeExecutor {
     }
   }
 }
-

@@ -8,5 +8,7 @@ export class FileEntity extends EntityRelationalHelper {
 
   @Column()
   path: string;
-}
 
+  @Column({ default: 'images' })
+  bucket: string;
+}

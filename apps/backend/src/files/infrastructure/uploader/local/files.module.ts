@@ -69,4 +69,3 @@ const infrastructurePersistenceModule = (databaseConfig() as DatabaseConfig)
   exports: [FilesLocalService],
 })
 export class FilesLocalModule {}
-

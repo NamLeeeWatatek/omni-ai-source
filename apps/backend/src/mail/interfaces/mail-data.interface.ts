@@ -2,4 +2,3 @@
   to: string;
   data: T;
 }
-

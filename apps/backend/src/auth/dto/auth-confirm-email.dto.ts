@@ -6,4 +6,3 @@ export class AuthConfirmEmailDto {
   @IsNotEmpty()
   hash: string;
 }
-

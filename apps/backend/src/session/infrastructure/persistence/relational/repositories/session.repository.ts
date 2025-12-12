@@ -86,4 +86,3 @@ export class SessionRelationalRepository implements SessionRepository {
     });
   }
 }
-

@@ -9,4 +9,3 @@
   secure: boolean;
   requireTLS: boolean;
 };
-

@@ -1,87 +1,100 @@
 ﻿import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
- * UserAiProvider domain entity - theo schema má»›i
- * Table: user_ai_providers
+ * AiProvider domain entity
+ * Table: ai_providers
  */
-export class UserAiProvider {
+export class AiProvider {
   @ApiProperty({ type: String })
   id: string;
 
-  @ApiProperty({ type: String })
-  userId: string;
+  @ApiProperty({ type: String, example: 'openai' })
+  key: string;
+
+  @ApiProperty({ type: String, example: 'OpenAI GPT' })
+  label: string;
+
+  @ApiPropertyOptional({ type: String, example: 'AiOutlineOpenAI' })
+  icon?: string;
+
+  @ApiPropertyOptional({ type: String })
+  description?: string;
+
+  @ApiProperty({ type: [String], description: 'Required configuration fields' })
+  requiredFields: string[];
+
+  @ApiProperty({ type: [String], description: 'Optional configuration fields' })
+  optionalFields: string[];
 
   @ApiProperty({
-    type: String,
-    enum: ['openai', 'anthropic', 'google', 'azure', 'custom'],
+    type: 'object',
+    description: 'Default values for fields',
+    additionalProperties: true,
   })
-  provider: 'openai' | 'anthropic' | 'google' | 'azure' | 'custom';
-
-  @ApiProperty({ type: String, example: 'My OpenAI Key' })
-  displayName: string;
-
-  @ApiPropertyOptional({ type: String, description: 'Encrypted API key' })
-  apiKeyEncrypted?: string;
-
-  @ApiPropertyOptional({
-    type: [String],
-    description: 'Available models for this provider',
-  })
-  modelList?: string[];
+  defaultValues: Record<string, any>;
 
   @ApiProperty({ type: Boolean, default: true })
   isActive: boolean;
 
-  @ApiProperty({ type: Boolean, default: false })
-  isVerified: boolean;
-
-  @ApiPropertyOptional({ type: Date })
-  verifiedAt?: Date | null;
-
-  @ApiProperty({ type: Number, default: 0 })
-  quotaUsed: number;
-
-  @ApiPropertyOptional({ type: Date })
-  lastUsedAt?: Date | null;
-
   @ApiProperty()
   createdAt: Date;
+
+  @ApiProperty()
+  updatedAt: Date;
 }
 
 /**
- * WorkspaceAiProvider domain entity - theo schema má»›i
- * Table: workspace_ai_providers
+ * AiProviderConfig domain entity
+ * Table: ai_provider_configs
  */
-export class WorkspaceAiProvider {
+export class AiProviderConfig {
   @ApiProperty({ type: String })
   id: string;
 
   @ApiProperty({ type: String })
-  workspaceId: string;
+  providerId: string;
 
-  @ApiProperty({
-    type: String,
-    enum: ['openai', 'anthropic', 'google', 'azure', 'custom'],
-  })
-  provider: 'openai' | 'anthropic' | 'google' | 'azure' | 'custom';
+  @ApiProperty({ type: AiProvider })
+  provider?: AiProvider;
 
-  @ApiProperty({ type: String })
-  displayName: string;
+  @ApiProperty({ type: String, example: 'gpt-4.1' })
+  model: string;
+
+  @ApiProperty({ type: String, description: 'Encrypted API key' })
+  apiKey: string;
 
   @ApiPropertyOptional({ type: String })
-  apiKeyEncrypted?: string;
+  baseUrl?: string;
 
-  @ApiPropertyOptional({ type: [String] })
-  modelList?: string[];
+  @ApiPropertyOptional({ type: String })
+  apiVersion?: string;
+
+  @ApiPropertyOptional({ type: Number })
+  timeout?: number;
+
+  @ApiProperty({ type: Boolean, default: true })
+  useStream: boolean;
+
+  // @ApiProperty({ type: 'object', description: 'Provider-specific extra fields' })
+  // extra: Record<string, any>;
+
+  @ApiProperty({ enum: ['system', 'user', 'workspace'] })
+  ownerType: 'system' | 'user' | 'workspace';
+
+  @ApiProperty({ type: String })
+  ownerId?: string;
+
+  @ApiProperty({ type: Boolean, default: false })
+  isDefault: boolean;
 
   @ApiProperty({ type: Boolean, default: true })
   isActive: boolean;
 
-  @ApiProperty({ type: Number, default: 0 })
-  quotaUsed: number;
-
   @ApiProperty()
   createdAt: Date;
+
+  @ApiProperty()
+  updatedAt: Date;
 }
 
 /**
@@ -117,3 +130,82 @@ export class AiUsageLog {
   requestedAt: Date;
 }
 
+/**
+ * UserAiProviderConfig domain entity
+ * Table: user_ai_provider_configs
+ */
+export class UserAiProviderConfig {
+  @ApiProperty({ type: String })
+  id: string;
+
+  @ApiProperty({ type: String })
+  userId: string;
+
+  @ApiProperty({ type: String })
+  providerId: string;
+
+  @ApiProperty({ type: AiProvider })
+  provider?: AiProvider;
+
+  @ApiProperty({ type: String, example: 'My OpenAI Key' })
+  displayName: string;
+
+  @ApiProperty({
+    type: 'object',
+    description: 'Provider configuration',
+    additionalProperties: true,
+  })
+  config: Record<string, any>;
+
+  @ApiProperty({ type: [String], example: ['gpt-4', 'gpt-3.5-turbo'] })
+  modelList: string[];
+
+  @ApiProperty({ type: Boolean, default: true })
+  isActive: boolean;
+
+  @ApiProperty()
+  createdAt: Date;
+
+  @ApiProperty()
+  updatedAt: Date;
+}
+
+/**
+ * WorkspaceAiProviderConfig domain entity
+ * Table: workspace_ai_provider_configs
+ */
+export class WorkspaceAiProviderConfig {
+  @ApiProperty({ type: String })
+  id: string;
+
+  @ApiProperty({ type: String })
+  workspaceId: string;
+
+  @ApiProperty({ type: String })
+  providerId: string;
+
+  @ApiProperty({ type: AiProvider })
+  provider?: AiProvider;
+
+  @ApiProperty({ type: String, example: 'Team OpenAI Key' })
+  displayName: string;
+
+  @ApiProperty({
+    type: 'object',
+    description: 'Provider configuration',
+    additionalProperties: true,
+  })
+  config: Record<string, any>;
+
+  @ApiProperty({ type: [String] })
+  modelList: string[];
+
+  @ApiProperty({ type: Boolean, default: true })
+  isActive: boolean;
+
+  @ApiProperty()
+  createdAt: Date;
+
+  @ApiProperty()
+  updatedAt: Date;
+}

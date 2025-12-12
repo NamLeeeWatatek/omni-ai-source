@@ -1,15 +1,15 @@
 {
-    "welcome": "Chào mừng",
-    "hello": "Xin chào",
+    "welcome": "Welcome",
+    "hello": "Hello",
     "error": {
-        "general": "Đã xảy ra lỗi",
-        "notFound": "Không tìm thấy",
-        "unauthorized": "Không được phép",
-        "forbidden": "Bị cấm"
+        "general": "An error occurred",
+        "notFound": "Not found",
+        "unauthorized": "Unauthorized",
+        "forbidden": "Forbidden"
     },
     "success": {
-        "saved": "Lưu thành công",
-        "deleted": "Xóa thành công",
-        "updated": "Cập nhật thành công"
+        "saved": "Saved successfully",
+        "deleted": "Deleted successfully",
+        "updated": "Updated successfully"
     }
 }

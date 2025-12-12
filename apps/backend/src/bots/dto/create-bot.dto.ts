@@ -137,7 +137,9 @@ export class CreateBotDto {
   @IsBoolean()
   showTimestamp?: boolean;
 
-  @ApiPropertyOptional({ example: 'Xin chÃ o! TÃ´i cÃ³ thá»ƒ giÃºp gÃ¬ cho báº¡n?' })
+  @ApiPropertyOptional({
+    example: 'Xin chÃ o! TÃ´i cÃ³ thá»ƒ giÃºp gÃ¬ cho báº¡n?',
+  })
   @IsOptional()
   @IsString()
   welcomeMessage?: string | null;
@@ -162,4 +164,3 @@ export class CreateBotDto {
   @IsString()
   icon?: string;
 }
-

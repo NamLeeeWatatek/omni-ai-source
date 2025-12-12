@@ -118,4 +118,3 @@ export class CreateFlowDto {
   @IsString()
   category?: string;
 }
-

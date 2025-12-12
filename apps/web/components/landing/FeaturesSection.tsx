@@ -23,51 +23,51 @@ interface Feature {
 const features: Feature[] = [
   {
     icon: FiMessageSquare,
-    title: "Äa kÃªnh thá»‘ng nháº¥t",
+    title: "Unified Multi-Channel",
     description:
-      "Káº¿t ná»‘i WhatsApp, Messenger, Instagram, Telegram vÃ  nhiá»u kÃªnh khÃ¡c trong má»™t ná»n táº£ng duy nháº¥t.",
+      "Connect WhatsApp, Messenger, Instagram, Telegram and other channels in a single platform.",
   },
   {
     icon: FiZap,
-    title: "XÃ¢y dá»±ng Flow khÃ´ng code",
+    title: "No-Code Flow Builder",
     description:
-      "Táº¡o cÃ¡c luá»“ng há»™i thoáº¡i phá»©c táº¡p vá»›i cÃ´ng cá»¥ kÃ©o tháº£ trá»±c quan WataFlow.",
+      "Create complex conversation flows with the visual drag-and-drop WataFlow tool.",
   },
   {
     icon: MdAutoAwesome,
-    title: "Tráº£ lá»i tá»± Ä‘á»™ng báº±ng AI",
+    title: "AI-Powered Auto Response",
     description:
-      "Äá»ƒ AI xá»­ lÃ½ cÃ¢u há»i khÃ¡ch hÃ ng má»™t cÃ¡ch thÃ´ng minh vá»›i kháº£ nÄƒng hiá»ƒu ngá»¯ cáº£nh.",
+      "Let AI intelligently handle customer questions with contextual understanding.",
   },
   {
     icon: FiGitMerge,
-    title: "TÃ­ch há»£p n8n",
+    title: "n8n Integration",
     description:
-      "Káº¿t ná»‘i liá»n máº¡ch vá»›i n8n workflows Ä‘á»ƒ má»Ÿ rá»™ng kháº£ nÄƒng tá»± Ä‘á»™ng hÃ³a khÃ´ng giá»›i háº¡n.",
+      "Seamlessly connect with n8n workflows to expand unlimited automation capabilities.",
   },
   {
     icon: FiBarChart2,
-    title: "PhÃ¢n tÃ­ch & BÃ¡o cÃ¡o",
+    title: "Analytics & Reporting",
     description:
-      "Theo dÃµi hiá»‡u suáº¥t, Ä‘o lÆ°á»ng tÆ°Æ¡ng tÃ¡c vÃ  tá»‘i Æ°u hÃ³a tráº£i nghiá»‡m khÃ¡ch hÃ ng.",
+      "Track performance, measure interactions and optimize customer experience.",
   },
   {
     icon: FiShield,
-    title: "Báº£o máº­t doanh nghiá»‡p",
+    title: "Enterprise Security",
     description:
-      "MÃ£ hÃ³a cáº¥p ngÃ¢n hÃ ng vÃ  tuÃ¢n thá»§ cÃ¡c tiÃªu chuáº©n GDPR, SOC 2, ISO.",
+      "Bank-level encryption and compliance with GDPR, SOC 2, ISO standards.",
   },
   {
     icon: FiSmartphone,
-    title: "Tá»‘i Æ°u di Ä‘á»™ng",
+    title: "Mobile Optimized",
     description:
-      "Quáº£n lÃ½ doanh nghiá»‡p má»i lÃºc má»i nÆ¡i vá»›i dashboard responsive hoÃ n toÃ n.",
+      "Manage your business anytime, anywhere with fully responsive dashboard.",
   },
   {
     icon: FiGlobe,
-    title: "Háº¡ táº§ng toÃ n cáº§u",
+    title: "Global Infrastructure",
     description:
-      "Triá»ƒn khai trÃªn máº¡ng lÆ°á»›i edge toÃ n cáº§u Ä‘á»ƒ Ä‘áº£m báº£o tá»‘c Ä‘á»™ pháº£n há»“i nhanh chÃ³ng.",
+      "Deploy on global edge network to ensure fast response times.",
   },
 ];
 
@@ -78,17 +78,17 @@ export default function FeaturesSection() {
         <div className="grid md:grid-cols-2 gap-16 items-center mb-24">
           <div>
             <h2 className="text-indigo-600 font-semibold mb-2 tracking-wide uppercase text-sm">
-              Ná»n táº£ng thá»‘ng nháº¥t
+              Unified Platform
             </h2>
             <h3 className="text-4xl font-bold text-slate-900 mb-6">
-              Giáº£i phÃ¡p toÃ n diá»‡n cho <br />
-              chÄƒm sÃ³c khÃ¡ch hÃ ng tá»± Ä‘á»™ng
+              Comprehensive solution for <br />
+              automated customer care
             </h3>
             <p className="text-xl text-slate-600 leading-relaxed">
-              Giáº£m chi phÃ­, tÄƒng doanh thu vÃ  váº­n hÃ nh doanh nghiá»‡p hiá»‡u quáº£ hÆ¡n
-              vá»›i ná»n táº£ng AI tÃ­ch há»£p Ä‘áº§y Ä‘á»§. Sá»­ dá»¥ng WataOmi Ä‘á»ƒ quáº£n lÃ½ táº¥t cáº£
-              kÃªnh giao tiáº¿p, tá»± Ä‘á»™ng hÃ³a quy trÃ¬nh bÃ¡n hÃ ng vÃ  chÄƒm sÃ³c khÃ¡ch
-              hÃ ng 24/7.
+              Reduce costs, increase revenue and operate your business more efficiently
+              with the fully integrated AI platform. Use WataOmi to manage all
+              communication channels, automate sales processes and customer care
+              24/7.
             </p>
           </div>
           <div className="relative flex justify-center">
@@ -122,4 +122,3 @@ export default function FeaturesSection() {
     </section>
   );
 }
-

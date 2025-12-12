@@ -144,4 +144,3 @@ export class UsersController {
     return this.usersService.activate(id);
   }
 }
-

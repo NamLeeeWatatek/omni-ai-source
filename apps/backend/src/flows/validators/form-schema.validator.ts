@@ -174,4 +174,3 @@ export function sanitizeFormSchema(formSchema: any): any {
     })),
   };
 }
-

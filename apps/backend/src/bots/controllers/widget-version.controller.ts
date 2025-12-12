@@ -271,4 +271,3 @@ export class WidgetVersionController {
     );
   }
 }
-

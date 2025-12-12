@@ -21,7 +21,7 @@ const ICONS = {
   Facebook: 'SiFacebook',
   Instagram: 'SiInstagram',
   Music: 'FiMusic',
-  Share2: 'FiShare2'
+  Share2: 'FiShare2',
 } as const;
 
 @Injectable()
@@ -29,7 +29,7 @@ export class NodeTypeSeedService {
   constructor(
     @InjectRepository(NodeTypeEntity)
     private repository: Repository<NodeTypeEntity>,
-  ) { }
+  ) {}
 
   async run() {
     const nodeTypes = [
@@ -556,4 +556,3 @@ export class NodeTypeSeedService {
     }
   }
 }
-

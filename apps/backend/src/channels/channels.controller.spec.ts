@@ -16,4 +16,3 @@ describe('ChannelsController', () => {
     expect(controller).toBeDefined();
   });
 });
-

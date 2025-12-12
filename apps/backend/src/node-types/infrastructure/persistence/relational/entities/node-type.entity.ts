@@ -5,10 +5,7 @@
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import {
-  NodeCategoryId,
-  NodeProperty,
-} from '../../../../types';
+import { NodeCategoryId, NodeProperty } from '../../../../types';
 
 @Entity({ name: 'node_type' })
 export class NodeTypeEntity {
@@ -48,4 +45,3 @@ export class NodeTypeEntity {
   @UpdateDateColumn()
   updatedAt: Date;
 }
-

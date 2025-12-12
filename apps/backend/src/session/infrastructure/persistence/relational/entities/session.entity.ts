@@ -37,4 +37,3 @@ export class SessionEntity extends EntityRelationalHelper {
   @DeleteDateColumn()
   deletedAt: Date;
 }
-

@@ -32,4 +32,3 @@ export class SessionSchemaClass extends EntityDocumentHelper {
 export const SessionSchema = SchemaFactory.createForClass(SessionSchemaClass);
 
 SessionSchema.index({ user: 1 });
-

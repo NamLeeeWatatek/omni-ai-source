@@ -70,4 +70,3 @@ export class WorkspaceMember {
   @ApiProperty({ description: 'When user joined the workspace' })
   joinedAt: Date;
 }
-

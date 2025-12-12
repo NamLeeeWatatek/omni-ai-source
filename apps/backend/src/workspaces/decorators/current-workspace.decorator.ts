@@ -32,4 +32,3 @@ export const CurrentWorkspace = createParamDecorator(
     return request.defaultWorkspaceId;
   },
 );
-

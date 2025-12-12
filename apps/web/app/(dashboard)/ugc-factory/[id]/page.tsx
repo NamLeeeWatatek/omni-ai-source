@@ -15,6 +15,7 @@ import { UGCFactoryExecutionStatus } from '@/components/features/ugc-factory/UGC
 import { UGCFactoryResults } from '@/components/features/ugc-factory/UGCFactoryResults'
 import { UGCFactoryExecutionHistory } from '@/components/features/ugc-factory/UGCFactoryExecutionHistory'
 import { FiArrowLeft } from 'react-icons/fi'
+import { cn } from '@/lib/utils'
 
 // Inline selectors for flows state
 const selectFlowById = (id: string) => (state: RootState) => state.flows.currentFlow?.id === id ? state.flows.currentFlow : null
@@ -39,11 +40,17 @@ export default function UGCFactoryFlowPage() {
     const flowId = params.id as string
 
     // Local state
+    const [activeTab, setActiveTab] = useState<'form' | 'execution'>('form')
     const [formData, setFormData] = useState<Record<string, any>>({})
     const [executionStatus, setExecutionStatus] = useState<'idle' | 'running' | 'completed' | 'failed'>('idle')
     const [executionId, setExecutionId] = useState<string | null>(null)
     const [executionResult, setExecutionResult] = useState<any>(null)
     const [executionError, setExecutionError] = useState<string | null>(null)
+
+    const tabs = [
+        { id: 'form', label: 'Dynamic Form' },
+        { id: 'execution', label: 'Execution History' },
+    ]
 
     const dispatch = useAppDispatch()
 
@@ -136,6 +143,7 @@ export default function UGCFactoryFlowPage() {
     }
 
     const handleStartNew = () => {
+        console.log('🔄 Starting new execution - resetting formData to {}')
         setFormData({})
         setExecutionStatus('idle')
         setExecutionResult(null)
@@ -161,22 +169,42 @@ export default function UGCFactoryFlowPage() {
                 {/* Header */}
                 <div className="mb-6 flex items-center justify-between">
                     <div>
+                        <h1 className="text-3xl font-bold mb-2">{selectedFlow.name}</h1>
                         <p className="text-muted-foreground">{selectedFlow.description}</p>
                     </div>
-                    <Button variant="outline" onClick={handleBack}>
-                        <FiArrowLeft className="w-4 h-4 mr-2" />
-                        Back to UGC Factory
-                    </Button>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <UGCFactoryForm
-                        properties={flowProperties}
-                        formData={formData}
-                        onFormDataChange={setFormData}
-                        onSubmit={handleExecute}
-                    />
+                {/* Tabs */}
+                <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
+                    {tabs.map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as any)}
+                            className={cn(
+                                'px-6 py-2.5 rounded-full text-sm font-medium transition-all whitespace-nowrap',
+                                activeTab === tab.id
+                                    ? 'bg-primary text-primary-foreground shadow-sm'
+                                    : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+                            )}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
 
+                {/* Tab Content */}
+                {activeTab === 'form' && (
+                    <div className="max-w-4xl">
+                        <UGCFactoryForm
+                            properties={flowProperties}
+                            formData={formData}
+                            onFormDataChange={setFormData}
+                            onSubmit={handleExecute}
+                        />
+                    </div>
+                )}
+
+                {activeTab === 'execution' && (
                     <div className="space-y-6">
                         <UGCFactoryExecutionStatus
                             status={executionStatus}
@@ -193,7 +221,7 @@ export default function UGCFactoryFlowPage() {
                             onStartNew={handleStartNew}
                         />
                     </div>
-                </div>
+                )}
             </div>
         </div>
     )

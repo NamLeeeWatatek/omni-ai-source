@@ -9,4 +9,3 @@ import { PermissionEntity } from '../../../../permissions/infrastructure/persist
   exports: [PermissionSeedService],
 })
 export class PermissionSeedModule {}
-

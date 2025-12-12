@@ -105,7 +105,9 @@ export class WebhooksController {
   @ApiOperation({ summary: 'Verify Facebook webhook' })
   async verifyFacebookWebhook(@Query() query: any, @Req() req: Request) {
     // Log cá»±c chi tiáº¿t Ä‘á»ƒ báº¯t 100% request tá»« Facebook
-    this.logger.log('â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•');
+    this.logger.log(
+      'â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•',
+    );
     this.logger.log('[FACEBOOK VERIFY] ÄÃƒ CÃ“ REQUEST VÃ€O');
     this.logger.log(
       `IP gá»i tá»›i       : ${req.ip} | ${req.headers['x-forwarded-for'] || 'no forward'}`,
@@ -118,7 +120,9 @@ export class WebhooksController {
     this.logger.log(`hub.mode         : ${query['hub.mode']}`);
     this.logger.log(`hub.verify_token : "${query['hub.verify_token']}"`);
     this.logger.log(`hub.challenge    : ${query['hub.challenge']}`);
-    this.logger.log('â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•');
+    this.logger.log(
+      'â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•',
+    );
 
     const mode = query['hub.mode'];
     const token = query['hub.verify_token'];
@@ -149,7 +153,9 @@ export class WebhooksController {
 
       if (!expectedToken) {
         this.logger.error('VERIFY TOKEN CHÆ¯A ÄÆ¯á»¢C Cáº¤U HÃŒNH!');
-        this.logger.error('â†’ Vui lÃ²ng setup Facebook App trong Channels page');
+        this.logger.error(
+          'â†’ Vui lÃ²ng setup Facebook App trong Channels page',
+        );
         return 'Forbidden';
       }
 
@@ -314,7 +320,9 @@ export class WebhooksController {
           '   1. Reconnect Facebook channel to save credentials in database',
         );
         this.logger.error('   2. Set FACEBOOK_APP_SECRET in .env file');
-        this.logger.warn('âš ï¸ Signature verification skipped - SECURITY RISK!');
+        this.logger.warn(
+          'âš ï¸ Signature verification skipped - SECURITY RISK!',
+        );
         // In development, allow webhooks without verification
         // In production, this should return false
         const allowInDev = process.env.NODE_ENV !== 'production';
@@ -426,7 +434,10 @@ export class WebhooksController {
       }
 
       this.logger.log(`ðŸ“± Channel found: ${channel.name} (${channel.id})`);
-      this.logger.log(`ðŸ“± Channel metadata:`, JSON.stringify(channel.metadata));
+      this.logger.log(
+        `ðŸ“± Channel metadata:`,
+        JSON.stringify(channel.metadata),
+      );
 
       const botId = channel.metadata?.botId as string | undefined;
 
@@ -700,4 +711,3 @@ export class WebhooksController {
     }
   }
 }
-

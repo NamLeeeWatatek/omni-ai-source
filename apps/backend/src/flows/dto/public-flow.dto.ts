@@ -146,8 +146,6 @@ export class PublicFlowDto {
   @Expose()
   status: string;
 
-
-
   // formSchema removed - use NodeType.properties instead
 
   @ApiProperty({ description: 'Creation timestamp' })
@@ -278,4 +276,3 @@ export class UGCTemplateDto {
   @Expose()
   usageCount?: number;
 }
-

@@ -72,4 +72,3 @@ export class DataAccessLogEntity extends EntityRelationalHelper {
   @Index()
   createdAt: Date;
 }
-

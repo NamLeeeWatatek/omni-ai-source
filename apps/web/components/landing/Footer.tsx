@@ -19,31 +19,31 @@ export default function Footer() {
             </p>
           </div>
           <div>
-            <h4 className="font-bold text-slate-900 mb-4">Sáº£n pháº©m</h4>
+            <h4 className="font-bold text-slate-900 mb-4">Product</h4>
             <ul className="space-y-3 text-sm text-slate-600">
               <li>
                 <a href="#" className="hover:text-indigo-600 transition-colors">
-                  TÃ­nh nÄƒng
+                  Features
                 </a>
               </li>
               <li>
                 <a href="#" className="hover:text-indigo-600 transition-colors">
-                  Báº£ng giÃ¡
+                  Pricing
                 </a>
               </li>
               <li>
                 <a href="#" className="hover:text-indigo-600 transition-colors">
-                  TÃ­ch há»£p
+                  Integrations
                 </a>
               </li>
             </ul>
           </div>
           <div>
-            <h4 className="font-bold text-slate-900 mb-4">TÃ i nguyÃªn</h4>
+            <h4 className="font-bold text-slate-900 mb-4">Resources</h4>
             <ul className="space-y-3 text-sm text-slate-600">
               <li>
                 <a href="#" className="hover:text-indigo-600 transition-colors">
-                  TÃ i liá»‡u
+                  Documentation
                 </a>
               </li>
               <li>
@@ -53,17 +53,17 @@ export default function Footer() {
               </li>
               <li>
                 <a href="#" className="hover:text-indigo-600 transition-colors">
-                  Cá»™ng Ä‘á»“ng
+                  Community
                 </a>
               </li>
             </ul>
           </div>
           <div>
-            <h4 className="font-bold text-slate-900 mb-4">CÃ´ng ty</h4>
+            <h4 className="font-bold text-slate-900 mb-4">Company</h4>
             <ul className="space-y-3 text-sm text-slate-600">
               <li>
                 <a href="#" className="hover:text-indigo-600 transition-colors">
-                  Vá» chÃºng tÃ´i
+                  About Us
                 </a>
               </li>
               <li>
@@ -73,7 +73,7 @@ export default function Footer() {
               </li>
               <li>
                 <a href="#" className="hover:text-indigo-600 transition-colors">
-                  LiÃªn há»‡
+                  Contact
                 </a>
               </li>
             </ul>
@@ -86,4 +86,3 @@ export default function Footer() {
     </footer>
   );
 }
-

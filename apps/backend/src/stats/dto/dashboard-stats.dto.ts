@@ -128,4 +128,3 @@ export class DashboardStatsDto {
   @ApiProperty({ example: '2025-11-30T16:29:20.000Z' })
   generatedAt: Date;
 }
-

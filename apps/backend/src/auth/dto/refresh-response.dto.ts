@@ -10,4 +10,3 @@ export class RefreshResponseDto {
   @ApiProperty()
   tokenExpires: number;
 }
-

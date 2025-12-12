@@ -27,4 +27,3 @@ import { WorkspaceContextMiddleware } from './middleware/workspace-context.middl
   ],
 })
 export class WorkspacesModule {}
-

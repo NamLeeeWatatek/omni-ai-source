@@ -63,4 +63,3 @@ export class NodeExecutionEntity extends EntityRelationalHelper {
   @UpdateDateColumn()
   updatedAt: Date;
 }
-

@@ -19,4 +19,3 @@ import { UsersDocumentRepository } from './repositories/user.repository';
   exports: [UserRepository],
 })
 export class DocumentUserPersistenceModule {}
-

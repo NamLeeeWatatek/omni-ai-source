@@ -6,4 +6,3 @@ export class StatusDto {
   @IsNumber()
   id: number | string;
 }
-

@@ -10,4 +10,3 @@ export class HomeService {
     return { name: this.configService.get('app.name', { infer: true }) };
   }
 }
-

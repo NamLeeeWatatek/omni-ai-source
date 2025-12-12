@@ -39,4 +39,3 @@ export class CreateCredentialDto {
   @IsBoolean()
   isActive?: boolean;
 }
-

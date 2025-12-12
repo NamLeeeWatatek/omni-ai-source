@@ -122,4 +122,3 @@ export class PublicWidgetController {
     res.send(styles);
   }
 }
-

@@ -1,5 +1,4 @@
-﻿
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { NodeCategory, NodeType } from './types';
 import { NodeTypeRepository } from './infrastructure/persistence/node-type.repository';
 // Import proper domain type for return and usage
@@ -7,9 +6,7 @@ import { NodeType as NodeTypeDomain } from './domain/node-type';
 
 @Injectable()
 export class NodeTypesService {
-  constructor(
-    private readonly nodeTypeRepository: NodeTypeRepository,
-  ) { }
+  constructor(private readonly nodeTypeRepository: NodeTypeRepository) {}
 
   private readonly categories: NodeCategory[] = [
     { id: 'trigger', label: 'Triggers', color: '#4CAF50' },
@@ -47,7 +44,9 @@ export class NodeTypesService {
     }
   }
 
-  async create(data: Omit<NodeTypeDomain, 'createdAt' | 'updatedAt'>): Promise<NodeTypeDomain> {
+  async create(
+    data: Omit<NodeTypeDomain, 'createdAt' | 'updatedAt'>,
+  ): Promise<NodeTypeDomain> {
     return this.nodeTypeRepository.create(data);
   }
 
@@ -66,4 +65,3 @@ export class NodeTypesService {
     return this.nodeTypeRepository.remove(id);
   }
 }
-

@@ -44,13 +44,16 @@ export function useAuth() {
     }
   }, [accessToken, dispatch]);
 
-  // Handle refresh token error - auto logout
+  // Handle refresh token error - auto logout immediately
   useEffect(() => {
     if (error === "RefreshAccessTokenError") {
-      console.log('[Auth] âš ï¸ Refresh token expired, logging out...');
-      nextAuthSignOut({ redirect: false }).then(() => {
-        router.push("/login?error=session_expired");
-      });
+      console.log('[Auth] 🚨 Refresh token failed, forcing immediate logout...');
+      // Clear any loading states and force logout
+      setTimeout(() => {
+        nextAuthSignOut({ redirect: false }).then(() => {
+          router.push("/login?error=session_expired");
+        });
+      }, 100); // Small delay to ensure UI updates properly
     }
   }, [error, router]);
 
@@ -84,4 +87,3 @@ export function useAuth() {
     signOut,
   };
 }
-

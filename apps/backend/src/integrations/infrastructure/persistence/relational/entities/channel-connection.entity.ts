@@ -63,4 +63,3 @@ export class ChannelConnectionEntity extends EntityRelationalHelper {
   @UpdateDateColumn()
   updatedAt: Date;
 }
-

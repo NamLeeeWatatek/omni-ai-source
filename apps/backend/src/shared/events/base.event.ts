@@ -16,4 +16,3 @@ export abstract class BaseEvent {
 
   abstract get eventName(): string;
 }
-

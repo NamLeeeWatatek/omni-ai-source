@@ -74,4 +74,3 @@ export class ChannelsModule implements OnModuleInit {
     this.strategy.register('omi', this.omiProvider);
   }
 }
-

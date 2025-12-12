@@ -149,4 +149,3 @@ export class ConversationMessagesResponseDto {
   @ApiProperty({ description: 'List of messages', type: [MessageResponseDto] })
   messages: MessageResponseDto[];
 }
-

@@ -79,4 +79,3 @@ export class CreateBotFunctionDto {
   @IsObject()
   outputSchema?: Record<string, any>;
 }
-

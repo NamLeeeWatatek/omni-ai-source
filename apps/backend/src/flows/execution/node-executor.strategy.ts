@@ -24,4 +24,3 @@ export class NodeExecutorStrategy {
     return executor.execute(input);
   }
 }
-

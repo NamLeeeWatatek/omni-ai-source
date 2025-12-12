@@ -38,4 +38,3 @@ export const AppDataSource = new DataSource({
         : undefined,
   },
 } as DataSourceOptions);
-

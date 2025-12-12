@@ -10,4 +10,3 @@ import { UserEntity } from '../../../../users/infrastructure/persistence/relatio
   exports: [FlowSeedService],
 })
 export class FlowSeedModule {}
-

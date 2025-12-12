@@ -16,4 +16,3 @@ describe('ChannelsService', () => {
     expect(service).toBeDefined();
   });
 });
-

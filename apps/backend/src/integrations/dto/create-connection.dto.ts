@@ -32,4 +32,3 @@ export class CreateConnectionDto {
   @IsOptional()
   metadata?: Record<string, any>;
 }
-

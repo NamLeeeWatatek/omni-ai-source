@@ -62,4 +62,3 @@ export class DataAccessLog {
   @ApiProperty()
   createdAt: Date;
 }
-

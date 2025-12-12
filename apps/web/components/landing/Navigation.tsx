@@ -39,7 +39,7 @@ export default function Navigation({ scrolled }: NavigationProps) {
                 scrolled ? "text-slate-600" : "text-white/90"
               }`}
             >
-              TÃ­nh nÄƒng
+              Features
             </a>
             <a
               href="#pricing"
@@ -47,7 +47,7 @@ export default function Navigation({ scrolled }: NavigationProps) {
                 scrolled ? "text-slate-600" : "text-white/90"
               }`}
             >
-              Báº£ng giÃ¡
+              Pricing
             </a>
             <a
               href="#"
@@ -55,7 +55,7 @@ export default function Navigation({ scrolled }: NavigationProps) {
                 scrolled ? "text-slate-600" : "text-white/90"
               }`}
             >
-              TÃ i liá»‡u
+              Documentation
             </a>
             <Link href="/dashboard">
               <Button
@@ -63,7 +63,7 @@ export default function Navigation({ scrolled }: NavigationProps) {
                 size="sm"
                 className={scrolled ? "text-slate-700" : "text-white hover:bg-white/10"}
               >
-                ÄÄƒng nháº­p
+                Login
               </Button>
             </Link>
             <Link href="/dashboard">
@@ -75,7 +75,7 @@ export default function Navigation({ scrolled }: NavigationProps) {
                     : "bg-white text-primary hover:bg-white/90"
                 }
               >
-                Báº¯t Ä‘áº§u
+                Start
                 <FiArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </Link>
@@ -85,4 +85,3 @@ export default function Navigation({ scrolled }: NavigationProps) {
     </nav>
   );
 }
-

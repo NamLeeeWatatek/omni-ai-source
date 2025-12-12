@@ -33,4 +33,3 @@ export class WebhookEventEntity extends EntityRelationalHelper {
   @Index()
   receivedAt: Date;
 }
-

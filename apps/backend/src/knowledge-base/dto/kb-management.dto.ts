@@ -44,6 +44,16 @@ export class CreateKnowledgeBaseDto {
   embeddingModel?: string;
 
   @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  aiProviderId?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  ragModel?: string;
+
+  @ApiPropertyOptional()
   @IsInt()
   @Min(100)
   @IsOptional()
@@ -94,6 +104,16 @@ export class UpdateKnowledgeBaseDto {
   embeddingModel?: string;
 
   @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  aiProviderId?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  ragModel?: string;
+
+  @ApiPropertyOptional()
   @IsInt()
   @Min(100)
   @IsOptional()
@@ -142,4 +162,3 @@ export class AssignAgentDto {
   @IsOptional()
   ragSettings?: Record<string, any>;
 }
-

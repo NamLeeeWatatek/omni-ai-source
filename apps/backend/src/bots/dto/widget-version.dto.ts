@@ -238,4 +238,3 @@ export class WidgetVersionAnalyticsDto {
   @ApiProperty()
   uniqueDomains: number;
 }
-

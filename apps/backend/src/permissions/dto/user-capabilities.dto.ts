@@ -91,4 +91,3 @@ export class UserCapabilitiesDto {
     is_super_admin: boolean;
   };
 }
-

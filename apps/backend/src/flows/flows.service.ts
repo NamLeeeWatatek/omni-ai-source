@@ -11,7 +11,13 @@ import { CreateFlowDto } from './dto/create-flow.dto';
 import { UpdateFlowDto } from './dto/update-flow.dto';
 import { CreateFlowFromTemplateDto } from './dto/create-flow-from-template.dto';
 import { generateFormSchemaFromNodes } from './utils/form-schema-generator';
-import { Flow, FlowCreateData, FlowStatus, FlowVisibility, FlowUpdateData } from './domain/flow';
+import {
+  Flow,
+  FlowCreateData,
+  FlowStatus,
+  FlowVisibility,
+  FlowUpdateData,
+} from './domain/flow';
 
 @Injectable()
 export class FlowsService {
@@ -19,7 +25,7 @@ export class FlowsService {
     private readonly flowRepository: FlowRepository,
     @InjectRepository(FlowVersionEntity)
     private readonly versionRepository: Repository<FlowVersionEntity>,
-  ) { }
+  ) {}
 
   async create(createDto: CreateFlowDto, ownerId: string): Promise<Flow> {
     const flowData: FlowCreateData = {
@@ -71,18 +77,25 @@ export class FlowsService {
 
     // Add other fields
     if (updateDto.name !== undefined) updateData.name = updateDto.name;
-    if (updateDto.description !== undefined) updateData.description = updateDto.description;
-    if (updateDto.status !== undefined) updateData.status = updateDto.status as FlowStatus;
+    if (updateDto.description !== undefined)
+      updateData.description = updateDto.description;
+    if (updateDto.status !== undefined)
+      updateData.status = updateDto.status as FlowStatus;
     if (updateDto.version !== undefined) updateData.version = updateDto.version;
-    if (updateDto.visibility !== undefined) updateData.visibility = updateDto.visibility as FlowVisibility;
+    if (updateDto.visibility !== undefined)
+      updateData.visibility = updateDto.visibility as FlowVisibility;
     if (updateDto.tags !== undefined) updateData.tags = updateDto.tags;
-    if (updateDto.category !== undefined) updateData.category = updateDto.category;
+    if (updateDto.category !== undefined)
+      updateData.category = updateDto.category;
     if (updateDto.teamId !== undefined) updateData.teamId = updateDto.teamId;
 
     // ðŸ”„ Sync published field with status
     if (updateDto.published === true && updateData.status !== 'published') {
       updateData.status = 'published';
-    } else if (updateDto.published === false && updateData.status === 'published') {
+    } else if (
+      updateDto.published === false &&
+      updateData.status === 'published'
+    ) {
       updateData.status = 'draft';
     }
 
@@ -93,7 +106,10 @@ export class FlowsService {
     await this.flowRepository.remove(id);
   }
 
-  async createFromTemplate(dto: CreateFlowFromTemplateDto, ownerId: string): Promise<Flow> {
+  async createFromTemplate(
+    dto: CreateFlowFromTemplateDto,
+    ownerId: string,
+  ): Promise<Flow> {
     // Find source flow (any published flow can be used as template)
     const sourceFlow = await this.findOne(dto.templateId);
 
@@ -196,4 +212,3 @@ export class FlowsService {
 
   // Note: UGC flows are now filtered client-side from all flows
 }
-

@@ -174,5 +174,6 @@ export type FlowCreateData = {
   icon?: string | null;
   teamId?: string | null;
 };
-export type FlowUpdateData = Partial<Omit<Flow, 'id' | 'createdAt' | 'updatedAt' | 'ownerId'>>;
-
+export type FlowUpdateData = Partial<
+  Omit<Flow, 'id' | 'createdAt' | 'updatedAt' | 'ownerId'>
+>;

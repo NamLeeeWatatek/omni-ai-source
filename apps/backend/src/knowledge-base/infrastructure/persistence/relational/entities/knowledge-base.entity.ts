@@ -42,6 +42,13 @@ export class KnowledgeBaseEntity extends EntityRelationalHelper {
   })
   embeddingModel: string;
 
+  @Column({ name: 'ai_provider_id', type: 'uuid', nullable: true })
+  @Index()
+  aiProviderId?: string | null;
+
+  @Column({ name: 'rag_model', type: String, nullable: true })
+  ragModel?: string | null;
+
   @Column({ name: 'similarity_threshold', type: 'float', default: 0.7 })
   similarityThreshold: number;
 
@@ -333,4 +340,3 @@ export class RagFeedbackEntity extends EntityRelationalHelper {
 export const KnowledgeBaseFolderEntity = KbFolderEntity;
 export const KnowledgeBaseDocumentEntity = KbDocumentEntity;
 export const AgentKnowledgeBaseEntity = RagFeedbackEntity;
-
