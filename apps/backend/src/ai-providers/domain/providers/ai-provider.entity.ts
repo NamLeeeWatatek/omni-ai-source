@@ -188,9 +188,11 @@ export class AiProvider implements IAiProvider {
     // Only certain providers/models support function calling
     switch (this.key) {
       case ProviderKey.OPENAI:
-        return model ? ['gpt-4', 'gpt-4-turbo', 'gpt-4o', 'gpt-3.5-turbo'].some(m =>
-          model.includes(m)
-        ) : true;
+        return model
+          ? ['gpt-4', 'gpt-4-turbo', 'gpt-4o', 'gpt-3.5-turbo'].some((m) =>
+              model.includes(m),
+            )
+          : true;
 
       case ProviderKey.ANTHROPIC:
         return true;

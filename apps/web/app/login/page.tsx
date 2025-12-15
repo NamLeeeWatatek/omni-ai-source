@@ -4,12 +4,14 @@ import { Button } from '@/components/ui/Button'
 import { MdAutoAwesome, MdCheckCircle, MdArrowBack } from 'react-icons/md'
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { LoadingLogo } from '@/components/ui/LoadingLogo'
 
 function LoginPageContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const { t } = useTranslation()
     const { isAuthenticated, isLoading } = useAuth()
 
     // âœ… State for errors from user actions (not from URL)
@@ -26,9 +28,9 @@ function LoginPageContent() {
         const urlError = searchParams.get('error')
         if (urlError) {
             const errorMessages: Record<string, string> = {
-                'no_code': 'No authorization code received from Casdoor',
-                'signin_failed': 'Failed to sign in. Please try again.',
-                'auth_failed': 'Authentication failed. Please try again.',
+                'no_code': t('login.errors.noCode'),
+                'signin_failed': t('login.errors.signinFailed'),
+                'auth_failed': t('login.errors.authFailed'),
             }
             const message = errorMessages[urlError] || decodeURIComponent(urlError)
             setUserActionError(message)
@@ -37,7 +39,7 @@ function LoginPageContent() {
             window.history.replaceState({}, '', '/login')
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []) // Only run once on mount
+    }, [t]) // Only run once on mount
 
     // âœ… Display error from user actions
     const configError = userActionError
@@ -45,7 +47,7 @@ function LoginPageContent() {
     if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background force-light">
-                <LoadingLogo size="lg" text="Please wait..." />
+                <LoadingLogo size="lg" text={t('login.pleaseWait')} />
             </div>
         )
     }
@@ -53,7 +55,7 @@ function LoginPageContent() {
     if (isAuthenticated) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background force-light">
-                <LoadingLogo size="lg" text="Redirecting..." />
+                <LoadingLogo size="lg" text={t('login.redirecting')} />
             </div>
         )
     }
@@ -111,7 +113,7 @@ function LoginPageContent() {
             }
 
             if (!casdoorLoginUrl || casdoorLoginUrl === 'undefined') {
-                setUserActionError('Casdoor is not properly configured. Please check your environment variables.')
+                setUserActionError(t('login.errors.casdoorConfig'))
                 return
             }
 
@@ -120,7 +122,7 @@ function LoginPageContent() {
             window.location.href = casdoorLoginUrl
         } catch (error: any) {
             console.error('Login error:', error);
-            setUserActionError(error.message || 'Failed to initialize Casdoor login. Please check the console for details.')
+            setUserActionError(error.message || t('login.errors.loginInitFailed'))
         }
     }
 
@@ -142,8 +144,8 @@ function LoginPageContent() {
                         <h1 className="text-3xl font-bold mb-2">
                             <span className="gradient-text">WataOmi</span>
                         </h1>
-                        <p className="text-muted-foreground">
-                            AI-Powered Omnichannel Platform
+                        <p className="text-muted-foreground" suppressHydrationWarning>
+                            {t('login.title')}
                         </p>
                     </div>
 
@@ -151,15 +153,16 @@ function LoginPageContent() {
                         <Button
                             onClick={handleLogin}
                             className="btn-primary btn-lg w-full"
+                            suppressHydrationWarning
                         >
-                            Sign in with Casdoor
+                            {t('login.signInWithCasdoor')}
                         </Button>
 
-                        <p className="text-xs text-center text-muted-foreground">
-                            By signing in, you agree to our{' '}
-                            <a href="#" className="text-primary hover:underline">Terms of Service</a>
-                            {' '}and{' '}
-                            <a href="#" className="text-primary hover:underline">Privacy Policy</a>
+                        <p className="text-xs text-center text-muted-foreground" suppressHydrationWarning>
+                            {t('login.termsAgreement')}{' '}
+                            <a href="#" className="text-primary hover:underline">{t('login.termsOfService')}</a>
+                            {' '}{t('login.and')}{' '}
+                            <a href="#" className="text-primary hover:underline">{t('login.privacyPolicy')}</a>
                         </p>
                     </div>
 
@@ -167,14 +170,15 @@ function LoginPageContent() {
                     <div className="mt-8 pt-6 divider">
                         <div className="grid gap-3">
                             {[
-                                'AI-powered workflow automation',
-                                'Omnichannel messaging',
-                                'Advanced analytics & insights'
+                                t('login.features.aiWorkflow'),
+                                t('login.features.omnichannel'),
+                                t('login.features.analytics')
                             ].map((feature, i) => (
                                 <div
                                     key={i}
                                     className="flex items-center gap-3 text-sm text-muted-foreground fade-in"
                                     style={{ animationDelay: `${i * 100}ms` }}
+                                    suppressHydrationWarning
                                 >
                                     <div className="w-5 h-5 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0">
                                         <MdCheckCircle className="w-4 h-4 text-success" />
@@ -187,9 +191,9 @@ function LoginPageContent() {
 
                     { }
                     <div className="mt-6 text-center">
-                        <a href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
+                        <a href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors" suppressHydrationWarning>
                             <MdArrowBack className="w-4 h-4" />
-                            Back to home
+                            {t('login.backToHome')}
                         </a>
                     </div>
                 </div>
@@ -199,14 +203,15 @@ function LoginPageContent() {
 }
 
 export default function LoginPage() {
+    const { t } = useTranslation()
+
     return (
         <Suspense fallback={
             <div className="min-h-screen flex items-center justify-center bg-background force-light">
-                <LoadingLogo size="lg" text="Loading..." />
+                <LoadingLogo size="lg" text={t('login.loading')} />
             </div>
         }>
             <LoginPageContent />
         </Suspense>
     )
 }
-

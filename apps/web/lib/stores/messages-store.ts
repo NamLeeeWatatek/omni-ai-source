@@ -1,175 +1,139 @@
-﻿import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import { immer } from 'zustand/middleware/immer';
+import { create } from 'zustand';
 
 export interface Message {
   id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: 'user' | 'assistant';
   content: string;
-  createdAt: string;
   conversationId: string;
+  createdAt: string;
 }
 
 interface MessagesState {
-  // Messages grouped by conversation
-  messagesByConversation: Record<string, Message[]>;
-  
+  // Messages per conversation
+  messages: Record<string, Message[]>;
+
   // Loading states
-  loading: Record<string, boolean>;
+  isLoading: Record<string, boolean>;
   loadingMore: Record<string, boolean>;
-  
-  // Pagination
+
+  // State management
   hasMore: Record<string, boolean>;
-  oldestMessageId: Record<string, string | null>;
-  
+  oldestMessageId: Record<string, string>;
+  error: Record<string, string>;
+
   // Actions
+  getMessages: (conversationId: string) => Message[];
   setMessages: (conversationId: string, messages: Message[]) => void;
   prependMessages: (conversationId: string, messages: Message[]) => void;
   appendMessage: (conversationId: string, message: Message) => void;
   removeMessage: (conversationId: string, messageId: string) => void;
-  updateMessage: (conversationId: string, messageId: string, updates: Partial<Message>) => void;
-  
+
   setLoading: (conversationId: string, loading: boolean) => void;
   setLoadingMore: (conversationId: string, loading: boolean) => void;
   setHasMore: (conversationId: string, hasMore: boolean) => void;
-  setOldestMessageId: (conversationId: string, messageId: string | null) => void;
-  
-  clearConversation: (conversationId: string) => void;
-  clearAll: () => void;
-  
-  // Getters
-  getMessages: (conversationId: string) => Message[];
-  getLastMessage: (conversationId: string) => Message | null;
-  isLoading: (conversationId: string) => boolean;
+  setOldestMessageId: (conversationId: string, id: string) => void;
+  setError: (conversationId: string, error: string) => void;
 }
 
-export const useMessagesStore = create<MessagesState>()(
-  persist(
-    immer((set, get) => ({
-      messagesByConversation: {},
-      loading: {},
-      loadingMore: {},
-      hasMore: {},
-      oldestMessageId: {},
+export const useMessagesStore = create<MessagesState>((set, get) => ({
+  messages: {},
+  isLoading: {},
+  loadingMore: {},
+  hasMore: {},
+  oldestMessageId: {},
+  error: {},
 
-      // Set all messages for a conversation (initial load)
-      setMessages: (conversationId, messages) =>
-        set((state) => {
-          state.messagesByConversation[conversationId] = messages;
-          if (messages.length > 0) {
-            state.oldestMessageId[conversationId] = messages[0].id;
-          }
-        }),
+  getMessages: (conversationId: string) => {
+    return get().messages[conversationId] || [];
+  },
 
-      // Prepend older messages (load more)
-      prependMessages: (conversationId, messages) =>
-        set((state) => {
-          const existing = state.messagesByConversation[conversationId] || [];
-          state.messagesByConversation[conversationId] = [...messages, ...existing];
-          if (messages.length > 0) {
-            state.oldestMessageId[conversationId] = messages[0].id;
-          }
-        }),
-
-      // Append new message (realtime or send)
-      appendMessage: (conversationId, message) =>
-        set((state) => {
-          const existing = state.messagesByConversation[conversationId] || [];
-          // Check for duplicates
-          if (!existing.find((m) => m.id === message.id)) {
-            state.messagesByConversation[conversationId] = [...existing, message];
-          }
-        }),
-
-      // Remove message (delete or failed send)
-      removeMessage: (conversationId, messageId) =>
-        set((state) => {
-          const existing = state.messagesByConversation[conversationId] || [];
-          state.messagesByConversation[conversationId] = existing.filter(
-            (m) => m.id !== messageId
-          );
-        }),
-
-      // Update message (edit, status change)
-      updateMessage: (conversationId, messageId, updates) =>
-        set((state) => {
-          const messages = state.messagesByConversation[conversationId] || [];
-          const index = messages.findIndex((m) => m.id === messageId);
-          if (index !== -1) {
-            state.messagesByConversation[conversationId][index] = {
-              ...messages[index],
-              ...updates,
-            };
-          }
-        }),
-
-      setLoading: (conversationId, loading) =>
-        set((state) => {
-          state.loading[conversationId] = loading;
-        }),
-
-      setLoadingMore: (conversationId, loading) =>
-        set((state) => {
-          state.loadingMore[conversationId] = loading;
-        }),
-
-      setHasMore: (conversationId, hasMore) =>
-        set((state) => {
-          state.hasMore[conversationId] = hasMore;
-        }),
-
-      setOldestMessageId: (conversationId, messageId) =>
-        set((state) => {
-          state.oldestMessageId[conversationId] = messageId;
-        }),
-
-      clearConversation: (conversationId) =>
-        set((state) => {
-          delete state.messagesByConversation[conversationId];
-          delete state.loading[conversationId];
-          delete state.loadingMore[conversationId];
-          delete state.hasMore[conversationId];
-          delete state.oldestMessageId[conversationId];
-        }),
-
-      clearAll: () =>
-        set((state) => {
-          state.messagesByConversation = {};
-          state.loading = {};
-          state.loadingMore = {};
-          state.hasMore = {};
-          state.oldestMessageId = {};
-        }),
-
-      // Getters
-      getMessages: (conversationId) => {
-        return get().messagesByConversation[conversationId] || [];
+  setMessages: (conversationId: string, messages: Message[]) => {
+    set((state) => ({
+      messages: {
+        ...state.messages,
+        [conversationId]: messages,
       },
+    }));
+  },
 
-      getLastMessage: (conversationId) => {
-        const messages = get().messagesByConversation[conversationId] || [];
-        return messages.length > 0 ? messages[messages.length - 1] : null;
+  prependMessages: (conversationId: string, messages: Message[]) => {
+    set((state) => {
+      const currentMessages = state.messages[conversationId] || [];
+      return {
+        messages: {
+          ...state.messages,
+          [conversationId]: [...messages, ...currentMessages],
+        },
+      };
+    });
+  },
+
+  appendMessage: (conversationId: string, message: Message) => {
+    set((state) => {
+      const currentMessages = state.messages[conversationId] || [];
+      return {
+        messages: {
+          ...state.messages,
+          [conversationId]: [...currentMessages, message],
+        },
+      };
+    });
+  },
+
+  removeMessage: (conversationId: string, messageId: string) => {
+    set((state) => {
+      const currentMessages = state.messages[conversationId] || [];
+      return {
+        messages: {
+          ...state.messages,
+          [conversationId]: currentMessages.filter((msg) => msg.id !== messageId),
+        },
+      };
+    });
+  },
+
+  setLoading: (conversationId: string, loading: boolean) => {
+    set((state) => ({
+      isLoading: {
+        ...state.isLoading,
+        [conversationId]: loading,
       },
+    }));
+  },
 
-      isLoading: (conversationId) => {
-        return get().loading[conversationId] || false;
+  setLoadingMore: (conversationId: string, loading: boolean) => {
+    set((state) => ({
+      loadingMore: {
+        ...state.loadingMore,
+        [conversationId]: loading,
       },
-    })),
-    {
-      name: 'messages-storage',
-      storage: createJSONStorage(() => localStorage),
-      // Only persist messages, not loading states
-      partialize: (state) => ({
-        messagesByConversation: Object.fromEntries(
-          Object.entries(state.messagesByConversation).map(([id, msgs]) => [
-            id,
-            msgs.slice(-500), // Keep last 500 messages per conversation
-          ])
-        ),
-        oldestMessageId: state.oldestMessageId,
-        hasMore: state.hasMore,
-      }),
-    }
-  )
-);
+    }));
+  },
 
+  setHasMore: (conversationId: string, hasMore: boolean) => {
+    set((state) => ({
+      hasMore: {
+        ...state.hasMore,
+        [conversationId]: hasMore,
+      },
+    }));
+  },
+
+  setOldestMessageId: (conversationId: string, id: string) => {
+    set((state) => ({
+      oldestMessageId: {
+        ...state.oldestMessageId,
+        [conversationId]: id,
+      },
+    }));
+  },
+
+  setError: (conversationId: string, error: string) => {
+    set((state) => ({
+      error: {
+        ...state.error,
+        [conversationId]: error,
+      },
+    }));
+  },
+}));

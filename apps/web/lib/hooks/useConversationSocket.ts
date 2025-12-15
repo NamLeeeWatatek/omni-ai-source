@@ -1,5 +1,13 @@
-﻿import { useEffect, useRef, useCallback } from 'react';
-import { io, Socket } from 'socket.io-client';
+﻿// DEPRECATED: Use useConversationsSocket instead
+// This hook is replaced by the unified useConversationsSocket which uses the base socket connection hook
+// for better maintainability and consistency.
+//
+// Migration: Replace useConversationSocket with useConversationsSocket
+// Old: useConversationSocket({ conversationId, onNewMessage, enabled })
+// New: useConversationsSocket({ onNewMessage, enabled }); then call joinConversation(conversationId)
+
+import { useConversationsSocket } from './useConversationsSocket';
+import { useEffect, useRef } from 'react';
 
 interface UseConversationSocketOptions {
     conversationId: string;
@@ -8,65 +16,57 @@ interface UseConversationSocketOptions {
 }
 
 /**
- * Custom hook for WebSocket connection to a conversation
- * Automatically connects, joins room, and handles reconnection
+ * @deprecated Use useConversationsSocket instead
+ * This hook is kept for backward compatibility but will be removed in future versions
  */
 export function useConversationSocket({
     conversationId,
     onNewMessage,
     enabled = true,
 }: UseConversationSocketOptions) {
-    const socketRef = useRef<Socket | null>(null);
-    const isConnectedRef = useRef(false);
+    const messageHandlerRef = useRef(onNewMessage);
 
-    const connect = useCallback(() => {
-        if (!enabled || !conversationId) return;
+    useEffect(() => {
+        messageHandlerRef.current = onNewMessage;
+    }, [onNewMessage]);
 
-        // Remove /api/v1 suffix from API URL for WebSocket connection
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const backendUrl = apiUrl.replace(/\/api\/v1$/, '');
+    const {
+        socket,
+        isConnected,
+        joinConversation,
+        leaveConversation,
+        isConnecting,
+        error,
+    } = useConversationsSocket({
+        onNewMessage: (message) => messageHandlerRef.current(message),
+        enabled,
+    });
 
-        // Create socket connection
-        const socket = io(`${backendUrl}/conversations`, {
-            transports: ['websocket', 'polling'],
-            reconnection: true,
-            reconnectionDelay: 1000,
-            reconnectionAttempts: 5,
-        });
+    // Auto join conversation
+    useEffect(() => {
+        if (conversationId && enabled) {
+            joinConversation(conversationId);
+        }
 
-        socketRef.current = socket;
+        return () => {
+            if (conversationId && enabled) {
+                leaveConversation(conversationId);
+            }
+        };
+    }, [conversationId, enabled, joinConversation, leaveConversation]);
 
-        // Connection handlers
-        socket.on('connect', () => {
-            console.log('[WebSocket] Connected:', socket.id);
-            isConnectedRef.current = true;
+    // Legacy disconnect method
+    const disconnect = () => {
+        if (conversationId) {
+            leaveConversation(conversationId);
+        }
+    };
 
-            // Join conversation room
-            socket.emit('join_conversation', { conversationId });
-        });
-
-        socket.on('disconnect', () => {
-            console.log('[WebSocket] Disconnected');
-            isConnectedRef.current = false;
-        });
-
-        socket.on('connect_error', (error) => {
-            console.error('[WebSocket] Connection error:', error);
-        });
-
-        // Listen for joined confirmation
-        socket.on('joined', (data) => {
-            console.log('[WebSocket] Joined conversation:', data?.conversationId || conversationId);
-        });
-
-        // Listen for new messages
-        socket.on('new_message', (message) => {
-            console.log('[WebSocket] New message received:', message);
-            onNewMessage(message);
-        });
-
-        return socket;
-    }, [conversationId, onNewMessage, enabled]);
+    return {
+        socket,
+        isConnected,
+        disconnect,
+    };
 
     const disconnect = useCallback(() => {
         if (socketRef.current) {

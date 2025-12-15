@@ -1,6 +1,7 @@
 ﻿"use client"
 
 import { useEffect, useState } from "react"
+import { useTranslation } from 'react-i18next'
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Spinner } from "@/components/ui/Spinner"
@@ -9,6 +10,7 @@ import axiosClient from "@/lib/axios-client"
 import type { DashboardStats } from "@/lib/types"
 
 export default function DashboardPage() {
+    const { t } = useTranslation()
     const [stats, setStats] = useState<DashboardStats | null>(null)
     const [isLoading, setIsLoading] = useState(true)
 
@@ -51,10 +53,10 @@ export default function DashboardPage() {
         <div className="h-full">
             <div className="page-header flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold">Dashboard</h1>
-                    <p className="text-muted-foreground mt-1">Welcome back! Here's your overview.</p>
+                    <h1 className="text-3xl font-bold" suppressHydrationWarning>{t('dashboard.title')}</h1>
+                    <p className="text-muted-foreground mt-1" suppressHydrationWarning>{t('dashboard.welcomeBack')}</p>
                 </div>
-                <Button>Download Report</Button>
+                <Button suppressHydrationWarning>{t('dashboard.downloadReport')}</Button>
             </div>
 
             { }
@@ -70,9 +72,9 @@ export default function DashboardPage() {
                             {stats?.users && formatGrowthRate(stats.users.growthRate)}
                         </div>
                         <h3 className="text-2xl font-bold mb-1">{stats?.users?.total || 0}</h3>
-                        <p className="text-sm text-muted-foreground">Total Users</p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                            {stats?.users?.active || 0} active Â· {stats?.users?.newUsers || 0} new
+                        <p className="text-sm text-muted-foreground" suppressHydrationWarning>{t('dashboard.stats.totalUsers')}</p>
+                        <p className="text-xs text-muted-foreground mt-2" suppressHydrationWarning>
+                            {stats?.users?.active || 0} {t('dashboard.stats.active')} Â· {stats?.users?.newUsers || 0} {t('dashboard.stats.new')}
                         </p>
                     </CardContent>
                 </Card>
@@ -88,9 +90,9 @@ export default function DashboardPage() {
                             {stats?.bots && formatGrowthRate(stats.bots.growthRate)}
                         </div>
                         <h3 className="text-2xl font-bold mb-1">{stats?.bots?.total || 0}</h3>
-                        <p className="text-sm text-muted-foreground">Total Bots</p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                            {stats?.bots?.active || 0} active Â· {stats?.bots?.avgSuccessRate?.toFixed(1) || 0}% success
+                        <p className="text-sm text-muted-foreground" suppressHydrationWarning>{t('dashboard.stats.totalBots')}</p>
+                        <p className="text-xs text-muted-foreground mt-2" suppressHydrationWarning>
+                            {stats?.bots?.active || 0} {t('dashboard.stats.active')} Â· {stats?.bots?.avgSuccessRate?.toFixed(1) || 0}% {t('dashboard.stats.success')}
                         </p>
                     </CardContent>
                 </Card>
@@ -106,9 +108,9 @@ export default function DashboardPage() {
                             {stats?.conversations && formatGrowthRate(stats.conversations.growthRate)}
                         </div>
                         <h3 className="text-2xl font-bold mb-1">{stats?.conversations?.total || 0}</h3>
-                        <p className="text-sm text-muted-foreground">Conversations</p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                            {stats?.conversations?.active || 0} active Â· {stats?.conversations?.avgMessagesPerConversation?.toFixed(1) || 0} avg msgs
+                        <p className="text-sm text-muted-foreground" suppressHydrationWarning>{t('dashboard.stats.conversations')}</p>
+                        <p className="text-xs text-muted-foreground mt-2" suppressHydrationWarning>
+                            {stats?.conversations?.active || 0} {t('dashboard.stats.active')} Â· {stats?.conversations?.avgMessagesPerConversation?.toFixed(1) || 0} {t('dashboard.stats.avgMsgs')}
                         </p>
                     </CardContent>
                 </Card>
@@ -124,9 +126,9 @@ export default function DashboardPage() {
                             {stats?.flows && formatGrowthRate(stats.flows.growthRate)}
                         </div>
                         <h3 className="text-2xl font-bold mb-1">{stats?.flows?.totalExecutions || 0}</h3>
-                        <p className="text-sm text-muted-foreground">Flow Executions</p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                            {stats?.flows?.successRate?.toFixed(1) || 0}% success Â· {stats?.flows?.avgExecutionTime?.toFixed(1) || 0}s avg
+                        <p className="text-sm text-muted-foreground" suppressHydrationWarning>{t('dashboard.stats.flowExecutions')}</p>
+                        <p className="text-xs text-muted-foreground mt-2" suppressHydrationWarning>
+                            {stats?.flows?.successRate?.toFixed(1) || 0}% {t('dashboard.stats.success')} Â· {stats?.flows?.avgExecutionTime?.toFixed(1) || 0}s {t('dashboard.stats.avgTime')}
                         </p>
                     </CardContent>
                 </Card>
@@ -137,27 +139,27 @@ export default function DashboardPage() {
                 { }
                 <Card>
                     <CardHeader className="border-b border-border/40">
-                        <CardTitle className="text-xl">Top Performing Bots</CardTitle>
-                        <CardDescription>Bots with most conversations</CardDescription>
+                        <CardTitle className="text-xl" suppressHydrationWarning>{t('dashboard.stats.topPerformingBots')}</CardTitle>
+                        <CardDescription suppressHydrationWarning>{t('dashboard.stats.botsMostConversations')}</CardDescription>
                     </CardHeader>
                     <CardContent className="p-6">
                         <div className="space-y-4">
                             {stats?.topBots && stats.topBots.length > 0 ? (
                                 stats.topBots.map((bot, index) => (
-                                    <div key={bot.id} className="flex items-center gap-4">
+                                    <div key={bot.id} className="flex items-center gap-4" suppressHydrationWarning>
                                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-semibold shadow-md shadow-blue-600/30">
                                             {index + 1}
                                         </div>
                                         <div className="flex-1 space-y-1">
                                             <p className="text-sm font-medium">{bot.name}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {bot.count} conversations Â· {bot.metric?.toFixed(1)}% success
+                                            <p className="text-xs text-muted-foreground" suppressHydrationWarning>
+                                                {bot.count} {t('dashboard.stats.conversationsLabel')} Â· {bot.metric?.toFixed(1)}% {t('dashboard.stats.success')}
                                             </p>
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                                <p className="text-sm text-muted-foreground text-center py-8">No data available</p>
+                                <p className="text-sm text-muted-foreground text-center py-8" suppressHydrationWarning>{t('dashboard.stats.noDataAvailable')}</p>
                             )}
                         </div>
                     </CardContent>
@@ -166,27 +168,27 @@ export default function DashboardPage() {
                 { }
                 <Card>
                     <CardHeader className="border-b border-border/40">
-                        <CardTitle className="text-xl">Most Used Flows</CardTitle>
-                        <CardDescription>Flows with most executions</CardDescription>
+                        <CardTitle className="text-xl" suppressHydrationWarning>{t('dashboard.stats.mostUsedFlows')}</CardTitle>
+                        <CardDescription suppressHydrationWarning>{t('dashboard.stats.flowsMostExecutions')}</CardDescription>
                     </CardHeader>
                     <CardContent className="p-6">
                         <div className="space-y-4">
                             {stats?.topFlows && stats.topFlows.length > 0 ? (
                                 stats.topFlows.map((flow, index) => (
-                                    <div key={flow.id} className="flex items-center gap-4">
+                                    <div key={flow.id} className="flex items-center gap-4" suppressHydrationWarning>
                                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-600 to-blue-700 flex items-center justify-center text-white font-semibold shadow-md shadow-cyan-600/30">
                                             {index + 1}
                                         </div>
                                         <div className="flex-1 space-y-1">
                                             <p className="text-sm font-medium">{flow.name}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {flow.count} executions Â· {flow.metric?.toFixed(1)}% success
+                                            <p className="text-xs text-muted-foreground" suppressHydrationWarning>
+                                                {flow.count} {t('dashboard.stats.executions')} Â· {flow.metric?.toFixed(1)}% {t('dashboard.stats.success')}
                                             </p>
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                                <p className="text-sm text-muted-foreground text-center py-8">No data available</p>
+                                <p className="text-sm text-muted-foreground text-center py-8" suppressHydrationWarning>{t('dashboard.stats.noDataAvailable')}</p>
                             )}
                         </div>
                     </CardContent>
@@ -196,20 +198,20 @@ export default function DashboardPage() {
             { }
             <Card className="mt-6">
                 <CardHeader>
-                    <CardTitle className="text-xl">Workspace Overview</CardTitle>
+                    <CardTitle className="text-xl" suppressHydrationWarning>{t('dashboard.stats.workspaceOverview')}</CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
                     <div className="grid gap-4 sm:grid-cols-3">
                         <div>
-                            <p className="text-sm text-muted-foreground">Total Workspaces</p>
+                            <p className="text-sm text-muted-foreground" suppressHydrationWarning>{t('dashboard.stats.totalWorkspaces')}</p>
                             <p className="text-2xl font-bold mt-1">{stats?.workspaces?.total || 0}</p>
                         </div>
                         <div>
-                            <p className="text-sm text-muted-foreground">Active Workspaces</p>
+                            <p className="text-sm text-muted-foreground" suppressHydrationWarning>{t('dashboard.stats.activeWorkspaces')}</p>
                             <p className="text-2xl font-bold mt-1">{stats?.workspaces?.active || 0}</p>
                         </div>
                         <div>
-                            <p className="text-sm text-muted-foreground">Growth Rate</p>
+                            <p className="text-sm text-muted-foreground" suppressHydrationWarning>{t('dashboard.stats.growthRate')}</p>
                             <div className="mt-1">
                                 {stats?.workspaces && formatGrowthRate(stats.workspaces.growthRate)}
                             </div>
@@ -220,4 +222,3 @@ export default function DashboardPage() {
         </div>
     )
 }
-

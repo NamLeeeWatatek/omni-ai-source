@@ -27,7 +27,6 @@ const runSeed = async () => {
   // Run flow seeds after users are created
   await app.get(FlowSeedService).run();
 
-
   await app.close();
 };
 

@@ -10,21 +10,21 @@ export abstract class KnowledgeBaseRepository {
   /**
    * Create a new knowledge base
    */
-  abstract create(
-    data: {
-      name: string;
-      description?: string;
-      aiProviderId?: string;
-      createdBy: string;
-      workspaceId?: string;
-      isActive?: boolean;
-    },
-  ): Promise<KnowledgeBase>;
+  abstract create(data: {
+    name: string;
+    description?: string;
+    aiProviderId?: string;
+    createdBy: string;
+    workspaceId?: string;
+    isActive?: boolean;
+  }): Promise<KnowledgeBase>;
 
   /**
    * Find knowledge base by ID
    */
-  abstract findById(id: KnowledgeBase['id']): Promise<NullableType<KnowledgeBase>>;
+  abstract findById(
+    id: KnowledgeBase['id'],
+  ): Promise<NullableType<KnowledgeBase>>;
 
   /**
    * Find knowledge bases by user

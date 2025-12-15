@@ -32,8 +32,6 @@ export class AddIconToAiProviders1765468966932 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Remove icon column from ai_providers table
-    await queryRunner.query(
-      `ALTER TABLE "ai_providers" DROP COLUMN "icon"`,
-    );
+    await queryRunner.query(`ALTER TABLE "ai_providers" DROP COLUMN "icon"`);
   }
 }

@@ -2,11 +2,10 @@
 import { Inter } from 'next/font/google'
 import { Toaster } from '@/components/ui/Sonner'
 
-import { WorkspaceProvider } from '@/lib/context/workspace-context'
 import { ReduxProvider } from '@/lib/store/Provider'
 import './globals.css'
 import { QueryProvider } from '@/components/providers/QueryProvider'
-import { TokenRefreshProvider } from '@/components/providers/TokenRefreshProvider'
+import { I18nProvider } from '@/components/providers/I18nProvider'
 import { SessionProvider } from 'next-auth/react'
 import { ThemeProvider } from 'next-themes'
 import { GlobalLoadingOverlay } from '@/components/providers/GlobalLoadingOverlay'
@@ -31,8 +30,8 @@ export default function RootLayout({
     return (
         <html lang="en" suppressHydrationWarning>
             <body className={`${inter.className} font-sans antialiased`}>
-                <SessionProvider>
-                    <TokenRefreshProvider>
+                <I18nProvider>
+                    <SessionProvider>
                         <QueryProvider>
                             <ThemeProvider
                                 attribute="class"
@@ -40,17 +39,15 @@ export default function RootLayout({
                                 enableSystem
                                 disableTransitionOnChange
                             >
-                                <WorkspaceProvider>
-                                    <ReduxProvider>
-                                        {children}
-                                        <GlobalLoadingOverlay />
-                                        <Toaster />
-                                    </ReduxProvider>
-                                </WorkspaceProvider>
+                                <ReduxProvider>
+                                    {children}
+                                    <GlobalLoadingOverlay />
+                                    <Toaster />
+                                </ReduxProvider>
                             </ThemeProvider>
                         </QueryProvider>
-                    </TokenRefreshProvider>
-                </SessionProvider>
+                    </SessionProvider>
+                </I18nProvider>
             </body>
         </html>
     )

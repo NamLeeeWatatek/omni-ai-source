@@ -1,6 +1,8 @@
 ﻿'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { PageLoading } from '@/components/layout/PageLoading'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
@@ -46,6 +48,7 @@ interface Flow {
 }
 
 export default function BotsPage() {
+    const router = useRouter()
     const [bots, setBots] = useState<Bot[]>([])
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
@@ -193,94 +196,94 @@ export default function BotsPage() {
                 </div>
             </div>
 
-            {loading && bots.length === 0 ? (
-                <div className="text-center py-12">
-                    <Spinner className="size-8 text-primary" />
-                </div>
-            ) : bots.length === 0 ? (
-                <Card className="text-center py-12">
-                    <FiMessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="text-lg font-semibold mb-2">No bots yet</h3>
-                    <p className="text-muted-foreground mb-4">Create your first bot to get started</p>
-                    <Button onClick={() => openModal()}>
-                        <FiPlus className="w-4 h-4 mr-2" />
-                        Create Bot
-                    </Button>
-                </Card>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {bots.map((bot) => {
-                        const BotIcon = (FiIcons as any)[bot.icon || 'FiMessageSquare'] || FiMessageSquare
-                        return (
-                            <Card key={bot.id} className="p-6">
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="relative group">
-                                            <div className="w-12 h-12 rounded-xl bg-gradient-wata flex items-center justify-center cursor-pointer">
-                                                <BotIcon className="w-6 h-6 text-white" />
+            {
+                loading && bots.length === 0 ? (
+                    <PageLoading message="Loading bots..." />
+                ) : bots.length === 0 ? (
+                    <Card className="text-center py-12">
+                        <FiMessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                        <h3 className="text-lg font-semibold mb-2">No bots yet</h3>
+                        <p className="text-muted-foreground mb-4">Create your first bot to get started</p>
+                        <Button onClick={() => openModal()}>
+                            <FiPlus className="w-4 h-4 mr-2" />
+                            Create Bot
+                        </Button>
+                    </Card>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {bots.map((bot) => {
+                            const BotIcon = (FiIcons as any)[bot.icon || 'FiMessageSquare'] || FiMessageSquare
+                            return (
+                                <Card key={bot.id} className="p-6">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="relative group">
+                                                <div className="w-12 h-12 rounded-xl bg-gradient-wata flex items-center justify-center cursor-pointer">
+                                                    <BotIcon className="w-6 h-6 text-white" />
+                                                </div>
+                                                <div className="absolute inset-0 rounded-xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <IconPicker
+                                                        value={bot.icon || 'FiMessageSquare'}
+                                                        onChange={async (icon) => {
+                                                            try {
+                                                                await axiosClient.patch(`/bots/${bot.id}`, { icon })
+                                                                toast.success('Icon updated!')
+                                                                loadBots()
+                                                            } catch {
+                                                                toast.error('Failed to update icon')
+                                                            }
+                                                        }}
+                                                    />
+                                                </div>
                                             </div>
-                                            <div className="absolute inset-0 rounded-xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                <IconPicker
-                                                    value={bot.icon || 'FiMessageSquare'}
-                                                    onChange={async (icon) => {
-                                                        try {
-                                                            await axiosClient.patch(`/bots/${bot.id}`, { icon })
-                                                            toast.success('Icon updated!')
-                                                            loadBots()
-                                                        } catch {
-                                                            toast.error('Failed to update icon')
-                                                        }
-                                                    }}
-                                                />
+                                            <div>
+                                                <h3 className="font-semibold text-lg">{bot.name}</h3>
+                                                <Badge
+                                                    variant={bot.status === 'active' ? 'default' : 'secondary'}
+                                                    className={bot.status === 'active' ? 'bg-green-500 hover:bg-green-600' : ''}
+                                                >
+                                                    {bot.status === 'active' ? 'Active' : bot.status === 'paused' ? 'Paused' : 'Draft'}
+                                                </Badge>
                                             </div>
-                                        </div>
-                                        <div>
-                                            <h3 className="font-semibold text-lg">{bot.name}</h3>
-                                            <Badge
-                                                variant={bot.status === 'active' ? 'default' : 'secondary'}
-                                                className={bot.status === 'active' ? 'bg-green-500 hover:bg-green-600' : ''}
-                                            >
-                                                {bot.status === 'active' ? 'Active' : bot.status === 'paused' ? 'Paused' : 'Draft'}
-                                            </Badge>
                                         </div>
                                     </div>
-                                </div>
 
-                                <p className="text-sm text-muted-foreground mb-4 min-h-[40px]">
-                                    {bot.description || 'No description'}
-                                </p>
+                                    <p className="text-sm text-muted-foreground mb-4 min-h-[40px]">
+                                        {bot.description || 'No description'}
+                                    </p>
 
-                                <div className="flex items-center gap-2 pt-4 border-t border-border/40">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="flex-1"
-                                        onClick={() => window.location.href = `/bots/${bot.id}`}
-                                    >
-                                        <FiEdit2 className="w-4 h-4 mr-2" />
-                                        Configure
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => toggleStatus(bot)}
-                                    >
-                                        <FiActivity className="w-4 h-4" />
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => deleteBot(bot.id)}
-                                        className="text-destructive hover:bg-destructive/10"
-                                    >
-                                        <FiTrash2 className="w-4 h-4" />
-                                    </Button>
-                                </div>
-                            </Card>
-                        )
-                    })}
-                </div>
-            )}
+                                    <div className="flex items-center gap-2 pt-4 border-t border-border/40">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1"
+                                            onClick={() => router.push(`/bots/${bot.id}`)}
+                                        >
+                                            <FiEdit2 className="w-4 h-4 mr-2" />
+                                            Configure
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => toggleStatus(bot)}
+                                        >
+                                            <FiActivity className="w-4 h-4" />
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => deleteBot(bot.id)}
+                                            className="text-destructive hover:bg-destructive/10"
+                                        >
+                                            <FiTrash2 className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </Card>
+                            )
+                        })}
+                    </div>
+                )
+            }
 
             { }
             <Dialog open={showModal} onOpenChange={setShowModal}>
@@ -355,7 +358,7 @@ export default function BotsPage() {
                 onConfirm={confirmDelete}
                 variant="destructive"
             />
-        </div>
+        </div >
     )
 }
 

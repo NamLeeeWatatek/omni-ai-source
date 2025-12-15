@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { axiosClient } from '@/lib/axios-client';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
+import { useTranslation } from 'react-i18next';
 import {
   Select,
   SelectContent,
@@ -38,6 +39,7 @@ export function ModelSelector({
   filterProvider,
   className
 }: ModelSelectorProps) {
+  const { t } = useTranslation()
   const [models, setModels] = useState<ModelOption[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -68,7 +70,7 @@ export function ModelSelector({
   return (
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger className={className}>
-        <SelectValue placeholder="Select a model" />
+        <SelectValue placeholder={t('ai.selectModel', 'Select a model')} />
       </SelectTrigger>
       <SelectContent>
         {filteredModels.map((model) => (
@@ -81,12 +83,12 @@ export function ModelSelector({
               <span>{model.display_name}</span>
               {model.is_recommended && (
                 <Badge variant="outline" className="text-[8px] px-1 py-0">
-                  Recommended
+                  {t('common.recommended', 'Recommended')}
                 </Badge>
               )}
               {!model.is_available && (
                 <Badge variant="secondary" className="text-[8px] px-1 py-0">
-                  Not Available
+                  {t('common.notAvailable', 'Not Available')}
                 </Badge>
               )}
             </div>

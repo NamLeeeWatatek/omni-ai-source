@@ -289,10 +289,63 @@ export class BotsService {
   }
 
   async getLinkedKnowledgeBases(botId: string) {
-    return this.botKbRepository.find({
+    // First get the linking records
+    const linkedRecords = await this.botKbRepository.find({
       where: { botId, isActive: true },
       order: { priority: 'ASC' },
     });
+
+    // If no linked records, return empty array
+    if (!linkedRecords || linkedRecords.length === 0) {
+      return [];
+    }
+
+    // Get all linked KB IDs
+    const kbIds = linkedRecords.map(r => r.knowledgeBaseId);
+
+    // Use query builder to get KBs with needed fields
+    const kbEntities = await this.botKbRepository.manager
+      .getRepository('knowledge_base')
+      .createQueryBuilder('kb')
+      .where('kb.id IN (:...ids)', { ids: kbIds })
+      .select([
+        'kb.id',
+        'kb.name',
+        'kb.description',
+        'kb.totalDocuments',
+        'kb.embeddingModel',
+        'kb.createdAt',
+        'kb.updatedAt',
+        'kb.color',
+      ])
+      .getRawMany();
+
+    // Create a map for easy lookup
+    const kbMap = new Map();
+    kbEntities.forEach(kb => {
+      kbMap.set(kb.id, {
+        id: kb.id,
+        name: kb.name,
+        description: kb.description,
+        totalDocuments: parseInt(kb.totalDocuments) || 0,
+        embeddingModel: kb.embeddingModel,
+        createdAt: kb.createdAt,
+        updatedAt: kb.updatedAt,
+        color: kb.color,
+      });
+    });
+
+    // Merge the data
+    return linkedRecords.map(record => ({
+      id: `${record.botId}-${record.knowledgeBaseId}`,
+      botId: record.botId,
+      knowledgeBaseId: record.knowledgeBaseId,
+      priority: record.priority,
+      ragSettings: record.ragSettings,
+      isActive: record.isActive,
+      createdAt: record.createdAt,
+      knowledgeBase: kbMap.get(record.knowledgeBaseId) || null,
+    }));
   }
 
   async toggleKnowledgeBase(

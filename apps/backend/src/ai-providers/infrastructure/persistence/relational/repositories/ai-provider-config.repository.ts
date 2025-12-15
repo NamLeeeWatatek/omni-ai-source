@@ -139,14 +139,16 @@ export class AiProviderConfigRelationalRepository
     }
 
     // Simple validation based on provider requirements
-    const hasRequiredFields = provider.requiredFields.every(field =>
-      decryptedConfig[field] && decryptedConfig[field].toString().trim()
+    const hasRequiredFields = provider.requiredFields.every(
+      (field) =>
+        decryptedConfig[field] && decryptedConfig[field].toString().trim(),
     );
 
     // For providers with no required fields (like ollama, custom), check for basic config
     if (!hasRequiredFields && provider.requiredFields.length === 0) {
       const hasApiKey = decryptedConfig.apiKey && decryptedConfig.apiKey.trim();
-      const hasBaseUrl = decryptedConfig.baseUrl && decryptedConfig.baseUrl.trim();
+      const hasBaseUrl =
+        decryptedConfig.baseUrl && decryptedConfig.baseUrl.trim();
       const hasSomeConfig = hasApiKey || hasBaseUrl;
 
       if (!hasSomeConfig) {

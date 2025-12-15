@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { usePermissions } from '@/lib/hooks/usePermissions'
@@ -41,23 +42,23 @@ interface DashboardSidebarProps {
     onCloseSidebar?: () => void
 }
 
-const navigation: NavigationItem[] = [
-    { name: 'Dashboard', href: '/dashboard', icon: FiLayout },
-    { name: 'UGC Factory', href: '/ugc-factory', icon: FiGrid },
-    { name: 'Conversations', href: '/conversations', icon: FiGrid },
+const getTranslatedNavigation = (t: any): NavigationItem[] => [
+    { name: t('dashboard.title'), href: '/dashboard', icon: FiLayout },
+    { name: t('dashboard.ugcFactory'), href: '/ugc-factory', icon: FiGrid },
+    { name: t('dashboard.conversations'), href: '/conversations', icon: FiGrid },
     {
-        name: 'Workflows',
+        name: t('dashboard.workflows'),
         icon: FiGitMerge,
         children: [
-            { name: 'All Workflows', href: '/flows' },
-            { name: 'Create New', href: '/flows/new?mode=edit' }
+            { name: t('dashboard.allWorkflows'), href: '/flows' },
+            { name: t('dashboard.createNew'), href: '/flows/new?mode=edit' }
         ]
     },
-    { name: 'Channels', href: '/channels', icon: FiRadio },
-    { name: 'Knowledge Base', href: '/knowledge-base/collections', icon: FiDatabase },
-    { name: 'Bots', href: '/bots', icon: RiRobot2Line },
-    { name: 'Chat AI', href: '/chat', icon: TiMessages },
-    { name: 'Settings', href: '/settings', icon: FiSettings },
+    { name: t('dashboard.channels'), href: '/channels', icon: FiRadio },
+    { name: t('dashboard.knowledgeBase'), href: '/knowledge-base/collections', icon: FiDatabase },
+    { name: t('dashboard.bots'), href: '/bots', icon: RiRobot2Line },
+    { name: t('dashboard.chatAI'), href: '/chat', icon: TiMessages },
+    { name: t('settings'), href: '/settings', icon: FiSettings },
 ]
 
 export const DashboardSidebar = React.memo<DashboardSidebarProps>(({
@@ -68,8 +69,10 @@ export const DashboardSidebar = React.memo<DashboardSidebarProps>(({
     onCloseSidebar
 }) => {
     const pathname = usePathname()
+    const { t } = useTranslation()
     const { user } = useAuth()
     const { capabilities } = usePermissions()
+    const navigation = getTranslatedNavigation(t)
 
     const isActive = (href: string) => {
         if (href === '/dashboard') return pathname === href
@@ -128,7 +131,7 @@ export const DashboardSidebar = React.memo<DashboardSidebarProps>(({
                                 >
                                     <div className="flex items-center space-x-3">
                                         <item.icon className="w-5 h-5" />
-                                        <span className="font-medium">{item.name}</span>
+                                        <span className="font-medium" suppressHydrationWarning>{item.name}</span>
                                     </div>
                                     <FiChevronDown
                                         className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
@@ -142,9 +145,10 @@ export const DashboardSidebar = React.memo<DashboardSidebarProps>(({
                                         ? 'bg-gradient-wata text-white shadow-lg shadow-slate-700/20'
                                         : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                                         }`}
+                                    suppressHydrationWarning
                                 >
                                     <item.icon className="w-5 h-5" />
-                                    <span className="font-medium">{item.name}</span>
+                                    <span className="font-medium" suppressHydrationWarning>{item.name}</span>
                                 </Link>
                             )}
 
@@ -173,29 +177,46 @@ export const DashboardSidebar = React.memo<DashboardSidebarProps>(({
                 })}
             </nav>
 
-            {/* User Profile */}
+ {/* User Profile */}
             <div className="p-4 border-t border-border/40">
-                <div className="rounded-lg border border-border/40 bg-card/50 backdrop-blur-sm p-4 hover:bg-card/80 transition-all duration-200">
-                    <div className="flex items-start gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-wata flex items-center justify-center shadow-md flex-shrink-0">
-                            <span className="text-white font-semibold">
-                                {getUserInitial()}
-                            </span>
+                <div className="group rounded-xl border border-border/50 bg-card/30 p-4 backdrop-blur-xl transition-all duration-300 hover:bg-card/80 hover:shadow-lg hover:border-border/80">
+                    {/* User Info Section */}
+                    <div className="flex items-center gap-3 mb-4">
+                        {/* Avatar */}
+                        <div className="relative w-12 h-12 shrink-0">
+                            <div className="absolute inset-0 rounded-full bg-gradient-wata opacity-80 blur-[2px] group-hover:blur-[4px] transition-all" />
+                            <div className="relative w-full h-full rounded-full bg-gradient-wata flex items-center justify-center shadow-sm ring-2 ring-background">
+                                <span className="text-white text-sm font-bold tracking-tight">
+                                    {getUserInitial()}
+                                </span>
+                            </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold truncate mb-0.5">{getUserName()}</p>
-                            {capabilities && <RoleBadge className="mb-1.5" />}
-                            <p className="text-xs text-muted-foreground truncate">{getUserEmail()}</p>
+
+                        {/* User Details */}
+                        <div className="flex-1 min-w-0 space-y-1">
+                            <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold truncate text-foreground/90 group-hover:text-foreground transition-colors">
+                                    {getUserName()}
+                                </p>
+                                {capabilities && (
+                                    <RoleBadge className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border-primary/20" />
+                                )}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate opacity-80 group-hover:opacity-100 transition-opacity">
+                                {getUserEmail()}
+                            </p>
                         </div>
                     </div>
+
+                    {/* Sign Out Button */}
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="w-full justify-start hover:bg-destructive/10 hover:text-destructive transition-colors"
+                        className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors rounded-lg group/btn border border-transparent hover:border-destructive/20"
                         onClick={onSignOutConfirm}
                     >
-                        <FiLogOut className="w-4 h-4 mr-2" />
-                        Sign Out
+                        <FiLogOut className="w-4 h-4 mr-3 transition-transform group-hover/btn:-translate-x-0.5" />
+                        <span className="text-sm font-medium">{t('dashboard.signOut')}</span>
                     </Button>
                 </div>
             </div>

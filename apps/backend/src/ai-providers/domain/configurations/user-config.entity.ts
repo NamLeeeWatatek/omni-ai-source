@@ -6,7 +6,11 @@
 
 import { ApiProperty } from '@nestjs/swagger';
 import { OwnershipType } from '../enums';
-import { UserProviderConfig as IUserProviderConfig, ConnectionConfig, ModelSettings } from '../interfaces';
+import {
+  UserProviderConfig as IUserProviderConfig,
+  ConnectionConfig,
+  ModelSettings,
+} from '../interfaces';
 
 export class UserProviderConfig implements IUserProviderConfig {
   @ApiProperty({ type: String })
@@ -20,7 +24,7 @@ export class UserProviderConfig implements IUserProviderConfig {
 
   @ApiProperty({
     type: String,
-    example: 'My Personal OpenAI Config'
+    example: 'My Personal OpenAI Config',
   })
   displayName: string;
 
@@ -33,7 +37,7 @@ export class UserProviderConfig implements IUserProviderConfig {
 
   @ApiProperty({
     type: [String],
-    example: ['gpt-4', 'gpt-3.5-turbo']
+    example: ['gpt-4', 'gpt-3.5-turbo'],
   })
   modelList: string[];
 
@@ -42,7 +46,7 @@ export class UserProviderConfig implements IUserProviderConfig {
 
   @ApiProperty({
     type: String,
-    description: 'User ID (same as ownerId for consistency)'
+    description: 'User ID (same as ownerId for consistency)',
   })
   get ownerId(): string {
     return this.userId;
@@ -73,7 +77,8 @@ export class UserProviderConfig implements IUserProviderConfig {
   }
 
   getModelSettings(): ModelSettings {
-    const defaultModel = this.modelList.length > 0 ? this.modelList[0] : 'gpt-3.5-turbo';
+    const defaultModel =
+      this.modelList.length > 0 ? this.modelList[0] : 'gpt-3.5-turbo';
 
     return {
       availableModels: this.modelList,
@@ -134,7 +139,7 @@ export class UserProviderConfig implements IUserProviderConfig {
     providerId: string,
     displayName: string,
     config: Record<string, any>,
-    modelList: string[]
+    modelList: string[],
   ): UserProviderConfig {
     const userConfig = new UserProviderConfig();
     userConfig.id = crypto.randomUUID();
@@ -176,7 +181,10 @@ export class UserProviderConfig implements IUserProviderConfig {
       errors.push('Invalid base URL format');
     }
 
-    if (this.config.timeout && (this.config.timeout < 1000 || this.config.timeout > 300000)) {
+    if (
+      this.config.timeout &&
+      (this.config.timeout < 1000 || this.config.timeout > 300000)
+    ) {
       errors.push('Timeout must be between 1000-300000ms');
     }
 

@@ -26,6 +26,7 @@ interface FlowUpdate {
   },
   namespace: '/flows',
 })
+@UseGuards(AuthGuard('jwt'))
 export class FlowsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;

@@ -53,9 +53,6 @@ const workspaceSlice = createSlice({
       const workspace = state.workspaces.find(w => w.id === action.payload);
       if (workspace) {
         state.currentWorkspace = workspace;
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('currentWorkspaceId', workspace.id);
-        }
       }
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
@@ -85,4 +82,3 @@ export const {
 } = workspaceSlice.actions;
 
 export default workspaceSlice.reducer;
-

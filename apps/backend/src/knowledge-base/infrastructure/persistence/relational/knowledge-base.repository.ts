@@ -81,17 +81,20 @@ export class RelationalKnowledgeBaseRepository extends KnowledgeBaseRepository {
       where,
     });
 
-    return entities.map(entity => new KnowledgeBase({
-      id: entity.id,
-      name: entity.name,
-      description: entity.description || undefined,
-      aiProviderId: entity.aiProviderId || undefined,
-      createdBy: entity.createdBy,
-      workspaceId: entity.workspaceId || undefined,
-      isActive: entity.isPublic, // Map to isActive
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
-    }));
+    return entities.map(
+      (entity) =>
+        new KnowledgeBase({
+          id: entity.id,
+          name: entity.name,
+          description: entity.description || undefined,
+          aiProviderId: entity.aiProviderId || undefined,
+          createdBy: entity.createdBy,
+          workspaceId: entity.workspaceId || undefined,
+          isActive: entity.isPublic, // Map to isActive
+          createdAt: entity.createdAt,
+          updatedAt: entity.updatedAt,
+        }),
+    );
   }
 
   async findByWorkspace(
@@ -102,17 +105,20 @@ export class RelationalKnowledgeBaseRepository extends KnowledgeBaseRepository {
       where: { workspaceId },
     });
 
-    return entities.map(entity => new KnowledgeBase({
-      id: entity.id,
-      name: entity.name,
-      description: entity.description || undefined,
-      aiProviderId: entity.aiProviderId || undefined,
-      createdBy: entity.createdBy,
-      workspaceId: entity.workspaceId || undefined,
-      isActive: entity.isPublic, // Map to isActive
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
-    }));
+    return entities.map(
+      (entity) =>
+        new KnowledgeBase({
+          id: entity.id,
+          name: entity.name,
+          description: entity.description || undefined,
+          aiProviderId: entity.aiProviderId || undefined,
+          createdBy: entity.createdBy,
+          workspaceId: entity.workspaceId || undefined,
+          isActive: entity.isPublic, // Map to isActive
+          createdAt: entity.createdAt,
+          updatedAt: entity.updatedAt,
+        }),
+    );
   }
 
   async update(
@@ -123,10 +129,14 @@ export class RelationalKnowledgeBaseRepository extends KnowledgeBaseRepository {
     const entityPayload: any = {};
 
     if (payload.name !== undefined) entityPayload.name = payload.name;
-    if (payload.description !== undefined) entityPayload.description = payload.description;
-    if (payload.aiProviderId !== undefined) entityPayload.aiProviderId = payload.aiProviderId;
-    if (payload.workspaceId !== undefined) entityPayload.workspaceId = payload.workspaceId;
-    if (payload.isActive !== undefined) entityPayload.isPublic = payload.isActive; // Map back
+    if (payload.description !== undefined)
+      entityPayload.description = payload.description;
+    if (payload.aiProviderId !== undefined)
+      entityPayload.aiProviderId = payload.aiProviderId;
+    if (payload.workspaceId !== undefined)
+      entityPayload.workspaceId = payload.workspaceId;
+    if (payload.isActive !== undefined)
+      entityPayload.isPublic = payload.isActive; // Map back
 
     await this.knowledgeBaseEntityRepository.update(id, entityPayload);
     return this.findById(id);

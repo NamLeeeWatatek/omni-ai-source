@@ -7,7 +7,11 @@
 
 import { ApiProperty } from '@nestjs/swagger';
 import { OwnershipType } from '../enums';
-import { WorkspaceProviderConfig as IWorkspaceProviderConfig, ConnectionConfig, ModelSettings } from '../interfaces';
+import {
+  WorkspaceProviderConfig as IWorkspaceProviderConfig,
+  ConnectionConfig,
+  ModelSettings,
+} from '../interfaces';
 
 export class WorkspaceProviderConfig implements IWorkspaceProviderConfig {
   @ApiProperty({ type: String })
@@ -21,7 +25,7 @@ export class WorkspaceProviderConfig implements IWorkspaceProviderConfig {
 
   @ApiProperty({
     type: String,
-    example: 'Team OpenAI Config'
+    example: 'Team OpenAI Config',
   })
   displayName: string;
 
@@ -34,7 +38,7 @@ export class WorkspaceProviderConfig implements IWorkspaceProviderConfig {
 
   @ApiProperty({
     type: [String],
-    example: ['gpt-4', 'gpt-3.5-turbo', 'gpt-4-turbo']
+    example: ['gpt-4', 'gpt-3.5-turbo', 'gpt-4-turbo'],
   })
   modelList: string[];
 
@@ -43,7 +47,7 @@ export class WorkspaceProviderConfig implements IWorkspaceProviderConfig {
 
   @ApiProperty({
     type: String,
-    description: 'Workspace ID (same as ownerId for consistency)'
+    description: 'Workspace ID (same as ownerId for consistency)',
   })
   get ownerId(): string {
     return this.workspaceId;
@@ -57,13 +61,13 @@ export class WorkspaceProviderConfig implements IWorkspaceProviderConfig {
 
   @ApiProperty({
     type: String,
-    description: 'User who created this configuration'
+    description: 'User who created this configuration',
   })
   createdBy: string;
 
   @ApiProperty({
     type: String,
-    description: 'Last user who modified this configuration'
+    description: 'Last user who modified this configuration',
   })
   updatedBy: string;
 
@@ -86,7 +90,8 @@ export class WorkspaceProviderConfig implements IWorkspaceProviderConfig {
   }
 
   getModelSettings(): ModelSettings {
-    const defaultModel = this.modelList.length > 0 ? this.modelList[0] : 'gpt-4';
+    const defaultModel =
+      this.modelList.length > 0 ? this.modelList[0] : 'gpt-4';
 
     return {
       availableModels: this.modelList,
@@ -150,7 +155,10 @@ export class WorkspaceProviderConfig implements IWorkspaceProviderConfig {
   }
 
   // Workspace usage analytics
-  trackUsage(userId: string, action: 'chat' | 'embedding' | 'moderation'): void {
+  trackUsage(
+    userId: string,
+    action: 'chat' | 'embedding' | 'moderation',
+  ): void {
     const today = new Date().toISOString().split('T')[0];
 
     if (!this.config.usageStats) {
@@ -159,9 +167,11 @@ export class WorkspaceProviderConfig implements IWorkspaceProviderConfig {
 
     if (!this.config.usageStats[today]) {
       this.config.usageStats[today] = {
-        chat: 0, embedding: 0, moderation: 0,
+        chat: 0,
+        embedding: 0,
+        moderation: 0,
         users: new Set(),
-        cost: 0
+        cost: 0,
       };
     }
 
@@ -226,14 +236,19 @@ export class WorkspaceProviderConfig implements IWorkspaceProviderConfig {
 
     // Workspace-specific validations
     if (this.modelList.length > 10) {
-      warnings.push('Large number of models selected - consider reducing for cost control');
+      warnings.push(
+        'Large number of models selected - consider reducing for cost control',
+      );
     }
 
     if (this.config.baseUrl && !this.isValidUrl(this.config.baseUrl)) {
       errors.push('Invalid base URL format');
     }
 
-    if (this.config.timeout && (this.config.timeout < 5000 || this.config.timeout > 300000)) {
+    if (
+      this.config.timeout &&
+      (this.config.timeout < 5000 || this.config.timeout > 300000)
+    ) {
       errors.push('Timeout recommended to be between 5000-300000ms');
     }
 
@@ -246,7 +261,9 @@ export class WorkspaceProviderConfig implements IWorkspaceProviderConfig {
       isValid: errors.length === 0,
       errors,
       warnings,
-      criticalWarnings: warnings.filter(w => w.includes('budget') || w.includes('cost')),
+      criticalWarnings: warnings.filter(
+        (w) => w.includes('budget') || w.includes('cost'),
+      ),
     };
   }
 
@@ -266,7 +283,7 @@ export class WorkspaceProviderConfig implements IWorkspaceProviderConfig {
     displayName: string,
     config: Record<string, any>,
     modelList: string[],
-    createdBy: string
+    createdBy: string,
   ): WorkspaceProviderConfig {
     const workspaceConfig = new WorkspaceProviderConfig();
     workspaceConfig.id = crypto.randomUUID();

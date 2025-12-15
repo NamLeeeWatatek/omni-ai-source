@@ -8,6 +8,7 @@ import { DashboardSidebar } from '@/components/layout/DashboardSidebar'
 import { DashboardHeader } from '@/components/layout/DashboardHeader'
 import toast from '@/lib/toast'
 import { AlertDialogConfirm } from '@/components/ui/AlertDialogConfirm'
+import { useTranslation } from 'react-i18next'
 
 export default function DashboardLayout({
     children,
@@ -24,6 +25,7 @@ export default function DashboardLayout({
     const { isAuthenticated, isLoading, signOut, accessToken } = useAuth()
     const pathname = usePathname()
     const router = useRouter()
+    const { t } = useTranslation()
 
     if (isLoading) {
         return (
@@ -112,7 +114,7 @@ export default function DashboardLayout({
 
                 {/* Content area with conditional container classes */}
                 <div className="flex-1 overflow-hidden relative min-h-0">
-                    <div className={`h-full ${isSpecialPage ? '' : isFlowPage ? 'p-5 overflow-auto' : 'page-container overflow-auto'}`}>
+                    <div className={`h-full ${isSpecialPage ? '' : isFlowPage ? 'page-container-full overflow-auto' : 'page-container overflow-auto'}`}>
                         {children}
                     </div>
                 </div>
@@ -122,10 +124,10 @@ export default function DashboardLayout({
             <AlertDialogConfirm
                 open={showLogoutDialog}
                 onOpenChange={setShowLogoutDialog}
-                title="Sign Out"
-                description="Are you sure you want to sign out?"
-                confirmText="Sign Out"
-                cancelText="Cancel"
+                title={t('dashboard.signOut')}
+                description={t('dashboard.confirm.signOut')}
+                confirmText={t('dashboard.signOut')}
+                cancelText={t('common.cancel')}
                 onConfirm={handleSignOut}
                 variant="destructive"
             />

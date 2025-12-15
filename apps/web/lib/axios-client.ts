@@ -35,14 +35,8 @@ axiosInstance.interceptors.request.use(
         config.headers.Authorization = `Bearer ${session.accessToken}`
       }
 
-      // Add workspace context header from session (single source of truth)
-      const workspaceId = session?.workspace?.id
-      if (workspaceId) {
-        config.headers['X-Workspace-Id'] = workspaceId
-        console.log('[Axios] âœ… Workspace ID:', workspaceId, 'â†’', config.url)
-      } else {
-        console.warn('[Axios] âš ï¸ No workspace in session! User may not have a workspace assigned.')
-      }
+      // Workspace context will be added by Redux state if needed
+      // for now, we don't set workspace headers automatically
 
       if (!config.headers['Content-Type'] && !(config.data instanceof FormData)) {
         config.headers['Content-Type'] = 'application/json'
@@ -57,25 +51,7 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Response interceptor vá»›i token refresh
-let isRefreshing = false;
-let failedQueue: Array<{
-  resolve: (value?: any) => void;
-  reject: (reason?: any) => void;
-}> = [];
-
-const processQueue = (error: any, token: string | null = null) => {
-  failedQueue.forEach(prom => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
-
-  failedQueue = [];
-};
-
+// Response interceptor - simplified, rely on NextAuth refresh
 axiosInstance.interceptors.response.use(
   (response) => {
     // Return response.data directly for cleaner API usage
@@ -85,46 +61,27 @@ axiosInstance.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        // Äang refresh token â†’ queue request nÃ y
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        }).then(() => {
-          return axiosInstance(originalRequest);
-        }).catch(err => {
-          return Promise.reject(err);
-        });
-      }
-
       originalRequest._retry = true;
-      isRefreshing = true;
 
       try {
-        // Trigger NextAuth to refresh the token
+        // Get updated session after NextAuth refresh
         const session = await getSession();
 
         if (session?.accessToken) {
-          // Token Ä‘Ã£ Ä‘Æ°á»£c refresh thÃ nh cÃ´ng
-          processQueue(null, session.accessToken);
-
-          // Retry original request with new token
+          // Retry with refreshed token
           originalRequest.headers.Authorization = `Bearer ${session.accessToken}`;
           return axiosInstance(originalRequest);
         } else {
-          // KhÃ´ng cÃ³ session hoáº·c refresh tháº¥t báº¡i
-          throw new Error('Session refresh failed');
+          // No session or refresh failed
+          throw new Error('Authentication required');
         }
-      } catch (refreshError) {
-        processQueue(refreshError, null);
-
-        // Refresh tháº¥t báº¡i â†’ redirect to login
+      } catch (retryError) {
+        // Refresh failed, redirect to login
         if (typeof window !== 'undefined') {
-          console.log('[Auth] Token refresh failed, redirecting to login');
+          console.log('[Auth] Authentication failed, redirecting to login');
           window.location.href = '/api/auth/signout?callbackUrl=/login';
         }
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
+        return Promise.reject(retryError);
       }
     }
 
@@ -137,4 +94,3 @@ axiosInstance.interceptors.response.use(
 // Export with custom type that reflects the interceptor behavior
 export const axiosClient = axiosInstance as CustomAxiosInstance
 export default axiosClient
-

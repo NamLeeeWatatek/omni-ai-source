@@ -138,3 +138,46 @@ export class VerifyApiKeyDto {
   @IsString()
   providerName: string; // Now it's the provider name for verification
 }
+
+export class UpdateSystemAiSettingsDto {
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  defaultProviderId?: string;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  defaultModel?: string;
+
+  @ApiPropertyOptional({ type: Number })
+  @IsOptional()
+  minTemperature?: number;
+
+  @ApiPropertyOptional({ type: Number })
+  @IsOptional()
+  maxTemperature?: number;
+
+  @ApiPropertyOptional({ type: Boolean })
+  @IsOptional()
+  @IsBoolean()
+  contentModeration?: boolean;
+
+  @ApiPropertyOptional({ type: Boolean })
+  @IsOptional()
+  @IsBoolean()
+  safeFallbacks?: boolean;
+
+  @ApiPropertyOptional({ type: Boolean })
+  @IsOptional()
+  @IsBoolean()
+  contextAware?: boolean;
+
+  @ApiPropertyOptional({ type: Number })
+  @IsOptional()
+  maxRequestsPerHour?: number;
+
+  @ApiPropertyOptional({ type: Number })
+  @IsOptional()
+  maxRequestsPerUser?: number;
+}

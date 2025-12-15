@@ -16,6 +16,7 @@ import {
 
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
+import { Switch } from '@/components/ui/Switch';
 import {
   Select,
   SelectContent,
@@ -31,6 +32,7 @@ import { SiClaude, SiOllama } from 'react-icons/si';
 import { RiGeminiLine } from 'react-icons/ri';
 import { VscAzure } from 'react-icons/vsc';
 import { MdDashboardCustomize } from 'react-icons/md';
+import { Lightbulb } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/AlertDialog';
@@ -112,6 +114,61 @@ export default function AIModelsPage() {
   const [workspaceConfigs, setWorkspaceConfigs] = useState<WorkspaceAiProviderConfig[]>([]);
   const [availableProviders, setAvailableProviders] = useState<AiProvider[]>([]);
   const [loading, setLoading] = useState(true);
+  const [systemSettings, setSystemSettings] = useState({
+    defaultProviderId: '',
+    defaultModel: '',
+    minTemperature: 0.0,
+    maxTemperature: 2.0,
+    contentModeration: true,
+    safeFallbacks: true,
+    contextAware: true,
+    maxRequestsPerHour: 1000,
+    maxRequestsPerUser: 100,
+  });
+  const [aiSettingsLoading, setAiSettingsLoading] = useState(false);
+
+  // Save system AI settings
+  const handleSaveSystemSettings = async () => {
+    setAiSettingsLoading(true);
+    try {
+      await axiosClient.patch('/ai-providers/system/settings', {
+        defaultProviderId: systemSettings.defaultProviderId || undefined,
+        defaultModel: systemSettings.defaultModel || undefined,
+        minTemperature: systemSettings.minTemperature,
+        maxTemperature: systemSettings.maxTemperature,
+        contentModeration: systemSettings.contentModeration,
+        safeFallbacks: systemSettings.safeFallbacks,
+        contextAware: systemSettings.contextAware,
+        maxRequestsPerHour: systemSettings.maxRequestsPerHour,
+        maxRequestsPerUser: systemSettings.maxRequestsPerUser,
+      });
+
+      toast.success('System AI settings saved successfully!');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to save system settings');
+    } finally {
+      setAiSettingsLoading(false);
+    }
+  };
+
+  // Load system settings on mount
+  const loadSystemSettings = async () => {
+    try {
+      const response = await axiosClient.get('/ai-providers/system/settings');
+      if (response) {
+        setSystemSettings(prev => ({
+          ...prev,
+          ...response,
+        }));
+      }
+    } catch (error) {
+      // Settings not saved yet, use defaults
+    }
+  };
+
+  useEffect(() => {
+    loadSystemSettings();
+  }, []);
   const [showDialog, setShowDialog] = useState(false);
   const [editingConfig, setEditingConfig] = useState<UserAiProviderConfig | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -209,6 +266,8 @@ export default function AIModelsPage() {
     }
   };
 
+
+
   // Clean up timeouts on unmount
   useEffect(() => {
     return () => {
@@ -259,41 +318,43 @@ export default function AIModelsPage() {
           const configData = response.find((item: any) =>
             item.providerId === formData.providerId || item.configId === editingConfig.id
           );
-          if (configData?.models) {
+          if (configData?.models && configData.models.length > 0) {
             models = configData.models;
+          } else {
+            // If no models from API, test the API key directly to get models
+            await testApiKeyAndGetModels(formData.providerId, editingConfig.id);
+            // Re-fetch models after testing
+            const updatedResponse = await axiosClient.get(`/ai-providers/user/models`);
+            const updatedConfigData = updatedResponse.find((item: any) =>
+              item.providerId === formData.providerId || item.configId === editingConfig.id
+            );
+            if (updatedConfigData?.models) {
+              models = updatedConfigData.models;
+            }
           }
         } catch (error) {
-          // Fallback to static suggestions if API fails
-          models = getStaticModelSuggestions(formData.providerKey);
-        }
-      } else if (formData.apiKey && formData.providerKey) {
-        // For new configs with API key, try to verify and get models
-        // We'll use the verify endpoint as a way to test the API key and get available models
-        try {
-          // First create a temporary config to test
-          const testPayload = {
-            providerId: formData.providerId,
-            displayName: 'temp-verification',
-            config: { apiKey: formData.apiKey },
-            modelList: [],
-          };
-
-          const tempConfig = await axiosClient.post('/ai-providers/user/configs', testPayload);
-
-          // Now fetch models for this temp config (even if we delete it after)
+          console.log('Error fetching models:', error);
+          // Try test API key approach even for existing configs
           try {
+            await testApiKeyAndGetModels(formData.providerId, editingConfig.id);
+            // Re-fetch models after testing
             const response = await axiosClient.get(`/ai-providers/user/models`);
-            const configData = response.find((item: any) => item.configId === tempConfig.id);
+            const configData = response.find((item: any) =>
+              item.providerId === formData.providerId || item.configId === editingConfig.id
+            );
             if (configData?.models) {
               models = configData.models;
             }
-          } catch {}
-
-          // Delete temp config
-          await axiosClient.delete(`/ai-providers/user/configs/${tempConfig.id}`);
-
+          } catch {
+            models = getStaticModelSuggestions(formData.providerKey);
+          }
+        }
+      } else if (formData.apiKey && formData.providerKey) {
+        // For new configs with API key, test directly
+        try {
+          models = await testApiKeyAndGetModelsDirectly(formData.providerId, { apiKey: formData.apiKey });
         } catch (error) {
-          // Fallback to static suggestions
+          console.log('Direct API test failed:', error);
           models = getStaticModelSuggestions(formData.providerKey);
         }
       } else {
@@ -303,10 +364,42 @@ export default function AIModelsPage() {
 
       setAvailableModels(models);
     } catch (error) {
+      console.log('Error in loadProviderModels:', error);
       // On error, fallback to static suggestions
       setAvailableModels(getStaticModelSuggestions(formData.providerKey));
     } finally {
       setLoadingModels(false);
+    }
+  };
+
+  // Test API key and get models for existing config
+  const testApiKeyAndGetModels = async (providerId: string, configId: string) => {
+    try {
+      const response = await axiosClient.get(`/ai-providers/fetch-models/${configId}/user`);
+      if (Array.isArray(response)) {
+        return response;
+      }
+      return [];
+    } catch (error) {
+      console.log('Failed to test API and get models:', error);
+      throw error;
+    }
+  };
+
+  // Test API key directly without creating config
+  const testApiKeyAndGetModelsDirectly = async (providerId: string, config: { apiKey: string }) => {
+    try {
+      const response = await axiosClient.post('/ai-providers/verify-models', {
+        providerId,
+        config,
+      });
+      if (Array.isArray(response)) {
+        return response;
+      }
+      return [];
+    } catch (error) {
+      console.log('Failed to test API key directly:', error);
+      throw error;
     }
   };
 
@@ -519,6 +612,7 @@ export default function AIModelsPage() {
 
   const tabs = [
     { id: 'account', label: 'Account' },
+    { id: 'ai-settings', label: 'AI Settings' },
     { id: 'ai-providers', label: 'AI Providers' },
     { id: 'notifications', label: 'Notifications' },
     { id: 'sharing', label: 'Sharing' },
@@ -737,6 +831,302 @@ export default function AIModelsPage() {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        { }
+        {activeTab === 'ai-settings' && (
+          <div className="space-y-8">
+            {/* System-wide AI Defaults */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <FiZap className="w-5 h-5 text-primary" />
+                  <CardTitle>System AI Defaults</CardTitle>
+                </div>
+                <CardDescription>
+                  Configure default AI settings that apply across the entire system
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Default Model Settings */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-sm">Default Model Configuration</h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Default AI Provider</Label>
+                      <Select
+                        value={systemSettings.defaultProviderId}
+                        onValueChange={(value) => {
+                          setSystemSettings({ ...systemSettings, defaultProviderId: value, defaultModel: '' });
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={
+                            userConfigs.filter(config => config.isActive).length > 0
+                              ? "Select default provider"
+                              : "Setup AI providers first"
+                          } />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {userConfigs.filter(config => config.isActive).map((config) => (
+                            <SelectItem key={config.id} value={config.id}>
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">
+                                  {(() => {
+                                    const IconComponent = getProviderIcon(config.provider?.icon);
+                                    return <IconComponent className="text-primary" />;
+                                  })()}
+                                </span>
+                                <span className="font-medium">{config.displayName}</span>
+                                <span className="text-xs text-muted-foreground ml-auto">
+                                  {config.provider?.key || ''}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Choose from your configured AI providers.{' '}
+                        {userConfigs.filter(config => config.isActive).length === 0 && (
+                          <span className="text-primary font-medium">
+                            Go to "AI Providers" tab to setup providers first.
+                          </span>
+                        )}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Default Model</Label>
+                      <Select
+                        value={systemSettings.defaultModel}
+                        onValueChange={(value) => {
+                          setSystemSettings({ ...systemSettings, defaultModel: value });
+                        }}
+                        disabled={!systemSettings.defaultProviderId || userConfigs.filter(config => config.isActive).length === 0}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={
+                            !systemSettings.defaultProviderId
+                              ? "Select provider first"
+                              : "Select default model"
+                          } />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(() => {
+                            const selectedConfig = userConfigs.find(c => c.id === systemSettings.defaultProviderId);
+                            return selectedConfig?.modelList?.map((model) => (
+                              <SelectItem key={model} value={model}>
+                                {model}
+                              </SelectItem>
+                            )) || [];
+                          })()}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Choose model from selected provider. This will be used as default for new bots.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Temperature Range</Label>
+                    <div className="flex gap-4">
+                      <div className="flex-1">
+                        <Input
+                          type="number"
+                          placeholder="Min: 0.0"
+                          step="0.1"
+                          min="0"
+                          max="2"
+                          value={systemSettings.minTemperature}
+                          onChange={(e) => setSystemSettings(prev => ({
+                            ...prev,
+                            minTemperature: parseFloat(e.target.value) || 0.0
+                          }))}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <Input
+                          type="number"
+                          placeholder="Max: 2.0"
+                          step="0.1"
+                          min="0"
+                          max="2"
+                          value={systemSettings.maxTemperature}
+                          onChange={(e) => setSystemSettings(prev => ({
+                            ...prev,
+                            maxTemperature: parseFloat(e.target.value) || 2.0
+                          }))}
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Restrict temperature values for bot consistency
+                    </p>
+                  </div>
+                </div>
+
+                {/* AI Generation Policies - Moved Inside System AI Defaults */}
+                <div className="space-y-4 pt-6 border-t">
+                  <div className="flex items-center gap-2">
+                    <FiAlertCircle className="w-4 h-4 text-primary" />
+                    <h3 className="font-semibold text-sm">AI Generation Policies</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Control AI generation behavior and safety settings
+                  </p>
+
+                  {/* Content Filtering */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-sm">Content Policies</h4>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="space-y-1">
+                          <Label className="cursor-pointer font-medium">
+                            Enable Content Moderation
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Filter inappropriate content and responses
+                          </p>
+                        </div>
+                        <Switch
+                          checked={systemSettings.contentModeration}
+                          onCheckedChange={(checked) =>
+                            setSystemSettings(prev => ({ ...prev, contentModeration: checked }))
+                          }
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="space-y-1">
+                          <Label className="cursor-pointer font-medium">
+                            Fallback to Safe Responses
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Provide safe alternatives when content is flagged
+                          </p>
+                        </div>
+                        <Switch
+                          checked={systemSettings.safeFallbacks}
+                          onCheckedChange={(checked) =>
+                            setSystemSettings(prev => ({ ...prev, safeFallbacks: checked }))
+                          }
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="space-y-1">
+                          <Label className="cursor-pointer font-medium">
+                            Context-Aware Generation
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Consider conversation context for better responses
+                          </p>
+                        </div>
+                        <Switch
+                          checked={systemSettings.contextAware}
+                          onCheckedChange={(checked) =>
+                            setSystemSettings(prev => ({ ...prev, contextAware: checked }))
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rate Limiting */}
+                  <div className="space-y-4 pt-4 border-t">
+                    <h4 className="font-medium text-sm">Usage Limits</h4>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Max Requests per Hour</Label>
+                        <Input
+                          type="number"
+                          placeholder="1000"
+                          value={systemSettings.maxRequestsPerHour}
+                          onChange={(e) => setSystemSettings(prev => ({
+                            ...prev,
+                            maxRequestsPerHour: parseInt(e.target.value) || 1000
+                          }))}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Max Requests per User per Hour</Label>
+                        <Input
+                          type="number"
+                          placeholder="100"
+                          value={systemSettings.maxRequestsPerUser}
+                          onChange={(e) => setSystemSettings(prev => ({
+                            ...prev,
+                            maxRequestsPerUser: parseInt(e.target.value) || 100
+                          }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* System Prompt Templates */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Lightbulb className="w-5 h-5 text-primary" />
+                  <CardTitle>Prompt Templates</CardTitle>
+                </div>
+                <CardDescription>
+                  Manage system prompt templates used across the system
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="text-center py-8 border-2 border-dashed rounded-lg">
+                    <Lightbulb className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-medium mb-2">Custom Templates</h3>
+                    <p className="text-muted-foreground text-sm mb-4">
+                      Create and manage custom prompt templates for different use cases
+                    </p>
+                    <Button variant="outline">
+                      <FiPlus className="w-4 h-4 mr-2" />
+                      Add Template
+                    </Button>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm">Built-in Templates:</h4>
+                    <div className="grid gap-3">
+                      {[
+                        { name: 'Customer Support', count: '12 templates' },
+                        { name: 'Marketing', count: '8 templates' },
+                        { name: 'Technical', count: '15 templates' },
+                        { name: 'Education', count: '6 templates' },
+                        { name: 'Creative', count: '9 templates' }
+                      ].map((category) => (
+                        <div key={category.name} className="p-3 border rounded-lg bg-muted/30">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">{category.name}</span>
+                            <Badge variant="secondary">{category.count}</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-end">
+              <Button onClick={handleSaveSystemSettings} disabled={aiSettingsLoading}>
+                {aiSettingsLoading && <Spinner className="w-4 h-4 mr-2" />}
+                Save System AI Settings
+              </Button>
+            </div>
           </div>
         )}
 

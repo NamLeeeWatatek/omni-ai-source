@@ -87,19 +87,20 @@ export class KBQueryController {
   @Post('chat-with-bot-rag')
   @ApiOperation({
     summary: 'Chat with Bot using RAG (professional - bot-first architecture)',
-    description: 'Uses bot\'s configured AI provider first, then fallbacks to KB/workspace/user providers'
+    description:
+      "Uses bot's configured AI provider first, then fallbacks to KB/workspace/user providers",
   })
   async chatWithBotAndRAG(
     @Body()
     body: {
       message: string;
-      botId: string;                          // Required - bot-first approach
-      knowledgeBaseIds?: string[];           // Optional KB sources
+      botId: string; // Required - bot-first approach
+      knowledgeBaseIds?: string[]; // Optional KB sources
       conversationHistory?: Array<{
         role: 'user' | 'assistant';
         content: string;
       }>;
-      model?: string;                        // Override model (optional)
+      model?: string; // Override model (optional)
     },
   ) {
     const result = await this.ragService.chatWithBotAndRAG(

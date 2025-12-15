@@ -43,7 +43,10 @@ export class KnowledgeBase {
    * Business rule: Knowledge base can only be modified by creator or workspace admin
    */
   canBeModifiedBy(userId: string, isWorkspaceAdmin: boolean = false): boolean {
-    return this.createdBy === userId || (isWorkspaceAdmin && Boolean(this.workspaceId));
+    return (
+      this.createdBy === userId ||
+      (isWorkspaceAdmin && Boolean(this.workspaceId))
+    );
   }
 
   /**

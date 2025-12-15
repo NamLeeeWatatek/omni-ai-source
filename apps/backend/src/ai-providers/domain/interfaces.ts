@@ -75,15 +75,29 @@ export interface IAiConversationalService {
 export interface IProviderManagementService {
   getActiveProviders(): Promise<IAiProvider[]>;
   createProvider(config: CreateProviderRequest): Promise<IAiProvider>;
-  updateProvider(id: string, updates: Partial<CreateProviderRequest>): Promise<IAiProvider>;
+  updateProvider(
+    id: string,
+    updates: Partial<CreateProviderRequest>,
+  ): Promise<IAiProvider>;
   deactivateProvider(id: string): Promise<void>;
 }
 
 export interface IConfigurationService {
-  createUserConfig(request: CreateUserConfigRequest): Promise<UserProviderConfig>;
-  createWorkspaceConfig(request: CreateWorkspaceConfigRequest): Promise<WorkspaceProviderConfig>;
-  updateConfig(id: string, updates: UpdateConfigRequest): Promise<IProviderConfiguration>;
-  deleteConfig(id: string, ownerType: OwnershipType, ownerId: string): Promise<void>;
+  createUserConfig(
+    request: CreateUserConfigRequest,
+  ): Promise<UserProviderConfig>;
+  createWorkspaceConfig(
+    request: CreateWorkspaceConfigRequest,
+  ): Promise<WorkspaceProviderConfig>;
+  updateConfig(
+    id: string,
+    updates: UpdateConfigRequest,
+  ): Promise<IProviderConfiguration>;
+  deleteConfig(
+    id: string,
+    ownerType: OwnershipType,
+    ownerId: string,
+  ): Promise<void>;
 }
 
 export interface IUsageTrackingService {
@@ -91,12 +105,12 @@ export interface IUsageTrackingService {
   getUsageStats(
     ownerType: OwnershipType,
     ownerId: string,
-    period: UsagePeriod
+    period: UsagePeriod,
   ): Promise<UsageStats>;
   enforceRateLimits(
     providerId: string,
     ownerType: OwnershipType,
-    ownerId: string
+    ownerId: string,
   ): Promise<RateLimitStatus>;
 }
 
@@ -116,10 +130,15 @@ export interface IAiProviderRepository {
 
 export interface IConfigurationRepository {
   saveUserConfig(config: UserProviderConfig): Promise<UserProviderConfig>;
-  saveWorkspaceConfig(config: WorkspaceProviderConfig): Promise<WorkspaceProviderConfig>;
+  saveWorkspaceConfig(
+    config: WorkspaceProviderConfig,
+  ): Promise<WorkspaceProviderConfig>;
   findUserConfigs(userId: string): Promise<UserProviderConfig[]>;
   findWorkspaceConfigs(workspaceId: string): Promise<WorkspaceProviderConfig[]>;
-  findById(id: string, ownerType: OwnershipType): Promise<IProviderConfiguration | null>;
+  findById(
+    id: string,
+    ownerType: OwnershipType,
+  ): Promise<IProviderConfiguration | null>;
 }
 
 export interface ISecureKeyRepository {

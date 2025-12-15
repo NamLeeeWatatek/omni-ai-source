@@ -15,8 +15,8 @@ export enum ProviderKey {
 
 // Ownership Types - Multi-tenancy support
 export enum OwnershipType {
-  SYSTEM = 'system',     // Global system configuration
-  USER = 'user',         // User personal configuration
+  SYSTEM = 'system', // Global system configuration
+  USER = 'user', // User personal configuration
   WORKSPACE = 'workspace', // Workspace shared configuration
 }
 
@@ -30,16 +30,16 @@ export enum ProviderStatus {
 
 // Configuration Field Types - Validation support
 export enum ConfigFieldType {
-  STRING = 'string',         // Text input
-  TEXT = 'text',             // Multi-line text
-  NUMBER = 'number',         // Numeric input
-  BOOLEAN = 'boolean',       // True/false toggle
-  SELECT = 'select',         // Single choice dropdown
+  STRING = 'string', // Text input
+  TEXT = 'text', // Multi-line text
+  NUMBER = 'number', // Numeric input
+  BOOLEAN = 'boolean', // True/false toggle
+  SELECT = 'select', // Single choice dropdown
   MULTI_SELECT = 'multi-select', // Multiple choices
-  JSON = 'json',             // JSON object/array
-  FILE = 'file',             // Single file upload
-  FILES = 'files',           // Multiple file uploads
-  KEY_VALUE = 'key-value',   // Key-value pairs
+  JSON = 'json', // JSON object/array
+  FILE = 'file', // Single file upload
+  FILES = 'files', // Multiple file uploads
+  KEY_VALUE = 'key-value', // Key-value pairs
 }
 
 // AI Model Categories - Better organization
@@ -87,8 +87,8 @@ export enum AiProviderErrorCode {
 
 // Cache TTL Types - Consistent caching strategy
 export enum CacheTTL {
-  SHORT = 300,        // 5 minutes - volatile data
-  MEDIUM = 1800,      // 30 minutes - user sessions
-  LONG = 3600,        // 1 hour - provider configs
+  SHORT = 300, // 5 minutes - volatile data
+  MEDIUM = 1800, // 30 minutes - user sessions
+  LONG = 3600, // 1 hour - provider configs
   EXTRA_LONG = 86400, // 24 hours - static data
 }

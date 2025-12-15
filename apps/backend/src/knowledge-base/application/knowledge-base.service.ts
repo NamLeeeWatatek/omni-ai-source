@@ -50,7 +50,10 @@ export class KnowledgeBaseApplicationService {
   /**
    * Get user's knowledge bases
    */
-  async getUserKnowledgeBases(userId: string, workspaceId?: string): Promise<KnowledgeBase[]> {
+  async getUserKnowledgeBases(
+    userId: string,
+    workspaceId?: string,
+  ): Promise<KnowledgeBase[]> {
     return this.knowledgeBaseRepository.findByUser(userId, { workspaceId });
   }
 
@@ -112,7 +115,11 @@ export class KnowledgeBaseApplicationService {
   /**
    * Delete knowledge base
    */
-  async deleteKnowledgeBase(id: string, userId: string, isWorkspaceAdmin: boolean = false): Promise<void> {
+  async deleteKnowledgeBase(
+    id: string,
+    userId: string,
+    isWorkspaceAdmin: boolean = false,
+  ): Promise<void> {
     const existingKb = await this.knowledgeBaseRepository.findById(id);
     if (!existingKb) {
       throw new Error('Knowledge base not found');

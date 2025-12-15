@@ -13,19 +13,19 @@ export class SecureApiKey implements SecureKey {
 
   @ApiProperty({
     type: String,
-    description: 'Encrypted API key using AES-256-GCM'
+    description: 'Encrypted API key using AES-256-GCM',
   })
   encryptedKey: string;
 
   @ApiProperty({
     type: String,
-    description: 'Owner of this API key (userId or workspaceId)'
+    description: 'Owner of this API key (userId or workspaceId)',
   })
   ownerId: string;
 
   @ApiProperty({
     type: String,
-    description: 'Related provider configuration ID'
+    description: 'Related provider configuration ID',
   })
   providerConfigId: string;
 
@@ -99,18 +99,15 @@ export interface IApiKeySecurityMonitor {
     operation: 'read' | 'write' | 'delete',
     success: boolean,
     ipAddress?: string,
-    userAgent?: string
+    userAgent?: string,
   ): Promise<void>;
 
   detectSuspiciousActivity(
     keyId: string,
-    recentAttempts: SecurityAttempt[]
+    recentAttempts: SecurityAttempt[],
   ): Promise<SuspiciousActivityFlag>;
 
-  enforceRateLimits(
-    ownerId: string,
-    operation: string
-  ): Promise<boolean>;
+  enforceRateLimits(ownerId: string, operation: string): Promise<boolean>;
 }
 
 export interface SecurityAttempt {

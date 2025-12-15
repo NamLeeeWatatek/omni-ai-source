@@ -14,7 +14,6 @@ import { AiProviderSeedModule } from './ai-provider/ai-provider-seed.module';
 import databaseConfig from '../../config/database.config';
 import appConfig from '../../../config/app.config';
 
-
 @Module({
   imports: [
     PermissionSeedModule,

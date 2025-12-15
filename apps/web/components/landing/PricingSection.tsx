@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { motion } from "framer-motion";
+import { useTranslation } from 'react-i18next'
 import { Button } from "@/components/ui/Button";
 import { FiCheck } from "react-icons/fi";
 
@@ -13,44 +14,25 @@ interface PricingPlan {
   features: string[];
 }
 
-const pricingPlans: PricingPlan[] = [
-  {
-    name: "Starter",
-    price: 0,
-    description: "Perfect for trying out WataOmi",
-    cta: "Try for free",
-    featured: false,
-    features: [
+const getTranslatedPricingPlans = (t: any): PricingPlan[] => {
+  const fallbackFeatures = {
+    starter: [
       "1 bot",
       "100 conversations/month",
       "2 channels",
       "Basic analytics",
-      "Community support",
+      "Community support"
     ],
-  },
-  {
-    name: "Pro",
-    price: 49,
-    description: "For growing businesses",
-    cta: "Try Pro",
-    featured: true,
-    features: [
+    pro: [
       "10 bots",
       "10,000 conversations/month",
       "Unlimited channels",
       "Advanced analytics",
       "n8n integration",
       "Priority support",
-      "Brand customization",
+      "Brand customization"
     ],
-  },
-  {
-    name: "Enterprise",
-    price: 299,
-    description: "For large organizations",
-    cta: "Contact sales",
-    featured: false,
-    features: [
+    enterprise: [
       "Unlimited bots",
       "Unlimited conversations",
       "Unlimited channels",
@@ -58,21 +40,55 @@ const pricingPlans: PricingPlan[] = [
       "Dedicated account management",
       "SLA guarantee",
       "Custom integrations",
-      "On-premise deployment",
-    ],
-  },
-];
+      "On-premise deployment"
+    ]
+  };
+
+  const getFeatures = (key: string, fallback: string[]): string[] => {
+    const translated = t(key, { returnObjects: true });
+    return Array.isArray(translated) ? translated : fallback;
+  };
+
+  return [
+    {
+      name: t('pricing.plans.starter.name'),
+      price: 0,
+      description: t('pricing.plans.starter.description'),
+      cta: t('pricing.plans.starter.cta', { defaultValue: t('pricing.tryForFree') }),
+      featured: false,
+      features: getFeatures('pricing.plans.starter.features', fallbackFeatures.starter),
+    },
+    {
+      name: t('pricing.plans.pro.name'),
+      price: 49,
+      description: t('pricing.plans.pro.description'),
+      cta: t('pricing.plans.pro.cta', { defaultValue: t('pricing.tryPro') }),
+      featured: true,
+      features: getFeatures('pricing.plans.pro.features', fallbackFeatures.pro),
+    },
+    {
+      name: t('pricing.plans.enterprise.name'),
+      price: 299,
+      description: t('pricing.plans.enterprise.description'),
+      cta: t('pricing.plans.enterprise.cta', { defaultValue: t('pricing.contactSales') }),
+      featured: false,
+      features: getFeatures('pricing.plans.enterprise.features', fallbackFeatures.enterprise),
+    },
+  ];
+};
 
 export default function PricingSection() {
+  const { t } = useTranslation()
+  const pricingPlans = getTranslatedPricingPlans(t)
   return (
     <section id="pricing" className="py-32 px-4 sm:px-6 lg:px-8 bg-white">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-slate-900 mb-4">
-            Simple, transparent pricing
+          <h2 className="text-4xl font-bold text-slate-900 mb-4" suppressHydrationWarning>
+            {t('pricing.title')}
           </h2>
-          <p className="text-xl text-slate-600">
-            No setup fees, no hidden costs
+          <p className="text-xl text-slate-600" suppressHydrationWarning>
+            {t('pricing.subtitle')}
           </p>
         </div>
 
@@ -91,8 +107,8 @@ export default function PricingSection() {
               }`}
             >
               {plan.featured && (
-                <div className="inline-block px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold uppercase tracking-wide mb-4">
-                  Most Popular
+                <div className="inline-block px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold uppercase tracking-wide mb-4" suppressHydrationWarning>
+                  {t('pricing.mostPopular')}
                 </div>
               )}
               <h3 className="text-2xl font-bold text-slate-900 mb-2">
@@ -102,7 +118,7 @@ export default function PricingSection() {
                 <span className="text-4xl font-bold text-slate-900">
                   ${plan.price}
                 </span>
-                <span className="text-slate-500">/month</span>
+                <span className="text-slate-500" suppressHydrationWarning>{t('pricing.perMonth')}</span>
               </div>
               <p className="text-slate-600 mb-8">{plan.description}</p>
               <Button

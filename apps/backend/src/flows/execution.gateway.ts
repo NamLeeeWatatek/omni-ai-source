@@ -5,6 +5,8 @@
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server } from 'socket.io';
+import { UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 
 @WebSocketGateway({
   cors: {
@@ -13,6 +15,7 @@ import { Server } from 'socket.io';
   },
   namespace: 'executions',
 })
+@UseGuards(AuthGuard('jwt'))
 export class ExecutionGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {

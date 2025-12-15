@@ -23,6 +23,8 @@ import { FiChevronDown } from 'react-icons/fi'
 import { cn } from '@/lib/utils'
 import axiosClient from '@/lib/axios-client'
 import { useFileUpload } from '@/lib/hooks/use-file-upload'
+import { KeyValueEditor } from '../workflow/KeyValueEditor'
+import { useState, useEffect } from 'react'
 
 interface FormField {
     id: string
@@ -46,13 +48,16 @@ interface DynamicFormFieldProps {
     className?: string
 }
 
-export function DynamicFormField({
+
+
+export function DynamicInput({
     field,
     value,
     onChange,
     className,
 }: DynamicFormFieldProps) {
     const fieldId = `field-${field.id}`
+    const [jsonError, setJsonError] = useState<string | null>(null)
 
     // File upload hook
     const { uploadFile, uploadMultipleFiles, uploading: fileUploading } = useFileUpload({
@@ -89,6 +94,328 @@ export function DynamicFormField({
         }
     }
 
+    // Text Input
+    if (field.type === 'text') {
+        return (
+            <Input
+                id={fieldId}
+                value={value !== undefined ? value : field.defaultValue ?? ''}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder={field.placeholder}
+                required={field.required}
+                className={className}
+            />
+        )
+    }
+
+    // Textarea
+    if (field.type === 'textarea') {
+        return (
+            <Textarea
+                id={fieldId}
+                value={value !== undefined ? value : field.defaultValue ?? ''}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder={field.placeholder}
+                required={field.required}
+                rows={4}
+                className={className}
+            />
+        )
+    }
+
+    // Select Dropdown
+    if (field.type === 'select') {
+        return (
+            <Select
+                value={value || field.defaultValue}
+                onValueChange={onChange}
+            >
+                <SelectTrigger id={fieldId} className={className}>
+                    <SelectValue placeholder={field.placeholder || 'Select...'} />
+                </SelectTrigger>
+                <SelectContent>
+                    {(Array.isArray(field.options) ? field.options.map((opt) =>
+                        typeof opt === 'string' ? { value: opt, label: opt }
+                            : typeof opt === 'object' ? opt
+                                : { value: String(opt), label: String(opt) }
+                    ) : [])?.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        )
+    }
+
+    // Number Input
+    if (field.type === 'number') {
+        return (
+            <Input
+                id={fieldId}
+                type="number"
+                value={value ?? field.defaultValue ?? ''}
+                onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
+                placeholder={field.placeholder}
+                min={field.min}
+                max={field.max}
+                required={field.required}
+                className={className}
+            />
+        )
+    }
+
+    // Image Upload
+    if (field.type === 'image') {
+        return (
+            <div className={cn("space-y-2", className)}>
+                <Input
+                    id={fieldId}
+                    type="file"
+                    onChange={(e) => {
+                        const files = e.target.files
+                        if (files && files.length > 0) {
+                            if (field.multiple) {
+                                handleMultipleFileChange(Array.from(files))
+                            } else {
+                                handleSingleFileChange(Array.from(files))
+                            }
+                        }
+                    }}
+                    accept={field.accept || 'image/*'}
+                    multiple={field.multiple}
+                    required={field.required && !value}
+                    disabled={fileUploading}
+                />
+                {fileUploading && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Spinner className="w-4 h-4" />
+                        Uploading image...
+                    </div>
+                )}
+                {value && ((typeof value === 'string') || (Array.isArray(value) && value.length > 0)) && !fileUploading && (
+                    <div className="text-xs text-green-600">
+                        {field.multiple ? `${Array.isArray(value) ? value.length : 0} images` : 'Image'} uploaded successfully
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    // Switch/Toggle
+    if (field.type === 'switch') {
+        return (
+            <div className={cn("flex items-center space-x-2", className)}>
+                <Switch
+                    id={fieldId}
+                    checked={value ?? field.defaultValue ?? false}
+                    onCheckedChange={onChange}
+                />
+                <Label
+                    htmlFor={fieldId}
+                    className="text-sm font-normal cursor-pointer"
+                >
+                    {field.placeholder || 'Enable'}
+                </Label>
+            </div>
+        )
+    }
+
+    // File Upload (Single)
+    if (field.type === 'file') {
+        return (
+            <div className={cn("space-y-2", className)}>
+                <Input
+                    id={fieldId}
+                    type="file"
+                    onChange={(e) => {
+                        const files = e.target.files
+                        if (files && files.length > 0) {
+                            handleSingleFileChange(Array.from(files))
+                        }
+                    }}
+                    accept={field.accept}
+                    multiple={false}
+                    required={field.required && !value}
+                    disabled={fileUploading}
+                />
+                {fileUploading && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Spinner className="w-4 h-4" />
+                        Uploading file...
+                    </div>
+                )}
+                {value && typeof value === 'string' && !fileUploading && (
+                    <div className="text-xs text-green-600">
+                        File uploaded successfully
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    // Files Upload (Multiple)
+    if (field.type === 'files') {
+        return (
+            <div className={cn("space-y-2", className)}>
+                <Input
+                    id={fieldId}
+                    type="file"
+                    onChange={(e) => {
+                        const files = e.target.files
+                        if (files && files.length > 0) {
+                            handleMultipleFileChange(Array.from(files))
+                        }
+                    }}
+                    accept={field.accept}
+                    multiple={true}
+                    required={field.required && (!value || (Array.isArray(value) && value.length === 0))}
+                    disabled={fileUploading}
+                />
+                {fileUploading && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Spinner className="w-4 h-4" />
+                        Uploading files...
+                    </div>
+                )}
+                {value && Array.isArray(value) && value.length > 0 && !fileUploading && (
+                    <div className="text-xs text-green-600">
+                        {value.length} files uploaded successfully
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    // Multi-Select
+    if (field.type === 'multi-select') {
+        return (
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <button
+                        id={fieldId}
+                        className={cn(
+                            "w-full flex items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                            className
+                        )}
+                    >
+                        <span className={Array.isArray(value) && value.length > 0 ? "" : "text-muted-foreground"}>
+                            {Array.isArray(value) && value.length > 0
+                                ? `${value.length} selected`
+                                : (field.placeholder || "Select options...")}
+                        </span>
+                        <FiChevronDown className="w-4 h-4 opacity-50" />
+                    </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-full min-w-[200px] max-h-60 overflow-y-auto">
+                    {field.options?.length === 0 && (
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                            No options available
+                        </div>
+                    )}
+                    {(Array.isArray(field.options) ? field.options.map((opt) =>
+                        typeof opt === 'string' ? { value: opt, label: opt }
+                            : typeof opt === 'object' ? opt
+                                : { value: String(opt), label: String(opt) }
+                    ) : [])?.map((option) => {
+                        const isChecked = Array.isArray(value) && value.includes(option.value)
+
+                        return (
+                            <DropdownMenuCheckboxItem
+                                key={option.value}
+                                checked={isChecked}
+                                onCheckedChange={(checked) => {
+                                    const currentValues = Array.isArray(value) ? [...value] : []
+                                    if (checked) {
+                                        onChange([...currentValues, option.value])
+                                    } else {
+                                        onChange(currentValues.filter((v: string) => v !== option.value))
+                                    }
+                                }}
+                            >
+                                {option.label}
+                            </DropdownMenuCheckboxItem>
+                        )
+                    })}
+                </DropdownMenuContent>
+            </DropdownMenu>
+        )
+    }
+
+    // Channel Select
+    if (field.type === 'channel-select') {
+        return (
+            <ChannelSelector
+                value={value}
+                onChange={onChange}
+                multiple={field.multiple}
+                required={field.required}
+            />
+        )
+    }
+
+
+
+    // JSON Input
+    if (field.type === 'json') {
+        return (
+            <div>
+                <Textarea
+                    id={fieldId}
+                    value={typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
+                    onChange={(e) => {
+                        const val = e.target.value
+                        try {
+                            const parsed = JSON.parse(val)
+                            // If valid JSON, propagate parsed object
+                            onChange(parsed)
+                            setJsonError(null)
+                        } catch (err) {
+                            // If invalid, propagate string but show error
+                            // Note: We might want to NOT propagate invalid JSON if parent expects object
+                            // checking react-hook-form behavior: it stores what we pass.
+                            onChange(val)
+                            setJsonError('Invalid JSON format')
+                        }
+                    }}
+                    className={cn(
+                        "font-mono text-xs",
+                        jsonError ? 'border-red-500' : '',
+                        className
+                    )}
+                    rows={8}
+                    placeholder='{"key": "value"}'
+                    required={field.required}
+                />
+                {jsonError && (
+                    <p className="text-xs text-destructive mt-1">{jsonError}</p>
+                )}
+            </div>
+        )
+    }
+
+    // Key-Value Editor
+    if (field.type === 'key-value') {
+        return (
+            <KeyValueEditor
+                value={value || {}}
+                onChange={onChange}
+                placeholder={typeof field.placeholder === 'object' ? field.placeholder : undefined}
+            />
+        )
+    }
+
+    return null
+}
+
+export function DynamicFormField({
+    field,
+    value,
+    onChange,
+    className,
+}: DynamicFormFieldProps) {
+    const fieldId = `field-${field.id}`
+
     return (
         <div className={cn('space-y-2', className)}>
             <Label htmlFor={fieldId}>
@@ -100,243 +427,11 @@ export function DynamicFormField({
                 <p className="text-sm text-muted-foreground">{field.description}</p>
             )}
 
-            {/* Text Input */}
-            {field.type === 'text' && (
-                <Input
-                    id={fieldId}
-                    value={value !== undefined ? value : field.defaultValue ?? ''}
-                    onChange={(e) => onChange(e.target.value)}
-                    placeholder={field.placeholder}
-                    required={field.required}
-                />
-            )}
-
-            {/* Textarea */}
-            {field.type === 'textarea' && (
-                <Textarea
-                    id={fieldId}
-                    value={value !== undefined ? value : field.defaultValue ?? ''}
-                    onChange={(e) => onChange(e.target.value)}
-                    placeholder={field.placeholder}
-                    required={field.required}
-                    rows={4}
-
-                />
-            )}
-
-            {/* Select Dropdown */}
-            {field.type === 'select' && (
-                <Select
-                    value={value || field.defaultValue}
-                    onValueChange={onChange}
-                >
-                    <SelectTrigger id={fieldId}>
-                        <SelectValue placeholder={field.placeholder || 'Select...'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {(Array.isArray(field.options) ? field.options.map((opt) =>
-                            typeof opt === 'string' ? { value: opt, label: opt }
-                                : typeof opt === 'object' ? opt
-                                    : { value: String(opt), label: String(opt) }
-                        ) : [])?.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            )}
-
-            {/* Number Input */}
-            {field.type === 'number' && (
-                <Input
-                    id={fieldId}
-                    type="number"
-                    value={value ?? field.defaultValue ?? ''}
-                    onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
-                    placeholder={field.placeholder}
-                    min={field.min}
-                    max={field.max}
-                    required={field.required}
-                />
-            )}
-
-            {/* Image Upload */}
-            {field.type === 'image' && (
-                <div className="space-y-2">
-                    <Input
-                        id={fieldId}
-                        type="file"
-                        onChange={(e) => {
-                            const files = e.target.files
-                            if (files && files.length > 0) {
-                                if (field.multiple) {
-                                    handleMultipleFileChange(Array.from(files))
-                                } else {
-                                    handleSingleFileChange(Array.from(files))
-                                }
-                            }
-                        }}
-                        accept={field.accept || 'image/*'}
-                        multiple={field.multiple}
-                        required={field.required && !value}
-                        disabled={fileUploading}
-                    />
-                    {fileUploading && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Spinner className="w-4 h-4" />
-                            Uploading image...
-                        </div>
-                    )}
-                    {value && ((typeof value === 'string') || (Array.isArray(value) && value.length > 0)) && !fileUploading && (
-                        <div className="text-xs text-green-600">
-                            {field.multiple ? `${Array.isArray(value) ? value.length : 0} images` : 'Image'} uploaded successfully
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Switch/Toggle */}
-            {field.type === 'switch' && (
-                <div className="flex items-center space-x-2">
-                    <Switch
-                        id={fieldId}
-                        checked={value ?? field.defaultValue ?? false}
-                        onCheckedChange={onChange}
-                    />
-                    <Label
-                        htmlFor={fieldId}
-                        className="text-sm font-normal cursor-pointer"
-                    >
-                        {field.placeholder || 'Enable'}
-                    </Label>
-                </div>
-            )}
-
-
-
-            {/* File Upload (Single) */}
-            {field.type === 'file' && (
-                <div className="space-y-2">
-                    <Input
-                        id={fieldId}
-                        type="file"
-                        onChange={(e) => {
-                            const files = e.target.files
-                            if (files && files.length > 0) {
-                                handleSingleFileChange(Array.from(files))
-                            }
-                        }}
-                        accept={field.accept}
-                        multiple={false}
-                        required={field.required && !value}
-                        disabled={fileUploading}
-                    />
-                    {fileUploading && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Spinner className="w-4 h-4" />
-                            Uploading file...
-                        </div>
-                    )}
-                    {value && typeof value === 'string' && !fileUploading && (
-                        <div className="text-xs text-green-600">
-                            File uploaded successfully
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Files Upload (Multiple) */}
-            {field.type === 'files' && (
-                <div className="space-y-2">
-                    <Input
-                        id={fieldId}
-                        type="file"
-                        onChange={(e) => {
-                            const files = e.target.files
-                            if (files && files.length > 0) {
-                                handleMultipleFileChange(Array.from(files))
-                            }
-                        }}
-                        accept={field.accept}
-                        multiple={true}
-                        required={field.required && (!value || (Array.isArray(value) && value.length === 0))}
-                        disabled={fileUploading}
-                    />
-                    {fileUploading && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Spinner className="w-4 h-4" />
-                            Uploading files...
-                        </div>
-                    )}
-                    {value && Array.isArray(value) && value.length > 0 && !fileUploading && (
-                        <div className="text-xs text-green-600">
-                            {value.length} files uploaded successfully
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Multi-Select - Using Shadcn DropdownMenu */}
-            {field.type === 'multi-select' && (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <button
-                            id={fieldId}
-                            className="w-full flex items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            <span className={Array.isArray(value) && value.length > 0 ? "" : "text-muted-foreground"}>
-                                {Array.isArray(value) && value.length > 0
-                                    ? `${value.length} selected`
-                                    : (field.placeholder || "Select options...")}
-                            </span>
-                            <FiChevronDown className="w-4 h-4 opacity-50" />
-                        </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-full min-w-[200px] max-h-60 overflow-y-auto">
-                        {field.options?.length === 0 && (
-                            <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                                No options available
-                            </div>
-                        )}
-                        {/* Normalize options for multi-select */}
-                        {(Array.isArray(field.options) ? field.options.map((opt) =>
-                            typeof opt === 'string' ? { value: opt, label: opt }
-                                : typeof opt === 'object' ? opt
-                                    : { value: String(opt), label: String(opt) }
-                        ) : [])?.map((option) => {
-                            const isChecked = Array.isArray(value) && value.includes(option.value)
-
-                            return (
-                                <DropdownMenuCheckboxItem
-                                    key={option.value}
-                                    checked={isChecked}
-                                    onCheckedChange={(checked) => {
-                                        const currentValues = Array.isArray(value) ? [...value] : []
-                                        if (checked) {
-                                            onChange([...currentValues, option.value])
-                                        } else {
-                                            onChange(currentValues.filter((v: string) => v !== option.value))
-                                        }
-                                    }}
-                                >
-                                    {option.label}
-                                </DropdownMenuCheckboxItem>
-                            )
-                        })}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            )}
-
-            {/* Channel Select - Load from API */}
-            {field.type === 'channel-select' && (
-                <ChannelSelector
-                    value={value}
-                    onChange={onChange}
-                    multiple={field.multiple}
-                    required={field.required}
-                />
-            )}
+            <DynamicInput
+                field={field}
+                value={value}
+                onChange={onChange}
+            />
         </div>
     )
 }

@@ -241,3 +241,62 @@ export class AiUsageLogEntity extends EntityRelationalHelper {
   @JoinColumn({ name: 'user_id' })
   user?: UserEntity;
 }
+
+@Entity({ name: 'system_ai_settings' })
+export class SystemAiSettingsEntity extends EntityRelationalHelper {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ name: 'default_provider_id', type: String, nullable: true })
+  defaultProviderId?: string;
+
+  @Column({ name: 'default_model', type: String, nullable: true })
+  defaultModel?: string;
+
+  @Column({
+    name: 'min_temperature',
+    type: 'decimal',
+    precision: 3,
+    scale: 1,
+    default: 0.0,
+  })
+  minTemperature: number;
+
+  @Column({
+    name: 'max_temperature',
+    type: 'decimal',
+    precision: 3,
+    scale: 1,
+    default: 2.0,
+  })
+  maxTemperature: number;
+
+  @Column({ name: 'content_moderation', type: Boolean, default: true })
+  contentModeration: boolean;
+
+  @Column({ name: 'safe_fallbacks', type: Boolean, default: true })
+  safeFallbacks: boolean;
+
+  @Column({ name: 'context_aware', type: Boolean, default: true })
+  contextAware: boolean;
+
+  @Column({
+    name: 'max_requests_per_hour',
+    type: 'int',
+    default: 1000,
+  })
+  maxRequestsPerHour: number;
+
+  @Column({
+    name: 'max_requests_per_user',
+    type: 'int',
+    default: 100,
+  })
+  maxRequestsPerUser: number;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
+}

@@ -10,21 +10,19 @@ export abstract class DocumentRepository {
   /**
    * Create a new document
    */
-  abstract create(
-    data: {
-      name: string;
-      content: string;
-      knowledgeBaseId: string;
-      folderId?: string;
-      fileType?: string;
-      fileUrl?: string;
-      mimeType?: string;
-      metadata?: Record<string, any>;
-      tags?: string[];
-      createdBy: string;
-      isActive?: boolean;
-    },
-  ): Promise<Document>;
+  abstract create(data: {
+    name: string;
+    content: string;
+    knowledgeBaseId: string;
+    folderId?: string;
+    fileType?: string;
+    fileUrl?: string;
+    mimeType?: string;
+    metadata?: Record<string, any>;
+    tags?: string[];
+    createdBy: string;
+    isActive?: boolean;
+  }): Promise<Document>;
 
   /**
    * Find document by ID

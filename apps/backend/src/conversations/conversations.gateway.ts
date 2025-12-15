@@ -9,6 +9,7 @@
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 
 @WebSocketGateway({
   cors: {
@@ -20,6 +21,7 @@ import { Logger, UseGuards } from '@nestjs/common';
   },
   namespace: '/conversations',
 })
+@UseGuards(AuthGuard('jwt'))
 export class ConversationsGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {

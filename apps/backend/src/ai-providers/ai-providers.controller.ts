@@ -28,6 +28,7 @@ import {
   UpdateUserAiProviderConfigDto,
   CreateWorkspaceAiProviderConfigDto,
   UpdateWorkspaceAiProviderConfigDto,
+  UpdateSystemAiSettingsDto,
   VerifyApiKeyDto,
 } from './dto/ai-provider.dto';
 import {
@@ -35,6 +36,7 @@ import {
   UserAiProviderConfig,
   WorkspaceAiProviderConfig,
   AiUsageLog,
+  SystemAiSettings,
 } from './domain/ai-provider';
 
 @ApiTags('AI Providers')
@@ -223,7 +225,7 @@ export class AiProvidersController {
           configId: { type: 'string' },
           models: {
             type: 'array',
-            items: { type: 'string' }
+            items: { type: 'string' },
           },
         },
       },
@@ -235,7 +237,7 @@ export class AiProvidersController {
 
     const results = await Promise.all(
       configs
-        .filter(config => config.isActive)
+        .filter((config) => config.isActive)
         .map(async (config) => {
           const models = await this.aiProvidersService.fetchProviderModels(
             config.id,
@@ -250,7 +252,7 @@ export class AiProvidersController {
             configId: config.id,
             models,
           };
-        })
+        }),
     );
 
     return results;
@@ -259,15 +261,17 @@ export class AiProvidersController {
   @Get('workspace/:workspaceId/models')
   @ApiOperation({ summary: 'Get available AI models from workspace configs' })
   @ApiOkResponse({
-    description: 'List of available AI models from workspace configured providers'
+    description:
+      'List of available AI models from workspace configured providers',
   })
   @ApiParam({ name: 'workspaceId', type: String })
   async getWorkspaceAvailableModels(@Param('workspaceId') workspaceId: string) {
-    const configs = await this.aiProvidersService.getWorkspaceConfigs(workspaceId);
+    const configs =
+      await this.aiProvidersService.getWorkspaceConfigs(workspaceId);
 
     const results = await Promise.all(
       configs
-        .filter(config => config.isActive)
+        .filter((config) => config.isActive)
         .map(async (config) => {
           const models = await this.aiProvidersService.fetchProviderModels(
             config.id,
@@ -282,9 +286,109 @@ export class AiProvidersController {
             configId: config.id,
             models,
           };
-        })
+        }),
     );
 
     return results;
+  }
+
+  @Post('generate-prompt')
+  @ApiOperation({
+    summary: 'Generate an enhanced system prompt based on detailed user requirements',
+  })
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        prompt: { type: 'string' },
+        improvements: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+        suggestions: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+    },
+  })
+  async generatePrompt(
+    @Body()
+    dto: {
+      description: string;
+      template?: string;
+      providerConfigId?: string;
+      tone?: string;
+      style?: string;
+      additionalContext?: Record<string, any>;
+    },
+    @Request() req,
+  ) {
+    return this.aiProvidersService.generateSystemPrompt({
+      userId: req.user.id,
+      description: dto.description,
+      template: dto.template,
+      providerConfigId: dto.providerConfigId,
+      tone: dto.tone,
+      style: dto.style,
+      additionalContext: dto.additionalContext,
+    });
+  }
+
+  // System AI Settings endpoints
+  @Get('system/settings')
+  @ApiOperation({ summary: 'Get system AI settings' })
+  @ApiOkResponse({ type: SystemAiSettings })
+  getSystemAiSettings() {
+    return this.aiProvidersService.getSystemAiSettings();
+  }
+
+  @Patch('system/settings')
+  @ApiOperation({ summary: 'Update system AI settings' })
+  @ApiOkResponse({ type: SystemAiSettings })
+  updateSystemAiSettings(@Body() dto: UpdateSystemAiSettingsDto) {
+    return this.aiProvidersService.updateSystemAiSettings(dto);
+  }
+
+  @Get('workspace/:workspaceId/providers')
+  @ApiOperation({ summary: 'Get available providers for workspace' })
+  @ApiOkResponse({ type: [AiProvider] })
+  @ApiParam({ name: 'workspaceId', type: String })
+  getWorkspaceProviders(@Param('workspaceId') workspaceId: string) {
+    return this.aiProvidersService.getWorkspaceProviders(workspaceId);
+  }
+
+  @Get('user/providers')
+  @ApiOperation({ summary: 'Get available providers for user' })
+  @ApiOkResponse({ type: [AiProvider] })
+  getUserProviders(@Request() req) {
+    return this.aiProvidersService.getUserProviders(req.user.id);
+  }
+
+  @Get('fetch-models/:configId/user')
+  @ApiOperation({ summary: 'Fetch available models from user AI provider config' })
+  @ApiOkResponse({
+    type: [String],
+    description: 'Array of available model names from the provider'
+  })
+  @ApiParam({ name: 'configId', type: String })
+  async fetchModelsForUserConfig(@Param('configId') configId: string, @Request() req) {
+    return this.aiProvidersService.fetchProviderModels(
+      configId,
+      'user',
+      req.user.id,
+    );
+  }
+
+  @Post('verify-models')
+  @ApiOperation({ summary: 'Verify API key and fetch models without saving config' })
+  @ApiOkResponse({
+    type: [String],
+    description: 'Array of available model names from the provider'
+  })
+  async verifyApiKeyAndGetModels(@Body() dto: { providerId: string; config: Record<string, any> }) {
+    // Call service method with direct config instead of saved config lookup
+    const service = this.aiProvidersService as any;
+    return service.fetchModelsFromDirectConfig(dto.providerId, dto.config);
   }
 }

@@ -53,7 +53,10 @@ export class DocumentApplicationService {
     content: string,
   ): Promise<Document | null> {
     // Find and validate ownership
-    const document = await this.documentRepository.findByIdAndUser(documentId, userId);
+    const document = await this.documentRepository.findByIdAndUser(
+      documentId,
+      userId,
+    );
     if (!document) {
       throw new Error('Document not found or access denied');
     }
@@ -80,7 +83,10 @@ export class DocumentApplicationService {
     folderId: string | null,
   ): Promise<Document | null> {
     // Find and validate ownership
-    const document = await this.documentRepository.findByIdAndUser(documentId, userId);
+    const document = await this.documentRepository.findByIdAndUser(
+      documentId,
+      userId,
+    );
     if (!document) {
       throw new Error('Document not found or access denied');
     }
@@ -100,18 +106,24 @@ export class DocumentApplicationService {
     userId: string,
     folderId?: string,
   ): Promise<Document[]> {
-    const documents = await this.documentRepository.findByKnowledgeBase(knowledgeBaseId, {
-      folderId,
-    });
+    const documents = await this.documentRepository.findByKnowledgeBase(
+      knowledgeBaseId,
+      {
+        folderId,
+      },
+    );
 
     // Filter only active documents at application level
-    return documents.filter(doc => doc.isActive);
+    return documents.filter((doc) => doc.isActive);
   }
 
   /**
    * Get document by ID
    */
-  async getDocument(documentId: string, userId: string): Promise<Document | null> {
+  async getDocument(
+    documentId: string,
+    userId: string,
+  ): Promise<Document | null> {
     return this.documentRepository.findByIdAndUser(documentId, userId);
   }
 
@@ -120,7 +132,10 @@ export class DocumentApplicationService {
    */
   async deleteDocument(documentId: string, userId: string): Promise<void> {
     // Find and validate ownership
-    const document = await this.documentRepository.findByIdAndUser(documentId, userId);
+    const document = await this.documentRepository.findByIdAndUser(
+      documentId,
+      userId,
+    );
     if (!document) {
       throw new Error('Document not found or access denied');
     }

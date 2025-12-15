@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
+import { PageLoading } from '@/components/layout/PageLoading';
 import { Spinner } from '@/components/ui/Spinner';
-import { Save, AlertCircle, Plus, Code, Palette, History, Clock, Bot as BotIcon, MessageSquare, Zap, Settings as SettingsIcon, Plug } from 'lucide-react';
+import { Save, AlertCircle, Plus, Palette, Code as CodeIcon, History, Clock, Bot as BotIcon, MessageSquare, Zap, Database } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { toast } from 'sonner';
 import { botsApi } from '@/lib/api/bots';
 import axiosClient from '@/lib/axios-client';
-import type { BotFunction } from '@/lib/types/bots';
+
 import { cn } from '@/lib/utils';
 import {
     BasicInfoSection,
@@ -17,15 +18,12 @@ import {
     AIConfigSection,
     AdvancedSettingsSection,
 } from '@/components/bots/BotConfigSections';
-import { BotFunctionsSection } from '@/components/bots/BotFunctionsSection';
-import { BotChannelsSection } from '@/components/bots/BotChannelsSection';
-import { BotFunctionModal } from '@/components/features/bots/BotFunctionModal';
-import { useWidgetVersions, useWidgetDeployments } from '@/lib/hooks/use-widget-versions';
-import { CreateVersionDialog } from '@/components/widget/CreateVersionDialog';
+import { BotKnowledgeBaseSection } from '@/components/bots/BotKnowledgeBaseSection';
 import { WidgetAppearanceSettings } from '@/components/widget/WidgetAppearanceSettings';
 import { WidgetDeploymentHistory } from '@/components/widget/WidgetDeploymentHistory';
 import { WidgetEmbedCode } from '@/components/widget/WidgetEmbedCode';
 import { WidgetVersionsList } from '@/components/widget/WidgetVersionsList';
+import { useWidgetVersions, useWidgetDeployments } from '@/lib/hooks/use-widget-versions';
 
 export default function BotDetailPage() {
     const params = useParams();
@@ -47,14 +45,8 @@ export default function BotDetailPage() {
     const [saving, setSaving] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
     const [bot, setBot] = useState<any>(null);
-    const [botFunctions, setBotFunctions] = useState<BotFunction[]>([]);
-    const [botChannels, setBotChannels] = useState<any[]>([]);
-    const [showFunctionModal, setShowFunctionModal] = useState(false);
-    const [editingFunction, setEditingFunction] = useState<BotFunction | null>(null);
-    const [showCreateVersionDialog, setShowCreateVersionDialog] = useState(false);
     const [botSettings, setBotSettings] = useState<any>(null);
     const [activeTab, setActiveTab] = useState('general');
-    const [widgetSubTab, setWidgetSubTab] = useState('appearance');
 
     const { versions, isLoading: versionsLoading, mutate: mutateVersions } = useWidgetVersions(botId);
     const { deployments, isLoading: deploymentsLoading } = useWidgetDeployments(botId);
@@ -78,22 +70,12 @@ export default function BotDetailPage() {
         { id: 'general', label: 'General', icon: BotIcon },
         { id: 'prompt', label: 'System Prompt', icon: MessageSquare },
         { id: 'ai-config', label: 'AI Config', icon: Zap },
-        { id: 'functions', label: 'Functions', icon: SettingsIcon },
-        { id: 'channels', label: 'Channels', icon: Plug },
+        { id: 'knowledge-base', label: 'Knowledge Base', icon: Database },
         { id: 'widget', label: 'Widget', icon: Palette },
-    ];
-
-    const widgetSubTabs = [
-        { id: 'appearance', label: 'Appearance', icon: Palette },
-        { id: 'embed', label: 'Embed Code', icon: Code },
-        { id: 'versions', label: 'Versions', icon: History },
-        { id: 'deployments', label: 'Deployments', icon: Clock },
     ];
 
     useEffect(() => {
         loadBot();
-        loadBotFunctions();
-        loadBotChannels();
         loadAppearanceSettings();
     }, [botId]);
 
@@ -115,22 +97,6 @@ export default function BotDetailPage() {
             toast.error('Failed to load bot');
         } finally {
             setLoading(false);
-        }
-    };
-
-    const loadBotFunctions = async () => {
-        try {
-            const data = await axiosClient.get(`/bots/${botId}/functions`);
-            setBotFunctions(Array.isArray(data) ? data : []);
-        } catch {
-        }
-    };
-
-    const loadBotChannels = async () => {
-        try {
-            const data = await botsApi.getChannels(botId);
-            setBotChannels(Array.isArray(data) ? data : []);
-        } catch {
         }
     };
 
@@ -202,37 +168,10 @@ export default function BotDetailPage() {
             showTimestamp: settings.showTimestamp,
         });
         await loadAppearanceSettings();
-        mutateVersions();
-    };
-
-    const openFunctionModal = (func?: BotFunction) => {
-        setEditingFunction(func || null);
-        setShowFunctionModal(true);
-    };
-
-    const closeFunctionModal = () => {
-        setShowFunctionModal(false);
-        setEditingFunction(null);
-    };
-
-    const deleteFunction = async (functionId: string) => {
-        if (!confirm('Are you sure you want to delete this function?')) return;
-
-        try {
-            await axiosClient.delete(`/bots/functions/${functionId}`);
-            toast.success('Function deleted');
-            loadBotFunctions();
-        } catch {
-            toast.error('Failed to delete function');
-        }
     };
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center h-96">
-                <Spinner className="size-8 text-primary" />
-            </div>
-        );
+        return <PageLoading message="Loading bot configuration..." />;
     }
 
     if (!bot) {
@@ -263,6 +202,7 @@ export default function BotDetailPage() {
                                         <Spinner className="size-4 mr-2" />
                                         Saving...
                                     </>
+
                                 ) : (
                                     <>
                                         <Save className="w-4 h-4 mr-2" />
@@ -328,6 +268,11 @@ export default function BotDetailPage() {
                         <SystemPromptSection
                             systemPrompt={formData.systemPrompt}
                             onChange={(systemPrompt) => handleChange({ systemPrompt })}
+                            aiConfig={{
+                                providerId: formData.aiProviderId,
+                                modelName: formData.aiModelName,
+                                parameters: formData.aiParameters
+                            }}
                         />
                     )}
 
@@ -336,186 +281,81 @@ export default function BotDetailPage() {
                         <AIConfigSection data={formData} onChange={handleChange} />
                     )}
 
-                    {/* Functions Tab */}
-                    {activeTab === 'functions' && (
-                        <BotFunctionsSection
-                            botFunctions={botFunctions}
-                            onAdd={() => openFunctionModal()}
-                            onEdit={(func) => openFunctionModal(func)}
-                            onDelete={deleteFunction}
-                        />
+                    {/* Knowledge Base Tab */}
+                    {activeTab === 'knowledge-base' && (
+                        <BotKnowledgeBaseSection botId={botId} workspaceId={bot?.workspaceId} />
                     )}
 
-                    {/* Channels Tab */}
-                    {activeTab === 'channels' && (
-                        <BotChannelsSection
-                            botId={botId}
-                            botChannels={botChannels}
-                            onRefresh={loadBotChannels}
-                        />
-                    )}
-
-                    {/* Widget Tab */}
+                    {/* Widget Tab - Clean & Simple */}
                     {activeTab === 'widget' && (
-                        <div className="space-y-6">
-                            {/* Widget Sub-Tabs */}
-                            <div className="flex gap-2 overflow-x-auto pb-2">
-                                {widgetSubTabs.map((tab) => (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setWidgetSubTab(tab.id)}
-                                        className={cn(
-                                            'px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2',
-                                            widgetSubTab === tab.id
-                                                ? 'bg-primary/10 text-primary border border-primary/20'
-                                                : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
-                                        )}
-                                    >
-                                        <tab.icon className="w-4 h-4" />
-                                        {tab.label}
-                                    </button>
-                                ))}
+                        <div className="space-y-8">
+                            {/* Appearance Settings */}
+                            <div>
+                                <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                                    <Palette className="w-6 h-6 text-primary" />
+                                    Appearance
+                                </h2>
+                                <p className="text-muted-foreground mb-6">Customize the visual appearance and messaging of your chat widget</p>
+
+                                {!botSettings ? (
+                                    <PageLoading message="Loading appearance settings..." minHeight="min-h-[200px]" />
+                                ) : (
+                                    <WidgetAppearanceSettings
+                                        botId={botId}
+                                        currentSettings={{
+                                            primaryColor: botSettings.primaryColor,
+                                            backgroundColor: botSettings.backgroundColor,
+                                            botMessageColor: botSettings.botMessageColor,
+                                            botMessageTextColor: botSettings.botMessageTextColor,
+                                            fontFamily: botSettings.fontFamily,
+                                            widgetPosition: botSettings.widgetPosition,
+                                            widgetButtonSize: botSettings.widgetButtonSize,
+                                            welcomeMessage: botSettings.welcomeMessage,
+                                            placeholderText: botSettings.placeholderText,
+                                            showAvatar: botSettings.showAvatar,
+                                            showTimestamp: botSettings.showTimestamp,
+                                        }}
+                                        onSave={handleSaveAppearance}
+                                    />
+                                )}
                             </div>
 
-                            {/* Widget Sub-Tab Content */}
-                            {widgetSubTab === 'appearance' && (
-                                <Card>
-                                    <CardHeader>
-                                        <div className="flex items-center gap-2">
-                                            <Palette className="w-5 h-5 text-primary" />
-                                            <CardTitle>Appearance Settings</CardTitle>
-                                        </div>
-                                        <CardDescription>
-                                            Customize colors, fonts, and visual elements of your widget
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        {!botSettings ? (
-                                            <div className="flex items-center justify-center p-8">
-                                                <div className="text-center">
-                                                    <Spinner className="w-8 h-8 mx-auto mb-4" />
-                                                    <p className="text-sm text-muted-foreground">Loading appearance settings...</p>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <WidgetAppearanceSettings
-                                                botId={botId}
-                                                currentSettings={{
-                                                    primaryColor: botSettings.primaryColor,
-                                                    backgroundColor: botSettings.backgroundColor,
-                                                    botMessageColor: botSettings.botMessageColor,
-                                                    botMessageTextColor: botSettings.botMessageTextColor,
-                                                    fontFamily: botSettings.fontFamily,
-                                                    widgetPosition: botSettings.widgetPosition,
-                                                    widgetButtonSize: botSettings.widgetButtonSize,
-                                                    welcomeMessage: botSettings.welcomeMessage,
-                                                    placeholderText: botSettings.placeholderText,
-                                                    showAvatar: botSettings.showAvatar,
-                                                    showTimestamp: botSettings.showTimestamp,
-                                                }}
-                                                onSave={handleSaveAppearance}
-                                            />
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            )}
+                            {/* Row: Embed Code & Versions */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                {/* Embed Code Section */}
+                                <div>
+                                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                                        <CodeIcon className="w-5 h-5 text-primary" />
+                                        Embed Code
+                                    </h3>
+                                    <p className="text-muted-foreground mb-4">Copy this code to install your widget on any website</p>
+                                    <WidgetEmbedCode botId={botId} activeVersion={activeVersion} />
+                                </div>
 
-                            {widgetSubTab === 'embed' && (
-                                <Card>
-                                    <CardHeader>
-                                        <div className="flex items-center gap-2">
-                                            <Code className="w-5 h-5 text-primary" />
-                                            <CardTitle>Embed Code</CardTitle>
-                                        </div>
-                                        <CardDescription>
-                                            Copy and paste this code into your website to embed the widget
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <WidgetEmbedCode
-                                            botId={botId}
-                                            activeVersion={activeVersion}
-                                        />
-                                    </CardContent>
-                                </Card>
-                            )}
+                                {/* Versions & Deployments Section */}
+                                <div className="space-y-6">
+                                    <div>
+                                        <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                                            <History className="w-5 h-5 text-primary" />
+                                            Versions
+                                        </h3>
+                                        <WidgetVersionsList botId={botId} versions={versions || []} isLoading={versionsLoading} onRefresh={mutateVersions} />
+                                    </div>
 
-                            {widgetSubTab === 'versions' && (
-                                <Card>
-                                    <CardHeader>
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <History className="w-5 h-5 text-primary" />
-                                                    <CardTitle>Version Management</CardTitle>
-                                                </div>
-                                                <CardDescription>
-                                                    Manage different versions of your widget configuration
-                                                </CardDescription>
-                                            </div>
-                                            <Button onClick={() => setShowCreateVersionDialog(true)}>
-                                                <Plus className="w-4 h-4 mr-2" />
-                                                Create Version
-                                            </Button>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <WidgetVersionsList
-                                            botId={botId}
-                                            versions={versions}
-                                            isLoading={versionsLoading}
-                                            onRefresh={mutateVersions}
-                                        />
-                                    </CardContent>
-                                </Card>
-                            )}
-
-                            {widgetSubTab === 'deployments' && (
-                                <Card>
-                                    <CardHeader>
-                                        <div className="flex items-center gap-2">
+                                    <div>
+                                        <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
                                             <Clock className="w-5 h-5 text-primary" />
-                                            <CardTitle>Deployment History</CardTitle>
-                                        </div>
-                                        <CardDescription>
-                                            Track all widget deployments and changes over time
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <WidgetDeploymentHistory
-                                            deployments={deployments}
-                                            isLoading={deploymentsLoading}
-                                        />
-                                    </CardContent>
-                                </Card>
-                            )}
+                                            Deployments
+                                        </h3>
+                                        <WidgetDeploymentHistory deployments={deployments || []} isLoading={deploymentsLoading} />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
+
                 </div>
             </div>
-
-            {/* Function Modal */}
-            <BotFunctionModal
-                open={showFunctionModal}
-                onClose={closeFunctionModal}
-                botId={botId}
-                botFunction={editingFunction as any}
-                onSuccess={() => {
-                    closeFunctionModal();
-                    loadBotFunctions();
-                }}
-            />
-
-            {/* Create Version Dialog */}
-            <CreateVersionDialog
-                botId={botId}
-                open={showCreateVersionDialog}
-                onOpenChange={setShowCreateVersionDialog}
-                onSuccess={() => {
-                    mutateVersions();
-                    setShowCreateVersionDialog(false);
-                }}
-            />
         </div>
     );
 }

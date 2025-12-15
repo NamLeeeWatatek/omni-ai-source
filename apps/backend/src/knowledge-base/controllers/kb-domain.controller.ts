@@ -54,7 +54,7 @@ export class KBDomainController {
   @Post('documents')
   @ApiOperation({ summary: 'Create document (DDD)' })
   async createDocument(
-    @Body() dto: { knowledgeBaseId: string; folderId?: string }
+    @Body() dto: { knowledgeBaseId: string; folderId?: string },
   ) {
     // TODO: Extract userId from JWT token
     const userId = 'temp-user-id'; // Placeholder

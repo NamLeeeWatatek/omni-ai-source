@@ -249,19 +249,22 @@
     letter-spacing: 0.01em;
   }
 
-  /* Page Layout - 10px base spacing */
+  /* Page Layout - Standardized Senior Spacing */
   .page-container {
-    padding: 5px;
-    max-width: 1400px;
-    margin: 0 auto;
+    @apply w-full mx-auto px-4 py-6 md:px-6 md:py-8 lg:px-8 max-w-[1400px];
+  }
+
+  /* Full width container but with consistent horizontal padding */
+  .page-container-full {
+    @apply w-full px-4 py-6 md:px-6 md:py-8 lg:px-8;
   }
 
   .page-header {
-    margin-bottom: 10px;
+    @apply mb-6 md:mb-8;
   }
 
   .content-section {
-    margin-bottom: 10px;
+    @apply mb-8;
   }
 
   .full-screen-page {

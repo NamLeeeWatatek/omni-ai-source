@@ -39,8 +39,6 @@ const KnowledgeBaseRepository = {
   useClass: RelationalKnowledgeBaseRepository,
 };
 
-
-
 import {
   KnowledgeBaseEntity,
   KbFolderEntity,

@@ -5,6 +5,7 @@ import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/Button'
 import { DashboardBreadcrumb } from './DashboardBreadcrumb'
 import { DashboardNotifications } from './DashboardNotifications'
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { FiSun, FiMoon, FiMenu } from 'react-icons/fi'
 
 interface DashboardHeaderProps {
@@ -50,6 +51,9 @@ export const DashboardHeader = React.memo<DashboardHeaderProps>(({
                         <FiMoon className="w-5 h-5" />
                     )}
                 </Button>
+
+                {/* Language Switcher */}
+                <LanguageSwitcher />
 
                 {/* Notifications */}
                 <DashboardNotifications

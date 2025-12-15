@@ -1,9 +1,10 @@
 ﻿'use client'
 
 import { useState, useEffect } from 'react'
-import { useWorkspace } from '@/lib/hooks/use-workspace'
+import { useAppSelector, useAppDispatch } from '@/lib/store/hooks'
 import { useSession } from 'next-auth/react'
 import axiosClient from '@/lib/axios-client'
+import { switchWorkspace } from '@/lib/store/slices/workspaceSlice'
 import {
   Select,
   SelectContent,
@@ -21,104 +22,19 @@ interface Workspace {
 }
 
 export function WorkspaceSwitcher() {
-  const { data: session } = useSession()
-  const workspace = useWorkspace()
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([])
-  const [loading, setLoading] = useState(true)
-  const [hasFetched, setHasFetched] = useState(false)
-
-  // Safe access to workspace context
-  const currentWorkspaceId = workspace?.currentWorkspaceId || null
-  const setCurrentWorkspaceId = workspace?.setCurrentWorkspaceId || (() => { })
-
-  useEffect(() => {
-    // Only fetch once
-    if (hasFetched) {
-      setLoading(false)
-      return
-    }
-
-    let isMounted = true
-
-    async function fetchWorkspaces() {
-      // If no session yet, wait
-      if (!session) {
-        return
-      }
-
-      // If no accessToken, use session workspace
-      if (!session?.accessToken) {
-        if (isMounted) {
-          setHasFetched(true)
-          setLoading(false)
-          // Set default workspace from session if available
-          if (session?.workspace) {
-            setWorkspaces([session.workspace])
-          }
-        }
-        return
-      }
-
-      setHasFetched(true)
-
-      try {
-        const response = await axiosClient.get('/workspaces')
-        if (isMounted) {
-          const fetchedWorkspaces = response || []
-          setWorkspaces(fetchedWorkspaces)
-
-          // If no workspaces from API but session has workspace, use it
-          if (fetchedWorkspaces.length === 0 && session?.workspace) {
-            setWorkspaces([session.workspace])
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch workspaces:', error)
-        // Fallback to session workspaces
-        if (isMounted) {
-          if (session?.workspaces && session.workspaces.length > 0) {
-            setWorkspaces(session.workspaces)
-          } else if (session?.workspace) {
-            setWorkspaces([session.workspace])
-          }
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false)
-        }
-      }
-    }
-
-    fetchWorkspaces()
-
-    return () => {
-      isMounted = false
-    }
-  }, [session, hasFetched])
+  const dispatch = useAppDispatch()
+  const { currentWorkspace, workspaces, isLoading } = useAppSelector(state => state.workspace)
 
   const handleWorkspaceChange = (workspaceId: string) => {
-    setCurrentWorkspaceId(workspaceId)
+    dispatch(switchWorkspace(workspaceId))
   }
-
-  // Get workspace name from session or workspaces
-  const getCurrentWorkspace = () => {
-    if (workspaces.length > 0) {
-      return workspaces.find(w => w.id === currentWorkspaceId) || workspaces[0]
-    }
-    if (session?.workspace) {
-      return session.workspace
-    }
-    return { name: 'My Workspace', plan: 'Free', id: 'default', slug: 'default' }
-  }
-
-  const currentWorkspace = getCurrentWorkspace()
 
   // Helper to get initials
   const getInitials = (name: string) => {
     return name?.substring(0, 1).toUpperCase() || 'W'
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex w-full items-center gap-2 rounded-xl border border-border/50 bg-muted/50 p-2">
         <div className="h-8 w-8 animate-pulse rounded-lg bg-muted-foreground/20" />
@@ -162,13 +78,13 @@ export function WorkspaceSwitcher() {
   }
 
   return (
-    <Select value={currentWorkspaceId || undefined} onValueChange={handleWorkspaceChange}>
+    <Select value={currentWorkspace?.id || undefined} onValueChange={handleWorkspaceChange}>
       <SelectTrigger
         className={cn(
           "h-14 w-full rounded-xl border-border/40 bg-card/50 p-2 shadow-sm backdrop-blur-sm hover:bg-card/80 hover:shadow-md focus:ring-0 data-[state=open]:bg-card"
         )}
       >
-        {renderWorkspaceDisplay(currentWorkspace, true)}
+        {renderWorkspaceDisplay(currentWorkspace || {}, true)}
       </SelectTrigger>
       <SelectContent
         className="w-[--radix-select-trigger-width] min-w-56 rounded-xl border-border/50 bg-popover/95 p-1 backdrop-blur-xl"
@@ -204,4 +120,3 @@ export function WorkspaceSwitcher() {
     </Select>
   )
 }
-

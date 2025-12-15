@@ -1,9 +1,7 @@
 ﻿'use client'
 
 import React from 'react'
-import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
-import { FiZap } from 'react-icons/fi'
 
 interface UGCFactoryExecutionStatusProps {
     status: 'idle' | 'running' | 'completed' | 'failed'

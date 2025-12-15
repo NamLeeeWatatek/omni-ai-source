@@ -209,3 +209,45 @@ export class WorkspaceAiProviderConfig {
   @ApiProperty()
   updatedAt: Date;
 }
+
+/**
+ * SystemAiSettings domain entity
+ * Table: system_ai_settings
+ */
+export class SystemAiSettings {
+  @ApiProperty({ type: String })
+  id: string;
+
+  @ApiPropertyOptional({ type: String })
+  defaultProviderId?: string;
+
+  @ApiPropertyOptional({ type: String })
+  defaultModel?: string;
+
+  @ApiProperty({ type: Number, default: 0.0 })
+  minTemperature: number;
+
+  @ApiProperty({ type: Number, default: 2.0 })
+  maxTemperature: number;
+
+  @ApiProperty({ type: Boolean, default: true })
+  contentModeration: boolean;
+
+  @ApiProperty({ type: Boolean, default: true })
+  safeFallbacks: boolean;
+
+  @ApiProperty({ type: Boolean, default: true })
+  contextAware: boolean;
+
+  @ApiProperty({ type: Number, default: 1000 })
+  maxRequestsPerHour: number;
+
+  @ApiProperty({ type: Number, default: 100 })
+  maxRequestsPerUser: number;
+
+  @ApiProperty()
+  createdAt: Date;
+
+  @ApiProperty()
+  updatedAt: Date;
+}

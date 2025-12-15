@@ -67,7 +67,6 @@ import { ExecuteFlowModal } from '@/components/features/workflow/ExecuteFlowModa
 import { NodeContextMenu } from '@/components/features/workflow/NodeContextMenu'
 import { NodePalette } from '@/components/features/workflow/NodePalette'
 import NodeProperties from '@/components/features/workflow/NodeProperties'
-import { TestNodePanel } from '@/components/features/workflow/TestNodePanel'
 import { AlertDialogConfirm } from '@/components/ui/AlertDialogConfirm'
 import { Button } from '@/components/ui/Button'
 import { Textarea } from '@/components/ui/Textarea'
@@ -1308,20 +1307,6 @@ function WorkflowDetailPageInner({ params }: { params: { id: string } }) {
                         </div>
                     )}
                 </div>
-
-                {/* Test Panel Dialog */}
-                <Dialog open={showTestPanel} onOpenChange={setShowTestPanel}>
-                    <DialogContent className="max-w-2xl h-[80vh] p-0 overflow-hidden bg-background">
-                        {selectedNode && (
-                            <TestNodePanel
-                                node={selectedNode}
-                                onClose={() => setShowTestPanel(false)}
-                                flowId={params.id}
-                                className="w-full border-0"
-                            />
-                        )}
-                    </DialogContent>
-                </Dialog>
 
                 {/* Execute Modal */}
                 <ExecuteFlowModal

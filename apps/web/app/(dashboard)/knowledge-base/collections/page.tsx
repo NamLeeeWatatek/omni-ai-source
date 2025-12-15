@@ -47,9 +47,9 @@ import {
     FiMoreVertical,
 } from 'react-icons/fi'
 
-import { useWorkspace } from '@/lib/hooks/useWorkspace'
 import { AlertDialogConfirm } from '@/components/ui/AlertDialogConfirm'
 import { Badge } from '@/components/ui/Badge'
+import { useWorkspace } from '@/lib/hooks/useWorkspace'
 
 export default function KnowledgeBaseCollectionsPage() {
     const router = useRouter()
@@ -190,10 +190,23 @@ export default function KnowledgeBaseCollectionsPage() {
         collections: knowledgeBases.length,
         documents: knowledgeBases.reduce((sum, kb) => sum + (kb.totalDocuments || 0), 0),
         size: knowledgeBases.reduce((sum, kb) => {
-            const size = typeof kb.totalSize === 'string' ? parseInt(kb.totalSize) : (kb.totalSize || 0)
-            return sum + (isNaN(size) ? 0 : size)
+            // Handle various size formats
+            let sizeVal = 0
+            if (typeof kb.totalSize === 'string') {
+                // Try parsing string like "1024 KB" or just "1024"
+                const match = kb.totalSize.match(/(\d+(?:\.\d+)?)/)
+                sizeVal = match ? parseFloat(match[1]) : 0
+                // Convert common units
+                if (kb.totalSize.includes('KB')) sizeVal *= 1024
+                else if (kb.totalSize.includes('MB')) sizeVal *= 1024 * 1024
+                else if (kb.totalSize.includes('GB')) sizeVal *= 1024 * 1024 * 1024
+            } else if (typeof kb.totalSize === 'number') {
+                sizeVal = kb.totalSize
+            }
+            return sum + sizeVal
         }, 0),
-        bots: knowledgeBases.reduce((sum, kb) => sum + (kb.botMappings?.length || 0), 0),
+        bots: knowledgeBases.reduce((sum, kb) =>
+            sum + (kb.botMappings?.length || 0) + (kb.agentMappings?.length || 0), 0),
     }
 
     return (
