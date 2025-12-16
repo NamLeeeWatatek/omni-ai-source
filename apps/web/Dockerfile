@@ -22,7 +22,7 @@ COPY . .
 RUN npm run build
 
 # Expose the port used by Next.js
-EXPOSE 3000
+EXPOSE 3001
 
 # Start the app in production mode
-CMD ["npm", "run", "start", "-w", "@wataomi/web"]
+CMD ["npm", "run", "start", "-w", "@wata/web"]

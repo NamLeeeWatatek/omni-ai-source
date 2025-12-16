@@ -95,61 +95,87 @@ export default function ExecutionDetailPage({
         }
     }
 
-    const renderOutputData = (data: any) => {
+    const renderOutputData = (data: any, isFinalResult: boolean = false) => {
+        // Handle text responses
         if (data.response && typeof data.response === 'string') {
             return (
                 <Card className="border-border/40">
                     <CardContent className="p-4">
-                        <div className="prose prose-sm dark:prose-invert max-w-none">
-                            <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                                {data.response}
-                            </p>
-                        </div>
-
-                        { }
-                        {(data.model || data.tokens_used) && (
-                            <div className="mt-3 pt-3 border-t border-border/40 flex items-center gap-3 text-xs text-muted-foreground">
-                                {data.model && (
-                                    <span className="px-2 py-1 bg-muted rounded">
-                                        Model: {data.model}
-                                    </span>
-                                )}
-                                {data.tokens_used && (
-                                    <span className="px-2 py-1 bg-muted rounded">
-                                        Tokens: {data.tokens_used}
-                                    </span>
-                                )}
+                        <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <FiCheckCircle className="w-4 h-4 text-primary" />
                             </div>
-                        )}
+                            <div className="flex-1 min-w-0">
+                                <div className="prose prose-sm dark:prose-invert max-w-none">
+                                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                                        {data.response}
+                                    </p>
+                                </div>
 
-                        { }
-                        <details className="mt-3">
-                            <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
-                                View Raw JSON
-                            </summary>
-                            <pre className="mt-2 text-xs overflow-auto max-h-32 p-2 bg-muted/30 rounded">
-                                {JSON.stringify(data, null, 2)}
-                            </pre>
-                        </details>
+                                {/* AI Model info */}
+                                {(data.model || data.tokens_used || data.provider) && (
+                                    <div className="mt-3 pt-3 border-t border-border/40 flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+                                        {data.model && (
+                                            <span className="px-2 py-1 bg-muted rounded">
+                                                🤖 {data.model}
+                                            </span>
+                                        )}
+                                        {data.provider && (
+                                            <span className="px-2 py-1 bg-muted rounded">
+                                                🏢 {data.provider}
+                                            </span>
+                                        )}
+                                        {data.tokens_used && (
+                                            <span className="px-2 py-1 bg-muted rounded">
+                                                🎫 {data.tokens_used} tokens
+                                            </span>
+                                        )}
+                                        {data.cost && (
+                                            <span className="px-2 py-1 bg-muted rounded">
+                                                💰 ${data.cost}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Raw JSON toggle */}
+                                <details className="mt-3">
+                                    <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                                        View Raw JSON
+                                    </summary>
+                                    <pre className="mt-2 text-xs overflow-auto max-h-32 p-2 bg-muted/30 rounded">
+                                        {JSON.stringify(data, null, 2)}
+                                    </pre>
+                                </details>
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
             )
         }
 
-        const isProduct = data.image || data.image_url || data.thumbnail ||
-            (data.name && data.description) ||
-            (data.title && (data.image || data.url))
+        // Enhanced product detection
+        const isProduct = data.image || data.image_url || data.thumbnail || data.photo ||
+            (data.name && (data.description || data.caption)) ||
+            (data.title && (data.image || data.url || data.price)) ||
+            data.product || data.item ||
+            (data.brand && data.model) ||
+            (data.sku && data.price)
 
         if (isProduct) {
-            const imageUrl = data.image || data.image_url || data.thumbnail || data.url
-            const name = data.name || data.title || 'Product'
-            const description = data.description || data.caption || ''
-            const price = data.price || data.cost
-            const category = data.category || data.type
+            const imageUrl = data.image || data.image_url || data.thumbnail || data.photo || data.url
+            const name = data.name || data.title || data.product || data.item || data.brand || 'Product'
+            const description = data.description || data.caption || data.summary || data.details || ''
+            const price = data.price || data.cost || data.amount
+            const category = data.category || data.type || data.classification
+            const brand = data.brand || data.manufacturer
+            const sku = data.sku || data.id || data.product_id
+            const rating = data.rating || data.stars
+            const availability = data.availability || data.stock_status || data.in_stock
 
             return (
-                <Card className="overflow-hidden border-border/40">
-                    { }
+                <Card className="overflow-hidden border-border/40 hover:shadow-md transition-shadow">
+                    {/* Product Image */}
                     {imageUrl && (
                         <div className="relative w-full h-48 bg-muted">
                             <img
@@ -160,33 +186,79 @@ export default function ExecutionDetailPage({
                                     e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E'
                                 }}
                             />
+                            {isFinalResult && (
+                                <div className="absolute top-2 right-2 px-2 py-1 bg-green-500 text-white text-xs rounded-full">
+                                    ✓ Generated
+                                </div>
+                            )}
                         </div>
                     )}
 
-                    { }
-                    <CardContent className="p-4 space-y-2">
-                        <h4 className="font-semibold text-base">{name}</h4>
+                    {/* Product Details */}
+                    <CardContent className="p-4 space-y-3">
+                        <div className="space-y-2">
+                            <h4 className="font-semibold text-base line-clamp-2">{name}</h4>
 
-                        {description && (
-                            <p className="text-sm text-muted-foreground line-clamp-2">
-                                {description}
-                            </p>
-                        )}
+                            {description && (
+                                <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
+                                    {description}
+                                </p>
+                            )}
+                        </div>
 
+                        {/* Product Meta */}
                         <div className="flex items-center gap-2 flex-wrap">
                             {price && (
-                                <span className="px-2 py-1 bg-primary/10 text-primary rounded text-sm font-medium">
-                                    {typeof price === 'number' ? `$${price}` : price}
+                                <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-semibold">
+                                    {typeof price === 'number' ? `$${price.toFixed(2)}` : price}
                                 </span>
                             )}
                             {category && (
                                 <span className="px-2 py-1 bg-muted text-muted-foreground rounded text-xs">
-                                    {category}
+                                    📁 {category}
+                                </span>
+                            )}
+                            {brand && (
+                                <span className="px-2 py-1 bg-muted text-muted-foreground rounded text-xs">
+                                    🏷️ {brand}
+                                </span>
+                            )}
+                            {rating && (
+                                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">
+                                    ⭐ {rating}/5
+                                </span>
+                            )}
+                            {availability && (
+                                <span className={`px-2 py-1 rounded text-xs ${
+                                    availability === 'in_stock' || availability === true
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-red-100 text-red-800'
+                                }`}>
+                                    {availability === 'in_stock' || availability === true ? '✅ In Stock' : '❌ Out of Stock'}
                                 </span>
                             )}
                         </div>
 
-                        { }
+                        {/* Additional product info */}
+                        {(sku || data.url) && (
+                            <div className="pt-2 border-t border-border/40 space-y-1">
+                                {sku && (
+                                    <div className="text-xs text-muted-foreground">
+                                        <span className="font-medium">SKU:</span> {sku}
+                                    </div>
+                                )}
+                                {data.url && (
+                                    <div className="text-xs">
+                                        <a href={data.url} target="_blank" rel="noopener noreferrer"
+                                           className="text-primary hover:underline">
+                                            🔗 View Product
+                                        </a>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Raw JSON toggle */}
                         <details className="mt-3">
                             <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
                                 View Raw JSON
@@ -200,10 +272,50 @@ export default function ExecutionDetailPage({
             )
         }
 
+        // Handle arrays of products/results
+        if (Array.isArray(data) && data.length > 0) {
+            const firstItem = data[0];
+            const isProductArray = data.every(item =>
+                item.image || item.name || item.title || item.product ||
+                item.price || item.category
+            );
+
+            if (isProductArray) {
+                return (
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <FiCheckCircle className="w-4 h-4" />
+                            Generated {data.length} product{data.length > 1 ? 's' : ''}
+                        </div>
+                        <div className="grid gap-4">
+                            {data.map((item, index) => (
+                                <div key={index}>
+                                    {renderOutputData(item, false)}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )
+            }
+        }
+
+        // Default JSON display with better formatting
         return (
-            <pre className="text-xs overflow-auto max-h-40 p-3 bg-muted/30 rounded-lg border border-border/40">
-                {JSON.stringify(data, null, 2)}
-            </pre>
+            <Card className="border-border/40">
+                <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <FiCheckCircle className="w-4 h-4 text-blue-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium mb-2">Execution Result</div>
+                            <pre className="text-xs overflow-auto max-h-40 p-3 bg-muted/30 rounded-lg border border-border/40 whitespace-pre-wrap">
+                                {typeof data === 'string' ? data : JSON.stringify(data, null, 2)}
+                            </pre>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
         )
     }
 
@@ -359,6 +471,21 @@ export default function ExecutionDetailPage({
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Final Execution Result */}
+            {execution.output_data && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <FiCheckCircle className="w-5 h-5 text-green-500" />
+                            Final Result
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {renderOutputData(execution.output_data, true)}
+                    </CardContent>
+                </Card>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 { }

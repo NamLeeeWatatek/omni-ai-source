@@ -183,7 +183,7 @@ export function useSocketConnection({
     return () => {
       disconnect();
     };
-  }, [enabled, autoConnect, connect, disconnect]);
+  }, [enabled, autoConnect]); // Remove connect/disconnect from deps to prevent infinite re-runs
 
   // Handle auth changes
   useEffect(() => {

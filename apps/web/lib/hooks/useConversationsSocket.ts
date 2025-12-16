@@ -1,4 +1,4 @@
-﻿import { useEffect, useCallback, useRef } from 'react';
+﻿import { useEffect, useCallback, useRef, useMemo } from 'react';
 import { SocketEventHandlers } from '@/lib/types/socket';
 import { useSocketConnection } from './use-socket-connection';
 
@@ -46,31 +46,41 @@ export function useConversationsSocket({
 
   // Set up conversation-specific event handlers
   useEffect(() => {
-    if (!socket) return;
+    if (!isConnected || !socket) return;
 
-    const unsubscribeConversationUpdate = on('conversation-update', (conversation) => {
+    const handleConversationUpdate = (conversation: any) => {
       console.log('[WebSocket] ðŸ“¥ conversation-update:', conversation);
       handlersRef.current.onConversationUpdate?.(conversation);
-    });
+    };
 
-    const unsubscribeNewConversation = on('new-conversation', (conversation) => {
+    const handleNewConversation = (conversation: any) => {
       console.log('[WebSocket] ðŸ“¥ new-conversation:', conversation);
       handlersRef.current.onNewConversation?.(conversation);
-    });
+    };
 
-    const unsubscribeNewMessage = on('new-message', (message) => {
+    const handleNewMessage = (message: any) => {
       console.log('[WebSocket] ðŸ“¥ new-message:', message);
       handlersRef.current.onNewMessage?.(message);
-    });
+    };
+
+    // Set up event listeners
+    const unsubscribeConversationUpdate = on('conversation-update', handleConversationUpdate);
+    const unsubscribeNewConversation = on('new-conversation', handleNewConversation);
+    const unsubscribeNewMessage = on('new-message', handleNewMessage);
 
     return () => {
       unsubscribeConversationUpdate();
       unsubscribeNewConversation();
       unsubscribeNewMessage();
     };
-  }, [socket, on]);
+  }, [isConnected, socket, on]);
 
   const joinConversation = useCallback((conversationId: string) => {
+    if (!conversationId || typeof conversationId !== 'string') {
+      console.warn('[WebSocket] Invalid conversationId provided to joinConversation:', conversationId);
+      return;
+    }
+
     if (isConnected) {
       console.log('[WebSocket] ðŸšª Joining conversation:', conversationId);
       emit('join-conversation', conversationId);
@@ -81,16 +91,22 @@ export function useConversationsSocket({
   }, [isConnected, emit]);
 
   const leaveConversation = useCallback((conversationId: string) => {
+    if (!conversationId || typeof conversationId !== 'string') {
+      console.warn('[WebSocket] Invalid conversationId provided to leaveConversation:', conversationId);
+      return;
+    }
+
     console.log('[WebSocket] ðŸšª Leaving conversation:', conversationId);
     emit('leave-conversation', conversationId);
   }, [emit]);
 
-  return {
+  // Return stable references
+  return useMemo(() => ({
     socket,
     isConnected,
     isConnecting,
     error,
     joinConversation,
     leaveConversation,
-  };
+  }), [socket, isConnected, isConnecting, error, joinConversation, leaveConversation]);
 }

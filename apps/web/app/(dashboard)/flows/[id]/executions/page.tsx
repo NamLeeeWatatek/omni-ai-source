@@ -21,13 +21,17 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { AlertDialogConfirm } from '@/components/ui/AlertDialogConfirm'
 import { Spinner } from '@/components/ui/Spinner'
+import { DataTable, Column } from '@/components/ui/Table'
 
 export default function ExecutionsPage({ params }: { params: { id: string } }) {
     const router = useRouter()
     const [executions, setExecutions] = useState<Execution[]>([])
+    const [filteredExecutions, setFilteredExecutions] = useState<Execution[]>([])
     const [loading, setLoading] = useState(true)
     const [flowName, setFlowName] = useState('')
     const [deleteExecutionId, setDeleteExecutionId] = useState<number | null>(null)
+    const [statusFilter, setStatusFilter] = useState<string>('all')
+    const [dateRange, setDateRange] = useState<string>('all')
 
     const { isConnected, on } = useSocketConnection({
         namespace: 'executions',
@@ -148,6 +152,85 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
         })
     }
 
+    // Define columns for DataTable
+    const columns: Column<Execution>[] = [
+        {
+            key: 'status',
+            label: 'Status',
+            sortable: true,
+            render: (value, row) => (
+                <div className="flex items-center gap-2">
+                    {getStatusIcon(value)}
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(value)}`}>
+                        {value}
+                    </span>
+                </div>
+            ),
+        },
+        {
+            key: 'startedAt',
+            label: 'Started',
+            sortable: true,
+            render: (value) => <span className="text-sm">{formatDate(value)}</span>,
+        },
+        {
+            key: 'duration',
+            label: 'Duration',
+            sortable: true,
+            render: (value) => <span className="text-sm font-medium">{formatDuration(value)}</span>,
+        },
+        {
+            key: 'progress',
+            label: 'Progress',
+            sortable: false,
+            render: (_, row) => (
+                <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden min-w-24">
+                        <div
+                            className="h-full bg-primary transition-all"
+                            style={{
+                                width: `${((row.completed_nodes ?? 0) /
+                                    (row.total_nodes ?? 1)) * 100}%`
+                            }}
+                        />
+                    </div>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {row.completed_nodes ?? 0}/{row.total_nodes ?? 0}
+                    </span>
+                </div>
+            ),
+        },
+        {
+            key: 'success_rate',
+            label: 'Success Rate',
+            sortable: true,
+            render: (value) => <span className="text-sm font-medium">{value ?? 0}%</span>,
+        },
+        {
+            key: 'actions',
+            label: 'Actions',
+            sortable: false,
+            className: 'text-right',
+            render: (_, row) => (
+                <div className="flex items-center justify-end gap-2">
+                    <Link href={`/flows/${params.id}/executions/${String(row.id)}`}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <FiEye className="w-4 h-4" />
+                        </Button>
+                    </Link>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-500 hover:bg-red-500/10"
+                        onClick={() => handleDelete(typeof row.id === 'number' ? row.id : parseInt(String(row.id)))}
+                    >
+                        <FiTrash2 className="w-4 h-4" />
+                    </Button>
+                </div>
+            ),
+        },
+    ]
+
     return (
         <div className="p-8">
             { }
@@ -162,8 +245,8 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
                         </p>
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={loadExecutions}>
-                            <FiRefreshCw className="w-4 h-4 mr-2" />
+                        <Button variant="outline" onClick={loadExecutions} disabled={loading}>
+                            <FiRefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                             Refresh
                         </Button>
                         <Link href={`/flows/${params.id}`}>
@@ -237,87 +320,22 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
                     </Link>
                 </Card>
             ) : (
-                <Card className="overflow-hidden">
-                    <table className="w-full">
-                        <thead className="bg-muted/50">
-                            <tr>
-                                <th className="text-left p-4 font-medium text-muted-foreground">Status</th>
-                                <th className="text-left p-4 font-medium text-muted-foreground">Started</th>
-                                <th className="text-left p-4 font-medium text-muted-foreground">Duration</th>
-                                <th className="text-left p-4 font-medium text-muted-foreground">Progress</th>
-                                <th className="text-left p-4 font-medium text-muted-foreground">Success Rate</th>
-                                <th className="text-right p-4 font-medium text-muted-foreground">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {executions.map((execution) => (
-                                <tr
-                                    key={execution.id}
-                                    className="border-t border-border/40 hover:bg-muted/20"
-                                >
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-2">
-                                            {getStatusIcon(execution.status)}
-                                            <span
-                                                className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(
-                                                    execution.status
-                                                )}`}
-                                            >
-                                                {execution.status}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-sm">
-                                        {formatDate(execution.started_at ?? execution.startedAt ?? '')}
-                                    </td>
-                                    <td className="p-4 text-sm font-medium">
-                                        {formatDuration(execution.duration_ms ?? execution.duration)}
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-2">
-                                            <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
-                                                <div
-                                                    className="h-full bg-primary transition-all"
-                                                    style={{
-                                                        width: `${((execution.completed_nodes ?? 0) /
-                                                            (execution.total_nodes ?? 1)) *
-                                                            100
-                                                            }%`
-                                                    }}
-                                                />
-                                            </div>
-                                            <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                                {execution.completed_nodes ?? 0}/{execution.total_nodes ?? 0}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="p-4">
-                                        <span className="text-sm font-medium">
-                                            {execution.success_rate?.toFixed(0) || 0}%
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <Link href={`/flows/${params.id}/executions/${String(execution.id)}`}>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                    <FiEye className="w-4 h-4" />
-                                                </Button>
-                                            </Link>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-red-500 hover:bg-red-500/10"
-                                                onClick={() => handleDelete(typeof execution.id === 'number' ? execution.id : parseInt(String(execution.id)))}
-                                            >
-                                                <FiTrash2 className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </Card>
+                <DataTable
+                    data={executions}
+                    columns={columns}
+                    loading={loading}
+                    actions={
+                        <div className="flex gap-2">
+                            <Button variant="outline" onClick={loadExecutions} disabled={loading}>
+                                <FiRefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                                Refresh
+                            </Button>
+                            <Link href={`/flows/${params.id}`}>
+                                <Button variant="outline">Back to Flow</Button>
+                            </Link>
+                        </div>
+                    }
+                />
             )}
 
             { }

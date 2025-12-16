@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -35,6 +35,9 @@ export function ChatInterface({
     const { data: session } = useSession();
     const currentUserName = session?.user?.name || session?.user?.email || 'You';
 
+    // Track current conversation to prevent unnecessary joins/leaves
+    const currentConversationRef = useRef<string | null>(null);
+
     // Use custom hook for messages management
     const {
         messages,
@@ -49,43 +52,66 @@ export function ChatInterface({
     const appendMessage = useMessagesStore((state) => state.appendMessage);
     const removeMessage = useMessagesStore((state) => state.removeMessage);
 
-    // Socket for real-time messages
+    // Socket for real-time messages - use stable callbacks
+    const onNewMessageCallback = useCallback((message: any) => {
+        console.log('[Socket] New message received:', message);
+
+        // Only add if it's for this conversation
+        if (message.conversationId === conversationId) {
+            console.log('[Socket] Adding new message to Zustand store:', message.id);
+
+            appendMessage(conversationId, {
+                id: message.id,
+                role: message.role,
+                content: message.content,
+                conversationId: message.conversationId,
+                createdAt: message.sentAt || message.createdAt || new Date().toISOString()
+            });
+        } else {
+            console.log('[Socket] Message for different conversation, skipping');
+        }
+    }, [conversationId, appendMessage]);
+
     const { joinConversation, leaveConversation } = useConversationsSocket({
-        onNewMessage: useCallback((message: any) => {
-            console.log('[Socket] New message received:', message);
-
-            // Only add if it's for this conversation
-            if (message.conversationId === conversationId) {
-                console.log('[Socket] Adding new message to Zustand store:', message.id);
-
-                appendMessage(conversationId, {
-                    id: message.id,
-                    role: message.role,
-                    content: message.content,
-                    conversationId: message.conversationId,
-                    createdAt: message.sentAt || message.createdAt || new Date().toISOString()
-                });
-            } else {
-                console.log('[Socket] Message for different conversation, skipping');
-            }
-        }, [conversationId, appendMessage]),
+        onNewMessage: onNewMessageCallback,
         enabled: true
     });
 
-    // Join/leave socket room
+    // Join/leave socket room - only when conversationId actually changes
     useEffect(() => {
+        // Ensure conversationId is valid
+        if (!conversationId || typeof conversationId !== 'string' || conversationId.trim() === '') {
+            console.warn('[ChatInterface] Invalid conversationId:', conversationId);
+            return;
+        }
+
+        if (currentConversationRef.current === conversationId) {
+            // Same conversation, no need to rejoin
+            return;
+        }
+
+        // Leave previous conversation if exists
+        if (currentConversationRef.current && leaveConversation) {
+            console.log('[ChatInterface] Leaving previous conversation:', currentConversationRef.current);
+            leaveConversation(currentConversationRef.current);
+        }
+
+        // Join new conversation
         if (conversationId && joinConversation) {
             console.log('[ChatInterface] Joining conversation:', conversationId);
             joinConversation(conversationId);
+            currentConversationRef.current = conversationId;
         }
 
         return () => {
-            if (conversationId && leaveConversation) {
-                console.log('[ChatInterface] Leaving conversation:', conversationId);
-                leaveConversation(conversationId);
+            // Cleanup on unmount
+            if (currentConversationRef.current && leaveConversation) {
+                console.log('[ChatInterface] Leaving conversation on cleanup:', currentConversationRef.current);
+                leaveConversation(currentConversationRef.current);
+                currentConversationRef.current = null;
             }
         };
-    }, [conversationId, joinConversation, leaveConversation]);
+    }, [conversationId]); // Only depend on conversationId, not the join/leave functions
 
     // Handle sending messages
     const handleSendMessage = useCallback(async (content: string) => {
@@ -143,4 +169,3 @@ export function ChatInterface({
         </div>
     );
 }
-

@@ -135,22 +135,30 @@ export function DynamicForm({
     const form = useForm({
         resolver: zodResolver(schema),
         defaultValues: formData,
-        mode: 'onChange' // Validate on change for better UX
+        mode: 'onBlur' // Validate on blur for better UX, not on every keystroke
     })
 
-    // Sync external formData with internal form state if needed (and vice versa)
-    // However, react-hook-form managing state is better.
-    // If parent needs state updates:
+    // Sync form changes to parent - use ref to prevent infinite loops
+    const isUpdatingFromParent = React.useRef(false)
+
     useEffect(() => {
-        const subscription = form.watch((value) => {
+        const subscription = form.watch((value, { name, type }) => {
+            // Skip if we're in the middle of a parent update to prevent loops
+            if (isUpdatingFromParent.current) return
+
             onFormDataChange(value as Record<string, any>)
         })
         return () => subscription.unsubscribe()
     }, [form, onFormDataChange])
 
-    // Update form values if formData prop changes externally (and isn't just a reflection of our own changes)
+    // Update form values if formData prop changes externally
     useEffect(() => {
-        form.reset(formData)
+        isUpdatingFromParent.current = true
+        form.reset(formData, { keepDirty: false, keepTouched: false })
+        // Reset flag after a short delay to allow form update to complete
+        setTimeout(() => {
+            isUpdatingFromParent.current = false
+        }, 0)
     }, [formData, form])
 
 
@@ -182,7 +190,7 @@ export function DynamicForm({
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6" noValidate>
                 {properties.map((prop) => (
                     <FormField
                         key={prop.name}

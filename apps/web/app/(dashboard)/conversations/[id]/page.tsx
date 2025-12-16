@@ -158,14 +158,16 @@ export default function ConversationPage() {
             </div>
 
 
-            <ChatInterface
-                conversationId={conversationId}
-                customerName={conversation.contactName}
-                isChannelConversation={!!conversation.channelType}
-                onSendMessage={handleSendMessage}
-                senderRole="assistant"
-                className="flex-1"
-            />
+            {conversationId && (
+                <ChatInterface
+                    conversationId={conversationId}
+                    customerName={conversation.contactName}
+                    isChannelConversation={!!conversation.channelType}
+                    onSendMessage={handleSendMessage}
+                    senderRole="assistant"
+                    className="flex-1"
+                />
+            )}
         </div>
     );
 }
