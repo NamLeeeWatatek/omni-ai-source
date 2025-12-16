@@ -1,11 +1,11 @@
-# Environment files
+# === Environment files ===
 .env
 .env.local
 .env.*.local
 apps/backend/.env
 apps/web/.env.local
 
-# Python
+# === Python ===
 __pycache__/
 *.py[cod]
 *$py.class
@@ -32,7 +32,7 @@ venv/
 ENV/
 env/
 
-# Node
+# === Node ===
 node_modules/
 npm-debug.log*
 yarn-debug.log*
@@ -42,7 +42,7 @@ yarn-error.log*
 out/
 .turbo/
 
-# IDEs
+# === IDEs ===
 .vscode/
 .idea/
 *.swp
@@ -50,17 +50,28 @@ out/
 *~
 .DS_Store
 
-# Database
+# === Database ===
 *.db
 *.sqlite
 *.sqlite3
 
-# Logs
+# === Logs ===
 logs/
 *.log
 
-# Docker
+# === Docker runtime data – KHÔNG BAO GIỜ commit lên Git ===
 .docker/
+volumes/
+data/
+db_data/
+mysql_data/
+postgres_data/
+redis_data/
+minio_data/
+qdrant_data/
+
+# Docker compose override (nếu dùng)
+docker-compose.override.yml
 
 # Backup files
 *.bak
@@ -85,30 +96,9 @@ tmp/
 temp/
 *.tmp
 
-
-# === Docker runtime data – KHÔNG BAO GIỜ commit lên Git ===
-infra-shared/
-infra-shared/*
-!infra-shared/*.Dockerfile
-
-# Nếu bạn không muốn commit file config (chỉ để local dev)
-# thì ignore luôn cả conf, còn nếu muốn commit mẫu thì để lại conf.example
-conf/
-!conf/app.conf.example        # giữ lại file mẫu để người khác copy
-
-# Hoặc nếu bạn vẫn muốn commit file app.conf làm mẫu thì làm thế này:
-# conf/app.conf
-# !conf/app.conf.example
-
-# Volume data khác (nếu có)
-volumes/
-data/
-db_data/
-mysql_data/
-postgres_data/
-redis_data/
-minio_data/
-qdrant_data/
-
-# Docker compose override (nếu dùng)
-docker-compose.override.yml
+# === Infra-shared – giữ Dockerfile, bỏ hết các folder khác ===
+infra-shared/services/
+!infra-shared/services/*.Dockerfile
+# Nếu Dockerfile nằm sâu hơn subfolder
+!infra-shared/services/**/.Dockerfile
+infra-shared/services/mysql/*
