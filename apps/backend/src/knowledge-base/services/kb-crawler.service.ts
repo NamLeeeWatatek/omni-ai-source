@@ -1,0 +1,387 @@
+﻿import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { KbDocumentEntity } from '../infrastructure/persistence/relational/entities/knowledge-base.entity';
+import { KBChunkEntity } from '../infrastructure/persistence/relational/entities/kb-chunk.entity';
+import { KBProcessingQueueService } from './kb-processing-queue.service';
+import { KBManagementService } from './kb-management.service';
+import { KBEmbeddingsService } from './kb-embeddings.service';
+import { sanitizeText, sanitizeMetadata } from '../utils/text-sanitizer';
+import * as cheerio from 'cheerio';
+import axios from 'axios';
+
+export interface CrawlOptions {
+  maxPages?: number;
+  maxDepth?: number;
+  followLinks?: boolean;
+  includePatterns?: string[];
+  excludePatterns?: string[];
+  respectRobotsTxt?: boolean;
+}
+
+export interface CrawlResult {
+  url: string;
+  title: string;
+  content: string;
+  metadata: Record<string, any>;
+  links: string[];
+}
+
+@Injectable()
+export class KBCrawlerService {
+  private readonly logger = new Logger(KBCrawlerService.name);
+  private visitedUrls = new Set<string>();
+
+  constructor(
+    @InjectRepository(KbDocumentEntity)
+    private readonly documentRepository: Repository<KbDocumentEntity>,
+    @InjectRepository(KBChunkEntity)
+    private readonly chunkRepository: Repository<KBChunkEntity>,
+    private readonly processingQueue: KBProcessingQueueService,
+    private readonly kbManagementService: KBManagementService,
+    private readonly embeddingsService: KBEmbeddingsService,
+  ) {}
+
+  async crawlUrl(url: string): Promise<CrawlResult> {
+    try {
+      this.logger.log(`ðŸ•·ï¸ Crawling: ${url}`);
+
+      const response = await axios.get(url, {
+        timeout: 30000,
+        headers: {
+          'User-Agent': 'KnowledgeBase-Bot/1.0',
+        },
+      });
+
+      const html = response.data;
+      const $ = cheerio.load(html);
+
+      $('script, style, nav, header, footer, iframe, noscript').remove();
+
+      const title =
+        $('title').text().trim() || $('h1').first().text().trim() || 'Untitled';
+
+      const mainContent = $('main, article, .content, #content, body')
+        .first()
+        .text()
+        .trim();
+
+      const content = mainContent
+        .replace(/\s+/g, ' ')
+        .replace(/\n+/g, '\n')
+        .trim();
+
+      const description = $('meta[name="description"]').attr('content') || '';
+
+      const links: string[] = [];
+      $('a[href]').each((_, element) => {
+        const href = $(element).attr('href');
+        if (href) {
+          try {
+            const absoluteUrl = new URL(href, url).href;
+            links.push(absoluteUrl);
+          } catch (e) {}
+        }
+      });
+
+      return {
+        url,
+        title: sanitizeText(title),
+        content: sanitizeText(content),
+        metadata: sanitizeMetadata({
+          description,
+          crawledAt: new Date().toISOString(),
+          sourceUrl: url,
+        }),
+        links,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to crawl ${url}: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async crawlWebsite(
+    startUrl: string,
+    knowledgeBaseId: string,
+    userId: string,
+    options: CrawlOptions = {},
+  ): Promise<{ documentsCreated: number; errors: string[] }> {
+    const {
+      maxPages = 50,
+      maxDepth = 3,
+      followLinks = true,
+      includePatterns = [],
+      excludePatterns = [],
+    } = options;
+
+    this.visitedUrls.clear();
+    const errors: string[] = [];
+    let documentsCreated = 0;
+
+    const kb = await this.kbManagementService.findOne(knowledgeBaseId, userId);
+
+    const urlsToCrawl: Array<{ url: string; depth: number }> = [
+      { url: startUrl, depth: 0 },
+    ];
+
+    while (urlsToCrawl.length > 0 && documentsCreated < maxPages) {
+      const { url, depth } = urlsToCrawl.shift()!;
+
+      if (this.visitedUrls.has(url)) continue;
+
+      if (depth > maxDepth) continue;
+
+      if (includePatterns.length > 0) {
+        const matches = includePatterns.some((pattern) =>
+          url.includes(pattern),
+        );
+        if (!matches) continue;
+      }
+
+      if (excludePatterns.length > 0) {
+        const matches = excludePatterns.some((pattern) =>
+          url.includes(pattern),
+        );
+        if (matches) continue;
+      }
+
+      try {
+        this.visitedUrls.add(url);
+
+        const existingDoc = await this.documentRepository.findOne({
+          where: {
+            knowledgeBaseId,
+            sourceUrl: url,
+          },
+        });
+
+        if (existingDoc) {
+          this.logger.log(`â­ï¸  Skipping ${url} - already exists`);
+          continue;
+        }
+
+        const result = await this.crawlUrl(url);
+
+        const document = this.documentRepository.create({
+          knowledgeBaseId,
+          name: result.title,
+          title: result.title,
+          content: result.content,
+          metadata: result.metadata,
+          fileType: 'webpage',
+          mimeType: 'text/html',
+          fileSize: String(result.content.length),
+          processingStatus: 'pending',
+          createdBy: userId,
+          type: 'url',
+          sourceUrl: url,
+        });
+
+        const savedDoc = await this.documentRepository.save(document);
+        documentsCreated++;
+
+        const jobId = this.processingQueue.addJob(savedDoc.id, knowledgeBaseId);
+        this.processingQueue.setJobDocumentName(jobId, result.title);
+
+        this.processDocument(savedDoc, kb, jobId).catch((error) => {
+          this.logger.error(
+            `Error processing document ${savedDoc.id}: ${error.message}`,
+          );
+          this.processingQueue.failJob(jobId, error.message);
+        });
+
+        this.logger.log(
+          `âœ… Created document from ${url} (${documentsCreated}/${maxPages})`,
+        );
+
+        if (followLinks && depth < maxDepth) {
+          const baseDomain = new URL(startUrl).hostname;
+          result.links.forEach((link) => {
+            try {
+              const linkDomain = new URL(link).hostname;
+              if (linkDomain === baseDomain && !this.visitedUrls.has(link)) {
+                urlsToCrawl.push({ url: link, depth: depth + 1 });
+              }
+            } catch (e) {}
+          });
+        }
+      } catch (error) {
+        this.logger.error(`Error crawling ${url}: ${error.message}`);
+        errors.push(`${url}: ${error.message}`);
+      }
+    }
+    return { documentsCreated, errors };
+  }
+
+  async crawlSitemap(
+    sitemapUrl: string,
+    knowledgeBaseId: string,
+    userId: string,
+    options: CrawlOptions = {},
+  ): Promise<{ documentsCreated: number; errors: string[] }> {
+    try {
+      this.logger.log(`ðŸ“„ Fetching sitemap: ${sitemapUrl}`);
+
+      const response = await axios.get(sitemapUrl, {
+        timeout: 30000,
+      });
+
+      const $ = cheerio.load(response.data, { xmlMode: true });
+      const urls: string[] = [];
+
+      $('url > loc').each((_, element) => {
+        const url = $(element).text().trim();
+        if (url) urls.push(url);
+      });
+
+      this.logger.log(`Found ${urls.length} URLs in sitemap`);
+
+      const errors: string[] = [];
+      let documentsCreated = 0;
+      const maxPages = options.maxPages || 100;
+
+      const kb = await this.kbManagementService.findOne(
+        knowledgeBaseId,
+        userId,
+      );
+
+      for (const url of urls.slice(0, maxPages)) {
+        try {
+          const existingDoc = await this.documentRepository.findOne({
+            where: {
+              knowledgeBaseId,
+              sourceUrl: url,
+            },
+          });
+
+          if (existingDoc) {
+            this.logger.log(`â­ï¸  Skipping ${url} - already exists`);
+            continue;
+          }
+
+          const result = await this.crawlUrl(url);
+
+          const document = this.documentRepository.create({
+            knowledgeBaseId,
+            name: result.title,
+            title: result.title,
+            content: result.content,
+            metadata: result.metadata,
+            fileType: 'webpage',
+            mimeType: 'text/html',
+            fileSize: String(result.content.length),
+            processingStatus: 'pending',
+            createdBy: userId,
+            type: 'url',
+            sourceUrl: url,
+          });
+
+          const savedDoc = await this.documentRepository.save(document);
+          documentsCreated++;
+
+          const jobId = this.processingQueue.addJob(
+            savedDoc.id,
+            knowledgeBaseId,
+          );
+          this.processingQueue.setJobDocumentName(jobId, result.title);
+
+          this.processDocument(savedDoc, kb, jobId).catch((error) => {
+            this.logger.error(
+              `Error processing document ${savedDoc.id}: ${error.message}`,
+            );
+            this.processingQueue.failJob(jobId, error.message);
+          });
+
+          this.logger.log(
+            `âœ… Created document from ${url} (${documentsCreated}/${urls.length})`,
+          );
+        } catch (error) {
+          this.logger.error(`Error processing ${url}: ${error.message}`);
+          errors.push(`${url}: ${error.message}`);
+        }
+      }
+
+      return { documentsCreated, errors };
+    } catch (error) {
+      this.logger.error(`Failed to fetch sitemap: ${error.message}`);
+      throw error;
+    }
+  }
+
+  private async processDocument(
+    document: KbDocumentEntity,
+    kb: any,
+    jobId: string,
+  ) {
+    try {
+      this.processingQueue.startJob(jobId);
+
+      document.processingStatus = 'processing';
+      await this.documentRepository.save(document);
+
+      const content = document.content;
+      if (!content || content.length === 0) {
+        throw new Error('Document content is empty');
+      }
+
+      const chunks = await this.embeddingsService.chunkText(
+        content,
+        kb.chunkSize,
+        kb.chunkOverlap,
+      );
+
+      this.logger.log(
+        `ðŸ“„ Document ${document.id}: Created ${chunks.length} chunks`,
+      );
+
+      this.processingQueue.updateJobProgress(jobId, 0, chunks.length);
+
+      const chunkEntities = chunks.map((chunk, index) => {
+        const sanitizedContent = sanitizeText(chunk.content);
+
+        return this.chunkRepository.create({
+          documentId: document.id,
+          knowledgeBaseId: document.knowledgeBaseId,
+          content: sanitizedContent,
+          chunkIndex: index,
+          startChar: chunk.startChar,
+          endChar: chunk.endChar,
+          tokenCount: chunk.tokenCount,
+          metadata: sanitizeMetadata({
+            documentName: document.name,
+            fileType: document.fileType,
+            sourceUrl: document.sourceUrl,
+          }),
+          embeddingStatus: 'pending',
+        });
+      });
+
+      const savedChunks = await this.chunkRepository.save(chunkEntities);
+
+      await this.embeddingsService.processChunksWithProgress(
+        savedChunks,
+        kb.embeddingModel,
+        (processed, total) => {
+          this.processingQueue.updateJobProgress(jobId, processed, total);
+          this.logger.log(
+            `âš¡ Processing embeddings: ${processed}/${total} (${Math.round((processed / total) * 100)}%)`,
+          );
+        },
+      );
+
+      document.processingStatus = 'completed';
+      document.chunkCount = chunks.length;
+      await this.documentRepository.save(document);
+
+      this.processingQueue.completeJob(jobId);
+      this.logger.log(`âœ… Document ${document.id} processed successfully`);
+    } catch (error) {
+      document.processingStatus = 'failed';
+      document.processingError = error.message;
+      await this.documentRepository.save(document);
+      this.processingQueue.failJob(jobId, error.message);
+      throw error;
+    }
+  }
+}

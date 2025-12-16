@@ -1,0 +1,101 @@
+﻿import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { KbFolderEntity } from '../infrastructure/persistence/relational/entities/knowledge-base.entity';
+import { CreateFolderDto, UpdateFolderDto } from '../dto/kb-folder.dto';
+import { KBManagementService } from './kb-management.service';
+
+@Injectable()
+export class KBFoldersService {
+  constructor(
+    @InjectRepository(KbFolderEntity)
+    private readonly folderRepository: Repository<KbFolderEntity>,
+    private readonly kbManagementService: KBManagementService,
+  ) {}
+
+  async create(userId: string, createDto: CreateFolderDto) {
+    await this.kbManagementService.findOne(createDto.knowledgeBaseId, userId);
+
+    const folderData = {
+      ...createDto,
+      parentId: createDto.parentFolderId,
+    };
+
+    const folder = this.folderRepository.create(folderData);
+    return this.folderRepository.save(folder);
+  }
+
+  async findAll(kbId: string, userId: string) {
+    await this.kbManagementService.findOne(kbId, userId);
+
+    return this.folderRepository.find({
+      where: { knowledgeBaseId: kbId },
+      relations: ['subFolders', 'documents'],
+      order: { createdAt: 'ASC' },
+    });
+  }
+
+  async findOne(folderId: string, userId: string) {
+    const folder = await this.folderRepository.findOne({
+      where: { id: folderId },
+      relations: ['knowledgeBase', 'subFolders', 'documents'],
+    });
+
+    if (!folder) {
+      throw new NotFoundException('Folder not found');
+    }
+
+    await this.kbManagementService.findOne(folder.knowledgeBaseId, userId);
+
+    return folder;
+  }
+
+  async update(folderId: string, userId: string, updateDto: UpdateFolderDto) {
+    const folder = await this.findOne(folderId, userId);
+    Object.assign(folder, updateDto);
+    return this.folderRepository.save(folder);
+  }
+
+  async remove(folderId: string, userId: string) {
+    const folder = await this.findOne(folderId, userId);
+    await this.folderRepository.remove(folder);
+    return { success: true };
+  }
+
+  async getTree(kbId: string, userId: string) {
+    await this.kbManagementService.findOne(kbId, userId);
+
+    const folders = await this.folderRepository.find({
+      where: { knowledgeBaseId: kbId },
+      relations: ['documents'],
+      order: { createdAt: 'ASC' },
+    });
+
+    const folderMap = new Map<string, any>();
+    const rootFolders: any[] = [];
+
+    folders.forEach((folder) => {
+      const folderWithChildren = folder as KbFolderEntity & {
+        children: any[];
+      };
+      folderWithChildren.children = [];
+      folderMap.set(folder.id, folderWithChildren);
+    });
+
+    folders.forEach((folder) => {
+      const node = folderMap.get(folder.id);
+      if (node) {
+        if (folder.parentId) {
+          const parent = folderMap.get(folder.parentId);
+          if (parent) {
+            parent.children.push(node);
+          }
+        } else {
+          rootFolders.push(node);
+        }
+      }
+    });
+
+    return rootFolders;
+  }
+}

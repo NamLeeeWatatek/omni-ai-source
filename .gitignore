@@ -87,8 +87,8 @@ temp/
 
 
 # === Docker runtime data – KHÔNG BAO GIỜ commit lên Git ===
-services/
-services/*
+infra-shared/
+infra-shared/*
 
 # Nếu bạn không muốn commit file config (chỉ để local dev)
 # thì ignore luôn cả conf, còn nếu muốn commit mẫu thì để lại conf.example
