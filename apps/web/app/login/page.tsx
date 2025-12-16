@@ -65,25 +65,7 @@ function LoginPageContent() {
         setUserActionError(null);
 
         try {
-            // âœ… Validate frontend env variables first
-            const endpoint = process.env.NEXT_PUBLIC_CASDOOR_ENDPOINT
-            const clientId = process.env.NEXT_PUBLIC_CASDOOR_CLIENT_ID
-            const orgName = process.env.NEXT_PUBLIC_CASDOOR_ORG_NAME
-            const appName = process.env.NEXT_PUBLIC_CASDOOR_APP_NAME
-
-            if (!endpoint || !clientId || !orgName || !appName) {
-                const missing = []
-                if (!endpoint) missing.push('NEXT_PUBLIC_CASDOOR_ENDPOINT')
-                if (!clientId) missing.push('NEXT_PUBLIC_CASDOOR_CLIENT_ID')
-                if (!orgName) missing.push('NEXT_PUBLIC_CASDOOR_ORG_NAME')
-                if (!appName) missing.push('NEXT_PUBLIC_CASDOOR_APP_NAME')
-
-                throw new Error(`Missing environment variables: ${missing.join(', ')}`)
-            }
-
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
-
-            // âœ… Better error handling with detailed messages
             let response;
             try {
                 response = await fetch(`${apiUrl}/auth/casdoor/login-url`);
@@ -180,9 +162,7 @@ function LoginPageContent() {
                                     style={{ animationDelay: `${i * 100}ms` }}
                                     suppressHydrationWarning
                                 >
-                                    <div className="w-5 h-5 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0">
-                                        <MdCheckCircle className="w-4 h-4 text-success" />
-                                    </div>
+                                    <MdCheckCircle className="w-4 h-4 text-success" />
                                     {feature}
                                 </div>
                             ))}
