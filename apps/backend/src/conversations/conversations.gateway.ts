@@ -13,10 +13,7 @@ import { AuthGuard } from '@nestjs/passport';
 
 @WebSocketGateway({
   cors: {
-    origin:
-      process.env.FRONTEND_DOMAIN ||
-      process.env.FRONTEND_URL ||
-      'http://localhost:3000',
+    origin: process.env.FRONTEND_DOMAIN || 'http://localhost:3000',
     credentials: true,
   },
   namespace: '/conversations',
