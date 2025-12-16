@@ -67,35 +67,4 @@ export function useConversationSocket({
         isConnected,
         disconnect,
     };
-
-    const disconnect = useCallback(() => {
-        if (socketRef.current) {
-            if (conversationId && isConnectedRef.current) {
-                // Leave conversation room before disconnect
-                socketRef.current.emit('leave_conversation', { conversationId });
-            }
-
-            socketRef.current.disconnect();
-            socketRef.current = null;
-            isConnectedRef.current = false;
-        }
-    }, [conversationId]);
-
-    // Connect on mount, disconnect on unmount
-    useEffect(() => {
-        if (!enabled) return;
-
-        const socket = connect();
-
-        return () => {
-            disconnect();
-        };
-    }, [connect, disconnect, enabled]);
-
-    return {
-        socket: socketRef.current,
-        isConnected: isConnectedRef.current,
-        disconnect,
-    };
 }
-

@@ -15,7 +15,7 @@ import {
     FiActivity
 } from 'react-icons/fi'
 import axiosClient from '@/lib/axios-client'
-import { useExecutionSocket } from '@/lib/hooks/useExecutionSocket'
+import { useSocketConnection } from '@/lib/hooks/use-socket-connection'
 import type { Execution } from '@/lib/types'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -29,9 +29,21 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
     const [flowName, setFlowName] = useState('')
     const [deleteExecutionId, setDeleteExecutionId] = useState<number | null>(null)
 
-    const { connected, subscribeToFlow } = useExecutionSocket({
-        flowId: params.id,
-        onUpdate: (update) => {
+    const { isConnected, on } = useSocketConnection({
+        namespace: 'executions',
+        enabled: true,
+    })
+
+    useEffect(() => {
+        loadExecutions()
+        loadFlow()
+    }, [params.id])
+
+    // Listen for execution updates
+    useEffect(() => {
+        if (!isConnected) return
+
+        const unsubscribeUpdate = on('execution:progress', (update) => {
             setExecutions((prev) =>
                 prev.map((exec) =>
                     exec.id.toString() === update.executionId
@@ -39,20 +51,23 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
                         : exec
                 )
             )
-        },
-        onComplete: () => {
+        })
+
+        const unsubscribeComplete = on('execution:complete', (update) => {
             loadExecutions()
-        },
-    })
+        })
 
-    useEffect(() => {
-        loadExecutions()
-        loadFlow()
+        const unsubscribeError = on('execution:error', (update) => {
+            // Handle execution error
+            loadExecutions()
+        })
 
-        if (connected) {
-            subscribeToFlow(params.id)
+        return () => {
+            unsubscribeUpdate()
+            unsubscribeComplete()
+            unsubscribeError()
         }
-    }, [params.id, connected])
+    }, [isConnected, on])
 
     const loadFlow = async () => {
         try {
