@@ -160,22 +160,3 @@ export class CrawlWebsiteDto {
   @IsOptional()
   excludePatterns?: string[];
 }
-
-export class CrawlSitemapDto {
-  @ApiProperty({
-    description: 'Sitemap URL (e.g., https://example.com/sitemap.xml)',
-  })
-  @IsString()
-  sitemapUrl: string;
-
-  @ApiProperty()
-  @IsUUID()
-  knowledgeBaseId: string;
-
-  @ApiPropertyOptional({
-    description: 'Maximum pages to crawl from sitemap',
-    default: 100,
-  })
-  @IsOptional()
-  maxPages?: number;
-}

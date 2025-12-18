@@ -71,7 +71,12 @@ const generateSchema = (properties: NodeProperty[]) => {
                 break
             case 'files':
             case 'multi-select':
-                validator = z.array(z.string()).optional()
+            case 'channel-select':
+                if (prop.multiple) {
+                    validator = z.array(z.string()).optional()
+                } else {
+                    validator = z.string().optional()
+                }
                 break
             case 'json':
             case 'key-value':

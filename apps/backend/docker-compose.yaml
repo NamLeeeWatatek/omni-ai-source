@@ -4,12 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - ${APP_PORT}:${APP_PORT}
+      - "${APP_PORT}:${APP_PORT}"
+    env_file:
+      - .env
     networks:
       - wata-network
-volumes:
-  boilerplate-db:
-  
-networks:
-  wata-network:
-    external: true

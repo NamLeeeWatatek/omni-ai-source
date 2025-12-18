@@ -285,11 +285,10 @@ export class StatsService {
     const buildQuery = () => {
       const query = this.flowExecutionRepository
         .createQueryBuilder('execution')
-        .leftJoin('execution.flow', 'flow')
-        .leftJoin('flow.bot', 'bot');
+        .leftJoin('flow', 'flow', 'flow.id = execution.flowId');
 
       if (workspaceId) {
-        query.where('bot.workspaceId = :workspaceId', { workspaceId });
+        query.where('execution.workspaceId = :workspaceId', { workspaceId });
       }
 
       return query;
@@ -465,9 +464,7 @@ export class StatsService {
       });
 
     if (workspaceId) {
-      queryBuilder
-        .leftJoin('flow.bot', 'bot')
-        .andWhere('bot.workspaceId = :workspaceId', { workspaceId });
+      queryBuilder.where('exec.workspaceId = :workspaceId', { workspaceId });
     }
 
     const flows = await queryBuilder
@@ -665,10 +662,7 @@ export class StatsService {
       });
 
     if (workspaceId) {
-      query
-        .leftJoin('execution.flow', 'flow')
-        .leftJoin('flow.bot', 'bot')
-        .andWhere('bot.workspaceId = :workspaceId', { workspaceId });
+      query.where('execution.workspaceId = :workspaceId', { workspaceId });
     }
 
     const trend = await query

@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import { FiPlay, FiAlertCircle } from 'react-icons/fi'
-import { DynamicFormField } from '@/components/ui/DynamicFormField'
+import { DynamicForm } from '@/components/features/ugc-factory/DynamicForm'
+import type { NodeProperty } from '@/components/features/ugc-factory/DynamicForm'
 import { Node } from 'reactflow'
 import { useAppSelector } from '@/lib/store/hooks'
 import {
@@ -130,80 +131,15 @@ export function ExecuteFlowModal({ isOpen, onClose, onExecute, nodes, isExecutin
     }
 
     const renderNodeInputs = () => {
-        const sections: { title: string; nodes: Node[]; customInputs?: Record<string, any[]> }[] = []
-        const triggerVars = findTriggerVariables(nodes)
-
-        const activeTriggers = nodes.filter(n => n.type?.startsWith('trigger-'))
-
-        if (activeTriggers.length > 0) {
-            const customTriggerInputs: Record<string, any[]> = {}
-
-            if (triggerVars.length > 0) {
-                const targetTriggerId = activeTriggers[0].id
-                const targetNode = activeTriggers[0]
-
-                const unconfiguredVars = triggerVars.filter(v => {
-                    const configValue = targetNode.data.config?.[v]
-                    return configValue === undefined || configValue === '' || configValue === null
-                })
-
-                if (unconfiguredVars.length > 0) {
-                    customTriggerInputs[targetTriggerId] = unconfiguredVars.map(v => {
-                        const lowerV = v.toLowerCase()
-                        const isFile = /image|photo|video|file|attachment|media/.test(lowerV)
-                        const isMultiple = /s$/.test(lowerV) || lowerV.includes('list') || lowerV.includes('array')
-
-                        let accept = undefined
-                        if (lowerV.includes('image') || lowerV.includes('photo')) accept = 'image/*'
-                        else if (lowerV.includes('video')) accept = 'video/*'
-                        else if (lowerV.includes('audio')) accept = 'audio/*'
-
-                        return {
-                            name: v,
-                            label: v.split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' '),
-                            type: isFile ? 'file' : 'text',
-                            required: true,
-                            description: `Detected from usage: {{trigger.body.${v}}}`,
-                            multiple: isMultiple,
-                            accept: accept
-                        }
-                    })
-                }
-            }
-
-            if (Object.keys(customTriggerInputs).length > 0) {
-                sections.push({
-                    title: 'Trigger Inputs',
-                    nodes: activeTriggers,
-                    customInputs: customTriggerInputs
-                })
-            }
-        }
-
-        const otherNodes = nodes.filter(n => {
-            if (n.type?.startsWith('trigger-')) return false
-            const nodeType = getNodeType(n.type || '')
+        // Find the first node that has properties for execution
+        const executableNode = nodes.find(n => {
+            const nodeTypeId = n.data?.type || n.data?.nodeType || n.type || ''
+            const nodeType = getNodeType(nodeTypeId)
             const inputs = (nodeType as any)?.executeInputs || nodeType?.properties || []
-
-            const executionInputs = inputs.filter((input: any) => {
-                if (input.required) return true
-
-                const executionFieldNames = ['content', 'prompt', 'message', 'text', 'body', 'query', 'input']
-                if (executionFieldNames.includes(input.name.toLowerCase())) return true
-
-                const configValue = n.data.config?.[input.name]
-                const isUnconfigured = configValue === undefined || configValue === '' || configValue === null
-                return isUnconfigured
-            })
-
-            return executionInputs.length > 0
+            return inputs.length > 0
         })
 
-        if (otherNodes.length > 0) {
-            sections.push({ title: 'Node Inputs', nodes: otherNodes })
-        }
-
-        if (sections.length === 0) {
+        if (!executableNode) {
             return (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                     <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mb-4">
@@ -217,63 +153,37 @@ export function ExecuteFlowModal({ isOpen, onClose, onExecute, nodes, isExecutin
             )
         }
 
-        return sections.map((section, idx) => (
-            <div key={idx} className="space-y-6">
-                <div className="flex items-center gap-2 pb-2 border-b border-border/40">
-                    <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide">
-                        {section.title}
-                    </h4>
+        // Get properties from the executable node
+        const nodeTypeId = executableNode.data?.type || executableNode.data?.nodeType || executableNode.type || ''
+        const nodeType = getNodeType(nodeTypeId)
+        const definedInputs = (nodeType as any)?.executeInputs || nodeType?.properties || []
+
+        // Show dynamic form for the first node with properties
+        return (
+            <div className="space-y-4">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: nodeType?.color || '#888' }}
+                    />
+                    <span>{executableNode.data?.label || nodeType?.label || 'Execution Inputs'}</span>
                 </div>
 
-                {section.nodes.map(node => {
-                    const nodeType = getNodeType(node.type || '')
-                    const definedInputs = (nodeType as any)?.executeInputs || nodeType?.properties || []
-                    const detectedInputs = section.customInputs?.[node.id] || []
-
-                    const executionFields = definedInputs.filter((input: any) => {
-                        if (input.required) return true
-
-                        const executionFieldNames = ['content', 'prompt', 'message', 'text', 'body', 'query', 'input']
-                        if (executionFieldNames.includes(input.name.toLowerCase())) return true
-
-                        const configValue = node.data.config?.[input.name]
-                        const isUnconfigured = configValue === undefined || configValue === '' || configValue === null
-                        return isUnconfigured
-                    })
-
-                    const allInputs = [...executionFields, ...detectedInputs]
-
-                    if (allInputs.length === 0) return null
-
-                    return (
-                        <div key={node.id} className="space-y-4">
-                            { }
-                            {(sections.length > 1 || section.nodes.length > 1) && (
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <div
-                                        className="w-2 h-2 rounded-full"
-                                        style={{ backgroundColor: nodeType?.color || '#888' }}
-                                    />
-                                    <span>{node.data.label || nodeType?.label || 'Node'}</span>
-                                </div>
-                            )}
-
-                            <div className="grid gap-4">
-                                {allInputs.map((input: any) => (
-                                    <DynamicFormField
-                                        key={input.name}
-                                        field={input}
-                                        value={allNodesData[node.id]?.[input.name]}
-                                        onChange={(val) => updateNodeData(node.id, input.name, val)}
-                                        allValues={allNodesData[node.id] || {}}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    )
-                })}
+                <DynamicForm
+                    properties={definedInputs}
+                    formData={allNodesData[executableNode.id] || {}}
+                    onFormDataChange={(data) => {
+                        setAllNodesData(prev => ({
+                            ...prev,
+                            [executableNode.id]: data
+                        }))
+                    }}
+                    onSubmit={() => {}}
+                    submitLabel=""
+                    loading={false}
+                />
             </div>
-        ))
+        )
     }
 
     return (
@@ -322,4 +232,3 @@ export function ExecuteFlowModal({ isOpen, onClose, onExecute, nodes, isExecutin
         </Dialog>
     )
 }
-

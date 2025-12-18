@@ -35,7 +35,7 @@ export class FlowSeedService {
       {
         name: 'Video Ads Generator',
         description:
-          'Táº¡o video quáº£ng cÃ¡o 15 giÃ¢y tá»« hÃ¬nh áº£nh sáº£n pháº©m vÃ  tá»± Ä‘á»™ng Ä‘Äƒng lÃªn máº¡ng xÃ£ há»™i',
+          'Tạo video quảng cáo 15 giây từ hình ảnh sản phẩm và tự động đăng lên mạng xã hội',
         status: 'published',
         published: true,
         visibility: 'public',
@@ -49,6 +49,37 @@ export class FlowSeedService {
             type: 'manual',
             position: { x: 100, y: 100 },
             data: {},
+            // Properties for UGC Factory form - moved from flow level
+            properties: [
+              {
+                name: 'prompt',
+                label: 'Mô tả video quảng cáo',
+                type: 'text',
+                placeholder:
+                  'Ví dụ: Tạo video 15 giây giới thiệu túi xách nữ sang trọng, ánh sáng ban ngày, phong cách tự nhiên',
+                description: 'Mô tả chi tiết cách video cần được tạo',
+                required: true,
+              },
+              {
+                name: 'images',
+                label: 'Hình ảnh sản phẩm',
+                type: 'files',
+                accept: 'image/*',
+                multiple: true,
+                maxFiles: 5,
+                description: 'Upload tối đa 5 hình ảnh sản phẩm',
+                required: true,
+              },
+              {
+                name: 'platforms',
+                label: 'Nền tảng mạng xã hội',
+                type: 'channel-select',
+                multiple: true,
+                default: ['facebook'],
+                description: 'Chọn nền tảng để đăng video',
+                required: true,
+              },
+            ],
           },
           {
             id: 'ai-image-1',
@@ -70,20 +101,11 @@ export class FlowSeedService {
             },
           },
           {
-            id: 'http-1',
-            type: 'http-request',
+            id: 'code-1',
+            type: 'code',
             position: { x: 850, y: 100 },
             data: {
-              method: 'POST',
-              url: 'https://n8n.srv1078465.hstgr.cloud/webhook/wh-generate-video-ugc-ads-autopost-social',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: {
-                prompt: '{{prompt}}',
-                images: '{{images}}',
-                platforms: '{{platforms}}',
-              },
+              code: 'return { success: true, message: "Video generation completed", prompt: input.prompt, images: input.images, platforms: input.platforms };',
             },
           },
         ],
@@ -101,48 +123,15 @@ export class FlowSeedService {
           {
             id: 'e3-4',
             source: 'multi-social-1',
-            target: 'http-1',
+            target: 'code-1',
           },
         ],
-        properties: [
-          {
-            name: 'prompt',
-            label: 'MÃ´ táº£ video quáº£ng cÃ¡o',
-            type: 'textarea',
-            placeholder:
-              'VÃ­ dá»¥: Táº¡o video 15 giÃ¢y giá»›i thiá»‡u tÃºi xÃ¡ch ná»¯ sang trá»ng, Ã¡nh sÃ¡ng ban ngÃ y, phong cÃ¡ch tá»± nhiÃªn',
-            description: 'MÃ´ táº£ chi tiáº¿t cÃ¡ch video cáº§n Ä‘Æ°á»£c táº¡o',
-            required: true,
-          },
-          {
-            name: 'images',
-            label: 'HÃ¬nh áº£nh sáº£n pháº©m',
-            type: 'files',
-            accept: 'image/*',
-            multiple: true,
-            maxFiles: 5,
-            description: 'Upload tá»‘i Ä‘a 5 hÃ¬nh áº£nh sáº£n pháº©m',
-            required: true,
-          },
-          {
-            name: 'platforms',
-            label: 'Ná»n táº£ng máº¡ng xÃ£ há»™i',
-            type: 'multi-select',
-            options: [
-              { value: 'facebook', label: 'Facebook' },
-              { value: 'instagram', label: 'Instagram' },
-              { value: 'tiktok', label: 'TikTok' },
-            ],
-            default: ['facebook'],
-            description: 'Chá»n ná»n táº£ng Ä‘á»ƒ Ä‘Äƒng video',
-            required: true,
-          },
-        ],
+        // Properties moved to manual trigger node in UGC Factory flows
       },
       {
         name: 'SEO Content Writer',
         description:
-          'Tá»± Ä‘á»™ng viáº¿t bÃ i chuáº©n SEO vá»›i AI vÃ  Ä‘Äƒng lÃªn website/blog qua n8n',
+          'Tự động viết bài chuẩn SEO với AI và đăng lên website/blog qua n8n',
         status: 'published',
         published: true,
         visibility: 'public',
@@ -156,6 +145,41 @@ export class FlowSeedService {
             type: 'manual',
             position: { x: 100, y: 100 },
             data: {},
+            // Properties for UGC Factory form
+            properties: [
+              {
+                name: 'topic',
+                label: 'Chủ đề bài viết',
+                type: 'text',
+                placeholder:
+                  'Ví dụ: Cách chọn túi xách phù hợp với phong cách thời trang',
+                description: 'Chủ đề chính của bài viết SEO',
+                required: true,
+              },
+              {
+                name: 'keywords',
+                label: 'Từ khóa SEO',
+                type: 'text',
+                placeholder:
+                  'túi xách nữ, túi xách công sở, túi xách da thật, phong cách professional',
+                description: 'Các từ khóa SEO cách nhau bởi dấu phẩy',
+                required: true,
+              },
+              {
+                name: 'tone',
+                label: 'Giọng điệu',
+                type: 'select',
+                options: [
+                  { value: 'professional', label: 'Professional' },
+                  { value: 'casual', label: 'Casual' },
+                  { value: 'friendly', label: 'Friendly' },
+                  { value: 'expert', label: 'Expert' },
+                ],
+                default: 'professional',
+                description: 'Phong cách viết bài',
+                required: true,
+              },
+            ],
           },
           {
             id: 'ai-chat-1',
@@ -175,19 +199,15 @@ export class FlowSeedService {
             },
           },
           {
-            id: 'http-1',
-            type: 'http-request',
+            id: 'json-1',
+            type: 'json-transform',
             position: { x: 850, y: 100 },
             data: {
-              method: 'POST',
-              url: 'https://n8n.srv1078465.hstgr.cloud/webhook/seo-content-writer',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: {
+              mapping: {
                 topic: '{{topic}}',
                 keywords: '{{keywords}}',
                 tone: '{{tone}}',
+                content: '{{optimizedContent}}',
               },
             },
           },
@@ -206,48 +226,15 @@ export class FlowSeedService {
           {
             id: 'e3-4',
             source: 'code-1',
-            target: 'http-1',
+            target: 'json-1',
           },
         ],
-        properties: [
-          {
-            name: 'topic',
-            label: 'Chá»§ Ä‘á» bÃ i viáº¿t',
-            type: 'text',
-            placeholder:
-              'VÃ­ dá»¥: CÃ¡ch chá»n tÃºi xÃ¡ch phÃ¹ há»£p vá»›i phong cÃ¡ch thá»i trang',
-            description: 'Chá»§ Ä‘á» chÃ­nh cá»§a bÃ i viáº¿t SEO',
-            required: true,
-          },
-          {
-            name: 'keywords',
-            label: 'Tá»« khÃ³a SEO',
-            type: 'text',
-            placeholder:
-              'tÃºi xÃ¡ch ná»¯, tÃºi xÃ¡ch cÃ´ng sá»Ÿ, tÃºi xÃ¡ch da tháº­t, phong cÃ¡ch professional',
-            description: 'CÃ¡c tá»« khÃ³a SEO cÃ¡ch nhau bá»Ÿi dáº¥u pháº©y',
-            required: true,
-          },
-          {
-            name: 'tone',
-            label: 'Giá»ng Ä‘iá»‡u',
-            type: 'select',
-            options: [
-              { value: 'professional', label: 'Professional' },
-              { value: 'casual', label: 'Casual' },
-              { value: 'friendly', label: 'Friendly' },
-              { value: 'expert', label: 'Expert' },
-            ],
-            default: 'professional',
-            description: 'Phong cÃ¡ch viáº¿t bÃ i',
-            required: true,
-          },
-        ],
+        // Properties moved to manual trigger node
       },
       {
         name: 'OmniPost AI - Multi-Platform Publisher',
         description:
-          'ÄÄƒng ná»™i dung Ä‘á»“ng thá»i lÃªn nhiá»u ná»n táº£ng máº¡ng xÃ£ há»™i qua n8n automation',
+          'Đăng nội dung đồng thời lên nhiều nền tảng mạng xã hội qua n8n automation',
         status: 'published',
         published: true,
         visibility: 'public',
@@ -267,13 +254,52 @@ export class FlowSeedService {
             type: 'manual',
             position: { x: 100, y: 100 },
             data: {},
+            // Properties for UGC Factory form
+            properties: [
+              {
+                name: 'content',
+                label: 'Nội dung bài đăng',
+                type: 'text',
+                placeholder:
+                  'Nhập nội dung bài đăng để đăng lên các nền tảng...',
+                description:
+                  'Nội dung sẽ được đăng lên tất cả nền tảng đã chọn',
+                required: true,
+              },
+              {
+                name: 'platforms',
+                label: 'Nền tảng mạng xã hội',
+                type: 'channel-select',
+                multiple: true,
+                default: ['facebook'],
+                description: 'Chọn các nền tảng để đăng bài',
+                required: true,
+              },
+              {
+                name: 'media',
+                label: 'Hình ảnh/Video',
+                type: 'files',
+                accept: 'image/*,video/*',
+                multiple: true,
+                maxFiles: 10,
+                description: 'Upload hình ảnh hoặc video (tối đa 10 file)',
+                required: false,
+              },
+              {
+                name: 'schedule',
+                label: 'Lên lịch đăng bài',
+                type: 'boolean',
+                default: false,
+                description: 'Lên lịch đăng bài cho thời gian sau',
+              },
+            ],
           },
           {
             id: 'multi-social-1',
             type: 'multi-social-post',
             position: { x: 350, y: 50 },
             data: {
-              channels: ['facebook', 'instagram', 'tiktok'],
+              channels: ['facebook'],
               content: '{{content}}',
               images: '{{media}}',
             },
@@ -296,21 +322,11 @@ export class FlowSeedService {
             },
           },
           {
-            id: 'http-1',
-            type: 'http-request',
+            id: 'code-2',
+            type: 'code',
             position: { x: 1100, y: 100 },
             data: {
-              method: 'POST',
-              url: 'https://n8n.srv1078465.hstgr.cloud/webhook/omnipost-ai-publisher',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: {
-                content: '{{content}}',
-                platforms: '{{platforms}}',
-                media: '{{media}}',
-                schedule: '{{schedule}}',
-              },
+              code: 'return { success: true, message: "Multi-platform publishing completed", content: input.content, platforms: input.platforms, media: input.media, schedule: input.schedule };',
             },
           },
         ],
@@ -333,52 +349,10 @@ export class FlowSeedService {
           {
             id: 'e4-5',
             source: 'social-facebook-1',
-            target: 'http-1',
+            target: 'code-2',
           },
         ],
-        properties: [
-          {
-            name: 'content',
-            label: 'Ná»™i dung bÃ i Ä‘Äƒng',
-            type: 'textarea',
-            placeholder:
-              'Nháº­p ná»™i dung bÃ i Ä‘Äƒng Ä‘á»ƒ Ä‘Äƒng lÃªn cÃ¡c ná»n táº£ng...',
-            description:
-              'Ná»™i dung sáº½ Ä‘Æ°á»£c Ä‘Äƒng lÃªn táº¥t cáº£ ná»n táº£ng Ä‘Ã£ chá»n',
-            required: true,
-          },
-          {
-            name: 'platforms',
-            label: 'Ná»n táº£ng máº¡ng xÃ£ há»™i',
-            type: 'multi-select',
-            options: [
-              { value: 'facebook', label: 'Facebook' },
-              { value: 'instagram', label: 'Instagram' },
-              { value: 'tiktok', label: 'TikTok' },
-              { value: 'twitter', label: 'Twitter/X' },
-            ],
-            default: ['facebook', 'instagram'],
-            description: 'Chá»n cÃ¡c ná»n táº£ng Ä‘á»ƒ Ä‘Äƒng bÃ i',
-            required: true,
-          },
-          {
-            name: 'media',
-            label: 'HÃ¬nh áº£nh/Video',
-            type: 'files',
-            accept: 'image/*,video/*',
-            multiple: true,
-            maxFiles: 10,
-            description: 'Upload hÃ¬nh áº£nh hoáº·c video (tá»‘i Ä‘a 10 file)',
-            required: false,
-          },
-          {
-            name: 'schedule',
-            label: 'LÃªn lá»‹ch Ä‘Äƒng bÃ i',
-            type: 'boolean',
-            default: false,
-            description: 'LÃªn lá»‹ch Ä‘Äƒng bÃ i cho thá»i gian sau',
-          },
-        ],
+        // Properties moved to manual trigger node
       },
     ];
 

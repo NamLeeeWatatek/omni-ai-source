@@ -254,16 +254,7 @@ export async function crawlWebsite(data: {
   return axiosClient.post('/knowledge-bases/crawl/website', data)
 }
 
-/**
- * Crawl sitemap
- */
-export async function crawlSitemap(data: {
-  sitemapUrl: string
-  knowledgeBaseId: string
-  maxPages?: number
-}): Promise<{ success: boolean; documentsCreated: number; errors: string[] }> {
-  return axiosClient.post('/knowledge-bases/crawl/sitemap', data)
-}
+
 
 /**
  * Assign agent to knowledge base

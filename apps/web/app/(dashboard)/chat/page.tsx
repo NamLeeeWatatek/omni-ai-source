@@ -692,7 +692,7 @@ export default function ChatWithAIPage() {
                                 </div>
 
                                 { }
-                                {selectedBot !== 'none' && (
+                                {selectedBot === 'none' && (
                                     <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                                         <div className="flex items-center justify-between">
                                             <label className="text-sm font-semibold flex items-center gap-2">
@@ -808,12 +808,12 @@ export default function ChatWithAIPage() {
                                             <div>
                                                 <p className="text-muted-foreground text-xs">Knowledge Base</p>
                                                 <p className="font-medium">
-                                                    {useKnowledgeBase
-                                                        ? `${selectedKnowledgeBases.length} source${selectedKnowledgeBases.length !== 1 ? 's' : ''}`
-                                                        : 'Disabled'
-                                                    }
+                                                    Configured in bot settings
                                                 </p>
                                             </div>
+                                        </div>
+                                        <div className="mt-3 text-xs text-muted-foreground">
+                                            <p>Knowledge bases are configured in the bot's Knowledge Base tab and will be used automatically during conversations.</p>
                                         </div>
                                     </div>
                                 )}
@@ -846,4 +846,3 @@ export default function ChatWithAIPage() {
         </div>
     )
 }
-

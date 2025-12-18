@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { PageLoading } from '@/components/layout/PageLoading'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -18,15 +21,15 @@ import {
     DialogFooter,
 } from '@/components/ui/Dialog'
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/Select'
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/components/ui/Form'
+
 import axiosClient from '@/lib/axios-client'
-import { useAppDispatch, useAppSelector } from '@/lib/store/hooks'
-import { fetchFlows } from '@/lib/store/slices/flowsSlice'
 import { useWorkspace } from '@/lib/hooks/useWorkspace'
 import toast from '@/lib/toast'
 import * as FiIcons from 'react-icons/fi'
@@ -42,10 +45,14 @@ import { botsApi, type Bot } from '@/lib/api/bots'
 import { AlertDialogConfirm } from '@/components/ui/AlertDialogConfirm'
 import { Badge } from '@/components/ui/Badge'
 
-interface Flow {
-    id: string
-    name: string
-}
+// Form validation schema
+const botFormSchema = z.object({
+    name: z.string().min(1, 'Bot name is required'),
+    description: z.string().optional(),
+    icon: z.string().optional(),
+})
+
+type BotFormValues = z.infer<typeof botFormSchema>
 
 export default function BotsPage() {
     const router = useRouter()
@@ -53,15 +60,17 @@ export default function BotsPage() {
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
     const [editingBot, setEditingBot] = useState<Bot | null>(null)
-    const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        icon: 'FiMessageSquare',
-        flowId: null as string | null
-    })
-    const dispatch = useAppDispatch()
-    const { items: flows = [] } = useAppSelector((state: any) => state.flows || {})
     const { workspace, workspaceId } = useWorkspace()
+
+    // Setup react-hook-form with zod validation
+    const form = useForm<BotFormValues>({
+        resolver: zodResolver(botFormSchema),
+        defaultValues: {
+            name: '',
+            description: '',
+            icon: 'FiMessageSquare',
+        },
+    })
 
     const loadBots = useCallback(async () => {
         if (!workspaceId) {
@@ -83,22 +92,24 @@ export default function BotsPage() {
     useEffect(() => {
         if (workspaceId) {
             loadBots()
-            dispatch(fetchFlows())
         }
     }, [workspaceId])
 
     const openModal = (bot?: Bot) => {
         if (bot) {
             setEditingBot(bot)
-            setFormData({
+            form.reset({
                 name: bot.name,
                 description: bot.description || '',
-                icon: bot.icon || 'FiMessageSquare',
-                flowId: bot.flowId || null
+                icon: bot.icon || 'FiMessageSquare'
             })
         } else {
             setEditingBot(null)
-            setFormData({ name: '', description: '', icon: 'FiMessageSquare', flowId: null })
+            form.reset({
+                name: '',
+                description: '',
+                icon: 'FiMessageSquare'
+            })
         }
         setShowModal(true)
     }
@@ -106,15 +117,10 @@ export default function BotsPage() {
     const closeModal = () => {
         setShowModal(false)
         setEditingBot(null)
-        setFormData({ name: '', description: '', icon: 'FiMessageSquare', flowId: null })
+        form.reset()
     }
 
-    const saveBot = async () => {
-        if (!formData.name.trim()) {
-            toast.error('Bot name is required')
-            return
-        }
-
+    const onSubmit = async (values: BotFormValues) => {
         if (!workspaceId) {
             toast.error('No workspace selected')
             return
@@ -122,11 +128,11 @@ export default function BotsPage() {
 
         try {
             if (editingBot) {
-                await botsApi.update(editingBot.id, formData)
+                await botsApi.update(editingBot.id, values)
                 toast.success('Bot updated')
             } else {
                 await botsApi.create({
-                    ...formData,
+                    ...values,
                     workspaceId: workspaceId
                 })
                 toast.success('Bot created')
@@ -285,65 +291,55 @@ export default function BotsPage() {
                 )
             }
 
-            { }
             <Dialog open={showModal} onOpenChange={setShowModal}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>{editingBot ? 'Edit Bot' : 'Create Bot'}</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Bot Name *</Label>
-                            <Input
-                                id="name"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                placeholder="My Awesome Bot"
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Bot Name *</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="My Awesome Bot" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
                             />
-                        </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="description">Description</Label>
-                            <Textarea
-                                id="description"
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                rows={3}
-                                placeholder="Describe what this bot does..."
+                            <FormField
+                                control={form.control}
+                                name="description"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Description</FormLabel>
+                                        <FormControl>
+                                            <Textarea
+                                                rows={3}
+                                                placeholder="Describe what this bot does..."
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
                             />
-                        </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="flow">Flow</Label>
-                            <Select
-                                value={formData.flowId || 'none'}
-                                onValueChange={(value) => setFormData({ ...formData, flowId: value === 'none' ? null : value })}
-                            >
-                                <SelectTrigger id="flow">
-                                    <SelectValue placeholder="No flow (manual responses only)" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">No flow (manual responses only)</SelectItem>
-                                    {flows.map((flow: any) => (
-                                        <SelectItem key={flow.id} value={flow.id}>
-                                            {flow.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <p className="text-xs text-muted-foreground">
-                                Select which flow this bot should execute when it receives messages
-                            </p>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={closeModal}>
-                            Cancel
-                        </Button>
-                        <Button onClick={saveBot}>
-                            {editingBot ? 'Update' : 'Create'}
-                        </Button>
-                    </DialogFooter>
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={closeModal}>
+                                    Cancel
+                                </Button>
+                                <Button type="submit">
+                                    {editingBot ? 'Update' : 'Create'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
                 </DialogContent>
             </Dialog>
 
@@ -361,4 +357,3 @@ export default function BotsPage() {
         </div >
     )
 }
-

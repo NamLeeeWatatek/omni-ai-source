@@ -5,8 +5,10 @@ import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { PageLoading } from '@/components/layout/PageLoading';
 import { Spinner } from '@/components/ui/Spinner';
-import { Save, AlertCircle, Plus, Palette, Code as CodeIcon, History, Clock, Bot as BotIcon, MessageSquare, Zap, Database } from 'lucide-react';
+import { Save, AlertCircle, Plus, Palette, Code as CodeIcon, History, Clock, Bot as BotIcon, MessageSquare, Zap, Database, CheckCircle, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { toast } from 'sonner';
 import { botsApi } from '@/lib/api/bots';
 import axiosClient from '@/lib/axios-client';
@@ -24,6 +26,195 @@ import { WidgetDeploymentHistory } from '@/components/widget/WidgetDeploymentHis
 import { WidgetEmbedCode } from '@/components/widget/WidgetEmbedCode';
 import { WidgetVersionsList } from '@/components/widget/WidgetVersionsList';
 import { useWidgetVersions, useWidgetDeployments } from '@/lib/hooks/use-widget-versions';
+
+interface KnowledgeBaseSelectionSectionProps {
+    botId: string;
+    workspaceId?: string;
+    onRefresh?: () => void;
+}
+
+function KnowledgeBaseSelectionSection({ botId, workspaceId, onRefresh }: KnowledgeBaseSelectionSectionProps) {
+    const [linkedKnowledgeBases, setLinkedKnowledgeBases] = useState<any[]>([]);
+    const [availableKnowledgeBases, setAvailableKnowledgeBases] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [linking, setLinking] = useState(false);
+
+    useEffect(() => {
+        loadData();
+    }, [botId]);
+
+    const loadData = async () => {
+        try {
+            setLoading(true);
+
+            // Load linked KBs
+            console.log(`[KB Debug] Loading linked KBs for bot ${botId}`);
+            const linkedResponse = await axiosClient.get(`/bots/${botId}/knowledge-bases`);
+            console.log('[KB Debug] Linked response:', linkedResponse);
+            const linkedData = Array.isArray(linkedResponse) ? linkedResponse : [];
+            console.log('[KB Debug] Linked data:', linkedData);
+            setLinkedKnowledgeBases(linkedData);
+
+            // Load all available KBs for linking
+            const kbUrl = workspaceId ? `/knowledge-bases?workspaceId=${workspaceId}` : '/knowledge-bases';
+            console.log(`[KB Debug] Loading available KBs from: ${kbUrl}`);
+            const availableResponse = await axiosClient.get(kbUrl);
+            console.log('[KB Debug] Available response:', availableResponse);
+            const availableData = Array.isArray(availableResponse) ? availableResponse : [];
+            console.log('[KB Debug] Available data:', availableData);
+            setAvailableKnowledgeBases(availableData);
+
+        } catch (error) {
+            console.error('Failed to load knowledge bases:', error);
+            toast.error('Failed to load knowledge bases');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getAvailableForLinking = () => {
+        const linkedIds = new Set(linkedKnowledgeBases.map(l => l.knowledgeBaseId));
+        return availableKnowledgeBases.filter(kb => !linkedIds.has(kb.id));
+    };
+
+    const handleToggleSelection = async (kbId: string, selected: boolean) => {
+        try {
+            setLinking(true);
+
+            if (selected) {
+                // Link knowledge base
+                await axiosClient.post(`/bots/${botId}/knowledge-bases`, {
+                    knowledgeBaseId: kbId,
+                });
+                toast.success('Knowledge base added successfully');
+            } else {
+                // Unlink knowledge base
+                await axiosClient.delete(`/bots/${botId}/knowledge-bases/${kbId}`);
+                toast.success('Knowledge base removed successfully');
+            }
+
+            await loadData();
+            if (onRefresh) onRefresh();
+
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || `Failed to ${selected ? 'add' : 'remove'} knowledge base`);
+        } finally {
+            setLinking(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center gap-2">
+                        <Database className="w-5 h-5 text-primary" />
+                        <CardTitle>Knowledge Base Selection</CardTitle>
+                    </div>
+                    <CardDescription>
+                        Choose knowledge bases for your bot to learn from
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-center py-8">
+                        <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+                        <p className="text-muted-foreground">Loading knowledge bases...</p>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    const availableForLinking = getAvailableForLinking();
+    const linkedIds = new Set(linkedKnowledgeBases.map(l => l.knowledgeBaseId));
+    const allKnowledgeBases = [...linkedKnowledgeBases.map(l => ({ ...l.knowledgeBase, isLinked: true, kbLinkId: l.id })),
+                               ...availableForLinking.map(kb => ({ ...kb, isLinked: false }))];
+
+    return (
+        <Card>
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <Database className="w-5 h-5 text-primary" />
+                            <CardTitle>Knowledge Base Selection</CardTitle>
+                        </div>
+                        <CardDescription>
+                            Choose knowledge bases for your bot to learn from during conversations
+                        </CardDescription>
+                    </div>
+                    <Badge variant="secondary">
+                        {linkedKnowledgeBases.length} selected
+                    </Badge>
+                </div>
+            </CardHeader>
+            <CardContent>
+                {allKnowledgeBases.length === 0 ? (
+                    <div className="text-center py-8 border-2 border-dashed rounded-lg bg-muted/30">
+                        <Database className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                        <h4 className="text-lg font-medium mb-2">No Knowledge Bases Available</h4>
+                        <p className="text-muted-foreground text-sm">
+                            Create knowledge bases first to enable RAG capabilities for your bot.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {allKnowledgeBases.map((kb) => (
+                            <div key={kb.id} className="flex items-start gap-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                                <input
+                                    type="checkbox"
+                                    id={`kb-${kb.id}`}
+                                    checked={kb.isLinked || false}
+                                    onChange={(e) => handleToggleSelection(kb.id, e.target.checked)}
+                                    disabled={linking}
+                                    className="mt-1 w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                                />
+                                <label htmlFor={`kb-${kb.id}`} className="flex-1 cursor-pointer">
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/20 flex-shrink-0">
+                                            <Database className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-semibold text-sm">{kb.name}</h4>
+                                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                                {kb.description || 'No description available'}
+                                            </p>
+                                            <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                                                <span>{kb.totalDocuments || 0} documents</span>
+                                                <span>•</span>
+                                                <span>{kb.embeddingModel?.replace('text-embedding-', '') || 'Unknown model'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </label>
+                                {kb.isLinked && (
+                                    <Badge variant="default" className="bg-green-500">
+                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                        Linked
+                                    </Badge>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {linkedKnowledgeBases.length > 0 && (
+                    <div className="mt-6 p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+                        <div className="flex items-center gap-2 text-green-800 dark:text-green-200">
+                            <CheckCircle className="w-4 h-4" />
+                            <span className="text-sm font-medium">
+                                {linkedKnowledgeBases.length} knowledge base{linkedKnowledgeBases.length !== 1 ? 's' : ''} selected
+                            </span>
+                        </div>
+                        <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                            Your bot will use these knowledge bases to provide more accurate and contextual responses.
+                        </p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
 
 export default function BotDetailPage() {
     const params = useParams();
@@ -195,7 +386,7 @@ export default function BotDetailPage() {
                                 Configure your bot settings and preferences
                             </p>
                         </div>
-                        {(activeTab === 'general' || activeTab === 'prompt' || activeTab === 'ai-config') && (
+                        {(activeTab === 'general' || activeTab === 'prompt' || activeTab === 'ai-config' || activeTab === 'knowledge-base') && (
                             <Button onClick={handleSave} disabled={saving || !hasChanges} size="lg">
                                 {saving ? (
                                     <>
@@ -214,7 +405,7 @@ export default function BotDetailPage() {
                     </div>
 
                     {/* Unsaved Changes Warning */}
-                    {hasChanges && (activeTab === 'general' || activeTab === 'prompt' || activeTab === 'ai-config') && (
+                    {hasChanges && (activeTab === 'general' || activeTab === 'prompt' || activeTab === 'ai-config' || activeTab === 'knowledge-base') && (
                         <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mt-4">
                             <div className="flex items-center gap-2 text-amber-900 dark:text-amber-100">
                                 <AlertCircle className="w-4 h-4" />
@@ -283,7 +474,11 @@ export default function BotDetailPage() {
 
                     {/* Knowledge Base Tab */}
                     {activeTab === 'knowledge-base' && (
-                        <BotKnowledgeBaseSection botId={botId} workspaceId={bot?.workspaceId} />
+                        <KnowledgeBaseSelectionSection
+                            botId={botId}
+                            workspaceId={bot?.workspaceId}
+                            onRefresh={() => loadBot()}
+                        />
                     )}
 
                     {/* Widget Tab - Clean & Simple */}

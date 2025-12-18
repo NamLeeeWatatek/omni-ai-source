@@ -5,7 +5,7 @@ import { KBEmbeddingsService } from './kb-embeddings.service';
 import { KBVectorService } from './kb-vector.service';
 import { AiProvidersService } from '../../ai-providers/ai-providers.service';
 import type { ChatMessage } from '../../ai-providers/ai-providers.service';
-import { BotEntity } from '../../bots/infrastructure/persistence/relational/entities/bot.entity';
+import { BotEntity, BotKnowledgeBaseEntity } from '../../bots/infrastructure/persistence/relational/entities/bot.entity';
 import { KnowledgeBaseEntity } from '../infrastructure/persistence/relational/entities/knowledge-base.entity';
 
 export interface RAGResult {
@@ -29,6 +29,8 @@ export class KBRagService {
     private readonly botRepository: Repository<BotEntity>,
     @InjectRepository(KnowledgeBaseEntity)
     private readonly kbRepository: Repository<KnowledgeBaseEntity>,
+    @InjectRepository(BotKnowledgeBaseEntity)
+    private readonly botKbRepository: Repository<BotKnowledgeBaseEntity>,
   ) {}
 
   async query(
@@ -271,17 +273,43 @@ Answer:`;
 
       let relevantChunks: any[] = [];
 
+      // Get linked knowledge bases for the bot
+      const linkedKBs = await this.botKbRepository.find({
+        where: {
+          botId: agentId,
+          isActive: true,
+        },
+        select: ['knowledgeBaseId'],
+        order: { priority: 'ASC' },
+      });
+
+      const knowledgeBaseIds = linkedKBs.map(lkb => lkb.knowledgeBaseId);
+
       // Try to query knowledge base, but don't fail if it errors
-      try {
-        relevantChunks = await this.query(question, undefined, 5, 0.5);
-        this.logger.log(
-          `âœ… Found ${relevantChunks.length} relevant chunks from KB`,
-        );
-      } catch (kbError) {
-        this.logger.warn(
-          `âš ï¸ Knowledge base query failed: ${kbError.message}. Continuing without KB context.`,
-        );
-        // Continue without KB context
+      if (knowledgeBaseIds.length > 0) {
+        try {
+          // Query across all linked knowledge bases
+          const allChunks: any[] = [];
+          for (const kbId of knowledgeBaseIds) {
+            const chunks = await this.query(question, kbId, 3, 0.5);
+            allChunks.push(...chunks);
+          }
+          // Sort by score and take top 5
+          relevantChunks = allChunks
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 5);
+
+          this.logger.log(
+            `âœ… Found ${relevantChunks.length} relevant chunks from ${knowledgeBaseIds.length} linked KBs`,
+          );
+        } catch (kbError) {
+          this.logger.warn(
+            `âš ï¸ Knowledge base query failed: ${kbError.message}. Continuing without KB context.`,
+          );
+          // Continue without KB context
+        }
+      } else {
+        this.logger.log(`âš ï¸ No linked knowledge bases for bot ${bot.name}`);
       }
 
       let systemPrompt = botSystemPrompt || 'You are a helpful assistant.';
@@ -407,11 +435,31 @@ Answer:`;
       const systemPrompt = bot?.systemPrompt || 'You are a helpful assistant.';
       const botModel = bot?.aiModelName || model || 'gemini-2.0-flash';
 
+      // Determine which knowledge bases to use
+      let effectiveKnowledgeBaseIds = knowledgeBaseIds;
+
+      // If no explicit knowledge bases provided but we have a bot, use the bot's linked knowledge bases
+      if ((!knowledgeBaseIds || knowledgeBaseIds.length === 0) && botId) {
+        const linkedKBs = await this.botKbRepository.find({
+          where: {
+            botId: botId,
+            isActive: true,
+          },
+          select: ['knowledgeBaseId'],
+          order: { priority: 'ASC' },
+        });
+
+        effectiveKnowledgeBaseIds = linkedKBs.map(lkb => lkb.knowledgeBaseId);
+        this.logger.log(
+          `🔗 Using ${effectiveKnowledgeBaseIds.length} linked knowledge bases for bot ${bot?.name}`,
+        );
+      }
+
       this.logger.log(
-        `🤖 Bot: ${bot?.name || 'No bot'} | Model: ${botModel} | KB Count: ${knowledgeBaseIds?.length || 0}`,
+        `🤖 Bot: ${bot?.name || 'No bot'} | Model: ${botModel} | KB Count: ${effectiveKnowledgeBaseIds?.length || 0}`,
       );
 
-      // Handle RAG context gathering (if knowledge bases provided)
+      // Handle RAG context gathering (if knowledge bases available)
       let ragContext = '';
       let ragSources: Array<{
         content: string;
@@ -419,10 +467,10 @@ Answer:`;
         metadata?: Record<string, any>;
       }> = [];
 
-      if (knowledgeBaseIds && knowledgeBaseIds.length > 0) {
+      if (effectiveKnowledgeBaseIds && effectiveKnowledgeBaseIds.length > 0) {
         const allChunks = await this.gatherRAGContext(
           message,
-          knowledgeBaseIds,
+          effectiveKnowledgeBaseIds!,
         );
         ragSources = allChunks.slice(0, 5); // Top 5 results
 
@@ -448,7 +496,7 @@ Answer:`;
       // Get AI provider using proper hierarchy: Bot > KB Workspace > KB User > User Configs > Error
       const providerConfig = await this.resolveAIProvider(
         bot,
-        knowledgeBaseIds?.[0],
+        effectiveKnowledgeBaseIds?.[0],
       );
 
       if (!providerConfig) {

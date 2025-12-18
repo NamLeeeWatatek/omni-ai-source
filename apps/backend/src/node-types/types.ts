@@ -28,10 +28,7 @@ export type NodePropertyType =
   | 'files' // Multiple file upload
   | 'key-value' // Key-value pairs
   | 'dynamic-form'; // Nested form structure
-
-// Domain-focused property schema - describes WHAT backend needs for dynamic forms,
-// not HOW frontend should render it.
-
+  
 export interface NodeProperty {
   // Core domain properties
   name: string; // Field identifier (required)

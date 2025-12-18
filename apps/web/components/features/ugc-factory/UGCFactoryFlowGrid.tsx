@@ -30,7 +30,12 @@ const UGCFactoryFlowGrid = React.memo<UGCFactoryFlowGridProps>(({
                     onClick={() => onFlowSelect(flow.id)}
                 >
                     <CardHeader>
-                        <CardDescription>{flow.description}</CardDescription>
+                        <CardTitle className="text-lg font-semibold">{flow.name}</CardTitle>
+                        {flow.description && (
+                            <CardDescription className="text-sm text-muted-foreground mt-1">
+                                {flow.description}
+                            </CardDescription>
+                        )}
                     </CardHeader>
                 </Card>
             ))}

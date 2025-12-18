@@ -64,13 +64,21 @@ export class FlowsService {
   async update(id: string, updateDto: UpdateFlowDto): Promise<Flow | null> {
     const updateData: FlowUpdateData = {};
 
-    // Handle data migration: if data is provided, extract nodes and edges
+    // Handle nodes and edges directly (primary way)
+    if (updateDto.nodes !== undefined) {
+      updateData.nodes = updateDto.nodes;
+    }
+    if (updateDto.edges !== undefined) {
+      updateData.edges = updateDto.edges;
+    }
+
+    // Handle data migration: if data is provided, extract nodes and edges (fallback)
     if (updateDto.data) {
       const data = updateDto.data as any;
-      if (data.nodes) {
+      if (data.nodes && updateData.nodes === undefined) {
         updateData.nodes = data.nodes;
       }
-      if (data.edges) {
+      if (data.edges && updateData.edges === undefined) {
         updateData.edges = data.edges;
       }
     }

@@ -6,6 +6,7 @@ import {
   FlowExecutionEntity,
   NodeExecutionEntity,
   FlowVersionEntity,
+  ExecutionArtifactEntity,
 } from './infrastructure/persistence/relational/entities';
 import { FlowsService } from './flows.service';
 import { FlowsController } from './flows.controller';
@@ -13,18 +14,25 @@ import { ExecutionsController } from './executions.controller';
 import { FlowsGateway } from './flows.gateway';
 import { ExecutionGateway } from './execution.gateway';
 import { ExecutionService } from './execution.service';
-import { FlowTransformService } from './services/flow-transform.service';
+
 import { NodeExecutorStrategy } from './execution/node-executor.strategy';
 import { HttpRequestExecutor } from './execution/executors/http-request.executor';
 import { CodeExecutor } from './execution/executors/code.executor';
 import { AIChatExecutor } from './execution/executors/ai-chat.executor';
+import { AIImageGeneratorExecutor } from './execution/executors/ai-image-generator.executor';
 import { ConditionExecutor } from './execution/executors/condition.executor';
 import { SendMessageExecutor } from './execution/executors/send-message.executor';
 import { WebhookTriggerExecutor } from './execution/executors/webhook-trigger.executor';
 import { ApiConnectorExecutor } from './execution/executors/api-connector.executor';
 import { ResponseHandlerExecutor } from './execution/executors/response-handler.executor';
+import { MultiSocialPostExecutor } from './execution/executors/multi-social-post.executor';
+import { DelayExecutor } from './execution/executors/delay.executor';
 import { ChannelsModule } from '../channels/channels.module';
 import { NodeTypesModule } from '../node-types/node-types.module';
+import { AiProvidersModule } from '../ai-providers/ai-providers.module';
+import { FilesModule } from '../files/files.module';
+import { ExecutionArtifactService } from './services/execution-artifact.service';
+import { ExecutionArtifactsController } from './execution-artifacts.controller';
 import { FlowEventListener } from './listeners/flow-event.listener';
 
 @Module({
@@ -35,14 +43,16 @@ import { FlowEventListener } from './listeners/flow-event.listener';
       FlowExecutionEntity,
       NodeExecutionEntity,
       FlowVersionEntity,
+      ExecutionArtifactEntity,
     ]),
     ChannelsModule,
     NodeTypesModule,
+    AiProvidersModule,
+    FilesModule,
   ],
-  controllers: [FlowsController, ExecutionsController],
+  controllers: [FlowsController, ExecutionsController, ExecutionArtifactsController],
   providers: [
     FlowsService,
-    FlowTransformService,
     FlowsGateway,
     ExecutionGateway,
     ExecutionService,
@@ -50,11 +60,15 @@ import { FlowEventListener } from './listeners/flow-event.listener';
     HttpRequestExecutor,
     CodeExecutor,
     AIChatExecutor,
+    AIImageGeneratorExecutor,
     ConditionExecutor,
     SendMessageExecutor,
     WebhookTriggerExecutor,
     ApiConnectorExecutor,
     ResponseHandlerExecutor,
+    MultiSocialPostExecutor,
+    DelayExecutor,
+    ExecutionArtifactService,
     FlowEventListener,
   ],
   exports: [
@@ -70,11 +84,14 @@ export class FlowsModule implements OnModuleInit {
     private readonly httpExecutor: HttpRequestExecutor,
     private readonly codeExecutor: CodeExecutor,
     private readonly aiChatExecutor: AIChatExecutor,
+    private readonly aiImageGeneratorExecutor: AIImageGeneratorExecutor,
     private readonly conditionExecutor: ConditionExecutor,
     private readonly sendMessageExecutor: SendMessageExecutor,
     private readonly webhookTriggerExecutor: WebhookTriggerExecutor,
     private readonly apiConnectorExecutor: ApiConnectorExecutor,
     private readonly responseHandlerExecutor: ResponseHandlerExecutor,
+    private readonly multiSocialPostExecutor: MultiSocialPostExecutor,
+    private readonly delayExecutor: DelayExecutor,
   ) {}
 
   onModuleInit() {
@@ -82,6 +99,7 @@ export class FlowsModule implements OnModuleInit {
     this.strategy.register('http-request', this.httpExecutor);
     this.strategy.register('code', this.codeExecutor);
     this.strategy.register('ai-chat', this.aiChatExecutor);
+    this.strategy.register('ai-image-generator', this.aiImageGeneratorExecutor);
     this.strategy.register('condition', this.conditionExecutor);
     this.strategy.register('send-message', this.sendMessageExecutor);
 
@@ -89,6 +107,8 @@ export class FlowsModule implements OnModuleInit {
     this.strategy.register('webhook-trigger', this.webhookTriggerExecutor);
     this.strategy.register('api-connector', this.apiConnectorExecutor);
     this.strategy.register('response-handler', this.responseHandlerExecutor);
+    this.strategy.register('multi-social-post', this.multiSocialPostExecutor);
+    this.strategy.register('delay', this.delayExecutor);
 
     // Legacy webhook trigger (passthrough)
     this.strategy.register('webhook', {
@@ -112,6 +132,137 @@ export class FlowsModule implements OnModuleInit {
     this.strategy.register('receive-message', {
       execute: (input) =>
         Promise.resolve({ success: true, output: input.input }),
+    });
+
+    // Stub executors for seeded node types (TODO: implement full functionality)
+    this.strategy.register('ai-image', {
+      execute: async (input) => {
+        try {
+          // TODO: Implement real AI image generation using AI providers service
+          // For now, return placeholder response
+          return {
+            success: true,
+            output: {
+              ...input.input,
+              aiImage: {
+                generated: true,
+                placeholder: 'AI image generation - TODO: implement',
+                prompt: input.data?.prompt,
+                model: input.data?.model || 'dall-e-3',
+                provider: 'openai', // Default for now
+              },
+            },
+          };
+        } catch (error) {
+          return {
+            success: false,
+            output: input.input,
+            error: `AI image generation failed: ${error.message}`,
+          };
+        }
+      },
+    });
+
+    this.strategy.register('image-upload', {
+      execute: (input) =>
+        Promise.resolve({
+          success: true,
+          output: {
+            ...input.input,
+            uploadedImages: input.data?.images || [],
+          },
+        }),
+    });
+
+    this.strategy.register('database-query', {
+      execute: (input) =>
+        Promise.resolve({
+          success: true,
+          output: {
+            ...input.input,
+            queryResult: {
+              executed: true,
+              query: input.data?.query,
+              placeholder: 'Database query - TODO: implement',
+            },
+          },
+        }),
+    });
+
+    this.strategy.register('loop', {
+      execute: (input) =>
+        Promise.resolve({
+          success: true,
+          output: {
+            ...input.input,
+            loopResult: {
+              iterated: true,
+              items: input.data?.items || [],
+              placeholder: 'Loop execution - TODO: implement',
+            },
+          },
+        }),
+    });
+
+    this.strategy.register('json-transform', {
+      execute: (input) =>
+        Promise.resolve({
+          success: true,
+          output: {
+            ...input.input,
+            transformedData: input.input,
+            mapping: input.data?.mapping,
+          },
+        }),
+    });
+
+    // Social media post executors (simplified versions)
+    this.strategy.register('social-facebook-post', {
+      execute: (input) =>
+        Promise.resolve({
+          success: true,
+          output: {
+            ...input.input,
+            facebookPost: {
+              posted: true,
+              content: input.data?.content,
+              platform: 'facebook',
+              placeholder: 'Facebook post - TODO: implement API integration',
+            },
+          },
+        }),
+    });
+
+    this.strategy.register('social-instagram-post', {
+      execute: (input) =>
+        Promise.resolve({
+          success: true,
+          output: {
+            ...input.input,
+            instagramPost: {
+              posted: true,
+              caption: input.data?.caption,
+              platform: 'instagram',
+              placeholder: 'Instagram post - TODO: implement API integration',
+            },
+          },
+        }),
+    });
+
+    this.strategy.register('social-tiktok-post', {
+      execute: (input) =>
+        Promise.resolve({
+          success: true,
+          output: {
+            ...input.input,
+            tiktokPost: {
+              posted: true,
+              caption: input.data?.caption,
+              platform: 'tiktok',
+              placeholder: 'TikTok post - TODO: implement API integration',
+            },
+          },
+        }),
     });
 
     // Custom node handler

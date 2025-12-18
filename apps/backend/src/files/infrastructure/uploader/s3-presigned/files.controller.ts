@@ -11,7 +11,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { FilesS3PresignedService } from './files.service';
 import { FilesService } from '../../../files.service';
 import { FileUploadDto } from './dto/file.dto';
-import { FileResponseDto } from './dto/file-response.dto';
+import { S3PresignedFileResponseDto } from './dto/file-response.dto';
 
 @ApiTags('Files')
 @Controller({
@@ -25,7 +25,7 @@ export class FilesS3PresignedController {
   ) {}
 
   @ApiCreatedResponse({
-    type: FileResponseDto,
+    type: S3PresignedFileResponseDto,
   })
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))

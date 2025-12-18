@@ -104,26 +104,6 @@ export class WebhooksController {
   @Get('facebook')
   @ApiOperation({ summary: 'Verify Facebook webhook' })
   async verifyFacebookWebhook(@Query() query: any, @Req() req: Request) {
-    // Log cá»±c chi tiáº¿t Ä‘á»ƒ báº¯t 100% request tá»« Facebook
-    this.logger.log(
-      'â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•',
-    );
-    this.logger.log('[FACEBOOK VERIFY] ÄÃƒ CÃ“ REQUEST VÃ€O');
-    this.logger.log(
-      `IP gá»i tá»›i       : ${req.ip} | ${req.headers['x-forwarded-for'] || 'no forward'}`,
-    );
-    this.logger.log(`User-Agent       : ${req.headers['user-agent']}`);
-    this.logger.log(
-      `Full URL         : ${req.protocol}://${req.get('host')}${req.originalUrl}`,
-    );
-    this.logger.log(`Query params     : ${JSON.stringify(req.query)}`);
-    this.logger.log(`hub.mode         : ${query['hub.mode']}`);
-    this.logger.log(`hub.verify_token : "${query['hub.verify_token']}"`);
-    this.logger.log(`hub.challenge    : ${query['hub.challenge']}`);
-    this.logger.log(
-      'â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•',
-    );
-
     const mode = query['hub.mode'];
     const token = query['hub.verify_token'];
     const challenge = query['hub.challenge'];
@@ -134,9 +114,7 @@ export class WebhooksController {
       return 'Forbidden';
     }
 
-    // âœ… FIX: Get verify token from database instead of hardcode
     try {
-      // Get any active Facebook credential (workspace-agnostic for webhook verification)
       const credential = await this.facebookOAuthService[
         'credentialRepository'
       ].findOne({
@@ -145,34 +123,18 @@ export class WebhooksController {
           isActive: true,
         },
         order: {
-          updatedAt: 'DESC', // Get most recent
+          updatedAt: 'DESC',
         },
       });
 
       const expectedToken = credential?.metadata?.verifyToken;
-
-      if (!expectedToken) {
-        this.logger.error('VERIFY TOKEN CHÆ¯A ÄÆ¯á»¢C Cáº¤U HÃŒNH!');
-        this.logger.error(
-          'â†’ Vui lÃ²ng setup Facebook App trong Channels page',
-        );
-        return 'Forbidden';
-      }
-
       if (token !== expectedToken) {
-        this.logger.error('TOKEN KHÃ”NG KHá»šP!');
-        this.logger.error(`â†’ Nháº­n Ä‘Æ°á»£c : "${token}"`);
-        this.logger.error(`â†’ Mong Ä‘á»£i  : "${expectedToken}"`);
-        this.logger.error(
-          `â†’ Äá»™ dÃ i    : nháº­n=${token?.length || 0}, Ä‘Ãºng=${expectedToken.length}`,
-        );
+  
         return 'Forbidden';
       }
 
-      this.logger.log('VERIFICATION THÃ€NH CÃ”NG 100%');
       return challenge;
     } catch (error) {
-      this.logger.error('Lá»—i khi láº¥y verify token tá»« database:', error);
       return 'Forbidden';
     }
   }

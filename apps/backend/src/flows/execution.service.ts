@@ -60,12 +60,12 @@ export class ExecutionService {
     );
   }
 
-  private executeFlowSync(
+  private async executeFlowSync(
     flowId: string,
     flowData: any,
     inputData?: any,
     metadata?: any,
-  ): string {
+  ): Promise<string> {
     const executionId = `exec-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
     const execution: FlowExecution = {
@@ -81,7 +81,30 @@ export class ExecutionService {
 
     this.executionGateway.emitExecutionStart(executionId, flowId);
 
-    this.executeNodes(executionId, flowData, inputData).catch(async (error) => {
+    let flowExecutionId: string | undefined;
+
+    try {
+      const flowExecution = await this.flowExecutionRepository.create({
+        executionId: execution.executionId,
+        flowId: flowId,
+        status: execution.status,
+        startTime: execution.startTime,
+        workspaceId: execution.metadata?.workspaceId,
+      });
+
+      const savedExecution = await this.flowExecutionRepository.save(flowExecution);
+
+      flowExecutionId = savedExecution.id;
+
+      console.log('Execution created with UUID:', savedExecution.id);
+
+    } catch (error) {
+      // Database save failed, proceed without UUID
+    }
+
+    try {
+      await this.executeNodes(executionId, flowData, inputData, flowExecutionId);
+    } catch (error) {
       execution.status = 'failed';
       execution.error = error.message;
       execution.endTime = Date.now();
@@ -97,7 +120,7 @@ export class ExecutionService {
 
       // Save failed execution to database
       await this.saveExecutionToDatabase(execution, flowId);
-    });
+    }
 
     return executionId;
   }
@@ -106,6 +129,7 @@ export class ExecutionService {
     executionId: string,
     flowData: any,
     inputData: any,
+    flowExecutionId?: string,
   ) {
     const execution = this.executions.get(executionId)!;
     const { nodes, edges } = flowData;
@@ -137,7 +161,12 @@ export class ExecutionService {
           nodeType: node.type,
           data: node.data,
           input: currentInput,
-          context: { executionId, flowId: execution.flowId },
+          context: {
+            executionId,
+            flowId: execution.flowId,
+            workspaceId: execution.metadata?.workspaceId,
+            flowExecutionId, // Pass the UUID of FlowExecutionEntity
+          },
         });
 
         if (!output.success) {
@@ -203,6 +232,16 @@ export class ExecutionService {
     flowId: string,
   ) {
     try {
+      console.log('Saving execution to database:', {
+        executionId: execution.executionId,
+        flowId,
+        status: execution.status,
+        nodeCount: execution.nodes.length,
+        hasResult: !!execution.result,
+        hasError: !!execution.error,
+        workspaceId: execution.metadata?.workspaceId,
+      });
+
       const flowExecution = this.flowExecutionRepository.create({
         executionId: execution.executionId,
         flowId: flowId,
@@ -211,10 +250,13 @@ export class ExecutionService {
         endTime: execution.endTime,
         result: execution.result,
         error: execution.error,
+        workspaceId: execution.metadata?.workspaceId,
       });
 
       const savedExecution =
         await this.flowExecutionRepository.save(flowExecution);
+
+      console.log('Execution saved with ID:', savedExecution.id);
 
       if (execution.nodes.length > 0) {
         const nodeExecutions = execution.nodes.map((node) =>

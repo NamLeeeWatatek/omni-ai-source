@@ -36,7 +36,7 @@ export class BotsService {
     private workspaceMemberRepository: Repository<WorkspaceMemberEntity>,
     private workspaceHelper: WorkspaceHelperService,
     private widgetVersionService: WidgetVersionService,
-  ) {}
+  ) { }
 
   async getUserDefaultWorkspace(userId: string) {
     return this.workspaceHelper.getUserDefaultWorkspace(userId);
@@ -109,7 +109,7 @@ export class BotsService {
         defaultVersion.id,
         userId,
       );
-    } catch (error) {}
+    } catch (error) { }
 
     return savedBot;
   }
@@ -270,6 +270,7 @@ export class BotsService {
     if (existing) {
       existing.priority = dto.priority ?? existing.priority;
       existing.ragSettings = dto.ragSettings ?? existing.ragSettings;
+      existing.isActive = true;
       return this.botKbRepository.save(existing);
     }
 
@@ -291,7 +292,7 @@ export class BotsService {
   async getLinkedKnowledgeBases(botId: string) {
     // First get the linking records
     const linkedRecords = await this.botKbRepository.find({
-      where: { botId, isActive: true },
+      where: { botId },
       order: { priority: 'ASC' },
     });
 
@@ -308,17 +309,35 @@ export class BotsService {
       .getRepository('knowledge_base')
       .createQueryBuilder('kb')
       .where('kb.id IN (:...ids)', { ids: kbIds })
+      .andWhere('kb.deletedAt IS NULL')
       .select([
         'kb.id',
         'kb.name',
         'kb.description',
-        'kb.totalDocuments',
         'kb.embeddingModel',
         'kb.createdAt',
         'kb.updatedAt',
-        'kb.color',
       ])
-      .getRawMany();
+      .getMany();
+
+    // Get actual document counts for each KB
+    const docCounts = await Promise.all(
+      kbIds.map(async (kbId) => {
+        const count = await this.botKbRepository.manager
+          .getRepository('kb_document')
+          .createQueryBuilder('doc')
+          .where('doc.knowledgeBaseId = :kbId', { kbId })
+          .andWhere('doc.deletedAt IS NULL')
+          .select('COUNT(doc.id)', 'count')
+          .getRawOne();
+        return { kbId, count: parseInt(count?.count || '0') };
+      })
+    );
+
+    const docCountMap = new Map();
+    docCounts.forEach(({ kbId, count }) => {
+      docCountMap.set(kbId, count);
+    });
 
     // Create a map for easy lookup
     const kbMap = new Map();
@@ -327,11 +346,10 @@ export class BotsService {
         id: kb.id,
         name: kb.name,
         description: kb.description,
-        totalDocuments: parseInt(kb.totalDocuments) || 0,
+        totalDocuments: docCountMap.get(kb.id) || 0,
         embeddingModel: kb.embeddingModel,
         createdAt: kb.createdAt,
         updatedAt: kb.updatedAt,
-        color: kb.color,
       });
     });
 
@@ -344,6 +362,7 @@ export class BotsService {
       ragSettings: record.ragSettings,
       isActive: record.isActive,
       createdAt: record.createdAt,
+      updatedAt: record.createdAt, // No updatedAt in entity, use createdAt
       knowledgeBase: kbMap.get(record.knowledgeBaseId) || null,
     }));
   }

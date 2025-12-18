@@ -1,59 +1,60 @@
-﻿import {
+import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
-  ManyToOne,
-  PrimaryGeneratedColumn,
   Index,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
-import { EntityRelationalHelper } from 'src/utils/relational-entity-helper';
-import { KbDocumentEntity } from './knowledge-base.entity';
+import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 
 @Entity({ name: 'kb_chunk' })
 export class KBChunkEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'document_id', type: 'uuid' })
-  @Index()
-  documentId: string;
-
   @Column({ name: 'knowledge_base_id', type: 'uuid' })
   @Index()
   knowledgeBaseId: string;
 
-  @Column({ type: 'text' })
-  content: string;
+  @Column({ name: 'document_id', type: 'uuid' })
+  @Index()
+  documentId: string;
 
   @Column({ name: 'chunk_index', type: 'int' })
   chunkIndex: number;
 
-  @Column({ name: 'start_char', type: 'int' })
+  @Column({ name: 'start_char', type: 'int', default: 0 })
   startChar: number;
 
-  @Column({ name: 'end_char', type: 'int' })
+  @Column({ name: 'end_char', type: 'int', default: 0 })
   endChar: number;
 
-  @Column({ name: 'token_count', type: 'int', nullable: true })
-  tokenCount?: number | null;
+  @Column({ name: 'token_count', type: 'int', default: 0 })
+  tokenCount: number;
+
+  @Column({ type: 'text' })
+  content: string;
+
+  @Column({ name: 'embedding_status', type: String, default: 'pending' })
+  embeddingStatus: 'pending' | 'processing' | 'completed' | 'failed';
+
+  @Column({ name: 'embedding_error', type: String, nullable: true })
+  embeddingError?: string | null;
+
+  @Column({ name: 'vector_id', type: String, nullable: true })
+  vectorId?: string | null;
 
   @Column({ type: 'jsonb', nullable: true })
   metadata?: Record<string, any> | null;
 
-  @Column({ name: 'vector_id', type: String, nullable: true })
-  @Index()
-  vectorId?: string | null;
-
-  @Column({ name: 'embedding_status', type: String, default: 'pending' })
-  @Index()
-  embeddingStatus: 'pending' | 'processing' | 'completed' | 'failed';
-
-  @Column({ name: 'embedding_error', type: 'text', nullable: true })
-  embeddingError?: string | null;
-
-  @ManyToOne(() => KbDocumentEntity, { onDelete: 'CASCADE' })
-  document?: KbDocumentEntity;
-
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
+
+  @DeleteDateColumn({ name: 'deleted_at' })
+  deletedAt?: Date | null;
 }

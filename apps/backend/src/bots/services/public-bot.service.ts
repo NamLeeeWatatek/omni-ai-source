@@ -175,7 +175,7 @@ export class PublicBotService {
   ): Promise<MessageResponseDto> {
     const conversation = await this.conversationRepository.findOne({
       where: { id: conversationId },
-      relations: ['bot'],
+      relations: ['bot', 'bot.knowledgeBases'],
     });
 
     if (!conversation) {
@@ -209,27 +209,64 @@ export class PublicBotService {
     let context = '';
     let sources: any[] = [];
 
-    if (bot.knowledgeBaseIds && bot.knowledgeBaseIds.length > 0) {
-      try {
-        const kbResults = await this.kbRagService.query(
-          dto.message,
-          bot.knowledgeBaseIds[0],
-          3,
-          0.7,
-        );
+    // Get active linked knowledge bases
+    const activeKnowledgeBases = bot.knowledgeBases?.filter(kb => kb.isActive) || [];
 
-        if (kbResults && kbResults.length > 0) {
-          context = kbResults.map((r) => r.content).join('\n\n');
-          sources = kbResults.map((r) => ({
+    this.logger.log(`Bot ${bot.id} - Checking knowledge bases:`, {
+      totalLinked: bot.knowledgeBases?.length || 0,
+      activeLinked: activeKnowledgeBases.length,
+      message: dto.message.substring(0, 100) + '...'
+    });
+
+    if (activeKnowledgeBases.length > 0) {
+      try {
+        this.logger.log(`Bot ${bot.id} has ${activeKnowledgeBases.length} linked active knowledge bases`);
+
+        // Query across all linked knowledge bases
+        const allResults: any[] = [];
+        for (const kbLink of activeKnowledgeBases) {
+          try {
+            this.logger.log(`Querying knowledge base: ${kbLink.knowledgeBaseId}`);
+            const kbResults = await this.kbRagService.query(
+              dto.message,
+              kbLink.knowledgeBaseId,
+              2, // Limit per KB to avoid too much context
+              0.7,
+            );
+            this.logger.log(`KB ${kbLink.knowledgeBaseId} returned ${kbResults.length} results`);
+            allResults.push(...kbResults);
+          } catch (kbError) {
+            this.logger.warn(`Failed to query knowledge base ${kbLink.knowledgeBaseId}: ${kbError.message}`);
+          }
+        }
+
+        this.logger.log(`Total results from all KBs: ${allResults.length}`);
+
+        // Sort by score and take top 5 results
+        const topResults = allResults
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 5);
+
+        this.logger.log(`Top ${topResults.length} results after sorting and limiting`);
+
+        if (topResults.length > 0) {
+          context = topResults.map((r) => r.content).join('\n\n');
+          sources = topResults.map((r) => ({
             documentId: r.documentId,
             title: r.metadata?.title || 'Document',
             content: r.content.substring(0, 200),
             score: r.score,
           }));
+
+          this.logger.log(`Using ${topResults.length} KB results for context (${context.length} chars)`);
+        } else {
+          this.logger.log('No relevant results found in knowledge bases');
         }
       } catch (error) {
-        this.logger.warn(`Failed to query knowledge base: ${error.message}`);
+        this.logger.warn(`Failed to query knowledge bases: ${error.message}`);
       }
+    } else {
+      this.logger.log(`Bot ${bot.id} has no linked active knowledge bases`);
     }
 
     const systemPrompt =

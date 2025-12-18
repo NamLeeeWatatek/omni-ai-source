@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 
 import {
@@ -86,17 +86,21 @@ import { AlertDialogConfirm } from '@/components/ui/AlertDialogConfirm'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Checkbox } from '@/components/ui/Checkbox'
+
 import { Spinner } from '@/components/ui/Spinner'
 import { TableHeader, TableRow, TableHead, TableBody, TableCell, Table } from '@/components/ui/Table'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/DropdownMenu'
+import { showProgressOverlay, hideProgressOverlay } from '@/lib/hooks/useProgressOverlay'
 
 export default function KnowledgeBaseDetailPageRedux() {
     const params = useParams()
     const router = useRouter()
     const dispatch = useAppDispatch()
     const kbId = params.id as string
+
+    console.log('🚀 Knowledge Base Page Loaded', { kbId, params });
 
     const kb = useAppSelector(selectCurrentKB)
     const stats = useAppSelector(selectStats)
@@ -199,40 +203,24 @@ export default function KnowledgeBaseDetailPageRedux() {
         }
     }
 
-    const handleMultipleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const files = event.target.files
-        if (!files || files.length === 0) return
-
-        let uploadCount = 0
-        let errorCount = 0
+    const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0]
+        if (!file) return
 
         try {
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i]
-                try {
-                    await dispatch(uploadDocument({
-                        file,
-                        kbId,
-                        folderId: currentFolderId || undefined,
-                    })).unwrap()
-                    uploadCount++
-                } catch (error: any) {
-                    errorCount++
-                    console.error(`Failed to upload ${file.name}:`, error)
-                }
-            }
+            await dispatch(uploadDocument({
+                file,
+                kbId,
+                folderId: currentFolderId || undefined,
+            })).unwrap()
 
-            if (uploadCount > 0) {
-                toast.success(`${uploadCount} file(s) uploaded and processing started${errorCount > 0 ? ` (${errorCount} failed)` : ''}`)
-            }
-            if (errorCount > 0) {
-                toast.error(`${errorCount} file(s) failed to upload`)
-            }
+            toast.success('File uploaded and processing started')
+            dispatch(refreshData({ kbId, folderId: currentFolderId }))
+        } catch (error: any) {
+            const message = error?.message || error?.detail || 'Failed to upload file'
+            toast.error(message)
         } finally {
             event.target.value = ''
-            if (uploadCount > 0) {
-                dispatch(refreshData({ kbId, folderId: currentFolderId }))
-            }
         }
     }
 
@@ -491,23 +479,20 @@ export default function KnowledgeBaseDetailPageRedux() {
                         <FiPlus className="w-4 h-4 mr-2" />
                         Add Document
                     </Button>
-                    <div className="relative">
-                        <input
-                            type="file"
-                            id="file-upload"
-                            className="hidden"
-                            accept=".pdf,.doc,.docx,.txt,.md,.csv,.json"
-                            onChange={handleMultipleFileUpload}
-                            multiple
-                        />
-                        <Button
-                            variant="outline"
-                            onClick={() => document.getElementById('file-upload')?.click()}
-                        >
-                            <FiUpload className="w-4 h-4 mr-2" />
-                            Upload Files
-                        </Button>
-                    </div>
+                    <input
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.doc,.docx,.txt,.md,.csv,.json"
+                        onChange={handleFileSelect}
+                        multiple
+                    />
+                    <Button
+                        variant="outline"
+                        onClick={() => (document.querySelector('input[type="file"]') as HTMLInputElement)?.click()}
+                    >
+                        <FiUpload className="w-4 h-4 mr-2" />
+                        Upload Files
+                    </Button>
                     <Button variant="outline" onClick={() => setCrawlerDialogOpen(true)}>
                         <FiGlobe className="w-4 h-4 mr-2" />
                         Crawl Website
@@ -871,7 +856,6 @@ export default function KnowledgeBaseDetailPageRedux() {
                 )}
             </div>
 
-            { }
             <KBFolderDialog
                 open={folderDialogOpen}
                 onOpenChange={setFolderDialogOpen}
@@ -944,6 +928,8 @@ export default function KnowledgeBaseDetailPageRedux() {
                 onConfirm={handleBulkDelete}
                 variant="destructive"
             />
+
+
         </div>
     )
 }

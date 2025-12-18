@@ -15,7 +15,7 @@ import {
 } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { FilesS3Service } from './files.service';
-import { FileResponseDto } from './dto/file-response.dto';
+import { S3FileResponseDto } from './dto/file-response.dto';
 
 @ApiTags('Files')
 @Controller({
@@ -26,7 +26,7 @@ export class FilesS3Controller {
   constructor(private readonly filesService: FilesS3Service) {}
 
   @ApiCreatedResponse({
-    type: FileResponseDto,
+    type: S3FileResponseDto,
   })
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
@@ -46,7 +46,7 @@ export class FilesS3Controller {
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(
     @UploadedFile() file: Express.MulterS3.File,
-  ): Promise<FileResponseDto> {
+  ): Promise<S3FileResponseDto> {
     return this.filesService.create(file);
   }
 }

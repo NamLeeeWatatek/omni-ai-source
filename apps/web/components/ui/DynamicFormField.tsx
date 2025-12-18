@@ -59,6 +59,7 @@ export const DynamicFormField = memo(function DynamicFormField({
     const [jsonError, setJsonError] = useState<string | null>(null)
     const [dynamicOptions, setDynamicOptions] = useState<any[]>([])
     const [loadingOptions, setLoadingOptions] = useState(false)
+    const [optionsConfig, setOptionsConfig] = useState<string>('')
     const [previewFiles, setPreviewFiles] = useState<any[]>([])
 
     const { uploadFile, uploadMultipleFiles, uploading: uploadLoading, error: uploadHookError } = useFileUpload({
@@ -121,50 +122,26 @@ export const DynamicFormField = memo(function DynamicFormField({
 
     const loadDynamicOptions = async (optionsStr: string) => {
         const optionsConfig = optionsStr.replace('dynamic:', '')
+        setOptionsConfig(optionsConfig)
 
         try {
             setLoadingOptions(true)
 
             if (optionsConfig.startsWith('ai-models:')) {
                 const typeFilter = optionsConfig.split(':')[1]
-                const data = await axiosClient.get('/ai-providers/models')
-
-                let allModels: any[] = []
-
-                if (typeFilter === 'chat' || typeFilter === 'image') {
-                    data.forEach((providerData: any) => {
-                        const filteredModels = providerData.models
-                            .filter((m: any) => m.is_available && m.type === typeFilter)
-                            .map((m: any) => ({
-                                value: m.model_name,
-                                label: m.display_name || m.name
-                            }))
-                        allModels = allModels.concat(filteredModels)
-                    })
-                } else {
-                    const providerData = data.find((p: any) => p.provider === typeFilter)
-                    if (providerData) {
-                        allModels = providerData.models
-                            .filter((m: any) => m.is_available)
-                            .map((m: any) => ({
-                                value: m.model_name,
-                                label: m.display_name || m.name
-                            }))
-                    }
-                }
-
-                setDynamicOptions(allModels)
+                // Call the correct dynamic options endpoint
+                const data = await axiosClient.get(`/node-types/dynamic-options/ai-models?type=${typeFilter}`)
+                setDynamicOptions(data)
             }
             else if (optionsConfig === 'channels') {
-                const data = await axiosClient.get('/channels')
-                const options = data.map((c: any) => ({
-                    value: c.id.toString(),
-                    label: c.name
-                }))
-                setDynamicOptions(options)
+                // Call the correct dynamic options endpoint
+                const data = await axiosClient.get('/node-types/dynamic-options/channels')
+                setDynamicOptions(data)
             }
         } catch (error) {
-            // Silent fail for options loading
+            console.warn('Failed to load dynamic options:', error)
+            // Set empty array on error to prevent UI issues
+            setDynamicOptions([])
         } finally {
             setLoadingOptions(false)
         }
@@ -331,7 +308,23 @@ export const DynamicFormField = memo(function DynamicFormField({
                     : (field.options as any[]) || []
 
                 const selectValue = currentValue ? String(currentValue) : undefined
-                const placeholder = loadingOptions ? "Loading channels..." : (field.type === 'channel-select' ? "Select a channel..." : "Select an option...")
+
+                let placeholder = "Select an option..."
+                if (loadingOptions) {
+                    if (optionsConfig?.startsWith('ai-models:')) {
+                        placeholder = "Loading AI models..."
+                    } else if (optionsConfig === 'channels') {
+                        placeholder = "Loading channels..."
+                    } else {
+                        placeholder = "Loading options..."
+                    }
+                } else {
+                    if (field.type === 'channel-select') {
+                        placeholder = "Select a channel..."
+                    } else if (optionsConfig?.startsWith('ai-models:')) {
+                        placeholder = "Select an AI model..."
+                    }
+                }
 
                 return (
                     <div className="space-y-2">

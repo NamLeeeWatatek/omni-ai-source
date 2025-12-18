@@ -1,9 +1,9 @@
 ﻿import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { KbFolderEntity } from '../infrastructure/persistence/relational/entities/knowledge-base.entity';
 import { CreateFolderDto, UpdateFolderDto } from '../dto/kb-folder.dto';
 import { KBManagementService } from './kb-management.service';
+import { KbFolderEntity } from '../infrastructure/persistence/relational/entities/knowledge-base.entity';
 
 @Injectable()
 export class KBFoldersService {
@@ -30,7 +30,7 @@ export class KBFoldersService {
 
     return this.folderRepository.find({
       where: { knowledgeBaseId: kbId },
-      relations: ['subFolders', 'documents'],
+      relations: ['children', 'documents'],
       order: { createdAt: 'ASC' },
     });
   }
@@ -38,7 +38,7 @@ export class KBFoldersService {
   async findOne(folderId: string, userId: string) {
     const folder = await this.folderRepository.findOne({
       where: { id: folderId },
-      relations: ['knowledgeBase', 'subFolders', 'documents'],
+      relations: ['knowledgeBase', 'children', 'documents'],
     });
 
     if (!folder) {

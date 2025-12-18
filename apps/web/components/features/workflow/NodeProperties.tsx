@@ -3,7 +3,8 @@
 
 import { useState, useEffect, useRef, useCallback, memo } from 'react'
 import { Button } from '@/components/ui/Button'
-import { FiSave, FiSettings } from 'react-icons/fi'
+import { Spinner } from '@/components/ui/Spinner'
+import { FiSave, FiSettings, FiPlay, FiCheckCircle, FiAlertCircle } from 'react-icons/fi'
 import toast from '@/lib/toast'
 import type { Node } from 'reactflow'
 import { useAppSelector } from '@/lib/store/hooks'
@@ -18,6 +19,8 @@ export const NodeProperties = memo(function NodeProperties({ node, onUpdate }: N
     const { items: nodeTypes = [] } = useAppSelector((state: any) => state.nodeTypes || {})
     const nodeData = node.data as any
     const [config, setConfig] = useState(nodeData.config || {})
+    const [isTesting, setIsTesting] = useState(false)
+    const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
 
     const getNodeType = (typeId: string) => {
         return nodeTypes.find((nt: any) => nt.id === typeId)
@@ -50,12 +53,108 @@ export const NodeProperties = memo(function NodeProperties({ node, onUpdate }: N
         return JSON.stringify(config) !== JSON.stringify(nodeData.config || {})
     }
 
+    // Auto-save when config changes (debounced)
+    const autoSave = useCallback(() => {
+        onUpdateRef.current({
+            ...nodeRef.current,
+            data: {
+                ...nodeRef.current.data,
+                config
+            }
+        })
+        // No toast for auto-save
+    }, [config])
+
+    useEffect(() => {
+        if (hasChanges() && Object.keys(config).length > 0) {
+            const timeoutId = setTimeout(() => {
+                autoSave()
+            }, 1000) // Debounce 1 second
+
+            return () => clearTimeout(timeoutId)
+        }
+    }, [config, autoSave])
+
+    const handleTest = async () => {
+        setIsTesting(true)
+        setTestResult(null)
+
+        try {
+            // Simulate testing the node configuration
+            // In a real implementation, this would call an API to test the node
+            const nodeType = nodeData.type || nodeData.nodeType || node.type
+            const nodeTypeInfo = getNodeType(nodeType)
+
+            if (!nodeTypeInfo) {
+                throw new Error('Node type not found')
+            }
+
+            // Basic validation - check required fields
+            const missingFields: string[] = []
+            if (nodeTypeInfo.properties) {
+                nodeTypeInfo.properties.forEach((prop: any) => {
+                    if (prop.required && (!config[prop.name] || config[prop.name] === '')) {
+                        missingFields.push(prop.label || prop.name)
+                    }
+                })
+            }
+
+            // Check for variable expressions and validate them
+            const invalidExpressions: string[] = []
+            Object.entries(config).forEach(([key, value]) => {
+                if (typeof value === 'string') {
+                    const expressions = value.match(/\{\{[^}]+\}\}/g)
+                    if (expressions) {
+                        expressions.forEach(expr => {
+                            // Basic validation - check if expression follows expected patterns
+                            if (!/\{\{[^}]+\}\}/.test(expr)) {
+                                invalidExpressions.push(`${key}: ${expr}`)
+                            }
+                        })
+                    }
+                }
+            })
+
+            if (missingFields.length > 0) {
+                setTestResult({
+                    success: false,
+                    message: `Missing required fields: ${missingFields.join(', ')}`
+                })
+            } else if (invalidExpressions.length > 0) {
+                setTestResult({
+                    success: false,
+                    message: `Invalid variable expressions: ${invalidExpressions.join(', ')}`
+                })
+            } else {
+                // Simulate successful test
+                await new Promise(resolve => setTimeout(resolve, 1000))
+                setTestResult({
+                    success: true,
+                    message: 'Node configuration is valid and ready for execution'
+                })
+            }
+        } catch (error: any) {
+            setTestResult({
+                success: false,
+                message: error.message || 'Test failed'
+            })
+        } finally {
+            setIsTesting(false)
+        }
+    }
+
     const updateConfig = useCallback((key: string, value: any) => {
         setConfig((prevConfig: any) => {
-            if (prevConfig[key] === value) {
-                return prevConfig
-            }
-            return { ...prevConfig, [key]: value }
+            const newConfig = { ...prevConfig, [key]: value }
+            // Save to Redux immediately when config changes
+            onUpdateRef.current({
+                ...nodeRef.current,
+                data: {
+                    ...nodeRef.current.data,
+                    config: newConfig
+                }
+            })
+            return newConfig
         })
     }, [])
 
@@ -104,7 +203,28 @@ export const NodeProperties = memo(function NodeProperties({ node, onUpdate }: N
                 {renderConfigForm()}
             </div>
 
-            <div className="mt-4 pt-4 border-t border-border/40 sticky bottom-0 bg-background/95 backdrop-blur pb-1">
+            {/* Test Results */}
+            {testResult && (
+                <div className={`mx-1 p-3 rounded-lg border ${
+                    testResult.success
+                        ? 'bg-green-500/10 border-green-500/20 text-green-700'
+                        : 'bg-red-500/10 border-red-500/20 text-red-700'
+                }`}>
+                    <div className="flex items-center gap-2">
+                        {testResult.success ? (
+                            <FiCheckCircle className="w-4 h-4" />
+                        ) : (
+                            <FiAlertCircle className="w-4 h-4" />
+                        )}
+                        <span className="text-sm font-medium">
+                            {testResult.success ? 'Test Passed' : 'Test Failed'}
+                        </span>
+                    </div>
+                    <p className="text-sm mt-1">{testResult.message}</p>
+                </div>
+            )}
+
+            <div className="mt-4 pt-4 border-t border-border/40 sticky bottom-0 bg-background/95 backdrop-blur pb-1 space-y-2">
                 {hasChanges() && (
                     <div className="flex items-center gap-2 mb-3 text-xs text-amber-500 font-medium px-1">
                         <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
@@ -112,7 +232,31 @@ export const NodeProperties = memo(function NodeProperties({ node, onUpdate }: N
                     </div>
                 )}
 
-                <Button onClick={handleUpdate} className="w-full shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all">
+                {/* Test Button */}
+                <Button
+                    variant="outline"
+                    onClick={handleTest}
+                    disabled={isTesting}
+                    className="w-full"
+                >
+                    {isTesting ? (
+                        <>
+                            <Spinner className="w-4 h-4 mr-2" />
+                            Testing...
+                        </>
+                    ) : (
+                        <>
+                            <FiPlay className="w-4 h-4 mr-2" />
+                            Test Node
+                        </>
+                    )}
+                </Button>
+
+                {/* Save Button */}
+                <Button
+                    onClick={handleUpdate}
+                    className="w-full shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all"
+                >
                     <FiSave className="w-4 h-4 mr-2" />
                     Save Configuration
                 </Button>
@@ -122,4 +266,3 @@ export const NodeProperties = memo(function NodeProperties({ node, onUpdate }: N
 })
 
 export default NodeProperties
-

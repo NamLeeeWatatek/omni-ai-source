@@ -8,14 +8,14 @@
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
-import { KBSyncService } from '../services/kb-sync.service';
-import { KBManagementService } from '../services/kb-management.service';
+import { KBSyncService } from './services/kb-sync.service';
+import { KBManagementService } from './services/kb-management.service';
 
 @ApiTags('Knowledge Base - Sync')
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'))
 @Controller({ path: 'knowledge-bases', version: '1' })
-export class KBSyncController {
+export class KnowledgeBaseSyncController {
   constructor(
     private readonly syncService: KBSyncService,
     private readonly kbManagementService: KBManagementService,

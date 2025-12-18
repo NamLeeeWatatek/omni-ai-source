@@ -13,7 +13,7 @@ import toast from '@/lib/toast'
 import { UGCFactoryForm } from '@/components/features/ugc-factory/UGCFactoryForm'
 import { UGCFactoryExecutionStatus } from '@/components/features/ugc-factory/UGCFactoryExecutionStatus'
 import { UGCFactoryResults } from '@/components/features/ugc-factory/UGCFactoryResults'
-import { UGCFactoryExecutionHistory } from '@/components/features/ugc-factory/UGCFactoryExecutionHistory'
+import { UGCFactoryArtifacts } from '@/components/features/ugc-factory/UGCFactoryArtifacts'
 import { FiArrowLeft } from 'react-icons/fi'
 import { cn } from '@/lib/utils'
 
@@ -23,13 +23,12 @@ const selectFlowProperties = (id: string) => (state: RootState) => {
     const flow = state.flows.currentFlow
     if (!flow?.nodes) return []
 
-    // Return properties directly from backend - dynamic form handles the format
-    for (const node of flow.nodes) {
-        if (node.properties && Array.isArray(node.properties) && node.properties.length > 0) {
-            if (node.type === 'manual' || node.type === 'trigger') continue
-            return node.properties
-        }
+    // For UGC Factory, get properties from manual trigger node only
+    const manualTrigger = flow.nodes.find(node => node.type === 'manual')
+    if (manualTrigger?.properties && Array.isArray(manualTrigger.properties)) {
+        return manualTrigger.properties
     }
+
     return []
 }
 const selectFlowLoading = (state: RootState) => state.flows.loading
@@ -49,7 +48,7 @@ export default function UGCFactoryFlowPage() {
 
     const tabs = [
         { id: 'form', label: 'Dynamic Form' },
-        { id: 'execution', label: 'Execution History' },
+        { id: 'execution', label: 'Generated Artifacts' },
     ]
 
     const dispatch = useAppDispatch()
@@ -212,12 +211,9 @@ export default function UGCFactoryFlowPage() {
                             onStartNew={handleStartNew}
                         />
 
-                        <UGCFactoryExecutionHistory
+                        <UGCFactoryArtifacts
                             flowId={selectedFlow.id}
-                            executionStatus={executionStatus}
                             executionId={executionId}
-                            result={executionResult}
-                            error={executionError}
                             onStartNew={handleStartNew}
                         />
                     </div>

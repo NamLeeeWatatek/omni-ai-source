@@ -9,6 +9,7 @@
 } from 'typeorm';
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 import { NodeExecutionEntity } from './node-execution.entity';
+import { ExecutionArtifactEntity } from './execution-artifact.entity';
 
 @Entity({ name: 'flow_execution' })
 export class FlowExecutionEntity extends EntityRelationalHelper {
@@ -45,6 +46,11 @@ export class FlowExecutionEntity extends EntityRelationalHelper {
     cascade: true,
   })
   nodeExecutions?: NodeExecutionEntity[];
+
+  @OneToMany(() => ExecutionArtifactEntity, (artifact) => artifact.execution, {
+    cascade: true,
+  })
+  artifacts?: ExecutionArtifactEntity[];
 
   @CreateDateColumn()
   createdAt: Date;

@@ -11,6 +11,7 @@ import { listenerMiddleware } from './middleware/listenerMiddleware'
 
 import workspaceReducer from './slices/workspaceSlice'
 import notificationsReducer from './slices/notificationsSlice'
+import channelsReducer from './slices/channelsSlice'
 
 export const store = configureStore({
   reducer: {
@@ -21,6 +22,7 @@ export const store = configureStore({
     knowledgeBase: knowledgeBaseReducer,
     workspace: workspaceReducer,
     notifications: notificationsReducer,
+    channels: channelsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

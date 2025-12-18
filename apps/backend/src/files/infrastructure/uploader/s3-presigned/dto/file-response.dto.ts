@@ -1,7 +1,7 @@
 ﻿import { ApiProperty } from '@nestjs/swagger';
 import { FileType } from '../../../../domain/file';
 
-export class FileResponseDto {
+export class S3PresignedFileResponseDto {
   @ApiProperty({
     type: () => FileType,
   })

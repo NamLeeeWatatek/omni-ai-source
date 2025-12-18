@@ -384,14 +384,16 @@ Always provide well-reasoned responses and suggest next steps when appropriate.`
                             <Button
                                 key={option.id}
                                 variant="outline"
-                                className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-primary/5"
+                                className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-primary/5 min-h-[100px] w-full"
                                 onClick={() => handleQuickGeneration(option.prompt)}
                                 disabled={generating}
                             >
-                                <option.icon className="w-6 h-6 text-primary" />
-                                <div className="text-center">
-                                    <div className="font-medium text-sm">{option.title}</div>
-                                    <div className="text-xs text-muted-foreground mt-1">{option.description}</div>
+                                <option.icon className="w-6 h-6 text-primary flex-shrink-0" />
+                                <div className="text-center flex-1 min-w-0">
+                                    <div className="font-medium text-sm truncate w-full">{option.title}</div>
+                                    <div className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-tight">
+                                        {option.description}
+                                    </div>
                                 </div>
                             </Button>
                         ))}
@@ -501,6 +503,7 @@ interface AIConfigSectionProps {
 export function AIConfigSection({ data, onChange }: AIConfigSectionProps) {
     const [providers, setProviders] = React.useState<any[]>([]);
     const [loading, setLoading] = React.useState(true);
+    const [fetchingModels, setFetchingModels] = React.useState(false);
 
     React.useEffect(() => {
         const loadProviders = async () => {
@@ -519,6 +522,45 @@ export function AIConfigSection({ data, onChange }: AIConfigSectionProps) {
         };
         loadProviders();
     }, []);
+
+    const fetchModelsForProvider = async (configId: string) => {
+        setFetchingModels(true);
+        try {
+            const models = await axiosClient.get(`/ai-providers/fetch-models/${configId}/user`);
+            // Update the provider's modelList in state
+            setProviders(prevProviders =>
+                prevProviders.map(provider =>
+                    provider.id === configId
+                        ? { ...provider, modelList: models }
+                        : provider
+                )
+            );
+        } catch (error) {
+            console.error('Failed to fetch models:', error);
+            toast.error('Failed to load available models');
+        } finally {
+            setFetchingModels(false);
+        }
+    };
+
+    const handleProviderChange = async (configId: string) => {
+        const provider = providers.find(p => p.id === configId);
+        if (provider) {
+            // If provider doesn't have models yet, fetch them
+            if (!provider.modelList || provider.modelList.length === 0) {
+                await fetchModelsForProvider(configId);
+            }
+            // Update the provider and set first available model
+            const updatedProviders = providers.map(p =>
+                p.id === configId ? { ...p, modelList: p.modelList || [] } : p
+            );
+            const selectedProvider = updatedProviders.find(p => p.id === configId);
+            onChange({
+                aiProviderId: configId,
+                aiModelName: selectedProvider?.modelList?.[0] || ''
+            });
+        }
+    };
 
     return (
         <Card>
@@ -549,13 +591,7 @@ export function AIConfigSection({ data, onChange }: AIConfigSectionProps) {
                             <Label htmlFor="ai-provider">AI Provider *</Label>
                             <Select
                                 value={data.aiProviderId}
-                                onValueChange={(value) => {
-                                    const provider = providers.find(p => p.id === value);
-                                    onChange({
-                                        aiProviderId: value,
-                                        aiModelName: provider?.modelList?.[0] || ''
-                                    });
-                                }}
+                                onValueChange={handleProviderChange}
                                 disabled={loading}
                             >
                                 <SelectTrigger id="ai-provider">
@@ -585,22 +621,41 @@ export function AIConfigSection({ data, onChange }: AIConfigSectionProps) {
                                 <Select
                                     value={data.aiModelName}
                                     onValueChange={(value) => onChange({ aiModelName: value })}
+                                    disabled={fetchingModels}
                                 >
                                     <SelectTrigger id="ai-model">
-                                        <SelectValue placeholder="Select a model" />
+                                        <SelectValue placeholder={
+                                            fetchingModels ? "Loading models..." :
+                                            data.aiModelName ? data.aiModelName : "Select a model"
+                                        } />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {providers
-                                            .find(p => p.id === data.aiProviderId)
-                                            ?.modelList?.map((model: string) => (
+                                        {(() => {
+                                            const provider = providers.find(p => p.id === data.aiProviderId);
+                                            const models = provider?.modelList || [];
+
+                                            if (fetchingModels) {
+                                                return (
+                                                    <SelectItem value="loading" disabled>
+                                                        Loading models...
+                                                    </SelectItem>
+                                                );
+                                            }
+
+                                            if (models.length === 0) {
+                                                return (
+                                                    <SelectItem value="none" disabled>
+                                                        No models available
+                                                    </SelectItem>
+                                                );
+                                            }
+
+                                            return models.map((model: string) => (
                                                 <SelectItem key={model} value={model}>
                                                     {model}
                                                 </SelectItem>
-                                            )) || (
-                                                <SelectItem value="default" disabled>
-                                                    No models available
-                                                </SelectItem>
-                                            )}
+                                            ));
+                                        })()}
                                     </SelectContent>
                                 </Select>
                                 <p className="text-xs text-muted-foreground">

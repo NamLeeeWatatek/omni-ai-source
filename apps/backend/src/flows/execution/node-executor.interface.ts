@@ -10,6 +10,7 @@ export interface NodeExecutionInput {
     executionId: string;
     flowId: string;
     workspaceId?: string;
+    flowExecutionId?: string;
   };
 }
 

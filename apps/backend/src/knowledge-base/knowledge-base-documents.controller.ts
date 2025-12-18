@@ -20,15 +20,14 @@ import {
   ApiConsumes,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
-import { KBDocumentsService } from '../services/kb-documents.service';
-import { KBCrawlerService } from '../services/kb-crawler.service';
+import { KBDocumentsService } from './services/kb-documents.service';
+import { KBCrawlerService } from './services/kb-crawler.service';
 import {
   CreateDocumentDto,
   UpdateDocumentDto,
   CrawlWebsiteDto,
-  CrawlSitemapDto,
-} from '../dto/kb-document.dto';
-import { sanitizeFilename } from '../utils/text-sanitizer';
+} from './dto/kb-document.dto';
+import { sanitizeFilename } from './utils/text-sanitizer';
 // Windows-1252 to Byte mapping for 0x80-0x9F range
 const win1252ToByte: Record<number, number> = {
   0x20ac: 0x80,
@@ -114,7 +113,7 @@ const decodeFilename = fixEncoding;
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'))
 @Controller({ path: 'knowledge-bases', version: '1' })
-export class KBDocumentsController {
+export class KnowledgeBaseDocumentsController {
   constructor(
     private readonly documentsService: KBDocumentsService,
     private readonly crawlerService: KBCrawlerService,
@@ -244,7 +243,19 @@ export class KBDocumentsController {
   ) {
     const userId = req.user.id;
 
+    console.log('🔍 UPLOAD REQUEST RECEIVED:', {
+      userId,
+      knowledgeBaseId,
+      folderId,
+      fileName: file?.originalname,
+      fileSize: file?.size,
+      mimeType: file?.mimetype,
+      hasBuffer: !!file?.buffer,
+      bufferLength: file?.buffer?.length,
+    });
+
     if (!file) {
+      console.error('❌ No file uploaded in request');
       return { success: false, error: 'No file uploaded' };
     }
 
@@ -371,22 +382,5 @@ export class KBDocumentsController {
     };
   }
 
-  @Post('crawl/sitemap')
-  @ApiOperation({ summary: 'Crawl from sitemap.xml and add to knowledge base' })
-  async crawlSitemap(@Request() req, @Body() crawlDto: CrawlSitemapDto) {
-    const userId = req.user.id;
-    const result = await this.crawlerService.crawlSitemap(
-      crawlDto.sitemapUrl,
-      crawlDto.knowledgeBaseId,
-      userId,
-      {
-        maxPages: crawlDto.maxPages,
-      },
-    );
 
-    return {
-      success: true,
-      ...result,
-    };
-  }
 }

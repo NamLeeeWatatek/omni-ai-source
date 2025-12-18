@@ -131,8 +131,21 @@ export const createDocument = createAsyncThunk(
 export const uploadDocument = createAsyncThunk(
   'knowledgeBase/uploadDocument',
   async (data: { file: File; kbId: string; folderId?: string }) => {
-    const result = await uploadKBDocument(data.file, data.kbId, data.folderId)
-    return result
+    console.log('🔄 Redux: uploadDocument thunk called', {
+      fileName: data.file.name,
+      fileSize: data.file.size,
+      kbId: data.kbId,
+      folderId: data.folderId
+    });
+
+    try {
+      const result = await uploadKBDocument(data.file, data.kbId, data.folderId);
+      console.log('✅ Redux: uploadDocument success', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Redux: uploadDocument failed', error);
+      throw error;
+    }
   }
 )
 
@@ -431,4 +444,3 @@ export const selectHasProcessingDocuments = (state: { knowledgeBase: KnowledgeBa
 }
 
 export default knowledgeBaseSlice.reducer
-

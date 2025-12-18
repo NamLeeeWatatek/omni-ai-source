@@ -21,7 +21,14 @@ export class CodeExecutor implements NodeExecutor {
         console: console,
       };
 
-      const script = new vm.Script(code);
+      // Wrap user code in a function to allow return statements
+      const wrappedCode = `
+        (function() {
+          ${code}
+        })()
+      `;
+
+      const script = new vm.Script(wrappedCode);
       const context = vm.createContext(sandbox);
       const result = script.runInContext(context);
 
@@ -33,7 +40,7 @@ export class CodeExecutor implements NodeExecutor {
       return {
         success: false,
         output: null,
-        error: error.message,
+        error: `Code execution error: ${error.message}`,
       };
     }
   }

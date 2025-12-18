@@ -25,20 +25,9 @@ export class KBVectorService {
     const qdrantApiKey = process.env.QDRANT_API_KEY;
     if (qdrantUrl && qdrantApiKey) {
       try {
-        this.logger.log(`Qdrant URL = ${qdrantUrl}`);
-        this.logger.log(`Qdrant key exists = ${qdrantApiKey}`);
-
-        const urlObj = new URL(qdrantUrl);
-        const host = urlObj.hostname;
-        const port = urlObj.port
-          ? parseInt(urlObj.port)
-          : urlObj.protocol === 'https:'
-            ? 443
-            : 6333;
 
         this.qdrantClient = new QdrantClient({
-          host,
-          port,
+          url: qdrantUrl,
           apiKey: qdrantApiKey,
         });
         this.isAvailable = true;

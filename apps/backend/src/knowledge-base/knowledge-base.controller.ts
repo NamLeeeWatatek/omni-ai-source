@@ -12,30 +12,32 @@
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
-import { KBManagementService } from '../services/kb-management.service';
-import { KBVectorService } from '../services/kb-vector.service';
+
+import { KBManagementService } from './services/kb-management.service';
+import { KBVectorService } from './services/kb-vector.service';
+import { KBRagService } from './services/kb-rag.service';
 import {
   CreateKnowledgeBaseDto,
   UpdateKnowledgeBaseDto,
   AssignAgentDto,
-} from '../dto/kb-management.dto';
+} from './dto/kb-management.dto';
 
-@ApiTags('Knowledge Base - Management')
+@ApiTags('Knowledge Base')
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'))
 @Controller({ path: 'knowledge-bases', version: '1' })
-export class KBManagementController {
+export class KnowledgeBaseController {
   constructor(
     private readonly kbService: KBManagementService,
     private readonly vectorService: KBVectorService,
+    private readonly kbRagService: KBRagService,
   ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all knowledge bases' })
   async getAll(@Request() req, @Query('workspaceId') workspaceId?: string) {
     const userId = req.user.id;
-    const result = await this.kbService.findAll(userId, workspaceId);
-    return result;
+    return this.kbService.findAll(userId, workspaceId);
   }
 
   @Post()
@@ -152,6 +154,39 @@ export class KBManagementController {
         success: false,
         message: `Collection creation failed: ${error.message}`,
       };
+    }
+  }
+
+  @Post('chat')
+  @ApiOperation({ summary: 'Chat with knowledge base using RAG' })
+  async chatWithKnowledgeBase(
+    @Request() req,
+    @Body() body: {
+      message: string;
+      botId?: string;
+      knowledgeBaseIds?: string[];
+      conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
+      model?: string;
+    },
+  ) {
+    const userId = req.user.id;
+
+    try {
+      const result = await this.kbRagService.chatWithBotAndRAG(
+        body.message,
+        body.botId,
+        body.knowledgeBaseIds,
+        body.conversationHistory,
+        body.model,
+      );
+
+      return {
+        answer: result.answer,
+        sources: result.sources,
+      };
+    } catch (error) {
+      console.error('Chat with knowledge base failed:', error);
+      throw error;
     }
   }
 }

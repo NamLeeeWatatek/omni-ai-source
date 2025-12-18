@@ -41,10 +41,11 @@ export function BotKnowledgeBaseSection({ botId, workspaceId, onRefresh }: Props
     const [linking, setLinking] = useState(false);
     const [selectedKbId, setSelectedKbId] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    const [refreshKey, setRefreshKey] = useState(0);
 
     useEffect(() => {
         loadData();
-    }, [botId]);
+    }, [botId, refreshKey]);
 
     const loadData = async () => {
         try {
@@ -103,8 +104,9 @@ export function BotKnowledgeBaseSection({ botId, workspaceId, onRefresh }: Props
             setSelectedKbId('');
             setSearchTerm('');
 
-            // Reload data
-            await loadData();
+            // Reload data and force refresh
+            setRefreshKey(prev => prev + 1);
+            if (onRefresh) onRefresh();
 
         } catch (error: any) {
             toast.error(error?.response?.data?.message || 'Failed to link knowledge base');
@@ -122,7 +124,8 @@ export function BotKnowledgeBaseSection({ botId, workspaceId, onRefresh }: Props
             const statusMessage = isActive ? 'deactivated' : 'activated';
             toast.success(`Knowledge base ${statusMessage}`);
 
-            await loadData();
+            setRefreshKey(prev => prev + 1);
+            if (onRefresh) onRefresh();
 
         } catch (error: any) {
             toast.error(error?.response?.data?.message || 'Failed to update knowledge base status');
@@ -139,7 +142,8 @@ export function BotKnowledgeBaseSection({ botId, workspaceId, onRefresh }: Props
 
             toast.success(`Knowledge base "${kbLink.knowledgeBase?.name}" unlinked successfully`);
 
-            await loadData();
+            setRefreshKey(prev => prev + 1);
+            if (onRefresh) onRefresh();
 
         } catch (error: any) {
             toast.error(error?.response?.data?.message || 'Failed to unlink knowledge base');

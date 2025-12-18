@@ -1,17 +1,17 @@
 ﻿import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { KBRagService } from '../services/kb-rag.service';
+import { KBRagService } from './services/kb-rag.service';
 import {
   QueryKnowledgeBaseDto,
   GenerateAnswerDto,
-} from '../dto/kb-document.dto';
+} from './dto/kb-document.dto';
 
 @ApiTags('Knowledge Base - Query & RAG')
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'))
 @Controller({ path: 'knowledge-bases', version: '1' })
-export class KBQueryController {
+export class KnowledgeBaseQueryController {
   constructor(private readonly ragService: KBRagService) {}
 
   @Post('query')

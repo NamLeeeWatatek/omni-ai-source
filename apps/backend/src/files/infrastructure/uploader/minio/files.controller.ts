@@ -10,7 +10,7 @@ import { ApiBearerAuth, ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { FilesMinioService } from './files.service';
 import { FileUploadDto } from './dto/file.dto';
-import { FileResponseDto } from './dto/file-response.dto';
+import { MinioFileResponseDto } from './dto/file-response.dto';
 
 @ApiTags('Files')
 @Controller({
@@ -21,7 +21,7 @@ export class FilesMinioController {
   constructor(private readonly filesService: FilesMinioService) {}
 
   @ApiCreatedResponse({
-    type: FileResponseDto,
+    type: MinioFileResponseDto,
   })
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))

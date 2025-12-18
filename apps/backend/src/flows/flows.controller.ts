@@ -9,7 +9,6 @@
   Query,
   UseGuards,
   Request,
-  UseInterceptors,
   BadRequestException,
 } from '@nestjs/common';
 import {
@@ -24,20 +23,16 @@ import { ExecutionService } from './execution.service';
 import { CreateFlowDto } from './dto/create-flow.dto';
 import { UpdateFlowDto } from './dto/update-flow.dto';
 import { CreateFlowFromTemplateDto } from './dto/create-flow-from-template.dto';
-import { FlowTransformInterceptor } from './interceptors/flow-transform.interceptor';
-import { FlowTransformService } from './services/flow-transform.service';
 import { PublicFlowDto, DetailedFlowDto } from './dto/public-flow.dto';
 
 @ApiTags('Flows')
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'))
-@UseInterceptors(FlowTransformInterceptor)
 @Controller({ path: 'flows', version: '1' })
 export class FlowsController {
   constructor(
     private readonly flowsService: FlowsService,
     private readonly executionService: ExecutionService,
-    private readonly transformService: FlowTransformService,
   ) {}
 
   @Post()
@@ -93,7 +88,7 @@ export class FlowsController {
 
   @Post(':id/execute')
   @ApiOperation({ summary: 'Execute flow' })
-  async execute(@Param('id') id: string, @Body() input?: any) {
+  async execute(@Param('id') id: string, @Body() input?: any, @Request() req?: any) {
     // Log for debugging invalid IDs
     console.log('Execute request for flow ID:', id, 'typeof:', typeof id);
 
@@ -109,10 +104,15 @@ export class FlowsController {
       nodes: flow.nodes || [],
       edges: flow.edges || [],
     };
+
+    // Get workspaceId from request (user's default workspace)
+    const workspaceId = req?.user?.workspaceId || req?.user?.id;
+
     const executionId = await this.executionService.executeFlow(
       id,
       flowData,
       input,
+      { workspaceId } // Pass workspaceId in metadata
     );
     return {
       executionId,

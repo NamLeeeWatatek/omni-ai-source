@@ -1,22 +1,27 @@
 FROM node:22-bookworm
 
 RUN apt-get update && apt-get install -y bash
-RUN npm i -g @nestjs/cli typescript ts-node
 
-COPY package*.json /tmp/app/
-RUN cd /tmp/app && npm install
+WORKDIR /usr/src/app
 
-COPY . /usr/src/app
-RUN cp -a /tmp/app/node_modules /usr/src/app
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev dependencies for building)
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN npm run build || (echo "Build failed" && exit 1)
+RUN ls -la dist/ && ls -la dist/src/ || echo "dist/src not found"
+
+# Install production dependencies and keep env-cmd for scripts
+RUN npm install --production --ignore-scripts && npm install env-cmd
 
 COPY ./wait-for-it.sh /opt/wait-for-it.sh
 COPY ./startup.relational.dev.sh /opt/startup.relational.dev.sh
-RUN chmod +x /opt/*.sh \
- && sed -i 's/\r//g' /opt/*.sh
-
-WORKDIR /usr/src/app
-RUN if [ ! -f .env ]; then cp env-example-relational .env; fi
-
-RUN npm run build
+RUN chmod +x /opt/*.sh && sed -i 's/\r//g' /opt/*.sh
 
 CMD ["/opt/startup.relational.dev.sh"]

@@ -4,13 +4,12 @@ import { BotsModule } from '../bots/bots.module';
 import { AiProvidersModule } from '../ai-providers/ai-providers.module';
 import { FilesModule } from '../files/files.module';
 
-import { KBManagementController } from './controllers/kb-management.controller';
-import { KBDocumentsController } from './controllers/kb-documents.controller';
-import { KBFoldersController } from './controllers/kb-folders.controller';
-import { KBQueryController } from './controllers/kb-query.controller';
-import { KBProcessingController } from './controllers/kb-processing.controller';
-import { KBSyncController } from './controllers/kb-sync.controller';
-import { KBDomainController } from './controllers/kb-domain.controller';
+import { KnowledgeBaseController } from './knowledge-base.controller';
+import { KnowledgeBaseDocumentsController } from './knowledge-base-documents.controller';
+import { KnowledgeBaseFoldersController } from './knowledge-base-folders.controller';
+import { KnowledgeBaseQueryController } from './knowledge-base-query.controller';
+import { KnowledgeBaseProcessingController } from './knowledge-base-processing.controller';
+import { KnowledgeBaseSyncController } from './knowledge-base-sync.controller';
 
 import { KBManagementService } from './services/kb-management.service';
 import { KBDocumentsService } from './services/kb-documents.service';
@@ -22,35 +21,13 @@ import { KBProcessingQueueService } from './services/kb-processing-queue.service
 import { KBSyncService } from './services/kb-sync.service';
 import { KBCrawlerService } from './services/kb-crawler.service';
 
-// New DDD imports
-import { DocumentApplicationService } from './application/document.service';
-import { KnowledgeBaseApplicationService } from './application/knowledge-base.service';
-import { RelationalDocumentRepository } from './infrastructure/persistence/relational/document.repository';
-import { RelationalKnowledgeBaseRepository } from './infrastructure/persistence/relational/knowledge-base.repository';
 
-// Repositories
-const DocumentRepository = {
-  provide: 'DocumentRepository',
-  useClass: RelationalDocumentRepository,
-};
-
-const KnowledgeBaseRepository = {
-  provide: 'KnowledgeBaseRepository',
-  useClass: RelationalKnowledgeBaseRepository,
-};
-
-import {
-  KnowledgeBaseEntity,
-  KbFolderEntity,
-  KbDocumentEntity,
-  KbDocumentVersionEntity,
-  RagFeedbackEntity,
-} from './infrastructure/persistence/relational/entities/knowledge-base.entity';
-import { KBChunkEntity } from './infrastructure/persistence/relational/entities/kb-chunk.entity';
 import {
   BotEntity,
   BotKnowledgeBaseEntity,
 } from '../bots/infrastructure/persistence/relational/entities/bot.entity';
+import { KbDocumentEntity, KbDocumentVersionEntity, KbFolderEntity, KnowledgeBaseEntity, RagFeedbackEntity } from './infrastructure/persistence/relational/entities/knowledge-base.entity';
+import { KBChunkEntity } from './infrastructure/persistence/relational/entities/kb-chunk.entity';
 
 @Module({
   imports: [
@@ -69,16 +46,15 @@ import {
     FilesModule,
   ],
   controllers: [
-    KBManagementController,
-    KBDocumentsController,
-    KBFoldersController,
-    KBQueryController,
-    KBProcessingController,
-    KBSyncController,
-    KBDomainController,
+    KnowledgeBaseController,
+    KnowledgeBaseDocumentsController,
+    KnowledgeBaseFoldersController,
+    KnowledgeBaseQueryController,
+    KnowledgeBaseProcessingController,
+    KnowledgeBaseSyncController,
   ],
   providers: [
-    // Existing services
+    // Services
     KBManagementService,
     KBDocumentsService,
     KBFoldersService,
@@ -88,12 +64,6 @@ import {
     KBProcessingQueueService,
     KBSyncService,
     KBCrawlerService,
-
-    // New DDD services
-    DocumentApplicationService,
-    KnowledgeBaseApplicationService,
-    DocumentRepository,
-    KnowledgeBaseRepository,
   ],
   exports: [
     KBManagementService,

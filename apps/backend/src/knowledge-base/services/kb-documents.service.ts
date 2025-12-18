@@ -1,11 +1,7 @@
 ﻿import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import {
-  KnowledgeBaseDocumentEntity,
-  KbDocumentEntity,
-} from '../infrastructure/persistence/relational/entities/knowledge-base.entity';
-import { KBChunkEntity } from '../infrastructure/persistence/relational/entities/kb-chunk.entity';
+
 import { CreateDocumentDto, UpdateDocumentDto } from '../dto/kb-document.dto';
 import { KBManagementService } from './kb-management.service';
 import { KBEmbeddingsService } from './kb-embeddings.service';
@@ -19,6 +15,8 @@ import { KBProcessingQueueService } from './kb-processing-queue.service';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import mammoth from 'mammoth';
 import PDFParser from 'pdf2json';
+import { KbDocumentEntity, KnowledgeBaseDocumentEntity } from '../infrastructure/persistence/relational/entities/knowledge-base.entity';
+import { KBChunkEntity } from '../infrastructure/persistence/relational/entities/kb-chunk.entity';
 
 @Injectable()
 export class KBDocumentsService {
@@ -212,6 +210,7 @@ export class KBDocumentsService {
       const uploadDto = {
         fileName: filename,
         fileSize: buffer.length,
+        bucket: 'documents', // Knowledge base documents go to documents bucket
       };
 
       const result = await this.filesService.create(uploadDto);
@@ -275,7 +274,7 @@ export class KBDocumentsService {
       ...createDto,
       title: sanitizedName,
       name: sanitizedName,
-      content: sanitizedContent.length < 50000 ? sanitizedContent : null,
+      content: sanitizedContent.length < 50000 ? sanitizedContent : '',
       metadata: sanitizedMetadata,
       fileType: createDto.fileType || 'text',
       fileSize: String(sanitizedContent.length),

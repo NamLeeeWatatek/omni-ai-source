@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/hooks/useAuth'
 import { LoadingLogo } from '@/components/ui/LoadingLogo'
 import { DashboardSidebar } from '@/components/layout/DashboardSidebar'
 import { DashboardHeader } from '@/components/layout/DashboardHeader'
+import { ProgressOverlay } from '@/components/ui/ProgressOverlay'
 import toast from '@/lib/toast'
 import { AlertDialogConfirm } from '@/components/ui/AlertDialogConfirm'
 import { useTranslation } from 'react-i18next'
@@ -119,6 +120,9 @@ export default function DashboardLayout({
                     </div>
                 </div>
             </main>
+
+            {/* Progress Overlay for async operations */}
+            <ProgressOverlay />
 
             {/* Logout confirmation dialog */}
             <AlertDialogConfirm

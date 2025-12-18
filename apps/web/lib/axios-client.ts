@@ -3,7 +3,7 @@
  * Use this in client components
  */
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios'
-import { getSession } from 'next-auth/react'
+import { getSession, signIn } from 'next-auth/react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
 
@@ -51,7 +51,7 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Response interceptor - simplified, rely on NextAuth refresh
+// Response interceptor with automatic token refresh
 axiosInstance.interceptors.response.use(
   (response) => {
     // Return response.data directly for cleaner API usage
@@ -64,18 +64,60 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // Get updated session after NextAuth refresh
+        // Get current session to access refresh token
         const session = await getSession();
 
-        if (session?.accessToken) {
-          // Retry with refreshed token
-          originalRequest.headers.Authorization = `Bearer ${session.accessToken}`;
-          return axiosInstance(originalRequest);
-        } else {
-          // No session or refresh failed
-          throw new Error('Authentication required');
+        if (session?.refreshToken) {
+          console.log('[Auth] Token expired, attempting refresh...');
+
+          // Call refresh endpoint directly
+          const refreshResponse = await fetch(`${API_URL}/auth/refresh-token`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              refreshToken: session.refreshToken,
+            }),
+          });
+
+          if (refreshResponse.ok) {
+            const refreshData = await refreshResponse.json();
+            console.log('[Auth] Token refresh successful');
+
+            // Retry with refreshed token
+            originalRequest.headers.Authorization = `Bearer ${refreshData.token}`;
+
+            // Update NextAuth session by calling signIn with updated credentials
+            // This will trigger the JWT callback and update the session
+            try {
+              await signIn('credentials', {
+                backendData: JSON.stringify({
+                  token: refreshData.token,
+                  refreshToken: refreshData.refreshToken,
+                  tokenExpires: refreshData.tokenExpires,
+                  user: session.user,
+                  workspace: session.workspace,
+                  workspaces: session.workspaces,
+                }),
+                redirect: false,
+              });
+              console.log('[Auth] NextAuth session updated');
+            } catch (signInError) {
+              console.warn('[Auth] Failed to update NextAuth session:', signInError);
+              // Continue anyway since the request will work with the new token
+            }
+
+            return axiosInstance(originalRequest);
+          } else {
+            console.error('[Auth] Token refresh failed:', refreshResponse.status);
+          }
         }
+
+        // No refresh token or refresh failed
+        throw new Error('Authentication required');
       } catch (retryError) {
+        console.error('[Auth] Token refresh error:', retryError);
         // Refresh failed, redirect to login
         if (typeof window !== 'undefined') {
           console.log('[Auth] Authentication failed, redirecting to login');

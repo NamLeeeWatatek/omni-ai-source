@@ -44,10 +44,29 @@ export class KBManagementService {
     }
 
     const results = await query.getMany();
+
+    // Calculate actual document counts for each KB
+    const resultsWithCounts = await Promise.all(
+      results.map(async (kb) => {
+        const docCount = await this.kbRepository
+          .createQueryBuilder('kb')
+          .leftJoin('kb.documents', 'doc')
+          .where('kb.id = :kbId', { kbId: kb.id })
+          .andWhere('doc.deletedAt IS NULL')
+          .select('COUNT(doc.id)', 'count')
+          .getRawOne();
+
+        return {
+          ...kb,
+          totalDocuments: parseInt(docCount?.count || '0'),
+        };
+      })
+    );
+
     console.log(
       `[KB Service] Found ${results.length} KBs for workspace: ${workspaceId}, user: ${userId}`,
     );
-    return results;
+    return resultsWithCounts;
   }
 
   async findOne(id: string, userId: string) {
@@ -134,11 +153,33 @@ export class KBManagementService {
   async getStats(kbId: string, userId: string) {
     const kb = await this.findOne(kbId, userId);
 
+    // Calculate actual document count
+    const docCount = await this.kbRepository
+      .createQueryBuilder('kb')
+      .leftJoin('kb.documents', 'doc')
+      .where('kb.id = :kbId', { kbId })
+      .andWhere('doc.deletedAt IS NULL')
+      .select('COUNT(doc.id)', 'count')
+      .getRawOne();
+
+    const actualDocCount = parseInt(docCount?.count || '0');
+
+    // For now, calculate total size by summing parsed values
+    let actualTotalSize = 0;
+    if (kb.documents) {
+      actualTotalSize = kb.documents
+        .filter(doc => doc.deletedAt === null && doc.fileSize)
+        .reduce((sum, doc) => {
+          const size = parseInt(doc.fileSize || '0');
+          return sum + (isNaN(size) ? 0 : size);
+        }, 0);
+    }
+
     return {
       id: kb.id,
       name: kb.name,
-      totalDocuments: kb.totalDocuments,
-      totalSize: kb.totalSize,
+      totalDocuments: actualDocCount,
+      totalSize: actualTotalSize,
       chunkSize: kb.chunkSize,
       chunkOverlap: kb.chunkOverlap,
       embeddingModel: kb.embeddingModel,

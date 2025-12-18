@@ -1,13 +1,13 @@
 ﻿import { Controller, Get, Param, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
-import { KBProcessingQueueService } from '../services/kb-processing-queue.service';
+import { KBProcessingQueueService } from './services/kb-processing-queue.service';
 
 @ApiTags('Knowledge Base - Processing')
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'))
 @Controller({ path: 'knowledge-bases', version: '1' })
-export class KBProcessingController {
+export class KnowledgeBaseProcessingController {
   constructor(private readonly processingQueue: KBProcessingQueueService) {}
 
   @Get(':id/processing-status')

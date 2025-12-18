@@ -106,7 +106,7 @@ export class KBCrawlerService {
     knowledgeBaseId: string,
     userId: string,
     options: CrawlOptions = {},
-  ): Promise<{ documentsCreated: number; errors: string[] }> {
+  ): Promise<{ documentsCreated: number; errors: string[]; processingStarted: number }> {
     const {
       maxPages = 50,
       maxDepth = 3,
@@ -118,6 +118,7 @@ export class KBCrawlerService {
     this.visitedUrls.clear();
     const errors: string[] = [];
     let documentsCreated = 0;
+    let processingStarted = 0;
 
     const kb = await this.kbManagementService.findOne(knowledgeBaseId, userId);
 
@@ -163,6 +164,11 @@ export class KBCrawlerService {
 
         const result = await this.crawlUrl(url);
 
+        if (!result.content || result.content.length === 0) {
+          errors.push(`${url}: No content found`);
+          continue;
+        }
+
         const document = this.documentRepository.create({
           knowledgeBaseId,
           name: result.title,
@@ -181,9 +187,12 @@ export class KBCrawlerService {
         const savedDoc = await this.documentRepository.save(document);
         documentsCreated++;
 
+        // Start processing asynchronously
         const jobId = this.processingQueue.addJob(savedDoc.id, knowledgeBaseId);
         this.processingQueue.setJobDocumentName(jobId, result.title);
+        processingStarted++;
 
+        // Don't await - let it process in background
         this.processDocument(savedDoc, kb, jobId).catch((error) => {
           this.logger.error(
             `Error processing document ${savedDoc.id}: ${error.message}`,
@@ -203,7 +212,9 @@ export class KBCrawlerService {
               if (linkDomain === baseDomain && !this.visitedUrls.has(link)) {
                 urlsToCrawl.push({ url: link, depth: depth + 1 });
               }
-            } catch (e) {}
+            } catch (e) {
+              // Invalid URL, skip
+            }
           });
         }
       } catch (error) {
@@ -211,103 +222,12 @@ export class KBCrawlerService {
         errors.push(`${url}: ${error.message}`);
       }
     }
-    return { documentsCreated, errors };
+
+    this.logger.log(`Crawling completed: ${documentsCreated} documents created, ${processingStarted} processing started, ${errors.length} errors`);
+    return { documentsCreated, errors, processingStarted };
   }
 
-  async crawlSitemap(
-    sitemapUrl: string,
-    knowledgeBaseId: string,
-    userId: string,
-    options: CrawlOptions = {},
-  ): Promise<{ documentsCreated: number; errors: string[] }> {
-    try {
-      this.logger.log(`ðŸ“„ Fetching sitemap: ${sitemapUrl}`);
 
-      const response = await axios.get(sitemapUrl, {
-        timeout: 30000,
-      });
-
-      const $ = cheerio.load(response.data, { xmlMode: true });
-      const urls: string[] = [];
-
-      $('url > loc').each((_, element) => {
-        const url = $(element).text().trim();
-        if (url) urls.push(url);
-      });
-
-      this.logger.log(`Found ${urls.length} URLs in sitemap`);
-
-      const errors: string[] = [];
-      let documentsCreated = 0;
-      const maxPages = options.maxPages || 100;
-
-      const kb = await this.kbManagementService.findOne(
-        knowledgeBaseId,
-        userId,
-      );
-
-      for (const url of urls.slice(0, maxPages)) {
-        try {
-          const existingDoc = await this.documentRepository.findOne({
-            where: {
-              knowledgeBaseId,
-              sourceUrl: url,
-            },
-          });
-
-          if (existingDoc) {
-            this.logger.log(`â­ï¸  Skipping ${url} - already exists`);
-            continue;
-          }
-
-          const result = await this.crawlUrl(url);
-
-          const document = this.documentRepository.create({
-            knowledgeBaseId,
-            name: result.title,
-            title: result.title,
-            content: result.content,
-            metadata: result.metadata,
-            fileType: 'webpage',
-            mimeType: 'text/html',
-            fileSize: String(result.content.length),
-            processingStatus: 'pending',
-            createdBy: userId,
-            type: 'url',
-            sourceUrl: url,
-          });
-
-          const savedDoc = await this.documentRepository.save(document);
-          documentsCreated++;
-
-          const jobId = this.processingQueue.addJob(
-            savedDoc.id,
-            knowledgeBaseId,
-          );
-          this.processingQueue.setJobDocumentName(jobId, result.title);
-
-          this.processDocument(savedDoc, kb, jobId).catch((error) => {
-            this.logger.error(
-              `Error processing document ${savedDoc.id}: ${error.message}`,
-            );
-            this.processingQueue.failJob(jobId, error.message);
-          });
-
-          this.logger.log(
-            `âœ… Created document from ${url} (${documentsCreated}/${urls.length})`,
-          );
-        } catch (error) {
-          this.logger.error(`Error processing ${url}: ${error.message}`);
-          errors.push(`${url}: ${error.message}`);
-        }
-      }
-
-      return { documentsCreated, errors };
-    } catch (error) {
-      this.logger.error(`Failed to fetch sitemap: ${error.message}`);
-      throw error;
-    }
-  }
 
   private async processDocument(
     document: KbDocumentEntity,

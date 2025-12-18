@@ -19,7 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { FilesLocalService } from './files.service';
-import { FileResponseDto } from './dto/file-response.dto';
+import { LocalFileResponseDto } from './dto/file-response.dto';
 
 @ApiTags('Files')
 @Controller({
@@ -30,7 +30,7 @@ export class FilesLocalController {
   constructor(private readonly filesService: FilesLocalService) {}
 
   @ApiCreatedResponse({
-    type: FileResponseDto,
+    type: LocalFileResponseDto,
   })
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
@@ -50,7 +50,7 @@ export class FilesLocalController {
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
-  ): Promise<FileResponseDto> {
+  ): Promise<LocalFileResponseDto> {
     return this.filesService.create(file);
   }
 

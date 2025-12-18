@@ -28,7 +28,7 @@ import { useState, useEffect } from 'react'
 
 interface FormField {
     id: string
-    type: 'text' | 'url' | 'textarea' | 'json' | 'select' | 'boolean' | 'switch' | 'number' | 'file' | 'files' | 'image' | 'key-value' | 'multi-select' | 'dynamic-form' | 'channel-select'
+    type: 'text' | 'url' | 'textarea' | 'json' | 'select' | 'boolean' | 'switch' | 'number' | 'file' | 'files' | 'image' | 'key-value' | 'multi-select' | 'dynamic-form' | 'channel-select' | 'ai-model-select'
     label: string
     placeholder?: string
     description?: string
@@ -354,6 +354,17 @@ export function DynamicInput({
         )
     }
 
+    // AI Model Select
+    if (field.type === 'ai-model-select') {
+        return (
+            <AIModelSelector
+                value={value}
+                onChange={onChange}
+                required={field.required}
+            />
+        )
+    }
+
 
 
     // JSON Input
@@ -535,6 +546,92 @@ function ChannelSelector({
                         </div>
                     </SelectItem>
                 ))}
+            </SelectContent>
+        </Select>
+    )
+}
+
+// AI Model Selector Component - loads AI models from API
+function AIModelSelector({
+    value,
+    onChange,
+    required = false
+}: {
+    value: any
+    onChange: (value: any) => void
+    required?: boolean
+}) {
+    const [models, setModels] = React.useState<any[]>([])
+    const [loading, setLoading] = React.useState(true)
+
+    React.useEffect(() => {
+        loadModels()
+    }, [])
+
+    const loadModels = async () => {
+        try {
+            setLoading(true)
+            console.log('[AIModelSelector] Loading AI models...')
+            // Try user models first, fallback to available providers
+            const data = await axiosClient.get('/ai-providers/user/models')
+            console.log('[AIModelSelector] Models loaded:', data)
+
+            // Flatten models from all providers
+            const allModels: any[] = []
+            if (Array.isArray(data)) {
+                data.forEach((provider: any) => {
+                    if (provider.models && Array.isArray(provider.models)) {
+                        provider.models.forEach((model: string) => {
+                            allModels.push({
+                                value: `${provider.providerKey}/${model}`,
+                                label: `${provider.providerName} - ${model}`,
+                                provider: provider.providerKey,
+                                model: model
+                            })
+                        })
+                    }
+                })
+            }
+
+            console.log('[AIModelSelector] Flattened models:', allModels)
+            setModels(allModels)
+        } catch (error: any) {
+            console.error('[AIModelSelector] Failed to load models:', error)
+            console.error('[AIModelSelector] Error details:', error?.response?.status, error?.response?.data)
+            setModels([])
+
+            // If 401 or auth related error, user needs to login
+            if (error?.response?.status === 401) {
+                console.warn('[AIModelSelector] Auth required for loading models')
+            }
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    if (loading) {
+        return <div className="text-sm text-muted-foreground">Loading AI models...</div>
+    }
+
+    return (
+        <Select value={value} onValueChange={onChange}>
+            <SelectTrigger>
+                <SelectValue placeholder="Select an AI model..." />
+            </SelectTrigger>
+            <SelectContent>
+                {models.length === 0 ? (
+                    <SelectItem value="" disabled>
+                        No models available - configure AI providers first
+                    </SelectItem>
+                ) : (
+                    models.map((model) => (
+                        <SelectItem key={model.value} value={model.value}>
+                            <div className="flex items-center gap-2">
+                                <span className="font-medium">{model.label}</span>
+                            </div>
+                        </SelectItem>
+                    ))
+                )}
             </SelectContent>
         </Select>
     )

@@ -547,11 +547,14 @@ function WorkflowDetailPageInner({ params }: { params: { id: string } }) {
                         type: node.type, // NodeType.id
                         nodeType: node.type, // Backup reference
                         label: nodeTypeInfo?.label || node.type,
-                        config: node.data || {}, // User config
+                        config: node.data || {}, // User config from backend
                         color: nodeTypeInfo?.color
                     }
                 }
             })
+
+            console.log('[Edit Mode] Converted nodes:', reactFlowNodes)
+            console.log('[Edit Mode] Sample node config:', reactFlowNodes[0]?.data?.config)
 
             console.log('[Edit Mode] ReactFlow nodes count:', reactFlowNodes.length)
             if (reactFlowNodes.length > 0) {
@@ -912,7 +915,10 @@ function WorkflowDetailPageInner({ params }: { params: { id: string } }) {
                 result = await axiosClient.patch(`/flows/${params.id}`, flowData)
 
                 console.log('[Save] Update result:', result)
-                setFlow(result)
+                // Update local flow state if response includes updated data
+                if (result && result.nodes) {
+                    setFlow(result)
+                }
                 // DO NOT redirect on update - stay on same page
             }
 

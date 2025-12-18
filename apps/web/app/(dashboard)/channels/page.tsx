@@ -7,6 +7,22 @@ import { Spinner } from '@/components/ui/Spinner'
 import { useWorkspace } from '@/lib/hooks/useWorkspace'
 import { axiosClient } from '@/lib/axios-client'
 import toast from '@/lib/toast'
+import { getOAuthUrl } from '@/lib/api/channels'
+import { loadChannelsData, disconnectChannelAsync, deleteConfigAsync, createConfigAsync, updateConfigAsync, loadBotsForFacebook, connectFacebookPage } from '@/lib/store/slices/channelsSlice'
+import {
+  setConnecting,
+  setFacebookPages,
+  setFacebookTempToken,
+  setConnectingPage,
+  setSelectedBotId,
+  setActiveTab,
+  setDisconnectId,
+  setDeleteConfigId,
+  setAssignBotDialogOpen,
+  setSelectedChannel,
+  clearFacebookState
+} from '@/lib/store/slices/channelsSlice'
+import { useAppDispatch, useAppSelector } from '@/lib/store/hooks'
 import {
     FiFacebook,
     FiInstagram,
@@ -42,18 +58,28 @@ import { AssignBotDialog } from '@/components/channels/AssignBotDialog'
 export default function ChannelsPage() {
     const { data: session } = useSession()
     const { currentWorkspace } = useWorkspace()
-    const [channels, setChannels] = useState<Channel[]>([])
-    const [configs, setConfigs] = useState<IntegrationConfig[]>([])
-    const [loading, setLoading] = useState(true)
-    const [connecting, setConnecting] = useState<string | null>(null)
+    const dispatch = useAppDispatch()
 
-    const [facebookPages, setFacebookPages] = useState<any[]>([])
-    const [facebookTempToken, setFacebookTempToken] = useState('')
-    const [connectingPage, setConnectingPage] = useState(false)
-    const [bots, setBots] = useState<any[]>([])
-    const [selectedBotId, setSelectedBotId] = useState<string>('')
-    const [loadingBots, setLoadingBots] = useState(false)
+    // Redux state
+    const {
+        channels,
+        configs,
+        isLoading,
+        isConnecting,
+        facebookPages,
+        facebookTempToken,
+        connectingPage,
+        bots,
+        selectedBotId,
+        loadingBots,
+        activeTab,
+        disconnectId,
+        deleteConfigId,
+        assignBotDialogOpen,
+        selectedChannel
+    } = useAppSelector(state => state.channels)
 
+    // Local state
     const [configForm, setConfigForm] = useState({
         id: null as number | null,
         provider: '',
@@ -64,65 +90,18 @@ export default function ChannelsPage() {
         verify_token: ''
     })
 
-    // âœ… NEW: Assign Bot Dialog State
-    const [assignBotDialogOpen, setAssignBotDialogOpen] = useState(false)
-    const [selectedChannel, setSelectedChannel] = useState<any>(null)
-
     useEffect(() => {
-        loadData()
-    }, [])
+        dispatch(loadChannelsData())
+    }, [dispatch])
 
-    const loadData = async () => {
-        try {
-            setLoading(true)
-            const [channelsData, configsData] = await Promise.all([
-                axiosClient.get('/channels'),
-                axiosClient.get('/integrations')
-            ])
-            setChannels(channelsData)
-            setConfigs(configsData)
-
-        } catch (error) {
-            toast.error('Failed to load channels')
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const loadBots = async () => {
-        setLoadingBots(true)
-        try {
-            if (!currentWorkspace) {
-                toast.error('No workspace selected. Please refresh the page.')
-                return
-            }
-
-            const response = await axiosClient.get(`/bots?workspaceId=${currentWorkspace.id}`)
-
-            let botsList = []
-            if (Array.isArray(response)) {
-                botsList = response
-            } else if (response?.items && Array.isArray(response.items)) {
-                botsList = response.items
-            }
-
-            setBots(botsList)
-
-            if (botsList.length > 0) {
-                setSelectedBotId(botsList[0].id)
-            } else {
-            }
-        } catch (error) {
-            toast.error('Failed to load bots')
-        } finally {
-            setLoadingBots(false)
-        }
+    const loadData = () => {
+        dispatch(loadChannelsData())
     }
 
     const handleConnect = async (provider: string, configId?: number) => {
-        try {
-            setConnecting(provider)
+        dispatch(setConnecting(provider))
 
+        try {
             let oauthUrl: string
 
             if (provider === 'facebook' || provider === 'messenger' || provider === 'instagram') {
@@ -131,7 +110,7 @@ export default function ChannelsPage() {
                 if (!response.url) {
                     toast.error('Please configure Facebook App settings first')
                     openConfig(undefined, 'facebook')
-                    setConnecting(null)
+                    dispatch(setConnecting(null))
                     return
                 }
 
@@ -141,19 +120,11 @@ export default function ChannelsPage() {
                 if (!config) {
                     toast.error(`Please configure ${provider} settings first`)
                     openConfig(undefined, provider)
-                    setConnecting(null)
+                    dispatch(setConnecting(null))
                     return
                 }
 
-                const configParam = configId ? `?configId=${configId}` : ''
-                const response = await axiosClient.get(`/oauth/login/${provider}${configParam}`)
-
-                if (response.error || !response.url) {
-                    toast.error(response.error || 'Failed to get OAuth URL')
-                    setConnecting(null)
-                    return
-                }
-
+                const response = await getOAuthUrl(provider, configId)
                 oauthUrl = response.url
             }
 
@@ -170,29 +141,29 @@ export default function ChannelsPage() {
 
             if (!popup) {
                 toast.error('Popup blocked! Please allow popups for this site.')
-                setConnecting(null)
+                dispatch(setConnecting(null))
                 return
             }
 
             const messageHandler = (event: MessageEvent) => {
                 if (event.data?.status === 'success') {
                     if ((provider === 'facebook' || provider === 'messenger' || provider === 'instagram') && event.data.pages) {
-                        setFacebookPages(event.data.pages)
-                        setFacebookTempToken(event.data.tempToken)
+                        dispatch(setFacebookPages(event.data.pages))
+                        dispatch(setFacebookTempToken(event.data.tempToken))
                         toast.success(`Found ${event.data.pages.length} Facebook page(s)`)
 
-                        loadBots()
+                        dispatch(loadBotsForFacebook(currentWorkspace!.id))
                         popup?.close()
                         window.removeEventListener('message', messageHandler)
-                        setConnecting(null)
+                        dispatch(setConnecting(null))
                     } else {
                         toast.success(`Connected to ${event.data.channel || provider}`)
                         popup?.close()
                         window.removeEventListener('message', messageHandler)
 
                         setTimeout(async () => {
-                            await loadData()
-                            setConnecting(null)
+                            dispatch(loadChannelsData())
+                            dispatch(setConnecting(null))
 
                             // ðŸ”„ Auto-sync conversations after successful connection
                             if (provider === 'facebook' && event.data.channelId) {
@@ -221,13 +192,12 @@ export default function ChannelsPage() {
 
                     // âœ… FIX: Clear Facebook data on error
                     if (provider === 'facebook' || provider === 'messenger' || provider === 'instagram') {
-                        setFacebookPages([])
-                        setFacebookTempToken('')
+                        dispatch(clearFacebookState())
                     }
 
                     popup?.close()
                     window.removeEventListener('message', messageHandler)
-                    setConnecting(null)
+                    dispatch(setConnecting(null))
                 }
             }
 
@@ -236,7 +206,7 @@ export default function ChannelsPage() {
             const checkClosed = setInterval(() => {
                 if (popup?.closed) {
                     clearInterval(checkClosed)
-                    setConnecting(null)
+                    dispatch(setConnecting(null))
                     window.removeEventListener('message', messageHandler)
                 }
             }, 1000)
@@ -244,25 +214,17 @@ export default function ChannelsPage() {
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Unknown error'
             toast.error(`Failed to start connection: ${message}`)
-            setConnecting(null)
+            dispatch(setConnecting(null))
         }
     }
 
-    const [disconnectId, setDisconnectId] = useState<number | null>(null)
-
-    const handleDisconnect = async (id: number) => {
-        setDisconnectId(id)
+    const handleDisconnect = (id: number) => {
+        dispatch(setDisconnectId(id))
     }
 
-    const confirmDisconnect = async () => {
-        if (!disconnectId) return
-
-        try {
-            await await axiosClient.delete(`/channels/${disconnectId}`)
-            toast.success('Channel disconnected')
-            loadData()
-        } catch {
-            toast.error('Failed to disconnect')
+    const confirmDisconnect = () => {
+        if (disconnectId) {
+            dispatch(disconnectChannelAsync(disconnectId))
         }
     }
 
@@ -304,26 +266,24 @@ export default function ChannelsPage() {
                     verifyToken: configForm.verify_token
                 }).then(r => r.data)
             } else {
-                const url = configForm.id ? `/integrations/${configForm.id}` : '/integrations/'
                 const data = {
                     provider: configForm.provider,
                     name: configForm.name,
                     clientId: configForm.client_id,
                     clientSecret: configForm.client_secret,
                     scopes: configForm.scopes,
-                    isActive: true
                 }
 
                 if (configForm.id) {
-                    await axiosClient.patch(url, data)
+                    await dispatch(updateConfigAsync({ id: configForm.id, data }))
                 } else {
-                    await axiosClient.post(url, data)
+                    await dispatch(createConfigAsync(data))
                 }
             }
 
             toast.success('Configuration saved successfully!')
             setConfigForm(prev => ({ ...prev, provider: '' }))
-            loadData()
+            dispatch(loadChannelsData())
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to save configuration'
             toast.error(message)
@@ -339,7 +299,7 @@ export default function ChannelsPage() {
         // âœ… FIX: Validate token exists
         if (!facebookTempToken) {
             toast.error('Session expired. Please reconnect Facebook again.')
-            setFacebookPages([])
+            dispatch(setFacebookPages([]))
             return
         }
 
@@ -357,9 +317,9 @@ export default function ChannelsPage() {
             const selectedBot = bots.find(b => b.id === selectedBotId)
             toast.success(`Connected ${page.name} to bot "${selectedBot?.name}"`)
 
-            setFacebookPages(prev => prev.filter(p => p.id !== page.id))
+            dispatch(setFacebookPages(facebookPages.filter(p => p.id !== page.id)))
 
-            await loadData()
+            dispatch(loadChannelsData())
 
             // ðŸ”„ Auto-sync conversations after connecting page
             if (response.channelId) {
@@ -387,8 +347,7 @@ export default function ChannelsPage() {
 
             // If token expired or invalid, clear pages
             if (errorMessage.includes('authorization') || errorMessage.includes('token')) {
-                setFacebookPages([])
-                setFacebookTempToken('')
+                dispatch(clearFacebookState())
                 toast.info('Please reconnect Facebook to continue')
             }
         } finally {
@@ -396,19 +355,9 @@ export default function ChannelsPage() {
         }
     }
 
-    const [deleteConfigId, setDeleteConfigId] = useState<number | null>(null)
-
-    const handleDeleteConfig = async () => {
-        if (!deleteConfigId) return
-
-        try {
-            await await axiosClient.delete(`/integrations/${deleteConfigId}`)
-            toast.success('Configuration deleted')
-            loadData()
-        } catch {
-            toast.error('Failed to delete configuration')
-        } finally {
-            setDeleteConfigId(null)
+    const handleDeleteConfig = () => {
+        if (deleteConfigId) {
+            dispatch(deleteConfigAsync(deleteConfigId))
         }
     }
 
@@ -511,7 +460,7 @@ export default function ChannelsPage() {
         { id: 'airtable', name: 'Airtable', description: 'Connect to Airtable bases', category: 'productivity', multiAccount: true },
     ]
 
-    const [activeTab, setActiveTab] = useState<'connected' | 'configurations'>('connected')
+    // activeTab is now from Redux state
 
     const configuredCount = configs.length
     const allChannels = [...MESSAGING_CHANNELS, ...BUSINESS_INTEGRATIONS]
@@ -531,8 +480,8 @@ export default function ChannelsPage() {
                     <h1 className="text-3xl font-bold">Channels & Integrations</h1>
                     <p className="text-muted-foreground mt-1">Connect your communication channels to start automating</p>
                 </div>
-                <Button variant="outline" onClick={loadData} disabled={loading}>
-                    {loading ? (
+                <Button variant="outline" onClick={loadData} disabled={isLoading}>
+                    {isLoading ? (
                         <Spinner className="size-4 mr-2" />
                     ) : (
                         <FiRefreshCw className="w-4 h-4 mr-2" />
@@ -544,7 +493,7 @@ export default function ChannelsPage() {
             { }
             <div className="flex gap-2 border-b border-border/40 pb-4">
                 <button
-                    onClick={() => setActiveTab('connected')}
+                    onClick={() => dispatch(setActiveTab('connected'))}
                     className={`px-6 py-2.5 rounded-lg font-medium transition-all flex items-center gap-2 ${activeTab === 'connected'
                         ? 'bg-primary text-primary-foreground'
                         : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -558,7 +507,7 @@ export default function ChannelsPage() {
                     </span>
                 </button>
                 <button
-                    onClick={() => setActiveTab('configurations')}
+                    onClick={() => dispatch(setActiveTab('configurations'))}
                     className={`px-6 py-2.5 rounded-lg font-medium transition-all flex items-center gap-2 ${activeTab === 'configurations'
                         ? 'bg-primary text-primary-foreground'
                         : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -585,7 +534,7 @@ export default function ChannelsPage() {
                             <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                                 Configure your first integration to start connecting channels and automating your workflow
                             </p>
-                            <Button onClick={() => setActiveTab('configurations')} size="lg">
+                            <Button onClick={() => dispatch(setActiveTab('configurations'))} size="lg">
                                 Go to Configurations
                             </Button>
                         </div>
@@ -702,9 +651,9 @@ export default function ChannelsPage() {
                                                         <Button
                                                             className="w-full"
                                                             onClick={() => handleConnect(provider)}
-                                                            disabled={connecting === provider}
+                                                            disabled={isConnecting === provider}
                                                         >
-                                                            {connecting === provider ? 'Connecting...' : 'Connect Now'}
+                                                        {isConnecting === provider ? 'Connecting...' : 'Connect Now'}
                                                         </Button>
                                                     </CardFooter>
                                                 </Card>
@@ -725,7 +674,7 @@ export default function ChannelsPage() {
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => setActiveTab('configurations')}
+                                            onClick={() => dispatch(setActiveTab('configurations'))}
                                         >
                                             Go to Configurations
                                         </Button>
@@ -753,7 +702,7 @@ export default function ChannelsPage() {
                                                         variant="outline"
                                                         className="w-full"
                                                         onClick={() => {
-                                                            setActiveTab('configurations')
+                                                            dispatch(setActiveTab('configurations'))
                                                             openConfig(undefined, channel.id)
                                                         }}
                                                     >
@@ -782,7 +731,6 @@ export default function ChannelsPage() {
                     </AlertBanner>
 
                     <div className="space-y-10">
-                        { }
                         {configuredCount > 0 && (
                             <div>
                                 <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
@@ -849,9 +797,9 @@ export default function ChannelsPage() {
                                                         size="sm"
                                                         className="flex-1"
                                                         onClick={() => handleConnect(provider, config.id)}
-                                                        disabled={connecting === provider}
+                                                        disabled={isConnecting === provider}
                                                     >
-                                                        {connecting === provider ? 'Connecting...' : 'Connect'}
+                                                        {isConnecting === provider ? 'Connecting...' : 'Connect'}
                                                     </Button>
                                                     <Button
                                                         size="sm"
@@ -1079,10 +1027,7 @@ export default function ChannelsPage() {
                             </div>
                             <button
                                 onClick={() => {
-                                    setFacebookPages([])
-                                    setFacebookTempToken('')
-                                    setBots([])
-                                    setSelectedBotId('')
+                                    dispatch(clearFacebookState())
                                 }}
                                 className="p-2 rounded-full hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors"
                             >
@@ -1204,4 +1149,3 @@ export default function ChannelsPage() {
         </div>
     )
 }
-

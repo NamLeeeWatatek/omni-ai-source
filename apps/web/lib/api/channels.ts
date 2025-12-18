@@ -68,4 +68,3 @@ export async function getOAuthUrl(provider: string, configId?: number): Promise<
   const configParam = configId ? `?configId=${configId}` : ''
   return axiosClient.get(`/oauth/login/${provider}${configParam}`)
 }
-

@@ -11,14 +11,14 @@
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
-import { KBFoldersService } from '../services/kb-folders.service';
-import { CreateFolderDto, UpdateFolderDto } from '../dto/kb-folder.dto';
+import { KBFoldersService } from './services/kb-folders.service';
+import { CreateFolderDto, UpdateFolderDto } from './dto/kb-folder.dto';
 
 @ApiTags('Knowledge Base - Folders')
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'))
 @Controller({ path: 'knowledge-bases', version: '1' })
-export class KBFoldersController {
+export class KnowledgeBaseFoldersController {
   constructor(private readonly foldersService: KBFoldersService) {}
 
   @Post('folders')
