@@ -11,6 +11,7 @@ export class FlowMapper {
       version: entity.version,
       nodes: entity.nodes,
       edges: entity.edges,
+      workspaceId: entity.workspaceId,
       ownerId: entity.ownerId,
       visibility: entity.visibility as any,
       tags: entity.tags,
@@ -37,6 +38,7 @@ export class FlowMapper {
       data: node.data ?? {},
     }));
     entity.edges = domain.edges;
+    entity.workspaceId = domain.workspaceId;
     entity.ownerId = domain.ownerId;
     entity.visibility = domain.visibility;
     entity.tags = domain.tags;
@@ -69,6 +71,8 @@ export class FlowMapper {
       }));
     }
     if (domain.edges !== undefined) entity.edges = domain.edges;
+    if (domain.workspaceId !== undefined)
+      entity.workspaceId = domain.workspaceId;
     if (domain.ownerId !== undefined) entity.ownerId = domain.ownerId;
     if (domain.visibility !== undefined) entity.visibility = domain.visibility;
     if (domain.tags !== undefined) entity.tags = domain.tags;

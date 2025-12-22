@@ -1,67 +1,63 @@
 ﻿import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 
+interface AuthUser {
+  id: string
+  email: string
+  name: string
+  accessToken: string
+  refreshToken: string
+  workspace?: {
+    id: string
+    name: string
+    slug: string
+    plan: string
+    avatarUrl?: string | null
+  }
+  workspaces?: Array<{
+    id: string
+    name: string
+    slug: string
+    plan: string
+    avatarUrl?: string | null
+  }>
+}
+
 /**
- * Token Refresh Helper
- * Call backend to refresh access token using refresh token
+ * Refresh Access Token
+ * Simplified version - only called from NextAuth callbacks
  */
-/**
- * âœ… Refresh Access Token
- * Calls backend /auth/refresh-token endpoint with refresh token in body
- */
-async function refreshAccessToken(token: any) {
-  try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+async function refreshAccessToken(token: {
+  accessToken: string
+  refreshToken: string
+  accessTokenExpires: number
+}): Promise<{
+  accessToken: string
+  refreshToken: string
+  accessTokenExpires: number
+}> {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
 
+  const response = await fetch(`${apiUrl}/auth/refresh-token`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      refreshToken: token.refreshToken,
+    }),
+  })
 
-    // Create abort controller for timeout
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5s timeout
+  if (!response.ok) {
+    throw new Error(`Token refresh failed: ${response.status}`)
+  }
 
-    const response = await fetch(`${apiUrl}/auth/refresh-token`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        refreshToken: token.refreshToken,
-      }),
-      signal: controller.signal,
-    })
+  const refreshedTokens = await response.json()
 
-    clearTimeout(timeoutId)
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('[Auth] âŒ Refresh failed:', response.status, errorText)
-      throw new Error(`Token refresh failed: ${response.status}`)
-    }
-
-    const refreshedTokens = await response.json()
-
-    console.log('[Auth] âœ… Token refreshed successfully')
-
-    return {
-      ...token,
-      accessToken: refreshedTokens.token || refreshedTokens.accessToken,
-      accessTokenExpires: Date.now() + (refreshedTokens.tokenExpires || 60 * 60 * 1000),
-      refreshToken: refreshedTokens.refreshToken ?? token.refreshToken,
-      error: undefined, // Clear any previous errors
-    }
-  } catch (error: any) {
-    // Handle specific errors
-    if (error.name === 'AbortError') {
-      console.error('[Auth] âŒ Token refresh timeout (5s)')
-    } else if (error.code === 'UND_ERR_CONNECT_TIMEOUT') {
-      console.error('[Auth] âŒ Cannot connect to backend')
-    } else {
-      console.error('[Auth] âŒ Token refresh error:', error.message)
-    }
-
-    return {
-      ...token,
-      error: "RefreshAccessTokenError",
-    }
+  return {
+    accessToken: refreshedTokens.token || refreshedTokens.accessToken,
+    refreshToken: refreshedTokens.refreshToken || token.refreshToken,
+    accessTokenExpires: Date.now() + (refreshedTokens.tokenExpires || 60 * 60 * 1000),
   }
 }
 
@@ -201,44 +197,65 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user }) {
       // Initial sign in
       if (user) {
-        token.accessToken = (user as any).accessToken;
-        token.refreshToken = (user as any).refreshToken;
-        token.id = user.id;
-        token.workspace = (user as any).workspace;
-        token.workspaces = (user as any).workspaces;
-        token.accessTokenExpires = Date.now() + 60 * 60 * 1000; // 1 hour
-        token.error = undefined; // Clear any errors on fresh login
+        const authUser = user as AuthUser
+        token.accessToken = authUser.accessToken
+        token.refreshToken = authUser.refreshToken
+        token.id = authUser.id
+        token.workspace = authUser.workspace
+        token.workspaces = authUser.workspaces
+        token.accessTokenExpires = Date.now() + 60 * 60 * 1000 // 1 hour
+        token.error = undefined // Clear any errors on fresh login
       }
 
       // If there's a refresh error, don't try to refresh again
       if (token.error === "RefreshAccessTokenError") {
-        console.log('[Auth] âš ï¸ Previous refresh failed, skipping auto-refresh');
-        return token;
+        console.log('[Auth] Previous refresh failed, skipping auto-refresh')
+        return token
       }
 
-      // âœ… Auto-refresh: Check if token is about to expire (5 min buffer)
-      const shouldRefresh = token.accessTokenExpires && Date.now() > (token.accessTokenExpires as number) - 5 * 60 * 1000;
+      // Auto-refresh: Check if token is about to expire (5 min buffer)
+      const shouldRefresh =
+        typeof token.accessTokenExpires === 'number' &&
+        Date.now() > token.accessTokenExpires - 5 * 60 * 1000
 
       if (shouldRefresh && token.refreshToken) {
-        console.log('[Auth] ðŸ”„ Token expiring soon, refreshing...');
-        return refreshAccessToken(token);
+        console.log('[Auth] Token expiring soon, refreshing...')
+        try {
+          const refreshedTokens = await refreshAccessToken({
+            accessToken: token.accessToken as string,
+            refreshToken: token.refreshToken as string,
+            accessTokenExpires: token.accessTokenExpires as number,
+          })
+
+          token.accessToken = refreshedTokens.accessToken
+          token.refreshToken = refreshedTokens.refreshToken
+          token.accessTokenExpires = refreshedTokens.accessTokenExpires
+          token.error = undefined
+        } catch (error) {
+          console.error('[Auth] Token refresh failed:', error)
+          token.error = "RefreshAccessTokenError"
+        }
       }
 
-      return token;
+      return token
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string;
+        session.user.id = token.id as string
       }
-      (session as any).accessToken = token.accessToken as string;
-      (session as any).refreshToken = token.refreshToken as string;
-      (session as any).workspace = token.workspace;
-      (session as any).workspaces = token.workspaces;
-      (session as any).error = token.error; // Pass error to client
-      return session;
+
+      // Extend session with custom properties
+      return {
+        ...session,
+        accessToken: token.accessToken as string,
+        refreshToken: token.refreshToken as string,
+        workspace: token.workspace,
+        workspaces: token.workspaces,
+        error: token.error,
+      }
     },
   },
   pages: {

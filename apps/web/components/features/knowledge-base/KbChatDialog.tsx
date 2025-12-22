@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
-import { Spinner } from '@/components/ui/Spinner'
+import { LoadingLogo } from '@/components/ui/LoadingLogo'
 import { FiMessageSquare, FiTrash2 } from 'react-icons/fi'
 import { createAIConversation, getAIConversation, addAIConversationMessage } from '@/lib/api/conversations'
 import toast from '@/lib/toast'
@@ -157,9 +157,8 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
 
                 <div className="flex-1 overflow-auto space-y-4">
                     {loadingMessages ? (
-                        <div className="text-center py-12">
-                            <Spinner className="w-8 h-8 mx-auto mb-3" />
-                            <p className="text-muted-foreground">Loading conversation...</p>
+                        <div className="flex flex-col items-center justify-center py-12">
+                            <LoadingLogo size="md" text="Loading conversation..." />
                         </div>
                     ) : messages.length === 0 ? (
                         <div className="text-center py-12 text-muted-foreground">
@@ -189,9 +188,8 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
                     )}
 
                     {loading && (
-                        <div className="text-center py-8">
-                            <Spinner className="w-8 h-8 mx-auto mb-3" />
-                            <p className="text-muted-foreground">Thinking...</p>
+                        <div className="flex flex-col items-center justify-center py-8">
+                            <LoadingLogo size="sm" text="Thinking..." />
                         </div>
                     )}
                 </div>
@@ -204,8 +202,8 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
                         onKeyDown={(e) => e.key === 'Enter' && !loading && handleChat()}
                         disabled={loading}
                     />
-                    <Button onClick={handleChat} disabled={loading || !message.trim()}>
-                        {loading ? <Spinner className="w-4 h-4" /> : <FiMessageSquare className="w-4 h-4" />}
+                    <Button onClick={handleChat} loading={loading} disabled={!message.trim()}>
+                        {!loading && <FiMessageSquare className="w-4 h-4" />}
                     </Button>
                 </div>
             </DialogContent>

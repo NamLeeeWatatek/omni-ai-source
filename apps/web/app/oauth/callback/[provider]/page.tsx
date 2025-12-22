@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Spinner } from '@/components/ui/Spinner'
+import { LoadingLogo } from '@/components/ui/LoadingLogo'
 import { FiCheckCircle, FiXCircle } from 'react-icons/fi'
 
 export default function OAuthCallbackPage() {
@@ -85,7 +85,7 @@ export default function OAuthCallbackPage() {
             <div className="glass rounded-xl p-8 max-w-md w-full text-center">
                 {status === 'loading' && (
                     <>
-                        <Spinner className="size-16 mx-auto mb-4 text-primary" />
+                        <LoadingLogo size="lg" className="mb-4" />
                         <h2 className="text-2xl font-bold mb-2">Connecting Channel...</h2>
                         <p className="text-muted-foreground">Please wait while we complete the connection</p>
                     </>

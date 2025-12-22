@@ -46,6 +46,7 @@ import { AuditModule } from './audit/audit.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { SharedModule } from './shared/shared.module';
+import { TemplatesModule } from './templates/templates.module';
 
 const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
   .isDocumentDatabase
@@ -114,6 +115,7 @@ const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
     UsersModule,
     FilesModule,
     WorkspacesModule,
+    TemplatesModule,
     AiProvidersModule,
 
     AuthModule,

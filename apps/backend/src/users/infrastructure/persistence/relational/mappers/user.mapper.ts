@@ -13,7 +13,7 @@ export class UserMapper {
     domainEntity.providerId = raw.providerId;
     domainEntity.emailVerifiedAt = raw.emailVerifiedAt;
     domainEntity.isActive = raw.isActive;
-    domainEntity.role = raw.role;
+    domainEntity.role = (raw.role?.name?.toLowerCase() as 'admin' | 'user') || 'user';
 
     domainEntity.firstName = raw.firstName;
     domainEntity.lastName = raw.lastName;
@@ -48,7 +48,9 @@ export class UserMapper {
     persistenceEntity.providerId = domainEntity.providerId;
     persistenceEntity.emailVerifiedAt = domainEntity.emailVerifiedAt;
     persistenceEntity.isActive = domainEntity.isActive ?? true;
-    persistenceEntity.role = domainEntity.role ?? 'user';
+    persistenceEntity.role = {
+      id: domainEntity.role === 'admin' ? 1 : 2,
+    } as any;
 
     persistenceEntity.firstName = domainEntity.firstName;
     persistenceEntity.lastName = domainEntity.lastName;

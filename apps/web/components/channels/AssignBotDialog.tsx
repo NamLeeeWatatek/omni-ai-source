@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Spinner } from '@/components/ui/Spinner';
+import { LoadingLogo } from '@/components/ui/LoadingLogo';
 import {
   Dialog,
   DialogContent,
@@ -73,7 +73,7 @@ export function AssignBotDialog({
   const loadBots = async () => {
     try {
       setLoading(true);
-      const response = await axiosClient.get(`/bots?workspaceId=${workspaceId}`);
+      const response: any = await axiosClient.get(`/bots?workspaceId=${workspaceId}`);
 
       let botsList: BotOption[] = [];
       if (Array.isArray(response)) {
@@ -180,8 +180,8 @@ export function AssignBotDialog({
           <div className="space-y-2">
             <Label htmlFor="bot-select">Select Bot</Label>
             {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <Spinner className="w-6 h-6" />
+              <div className="flex flex-col items-center justify-center py-8">
+                <LoadingLogo size="sm" text="Loading bots..." />
               </div>
             ) : bots.length === 0 ? (
               <div className="text-center py-8 text-sm text-muted-foreground">
@@ -241,16 +241,10 @@ export function AssignBotDialog({
           </Button>
           <Button
             onClick={handleSave}
-            disabled={!selectedBotId || saving || loading}
+            loading={saving}
+            disabled={!selectedBotId || loading}
           >
-            {saving ? (
-              <>
-                <Spinner className="w-4 h-4 mr-2" />
-                Saving...
-              </>
-            ) : (
-              'Assign Bot'
-            )}
+            Assign Bot
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -10,10 +10,11 @@ import {
   UpdateDateColumn,
   JoinColumn,
 } from 'typeorm';
+import { WorkspaceOwnedEntity } from '../../../../../utils/workspace-owned.entity';
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 
 @Entity({ name: 'knowledge_base' })
-export class KnowledgeBaseEntity extends EntityRelationalHelper {
+export class KnowledgeBaseEntity extends WorkspaceOwnedEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -23,14 +24,6 @@ export class KnowledgeBaseEntity extends EntityRelationalHelper {
   @Column({ type: String, nullable: true })
   description?: string | null;
 
-  @Column({ name: 'workspace_id', type: 'uuid', nullable: true })
-  @Index()
-  workspaceId?: string | null;
-
-  @Column({ name: 'created_by', type: 'uuid' })
-  @Index()
-  createdBy: string;
-
   @Column({ name: 'ai_provider_id', type: 'uuid', nullable: true })
   @Index()
   aiProviderId?: string | null;
@@ -38,7 +31,11 @@ export class KnowledgeBaseEntity extends EntityRelationalHelper {
   @Column({ name: 'rag_model', type: String, nullable: true })
   ragModel?: string | null;
 
-  @Column({ name: 'embedding_model', type: String, default: 'text-embedding-3-small' })
+  @Column({
+    name: 'embedding_model',
+    type: String,
+    default: 'text-embedding-3-small',
+  })
   embeddingModel: string;
 
   @Column({ name: 'chunk_size', type: 'int', default: 1000 })
@@ -73,7 +70,7 @@ export class KnowledgeBaseEntity extends EntityRelationalHelper {
 }
 
 @Entity({ name: 'kb_folder' })
-export class KbFolderEntity extends EntityRelationalHelper {
+export class KbFolderEntity extends WorkspaceOwnedEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -87,9 +84,6 @@ export class KbFolderEntity extends EntityRelationalHelper {
   @Column({ name: 'parent_id', type: 'uuid', nullable: true })
   @Index()
   parentId?: string | null;
-
-  @Column({ name: 'created_by', type: 'uuid' })
-  createdBy: string;
 
   @ManyToOne(() => KnowledgeBaseEntity, (kb) => kb.folders, {
     onDelete: 'CASCADE',
@@ -109,18 +103,12 @@ export class KbFolderEntity extends EntityRelationalHelper {
   @OneToMany(() => KbDocumentEntity, (document) => document.folder)
   documents?: KbDocumentEntity[];
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
-
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt?: Date | null;
 }
 
 @Entity({ name: 'kb_document' })
-export class KbDocumentEntity extends EntityRelationalHelper {
+export class KbDocumentEntity extends WorkspaceOwnedEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -156,9 +144,6 @@ export class KbDocumentEntity extends EntityRelationalHelper {
   @Index()
   folderId?: string | null;
 
-  @Column({ name: 'created_by', type: 'uuid' })
-  createdBy: string;
-
   @Column({ name: 'processing_status', type: String, default: 'pending' })
   processingStatus: 'pending' | 'processing' | 'completed' | 'failed';
 
@@ -174,6 +159,16 @@ export class KbDocumentEntity extends EntityRelationalHelper {
   @Column({ type: String, nullable: true })
   type?: string | null;
 
+  @Column({ type: 'simple-array', nullable: true })
+  tags?: string[] | null;
+
+  @Column({
+    name: 'source_type',
+    type: String,
+    default: 'manual',
+  })
+  sourceType: 'manual' | 'file' | 'web';
+
   @ManyToOne(() => KnowledgeBaseEntity, (kb) => kb.documents, {
     onDelete: 'CASCADE',
   })
@@ -188,12 +183,6 @@ export class KbDocumentEntity extends EntityRelationalHelper {
 
   @OneToMany(() => KbDocumentVersionEntity, (version) => version.document)
   versions?: KbDocumentVersionEntity[];
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt?: Date | null;
@@ -240,7 +229,7 @@ export class KbDocumentVersionEntity extends EntityRelationalHelper {
 }
 
 @Entity({ name: 'rag_feedback' })
-export class RagFeedbackEntity extends EntityRelationalHelper {
+export class RagFeedbackEntity extends WorkspaceOwnedEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -277,12 +266,6 @@ export class RagFeedbackEntity extends EntityRelationalHelper {
 
   @Column({ name: 'is_helpful', type: Boolean, nullable: true })
   isHelpful?: boolean | null;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt?: Date | null;

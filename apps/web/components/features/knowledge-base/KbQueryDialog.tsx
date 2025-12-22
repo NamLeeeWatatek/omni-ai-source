@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
-import { Spinner } from '@/components/ui/Spinner'
 import { FiSearch, FiMessageSquare } from 'react-icons/fi'
 import type { QueryResult } from '@/lib/types/knowledge-base'
 
@@ -45,8 +44,8 @@ export function KBQueryDialog({ open, onOpenChange, onQuery }: KBQueryDialogProp
                             placeholder="Ask a question..."
                             onKeyDown={(e) => e.key === 'Enter' && handleQuery()}
                         />
-                        <Button onClick={handleQuery} disabled={searching}>
-                            {searching ? <Spinner className="w-4 h-4" /> : <FiSearch className="w-4 h-4" />}
+                        <Button onClick={handleQuery} loading={searching}>
+                            <FiSearch className="w-4 h-4" />
                         </Button>
                     </div>
 

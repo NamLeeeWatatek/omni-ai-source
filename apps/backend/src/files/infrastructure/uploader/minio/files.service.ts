@@ -121,7 +121,10 @@ export class FilesMinioService {
     }
   }
 
-  async create(file: FileUploadDto): Promise<{
+  async create(
+    file: FileUploadDto,
+    workspaceId?: string,
+  ): Promise<{
     file: FileType;
     uploadSignedUrl: string;
     downloadSignedUrl: string;
@@ -162,10 +165,12 @@ export class FilesMinioService {
       });
     }
 
-    const key = `${Math.random().toString(36).substring(2)}.${file.fileName
-      .split('.')
-      .pop()
-      ?.toLowerCase()}`;
+    const randomKey = Math.random().toString(36).substring(2);
+    const extension = file.fileName.split('.').pop()?.toLowerCase();
+
+    // Multi-tenant path isolation: workspaces/{workspaceId}/{bucket}/{randomKey}.{ext}
+    const workspacePath = workspaceId ? `workspaces/${workspaceId}/` : '';
+    const key = `${workspacePath}${randomKey}.${extension}`;
 
     // Auto-categorize bucket based on file type if not provided
     let bucket = file.bucket;
@@ -176,7 +181,7 @@ export class FilesMinioService {
     await this.ensureBucketExists(bucket);
 
     this.logger.log(
-      `🔗 Generating MinIO URLs for bucket: ${bucket}, key: ${key}`,
+      `🔗 Generating MinIO URLs for bucket: ${bucket}, key: ${key}, workspace: ${workspaceId || 'none'}`,
     );
 
     // Use MinIO's direct access URLs with anonymous users

@@ -1,4 +1,4 @@
-﻿import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { KnowledgeBaseEntity } from '../infrastructure/persistence/relational/entities/knowledge-base.entity';
@@ -7,6 +7,11 @@ import {
   UpdateKnowledgeBaseDto,
   AssignAgentDto,
 } from '../dto/kb-management.dto';
+import {
+  FilterKnowledgeBaseDto,
+  SortKnowledgeBaseDto,
+} from '../dto/query-knowledge-base.dto';
+import { IPaginationOptions } from '../../utils/types/pagination-options';
 import { BotKnowledgeBaseEntity } from '../../bots/infrastructure/persistence/relational/entities/bot.entity';
 
 @Injectable()
@@ -16,24 +21,32 @@ export class KBManagementService {
     private readonly kbRepository: Repository<KnowledgeBaseEntity>,
     @InjectRepository(BotKnowledgeBaseEntity)
     private readonly agentKbRepository: Repository<BotKnowledgeBaseEntity>,
-  ) {}
+  ) { }
 
   async create(userId: string, createDto: CreateKnowledgeBaseDto) {
     const kb = this.kbRepository.create({
-      createdBy: userId,
-      workspaceId: createDto.workspaceId || null,
       ...createDto,
+      workspaceId: createDto.workspaceId,
     });
+    kb.createdBy = userId;
     return this.kbRepository.save(kb);
   }
 
-  async findAll(userId: string, workspaceId?: string) {
-    const query = this.kbRepository
-      .createQueryBuilder('kb')
-      .leftJoinAndSelect('kb.folders', 'folders')
-      .leftJoinAndSelect('kb.documents', 'documents')
-      .orderBy('kb.updatedAt', 'DESC');
+  async findManyWithPagination({
+    filterOptions,
+    sortOptions,
+    paginationOptions,
+    userId,
+  }: {
+    filterOptions?: FilterKnowledgeBaseDto | null;
+    sortOptions?: SortKnowledgeBaseDto[] | null;
+    paginationOptions: IPaginationOptions;
+    userId: string;
+  }): Promise<{ data: any[]; total: number }> {
+    const query = this.kbRepository.createQueryBuilder('kb');
 
+    // Default filters
+    const workspaceId = filterOptions?.workspaceId;
     if (workspaceId) {
       query.where(
         '(kb.workspaceId = :workspaceId OR (kb.workspaceId IS NULL AND kb.createdBy = :userId))',
@@ -43,9 +56,30 @@ export class KBManagementService {
       query.where('kb.createdBy = :userId', { userId });
     }
 
-    const results = await query.getMany();
+    if (filterOptions?.search) {
+      query.andWhere(
+        '(kb.name ILIKE :search OR kb.description ILIKE :search)',
+        { search: `%${filterOptions.search}%` },
+      );
+    }
 
-    // Calculate actual document counts for each KB
+    if (sortOptions?.length) {
+      sortOptions.forEach((sort) => {
+        if (sort.orderBy && (sort.orderBy as any) !== 'undefined') {
+          query.addOrderBy(`kb.${sort.orderBy}`, sort.order as any);
+        }
+      });
+    } else {
+      query.orderBy('kb.updatedAt', 'DESC');
+    }
+
+    query
+      .skip((paginationOptions.page - 1) * paginationOptions.limit)
+      .take(paginationOptions.limit);
+
+    const [results, total] = await query.getManyAndCount();
+
+    // Calculate actual document counts for each KB (maintaining original logic)
     const resultsWithCounts = await Promise.all(
       results.map(async (kb) => {
         const docCount = await this.kbRepository
@@ -60,13 +94,19 @@ export class KBManagementService {
           ...kb,
           totalDocuments: parseInt(docCount?.count || '0'),
         };
-      })
+      }),
     );
 
-    console.log(
-      `[KB Service] Found ${results.length} KBs for workspace: ${workspaceId}, user: ${userId}`,
-    );
-    return resultsWithCounts;
+    return { data: resultsWithCounts, total };
+  }
+
+  async findAll(userId: string, workspaceId?: string) {
+    const { data } = await this.findManyWithPagination({
+      filterOptions: { workspaceId },
+      paginationOptions: { page: 1, limit: 100 }, // Large limit for original findAll
+      userId,
+    });
+    return data;
   }
 
   async findOne(id: string, userId: string) {
@@ -168,7 +208,7 @@ export class KBManagementService {
     let actualTotalSize = 0;
     if (kb.documents) {
       actualTotalSize = kb.documents
-        .filter(doc => doc.deletedAt === null && doc.fileSize)
+        .filter((doc) => doc.deletedAt === null && doc.fileSize)
         .reduce((sum, doc) => {
           const size = parseInt(doc.fileSize || '0');
           return sum + (isNaN(size) ? 0 : size);

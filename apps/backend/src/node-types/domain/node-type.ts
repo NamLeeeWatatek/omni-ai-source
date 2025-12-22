@@ -120,6 +120,15 @@ export class NodeType implements NodeTypeModel {
   tags?: string[];
 
   @ApiPropertyOptional()
+  workspaceId?: string;
+
+  @ApiPropertyOptional()
+  createdBy?: string;
+
+  @ApiPropertyOptional()
+  updatedBy?: string;
+
+  @ApiPropertyOptional()
   createdAt?: Date;
 
   @ApiPropertyOptional()

@@ -4,7 +4,6 @@
  */
 
 import type { Node } from 'reactflow'
-import type { WorkflowNode } from '@/lib/types/flow'
 import type { NodeType } from '@/lib/types/node'
 
 /**
@@ -137,4 +136,3 @@ export function validateReactFlowNode(node: any): node is Node {
     typeof node.data === 'object'
   )
 }
-

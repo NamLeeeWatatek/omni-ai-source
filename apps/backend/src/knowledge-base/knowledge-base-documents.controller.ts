@@ -27,6 +27,8 @@ import {
   UpdateDocumentDto,
   CrawlWebsiteDto,
 } from './dto/kb-document.dto';
+import { QueryDocumentDto } from './dto/query-document.dto';
+import { infinityPagination } from '../utils/infinity-pagination';
 import { sanitizeFilename } from './utils/text-sanitizer';
 // Windows-1252 to Byte mapping for 0x80-0x9F range
 const win1252ToByte: Record<number, number> = {
@@ -117,13 +119,14 @@ export class KnowledgeBaseDocumentsController {
   constructor(
     private readonly documentsService: KBDocumentsService,
     private readonly crawlerService: KBCrawlerService,
-  ) {}
+  ) { }
 
   @Post('documents')
   @ApiOperation({ summary: 'Create document' })
   async create(@Request() req, @Body() createDto: CreateDocumentDto) {
     const userId = req.user.id;
-    return this.documentsService.create(userId, createDto);
+    const workspaceId = createDto.workspaceId || req.user.workspaceId;
+    return this.documentsService.create(userId, { ...createDto, workspaceId });
   }
 
   @Get(':id/documents')
@@ -131,25 +134,43 @@ export class KnowledgeBaseDocumentsController {
   async getDocuments(
     @Param('id') id: string,
     @Request() req,
-    @Query('folderId') folderId?: string,
+    @Query() query: QueryDocumentDto,
   ) {
     const userId = req.user.id;
-    const documents = await this.documentsService.findAll(id, userId, folderId);
+    const page = query?.page ?? 1;
+    let limit = query?.limit ?? 10;
+    if (limit > 50) {
+      limit = 50;
+    }
 
-    // Fix corrupted UTF-8 names in response
-    return documents.map((doc) => ({
+    const filters = query?.filters || {};
+    // Ensure folderId from query takes precedence if provided separately
+    const folderId =
+      filters.folderId === 'null' ? null : (filters.folderId ?? null);
+
+    const { data, total } = await this.documentsService.findManyWithPagination({
+      kbId: id,
+      filterOptions: { ...filters, folderId },
+      sortOptions: query?.sort || undefined,
+      paginationOptions: { page, limit },
+      userId,
+    });
+
+    const decodedData = data.map((doc) => ({
       ...doc,
       name: decodeFilename(doc.name || ''),
       title: doc.title ? decodeFilename(doc.title) : doc.title,
       metadata: doc.metadata
         ? {
-            ...doc.metadata,
-            originalName: doc.metadata.originalName
-              ? decodeFilename(doc.metadata.originalName)
-              : doc.metadata.originalName,
-          }
+          ...doc.metadata,
+          originalName: doc.metadata.originalName
+            ? decodeFilename(doc.metadata.originalName)
+            : doc.metadata.originalName,
+        }
         : doc.metadata,
     }));
+
+    return infinityPagination(decodedData, { page, limit }, total);
   }
 
   @Get('documents/:documentId')
@@ -297,6 +318,8 @@ export class KnowledgeBaseDocumentsController {
         file.buffer,
         sanitizedFilename,
         file.mimetype,
+        knowledgeBaseId,
+        userId,
       );
       fileUrl = uploadResult.fileUrl;
       fileId = uploadResult.fileId;
@@ -324,11 +347,12 @@ export class KnowledgeBaseDocumentsController {
       return { success: false, error: 'File content is empty or invalid' };
     }
 
-    const createdDoc = await this.documentsService.create(userId, {
+    const createdDoc: any = await this.documentsService.create(userId, {
       knowledgeBaseId,
       folderId,
       name: sanitizedFilename,
       content,
+      workspaceId: req.user.workspaceId,
       fileType: file.mimetype,
       mimeType: file.mimetype,
       fileUrl,
@@ -350,11 +374,11 @@ export class KnowledgeBaseDocumentsController {
         : createdDoc.title,
       metadata: createdDoc.metadata
         ? {
-            ...createdDoc.metadata,
-            originalName: createdDoc.metadata.originalName
-              ? decodeFilename(createdDoc.metadata.originalName)
-              : createdDoc.metadata.originalName,
-          }
+          ...createdDoc.metadata,
+          originalName: createdDoc.metadata.originalName
+            ? decodeFilename(createdDoc.metadata.originalName)
+            : createdDoc.metadata.originalName,
+        }
         : createdDoc.metadata,
     };
   }
@@ -381,6 +405,4 @@ export class KnowledgeBaseDocumentsController {
       ...result,
     };
   }
-
-
 }

@@ -11,7 +11,11 @@ export class AnthropicClient implements AiProviderClient {
     this.anthropic = new Anthropic({ apiKey });
   }
 
-  async chat(prompt: string, model: string, options?: ChatOptions): Promise<string> {
+  async chat(
+    prompt: string,
+    model: string,
+    options?: ChatOptions,
+  ): Promise<string> {
     try {
       const response = await this.anthropic.messages.create({
         model: model || 'claude-3-haiku-20240307',
@@ -27,7 +31,11 @@ export class AnthropicClient implements AiProviderClient {
     }
   }
 
-  async chatWithHistory(messages: ChatMessage[], model: string, options?: ChatOptions): Promise<string> {
+  async chatWithHistory(
+    messages: ChatMessage[],
+    model: string,
+    options?: ChatOptions,
+  ): Promise<string> {
     try {
       const systemMessage = messages.find((m) => m.role === 'system');
       const chatMessages = messages

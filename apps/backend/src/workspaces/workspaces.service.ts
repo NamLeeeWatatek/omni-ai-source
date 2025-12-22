@@ -1,4 +1,4 @@
-﻿import {
+import {
   Injectable,
   NotFoundException,
   ConflictException,
@@ -12,6 +12,10 @@ import {
 } from './infrastructure/persistence/relational/entities/workspace.entity';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
+import {
+  getWorkspaceRoleId,
+  getWorkspaceRoleFromEntity,
+} from './utils/workspace-role.helper';
 
 @Injectable()
 export class WorkspacesService {
@@ -31,9 +35,9 @@ export class WorkspacesService {
     }
 
     const workspace = this.workspaceRepository.create({
-      ...createDto,
+      name: createDto.name,
+      slug: createDto.slug,
       ownerId,
-      plan: createDto.plan ?? 'free',
     });
 
     const saved = await this.workspaceRepository.save(workspace);
@@ -41,7 +45,7 @@ export class WorkspacesService {
     await this.memberRepository.save({
       workspaceId: saved.id,
       userId: ownerId,
-      role: 'owner',
+      roleId: getWorkspaceRoleId('owner'),
     });
 
     return saved;
@@ -79,7 +83,6 @@ export class WorkspacesService {
       name: workspaceName,
       slug,
       ownerId: userId,
-      plan: 'free',
     });
 
     const saved = await this.workspaceRepository.save(workspace);
@@ -87,7 +90,7 @@ export class WorkspacesService {
     await this.memberRepository.save({
       workspaceId: saved.id,
       userId,
-      role: 'owner',
+      roleId: getWorkspaceRoleId('owner'),
     });
 
     return saved;
@@ -125,8 +128,10 @@ export class WorkspacesService {
     if (userId) {
       const member = await this.memberRepository.findOne({
         where: { workspaceId: id, userId },
+        relations: ['role'],
       });
-      if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
+      const role = getWorkspaceRoleFromEntity(member?.role);
+      if (!member || (role !== 'owner' && role !== 'admin')) {
         throw new ForbiddenException('Not authorized to update workspace');
       }
     }
@@ -169,7 +174,7 @@ export class WorkspacesService {
     const member = this.memberRepository.create({
       workspaceId,
       userId,
-      role,
+      roleId: getWorkspaceRoleId(role),
     });
     return this.memberRepository.save(member);
   }
@@ -181,30 +186,34 @@ export class WorkspacesService {
   ) {
     const member = await this.memberRepository.findOne({
       where: { workspaceId, userId },
+      relations: ['role'],
     });
 
     if (!member) {
       throw new NotFoundException('Member not found');
     }
 
-    if (member.role === 'owner') {
+    const currentRole = getWorkspaceRoleFromEntity(member.role);
+    if (currentRole === 'owner') {
       throw new ForbiddenException('Cannot change owner role');
     }
 
-    member.role = role;
+    member.roleId = getWorkspaceRoleId(role);
     return this.memberRepository.save(member);
   }
 
   async removeMember(workspaceId: string, userId: string) {
     const member = await this.memberRepository.findOne({
       where: { workspaceId, userId },
+      relations: ['role'],
     });
 
     if (!member) {
       throw new NotFoundException('Member not found');
     }
 
-    if (member.role === 'owner') {
+    const role = getWorkspaceRoleFromEntity(member.role);
+    if (role === 'owner') {
       throw new ForbiddenException('Cannot remove workspace owner');
     }
 
@@ -224,8 +233,9 @@ export class WorkspacesService {
   ): Promise<'owner' | 'admin' | 'member' | null> {
     const member = await this.memberRepository.findOne({
       where: { workspaceId, userId },
+      relations: ['role'],
     });
-    return member?.role ?? null;
+    return getWorkspaceRoleFromEntity(member?.role) ?? null;
   }
 
   async isWorkspaceMember(
@@ -254,11 +264,11 @@ export class WorkspacesService {
 
     await this.memberRepository.update(
       { workspaceId, userId: currentOwnerId },
-      { role: 'admin' },
+      { roleId: getWorkspaceRoleId('admin') },
     );
     await this.memberRepository.update(
       { workspaceId, userId: newOwnerId },
-      { role: 'owner' },
+      { roleId: getWorkspaceRoleId('owner') },
     );
 
     return workspace;

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/Button'
-import { Spinner } from '@/components/ui/Spinner'
 import { FiPlay, FiAlertCircle } from 'react-icons/fi'
 import { DynamicForm } from '@/components/features/ugc-factory/DynamicForm'
 import type { NodeProperty } from '@/components/features/ugc-factory/DynamicForm'
@@ -178,7 +177,7 @@ export function ExecuteFlowModal({ isOpen, onClose, onExecute, nodes, isExecutin
                             [executableNode.id]: data
                         }))
                     }}
-                    onSubmit={() => {}}
+                    onSubmit={() => { }}
                     submitLabel=""
                     loading={false}
                 />
@@ -214,18 +213,9 @@ export function ExecuteFlowModal({ isOpen, onClose, onExecute, nodes, isExecutin
                     <Button variant="ghost" onClick={onClose} disabled={isExecuting}>
                         Cancel
                     </Button>
-                    <Button type="submit" form="execute-form" disabled={isExecuting}>
-                        {isExecuting ? (
-                            <>
-                                <Spinner className="size-4 mr-2" />
-                                Executing...
-                            </>
-                        ) : (
-                            <>
-                                <FiPlay className="w-4 h-4 mr-2" />
-                                Run Workflow
-                            </>
-                        )}
+                    <Button type="submit" form="execute-form" loading={isExecuting}>
+                        {!isExecuting && <FiPlay className="w-4 h-4 mr-2" />}
+                        Run Workflow
                     </Button>
                 </DialogFooter>
             </DialogContent>

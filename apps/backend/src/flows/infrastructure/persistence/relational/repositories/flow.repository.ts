@@ -11,7 +11,7 @@ export class RelationalFlowRepository implements FlowRepository {
   constructor(
     @InjectRepository(FlowEntity)
     private readonly flowRepository: Repository<FlowEntity>,
-  ) {}
+  ) { }
 
   async create(data: FlowCreateData): Promise<Flow> {
     const entity = new FlowEntity();
@@ -21,6 +21,7 @@ export class RelationalFlowRepository implements FlowRepository {
   }
 
   async findAll(options?: {
+    workspaceId?: string;
     ownerId?: string;
     status?: string;
     category?: string;
@@ -29,8 +30,10 @@ export class RelationalFlowRepository implements FlowRepository {
   }): Promise<Flow[]> {
     const query = this.flowRepository.createQueryBuilder('flow');
 
-    if (options?.ownerId) {
-      query.andWhere('flow.ownerId = :ownerId', { ownerId: options.ownerId });
+    if (options?.workspaceId) {
+      query.andWhere('flow.workspaceId = :workspaceId', {
+        workspaceId: options.workspaceId,
+      });
     }
 
     if (options?.status) {
@@ -71,7 +74,6 @@ export class RelationalFlowRepository implements FlowRepository {
   async findById(id: Flow['id']): Promise<Flow | null> {
     const entity = await this.flowRepository.findOne({
       where: { id },
-      relations: ['owner'],
     });
 
     return entity ? FlowMapper.toDomain(entity) : null;
@@ -102,6 +104,7 @@ export class RelationalFlowRepository implements FlowRepository {
   }
 
   async findAllComplex(options: {
+    workspaceId?: string;
     ownerId?: string;
     status?: string;
     published?: boolean;
@@ -111,22 +114,24 @@ export class RelationalFlowRepository implements FlowRepository {
   }): Promise<Flow[]> {
     const query = this.flowRepository.createQueryBuilder('flow');
 
+    if (options.workspaceId) {
+      query.andWhere('flow.workspaceId = :workspaceId', {
+        workspaceId: options.workspaceId,
+      });
+    }
+
     if (options.published === true) {
       // Show ALL published flows (status = 'published')
-      query.where('flow.status = :status', { status: 'published' });
+      query.andWhere('flow.status = :status', { status: 'published' });
     } else if (options.published === false) {
       // If explicitly asking for unpublished, filter by owner
       if (options.ownerId) {
-        query.where('flow.ownerId = :ownerId', { ownerId: options.ownerId });
-        query.andWhere('flow.status != :status', { status: 'published' });
-      } else {
-        query.where('flow.status != :status', { status: 'published' });
+        query.andWhere('flow.ownerId = :ownerId', { ownerId: options.ownerId });
       }
-    } else {
+      query.andWhere('flow.status != :status', { status: 'published' });
+    } else if (options.ownerId) {
       // No published filter - show user's own flows
-      if (options.ownerId) {
-        query.where('flow.ownerId = :ownerId', { ownerId: options.ownerId });
-      }
+      query.andWhere('flow.ownerId = :ownerId', { ownerId: options.ownerId });
     }
 
     if (options.category) {
@@ -150,13 +155,16 @@ export class RelationalFlowRepository implements FlowRepository {
   }
 
   async count(options?: {
+    workspaceId?: string;
     ownerId?: string;
     status?: string;
   }): Promise<number> {
     const query = this.flowRepository.createQueryBuilder('flow');
 
-    if (options?.ownerId) {
-      query.andWhere('flow.ownerId = :ownerId', { ownerId: options.ownerId });
+    if (options?.workspaceId) {
+      query.andWhere('flow.workspaceId = :workspaceId', {
+        workspaceId: options.workspaceId,
+      });
     }
 
     if (options?.status) {
@@ -164,5 +172,92 @@ export class RelationalFlowRepository implements FlowRepository {
     }
 
     return query.getCount();
+  }
+
+  async findAllPaginated(options: {
+    workspaceId?: string;
+    ownerId?: string;
+    status?: string;
+    published?: boolean;
+    category?: string;
+    limit?: number;
+    offset?: number;
+    page?: number;
+    search?: string;
+    sort?: { orderBy: string; order: 'ASC' | 'DESC' }[];
+  }): Promise<{
+    data: Flow[];
+    hasNextPage: boolean;
+    total: number;
+  }> {
+    const query = this.flowRepository.createQueryBuilder('flow');
+
+    if (options?.workspaceId) {
+      query.andWhere('flow.workspaceId = :workspaceId', {
+        workspaceId: options.workspaceId,
+      });
+    }
+
+    if (options?.status) {
+      query.andWhere('flow.status = :status', { status: options.status });
+    }
+
+    if (options.published === true) {
+      // Show ALL published flows (status = 'published')
+      query.andWhere('flow.status = :status', { status: 'published' });
+    } else if (options.published === false) {
+      // If explicitly asking for unpublished, filter by owner
+      if (options.ownerId) {
+        query.andWhere('flow.ownerId = :ownerId', { ownerId: options.ownerId });
+      }
+      query.andWhere('flow.status != :status', { status: 'published' });
+    } else if (options.ownerId) {
+      // No published filter - show user's own flows
+      query.andWhere('flow.ownerId = :ownerId', { ownerId: options.ownerId });
+    }
+
+    if (options.category) {
+      query.andWhere('flow.category = :category', {
+        category: options.category,
+      });
+    }
+
+    if (options.search) {
+      query.andWhere('flow.name ILIKE :search', {
+        search: `%${options.search}%`,
+      });
+    }
+
+    if (options.sort && options.sort.length > 0) {
+      options.sort.forEach((sortOption) => {
+        if (sortOption.orderBy && (sortOption.orderBy as any) !== 'undefined') {
+          query.addOrderBy(
+            `flow.${sortOption.orderBy}`,
+            sortOption.order.toUpperCase() as 'ASC' | 'DESC',
+          );
+        }
+      });
+    }
+
+    // Calculate pagination
+    const limit = options.limit || 10;
+    const page = options.page || 1;
+    const offset = options.offset || (page - 1) * limit;
+
+    if (options.limit) {
+      query.take(limit);
+    }
+
+    if (options.offset !== undefined) {
+      query.skip(offset);
+    }
+
+    const [entities, total] = await query.getManyAndCount();
+
+    return {
+      data: entities.map((entity) => FlowMapper.toDomain(entity)),
+      hasNextPage: offset + entities.length < total,
+      total,
+    };
   }
 }

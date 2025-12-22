@@ -13,10 +13,9 @@ import { FlowSeedModule } from './flow/flow-seed.module';
 import { AiProviderSeedModule } from './ai-provider/ai-provider-seed.module';
 import { BotSeedModule } from './bot/bot-seed.module';
 import { ConversationSeedModule } from './conversation/conversation-seed.module';
+import { TemplatesSeedModule } from './templates/templates-seed.module';
 import databaseConfig from '../../config/database.config';
 import appConfig from '../../../config/app.config';
-
-
 
 @Module({
   imports: [
@@ -29,6 +28,7 @@ import appConfig from '../../../config/app.config';
     NodeTypeSeedModule,
     FlowSeedModule,
     AiProviderSeedModule,
+    TemplatesSeedModule,
     ConfigModule.forRoot({
       isGlobal: true,
       load: [databaseConfig, appConfig],

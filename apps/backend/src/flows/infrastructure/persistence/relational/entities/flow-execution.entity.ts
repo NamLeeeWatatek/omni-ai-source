@@ -6,13 +6,15 @@
   UpdateDateColumn,
   Index,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
-import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
+import { WorkspaceOwnedEntity } from '../../../../../utils/workspace-owned.entity';
 import { NodeExecutionEntity } from './node-execution.entity';
 import { ExecutionArtifactEntity } from './execution-artifact.entity';
 
 @Entity({ name: 'flow_execution' })
-export class FlowExecutionEntity extends EntityRelationalHelper {
+export class FlowExecutionEntity extends WorkspaceOwnedEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -21,8 +23,12 @@ export class FlowExecutionEntity extends EntityRelationalHelper {
   executionId: string;
 
   @Index()
-  @Column({ type: 'uuid' })
+  @Column({ name: 'flow_id', type: 'uuid', nullable: false })
   flowId: string;
+
+  @ManyToOne('FlowEntity', { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'flow_id' })
+  flow?: any;
 
   @Column({ type: String })
   status: string;
@@ -39,8 +45,13 @@ export class FlowExecutionEntity extends EntityRelationalHelper {
   @Column({ type: String, nullable: true })
   error?: string | null;
 
-  @Column({ type: 'uuid', nullable: true })
-  workspaceId?: string | null;
+  @Index()
+  @Column({ name: 'workspace_id', type: 'uuid', nullable: false })
+  workspaceId: string;
+
+  @ManyToOne('WorkspaceEntity', { onDelete: 'CASCADE', nullable: false })
+  @JoinColumn({ name: 'workspace_id' })
+  workspace: any;
 
   @OneToMany(() => NodeExecutionEntity, (node) => node.execution, {
     cascade: true,
@@ -51,10 +62,4 @@ export class FlowExecutionEntity extends EntityRelationalHelper {
     cascade: true,
   })
   artifacts?: ExecutionArtifactEntity[];
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
 }

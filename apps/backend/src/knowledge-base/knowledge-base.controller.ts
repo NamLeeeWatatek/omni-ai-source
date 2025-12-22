@@ -10,8 +10,20 @@
   UseGuards,
   Request,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiOkResponse,
+} from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { KnowledgeBaseEntity } from './infrastructure/persistence/relational/entities/knowledge-base.entity';
+import { QueryKnowledgeBaseDto } from './dto/query-knowledge-base.dto';
+import {
+  InfinityPaginationResponse,
+  InfinityPaginationResponseDto,
+} from '../utils/dto/infinity-pagination-response.dto';
+import { infinityPagination } from '../utils/infinity-pagination';
 
 import { KBManagementService } from './services/kb-management.service';
 import { KBVectorService } from './services/kb-vector.service';
@@ -31,20 +43,49 @@ export class KnowledgeBaseController {
     private readonly kbService: KBManagementService,
     private readonly vectorService: KBVectorService,
     private readonly kbRagService: KBRagService,
-  ) {}
+  ) { }
 
   @Get()
   @ApiOperation({ summary: 'Get all knowledge bases' })
-  async getAll(@Request() req, @Query('workspaceId') workspaceId?: string) {
-    const userId = req.user.id;
-    return this.kbService.findAll(userId, workspaceId);
+  @ApiOkResponse({
+    type: InfinityPaginationResponse(KnowledgeBaseEntity),
+  })
+  async getAll(
+    @Request() req,
+    @Query() query: QueryKnowledgeBaseDto,
+  ): Promise<InfinityPaginationResponseDto<KnowledgeBaseEntity>> {
+    const page = query?.page ?? 1;
+    let limit = query?.limit ?? 10;
+    if (limit > 50) {
+      limit = 50;
+    }
+
+    // Extract filters
+    const filters = query?.filters;
+
+    // Use query workspaceId or fallback to user's workspace
+    const workspaceId = filters?.workspaceId || req?.user?.workspaceId;
+
+    const { data, total } = await this.kbService.findManyWithPagination({
+      filterOptions: { ...filters, workspaceId },
+      sortOptions: query?.sort || undefined,
+      paginationOptions: { page, limit },
+      userId: req.user.id,
+    });
+
+    return infinityPagination(data, { page, limit }, total);
   }
 
   @Post()
   @ApiOperation({ summary: 'Create knowledge base' })
   async create(@Request() req, @Body() createDto: CreateKnowledgeBaseDto) {
     const userId = req.user.id;
-    return this.kbService.create(userId, createDto);
+    const workspaceId = createDto.workspaceId || req.user.workspaceId;
+
+    return this.kbService.create(userId, {
+      ...createDto,
+      workspaceId,
+    });
   }
 
   @Get(':id')
@@ -161,11 +202,15 @@ export class KnowledgeBaseController {
   @ApiOperation({ summary: 'Chat with knowledge base using RAG' })
   async chatWithKnowledgeBase(
     @Request() req,
-    @Body() body: {
+    @Body()
+    body: {
       message: string;
       botId?: string;
       knowledgeBaseIds?: string[];
-      conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
+      conversationHistory?: Array<{
+        role: 'user' | 'assistant';
+        content: string;
+      }>;
       model?: string;
     },
   ) {

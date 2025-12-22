@@ -1,4 +1,4 @@
-﻿import {
+import {
   Injectable,
   NotFoundException,
   ForbiddenException,
@@ -143,10 +143,10 @@ export class PublicBotService {
       botId,
       channelType: 'web',
       channelId: null,
-      contactName: dto.metadata?.name || null,
-      contactAvatar: dto.metadata?.avatar || null,
       metadata: {
         ...dto.metadata,
+        contactName: dto.metadata?.name || null,
+        contactAvatar: dto.metadata?.avatar || null,
         userId: dto.userId,
         origin,
         userAgent: dto.userAgent,
@@ -210,33 +210,43 @@ export class PublicBotService {
     let sources: any[] = [];
 
     // Get active linked knowledge bases
-    const activeKnowledgeBases = bot.knowledgeBases?.filter(kb => kb.isActive) || [];
+    const activeKnowledgeBases =
+      bot.knowledgeBases?.filter((kb) => kb.isActive) || [];
 
     this.logger.log(`Bot ${bot.id} - Checking knowledge bases:`, {
       totalLinked: bot.knowledgeBases?.length || 0,
       activeLinked: activeKnowledgeBases.length,
-      message: dto.message.substring(0, 100) + '...'
+      message: dto.message.substring(0, 100) + '...',
     });
 
     if (activeKnowledgeBases.length > 0) {
       try {
-        this.logger.log(`Bot ${bot.id} has ${activeKnowledgeBases.length} linked active knowledge bases`);
+        this.logger.log(
+          `Bot ${bot.id} has ${activeKnowledgeBases.length} linked active knowledge bases`,
+        );
 
         // Query across all linked knowledge bases
         const allResults: any[] = [];
         for (const kbLink of activeKnowledgeBases) {
           try {
-            this.logger.log(`Querying knowledge base: ${kbLink.knowledgeBaseId}`);
+            this.logger.log(
+              `Querying knowledge base: ${kbLink.knowledgeBaseId}`,
+            );
             const kbResults = await this.kbRagService.query(
               dto.message,
+              bot.workspaceId,
               kbLink.knowledgeBaseId,
               2, // Limit per KB to avoid too much context
               0.7,
             );
-            this.logger.log(`KB ${kbLink.knowledgeBaseId} returned ${kbResults.length} results`);
+            this.logger.log(
+              `KB ${kbLink.knowledgeBaseId} returned ${kbResults.length} results`,
+            );
             allResults.push(...kbResults);
           } catch (kbError) {
-            this.logger.warn(`Failed to query knowledge base ${kbLink.knowledgeBaseId}: ${kbError.message}`);
+            this.logger.warn(
+              `Failed to query knowledge base ${kbLink.knowledgeBaseId}: ${kbError.message}`,
+            );
           }
         }
 
@@ -247,7 +257,9 @@ export class PublicBotService {
           .sort((a, b) => b.score - a.score)
           .slice(0, 5);
 
-        this.logger.log(`Top ${topResults.length} results after sorting and limiting`);
+        this.logger.log(
+          `Top ${topResults.length} results after sorting and limiting`,
+        );
 
         if (topResults.length > 0) {
           context = topResults.map((r) => r.content).join('\n\n');
@@ -258,7 +270,9 @@ export class PublicBotService {
             score: r.score,
           }));
 
-          this.logger.log(`Using ${topResults.length} KB results for context (${context.length} chars)`);
+          this.logger.log(
+            `Using ${topResults.length} KB results for context (${context.length} chars)`,
+          );
         } else {
           this.logger.log('No relevant results found in knowledge bases');
         }
@@ -454,7 +468,7 @@ export class PublicBotService {
         bot.createdBy,
       )
     ) {
-      return ['user', bot.createdBy];
+      return bot.createdBy ? ['user', bot.createdBy] : [null, null];
     }
 
     return [null, null];

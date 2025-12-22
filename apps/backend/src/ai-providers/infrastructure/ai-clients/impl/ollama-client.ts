@@ -15,7 +15,11 @@ export class OllamaClient implements AiProviderClient {
     });
   }
 
-  async chat(prompt: string, model: string, options?: ChatOptions): Promise<string> {
+  async chat(
+    prompt: string,
+    model: string,
+    options?: ChatOptions,
+  ): Promise<string> {
     try {
       const response = await this.openai.chat.completions.create({
         model,
@@ -31,7 +35,11 @@ export class OllamaClient implements AiProviderClient {
     }
   }
 
-  async chatWithHistory(messages: ChatMessage[], model: string, options?: ChatOptions): Promise<string> {
+  async chatWithHistory(
+    messages: ChatMessage[],
+    model: string,
+    options?: ChatOptions,
+  ): Promise<string> {
     try {
       const response = await this.openai.chat.completions.create({
         model,

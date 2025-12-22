@@ -1,16 +1,9 @@
-﻿import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
-import { EntityRelationalHelper } from 'src/utils/relational-entity-helper';
-import { UserEntity } from '../../../../../users/infrastructure/persistence/relational/entities/user.entity';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { WorkspaceOwnedEntity } from 'src/utils/workspace-owned.entity';
+import { NodeProperty } from 'src/node-types/types';
 
 @Entity({ name: 'flow' })
-export class FlowEntity extends EntityRelationalHelper {
+export class FlowEntity extends WorkspaceOwnedEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -26,13 +19,12 @@ export class FlowEntity extends EntityRelationalHelper {
   @Column({ type: 'int', default: 1 })
   version: number;
 
-  // Nodes + Edges (core workflow data)
-  @Column({ type: 'jsonb', default: { nodes: [], edges: [] } })
+  @Column({ type: 'jsonb', default: [] })
   nodes: Array<{
     id: string;
-    type: string; // Reference to NodeType.id
+    type: string;
     position: { x: number; y: number };
-    data?: Record<string, any>; // User input data for this node instance
+    data?: Record<string, any>;
   }>;
 
   @Column({ type: 'jsonb', default: [] })
@@ -44,11 +36,11 @@ export class FlowEntity extends EntityRelationalHelper {
     targetHandle?: string;
   }>;
 
-  @Column({ type: 'uuid', nullable: true })
-  ownerId?: string | null;
+  @Column({ type: 'jsonb', nullable: true, default: [] })
+  inputs?: NodeProperty[];
 
-  @Column({ type: 'uuid', nullable: true })
-  teamId?: string | null;
+  @Column({ type: 'jsonb', nullable: true, default: {} })
+  outputSchema?: Record<string, any>;
 
   @Column({ type: String, default: 'private' })
   visibility: string;
@@ -62,12 +54,9 @@ export class FlowEntity extends EntityRelationalHelper {
   @Column({ type: String, nullable: true })
   icon?: string | null;
 
-  @ManyToOne(() => UserEntity)
-  owner?: UserEntity;
+  @Column({ type: 'uuid', nullable: true })
+  ownerId?: string | null;
 
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
+  @Column({ type: 'uuid', nullable: true })
+  teamId?: string | null;
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
-import { Spinner } from '@/components/ui/Spinner'
+import { PageLoading } from '@/components/ui/PageLoading'
 import { useAppDispatch, useAppSelector } from '@/lib/store/hooks'
 import type { RootState } from '@/lib/store/index'
 import { flowsApi } from '@/lib/api/flows'
@@ -24,7 +24,7 @@ const selectFlowProperties = (id: string) => (state: RootState) => {
     if (!flow?.nodes) return []
 
     // For UGC Factory, get properties from manual trigger node only
-    const manualTrigger = flow.nodes.find(node => node.type === 'manual')
+    const manualTrigger: any = flow.nodes.find(node => node.type === 'manual')
     if (manualTrigger?.properties && Array.isArray(manualTrigger.properties)) {
         return manualTrigger.properties
     }
@@ -154,11 +154,7 @@ export default function UGCFactoryFlowPage() {
     }
 
     if (flowLoading || !selectedFlow) {
-        return (
-            <div className="flex justify-center items-center h-full">
-                <Spinner className="w-8 h-8" />
-            </div>
-        )
+        return <PageLoading message="Loading workflow configuration..." />
     }
 
     // Flow detail view

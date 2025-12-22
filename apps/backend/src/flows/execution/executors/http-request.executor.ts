@@ -1,19 +1,23 @@
 ﻿import { Injectable } from '@nestjs/common';
 import {
-  NodeExecutor,
   NodeExecutionInput,
   NodeExecutionOutput,
 } from '../node-executor.interface';
 import axios from 'axios';
+import { BaseNodeExecutor } from '../base-node-executor';
 
 @Injectable()
-export class HttpRequestExecutor implements NodeExecutor {
-  async execute(input: NodeExecutionInput): Promise<NodeExecutionOutput> {
+export class HttpRequestExecutor extends BaseNodeExecutor {
+  constructor() {
+    super();
+  }
+
+  protected async run(input: NodeExecutionInput): Promise<NodeExecutionOutput> {
     try {
       const { method, url, headers, body } = input.data;
 
       const response = await axios({
-        method,
+        method: method || 'GET',
         url,
         headers,
         data: body,

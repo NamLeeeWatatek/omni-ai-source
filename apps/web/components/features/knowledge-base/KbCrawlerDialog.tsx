@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog'
 import { Button } from '@/components/ui/Button'
-import { Spinner } from '@/components/ui/Spinner'
 import {
     Form,
     FormControl,
@@ -61,7 +60,7 @@ export function KBCrawlerDialog({
         try {
             toast.loading(`Crawling ${values.url}...`, { id: 'crawling' })
 
-            const result = await axiosClient.post('/knowledge-bases/crawl/website', {
+            const result: any = await axiosClient.post('/knowledge-bases/crawl/website', {
                 ...values,
                 knowledgeBaseId,
             })
@@ -186,15 +185,8 @@ export function KBCrawlerDialog({
                             </p>
                         </div>
 
-                        <Button type="submit" disabled={loading} className="w-full">
-                            {loading ? (
-                                <>
-                                    <Spinner className="w-4 h-4 mr-2" />
-                                    Crawling...
-                                </>
-                            ) : (
-                                'Start Crawling'
-                            )}
+                        <Button type="submit" loading={form.formState.isSubmitting} className="w-full">
+                            Start Crawling
                         </Button>
                     </form>
                 </Form>

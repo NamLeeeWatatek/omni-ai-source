@@ -9,7 +9,7 @@
  * findAll(@CurrentWorkspace() workspaceId: string) { ... }
  */
 export const CurrentWorkspace = createParamDecorator(
-  async (data: unknown, ctx: ExecutionContext): Promise<string | undefined> => {
+  (data: unknown, ctx: ExecutionContext): string | undefined => {
     const request = ctx.switchToHttp().getRequest();
 
     // 1. Check X-Workspace-Id header (recommended for frontend)

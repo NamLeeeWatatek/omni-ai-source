@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import React, { useEffect, useState } from 'react';
-import axiosClient from '@/lib/axios-client';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import {
@@ -12,23 +11,30 @@ import {
 import { Input } from '@/components/ui/Input';
 import { FiTag, FiSearch, FiX } from 'react-icons/fi';
 import { Tag, TagSelectorProps } from '@/lib/types';
+import { MetadataService, useAsyncState } from '@/lib/services/api.service';
 
 export function TagSelector({ selectedTags, onChange, maxTags = 5 }: TagSelectorProps) {
   const [tags, setTags] = useState<Tag[]>([]);
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
+  const { loading, error, execute } = useAsyncState();
 
   useEffect(() => {
     const loadTags = async () => {
-      try {
-        const data = await axiosClient.get('/metadata/tags');
-        setTags(data);
-      } catch {
-
-      }
+      await execute(
+        () => MetadataService.getTags(),
+        (data: Tag[]) => {
+          setTags(data);
+        },
+        (err) => {
+          console.error('Failed to load tags:', err);
+          setTags([]);
+        }
+      );
     };
+
     loadTags();
-  }, []);
+  }, [execute]);
 
   const selectedTagObjects = tags.filter(t => selectedTags.includes(t.id));
   const availableTags = tags.filter(t => !selectedTags.includes(t.id));
@@ -75,8 +81,13 @@ export function TagSelector({ selectedTags, onChange, maxTags = 5 }: TagSelector
         {selectedTags.length < maxTags && (
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-6">
-                <FiTag className="size-3 mr-1" />
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6"
+                aria-label={`Thêm tag (${maxTags - selectedTags.length} tag còn lại)`}
+              >
+                <FiTag className="size-3 mr-1" aria-hidden="true" />
                 Add Tag
               </Button>
             </PopoverTrigger>

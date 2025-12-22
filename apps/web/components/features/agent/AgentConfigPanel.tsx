@@ -67,7 +67,7 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
     const loadConfig = async () => {
         try {
             setLoading(true)
-            const data = await axiosClient.get(`/agent-configs/${flowId}`)
+            const data: any = await axiosClient.get(`/agent-configs/${flowId}`)
             setConfig(data)
         } catch {
 

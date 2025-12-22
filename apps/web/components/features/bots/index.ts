@@ -1,3 +1,5 @@
 ﻿export { BotDialog } from './BotDialog'
 export { BotKBLinkDialog } from './BotKbLinkDialog'
-
+export { BotOverviewTab, BotAnalyticsTab } from './BotOverviewTab'
+export { BotConfigurationTab, BotSystemPromptTab } from './BotConfigurationTab'
+export { BotSettingsTab } from './BotSettingsTab'

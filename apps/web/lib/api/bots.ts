@@ -62,9 +62,14 @@ export interface UpdateBotDto extends Partial<CreateBotDto> { }
 
 export const botsApi = {
   async getAll(workspaceId: string, status?: string) {
-    const params = new URLSearchParams({ workspaceId })
-    if (status) params.append('status', status)
-    return await axiosClient.get(`/bots?${params}`)
+    const filters: any = { workspaceId }
+    if (status) filters.status = status
+
+    return await axiosClient.get('/bots', {
+      params: {
+        filters: JSON.stringify(filters)
+      }
+    })
   },
 
   async getOne(id: string): Promise<Bot> {

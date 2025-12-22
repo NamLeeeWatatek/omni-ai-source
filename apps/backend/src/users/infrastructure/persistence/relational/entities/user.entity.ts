@@ -4,10 +4,13 @@
   DeleteDateColumn,
   Entity,
   Index,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  JoinColumn,
 } from 'typeorm';
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
+import { RoleEntity } from '../../../../../roles/infrastructure/persistence/relational/entities/role.entity';
 
 @Entity({ name: 'user' })
 export class UserEntity extends EntityRelationalHelper {
@@ -40,8 +43,9 @@ export class UserEntity extends EntityRelationalHelper {
   @Column({ name: 'is_active', type: Boolean, default: true })
   isActive: boolean;
 
-  @Column({ type: String, default: 'user' })
-  role: 'admin' | 'user';
+  @ManyToOne(() => RoleEntity, { eager: true })
+  @JoinColumn({ name: 'role_id' })
+  role: RoleEntity;
 
   @Column({ name: 'first_name', type: String, nullable: true })
   @Index()

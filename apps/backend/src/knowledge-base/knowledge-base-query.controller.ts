@@ -1,4 +1,4 @@
-﻿import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { KBRagService } from './services/kb-rag.service';
@@ -17,10 +17,13 @@ export class KnowledgeBaseQueryController {
   @Post('query')
   @ApiOperation({ summary: 'Query knowledge base (vector search)' })
   async query(@Body() queryDto: QueryKnowledgeBaseDto) {
+    if (!queryDto.knowledgeBaseId) {
+      throw new Error('knowledgeBaseId is required');
+    }
     const results = await this.ragService.query(
       queryDto.query,
       queryDto.knowledgeBaseId,
-      queryDto.limit || 5,
+      String(queryDto.limit || 5),
       queryDto.similarityThreshold || 0.5,
     );
 

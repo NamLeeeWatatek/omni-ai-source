@@ -11,10 +11,13 @@
   JoinColumn,
 } from 'typeorm';
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
+import { WorkspaceOwnedEntity } from '../../../../../utils/workspace-owned.entity';
 import { BotEntity } from '../../../../../bots/infrastructure/persistence/relational/entities/bot.entity';
+import { WorkspaceEntity } from '../../../../../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
+import { ContactEntity } from './contact.entity';
 
 @Entity({ name: 'conversation' })
-export class ConversationEntity extends EntityRelationalHelper {
+export class ConversationEntity extends WorkspaceOwnedEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -29,11 +32,13 @@ export class ConversationEntity extends EntityRelationalHelper {
   @Index()
   channelId?: string | null;
 
-  @Column({ name: 'contact_name', type: String, nullable: true })
-  contactName?: string | null;
+  @Column({ name: 'contact_id', type: 'uuid', nullable: true })
+  @Index()
+  contactId?: string | null;
 
-  @Column({ name: 'contact_avatar', type: String, nullable: true })
-  contactAvatar?: string | null;
+  @ManyToOne(() => ContactEntity, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'contact_id' })
+  contact?: ContactEntity;
 
   @Column({ type: 'jsonb', default: {} })
   metadata: Record<string, any>;
@@ -53,7 +58,15 @@ export class ConversationEntity extends EntityRelationalHelper {
   @Index()
   externalId?: string | null;
 
-  @ManyToOne(() => BotEntity, { onDelete: 'CASCADE' })
+  @Column({ name: 'source', type: String, default: 'web' })
+  @Index()
+  source: 'web' | 'widget' | 'playground' | 'whatsapp' | 'facebook' | 'api';
+
+  @Column({ name: 'type', type: String, default: 'support' })
+  @Index()
+  type: 'support' | 'ai-playground' | 'discovery' | 'audit';
+
+  @ManyToOne(() => BotEntity, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'bot_id' })
   bot?: BotEntity;
 
@@ -71,7 +84,7 @@ export class ConversationEntity extends EntityRelationalHelper {
 }
 
 @Entity({ name: 'message' })
-export class MessageEntity extends EntityRelationalHelper {
+export class MessageEntity extends WorkspaceOwnedEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

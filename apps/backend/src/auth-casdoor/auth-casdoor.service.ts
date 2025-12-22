@@ -134,7 +134,7 @@ export class AuthCasdoorService {
       );
       const workspaces = await this.workspaceHelper.getUserWorkspaces(user.id);
 
-      this.logger.log(`User workspace: ${workspace.name}`);
+      this.logger.log(`User workspace: ${workspace?.name || 'none'}`);
       this.logger.log(`User has ${workspaces.length} workspaces`);
 
       return {
@@ -256,7 +256,8 @@ export class AuthCasdoorService {
         return userInfo;
       }
 
-      return fullUserResult;
+      // If we didn't get a valid data object, fallback to basic userInfo
+      return fullUserResult.data || fullUserResult || userInfo;
     } catch (error) {
       this.logger.error(`Get user info error: ${error.message}`);
       throw new UnauthorizedException('Failed to get user info');
@@ -296,9 +297,10 @@ export class AuthCasdoorService {
       Array.isArray(casdoorUser.roles) &&
       casdoorUser.roles.length > 0
     ) {
-      const roleNames = casdoorUser.roles.map((r: any) =>
-        (typeof r === 'string' ? r : r.name).toLowerCase(),
-      );
+      const roleNames = casdoorUser.roles.map((r: any) => {
+        if (!r) return '';
+        return (typeof r === 'string' ? r : (r.name || '')).toLowerCase();
+      }).filter(Boolean);
       isAdmin =
         roleNames.includes('admin') || roleNames.includes('super_admin');
       this.logger.log(

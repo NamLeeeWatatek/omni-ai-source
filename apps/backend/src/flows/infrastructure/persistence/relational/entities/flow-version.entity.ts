@@ -2,68 +2,61 @@
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
-  UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { FlowEntity } from './flow.entity';
-import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
+import { BotEntity } from '../../../../../bots/infrastructure/persistence/relational/entities/bot.entity';
+import { WorkspaceOwnedEntity } from '../../../../../utils/workspace-owned.entity';
 
 @Entity('flow_version')
-export class FlowVersionEntity extends EntityRelationalHelper {
+@Index(['botId', 'version'], { unique: true })
+export class FlowVersionEntity extends WorkspaceOwnedEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'uuid', nullable: true })
-  bot_id: string;
+  @Column({ name: 'bot_id', type: 'uuid', nullable: true })
+  @Index()
+  botId: string;
+
+  @Column({ name: 'flow_id', type: 'uuid' })
+  @Index()
+  flowId: string;
 
   @Column({ type: 'int' })
   version: number;
 
-  @Column({ nullable: true })
-  name: string;
+  @Column({ type: String, nullable: true })
+  name?: string | null;
 
-  @Column({ type: 'text', nullable: true })
-  description: string;
+  @Column({ type: String, nullable: true })
+  description?: string | null;
 
-  @Column({ type: 'varchar', default: 'draft' })
-  status: string;
+  @Column({ type: String, default: 'draft' })
+  status: 'draft' | 'published' | 'archived';
 
-  @Column({ type: 'timestamp', nullable: true })
-  published_at: Date;
-
-  @Column({ type: 'uuid', nullable: true })
-  created_by: string;
+  @Column({ name: 'published_at', type: 'timestamp', nullable: true })
+  publishedAt?: Date | null;
 
   @Column({ type: 'jsonb' })
-  flow: any;
+  flow: Record<string, any>;
 
-  @Column({ type: 'boolean', default: false })
-  is_published: boolean;
-
-  @CreateDateColumn()
-  created_at: Date;
-
-  @UpdateDateColumn()
-  updated_at: Date;
-
-  @Column({ type: 'uuid' })
-  flowId: string;
+  @Column({ name: 'is_published', type: Boolean, default: false })
+  isPublished: boolean;
 
   @ManyToOne(() => FlowEntity, {
     onDelete: 'CASCADE',
-    createForeignKeyConstraints: false,
   })
-  @JoinColumn({ name: 'flowId' })
+  @JoinColumn({ name: 'flow_id' })
   flowEntity: FlowEntity;
 
-  @Column({ type: 'jsonb' })
-  data: any;
+  @ManyToOne(() => BotEntity, (bot) => bot.flowVersions, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'bot_id' })
+  bot?: BotEntity;
 
-  @Column({ type: 'int' })
-  versionNumber: number;
-
-  @CreateDateColumn()
-  createdAt: Date;
+  @Column({ type: 'jsonb', nullable: true })
+  data?: Record<string, any> | null;
 }

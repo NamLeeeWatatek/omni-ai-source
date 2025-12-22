@@ -27,11 +27,14 @@ import { ApiConnectorExecutor } from './execution/executors/api-connector.execut
 import { ResponseHandlerExecutor } from './execution/executors/response-handler.executor';
 import { MultiSocialPostExecutor } from './execution/executors/multi-social-post.executor';
 import { DelayExecutor } from './execution/executors/delay.executor';
+import { KBQueryExecutor } from './execution/executors/kb-query.executor';
 import { ChannelsModule } from '../channels/channels.module';
 import { NodeTypesModule } from '../node-types/node-types.module';
 import { AiProvidersModule } from '../ai-providers/ai-providers.module';
 import { FilesModule } from '../files/files.module';
+import { KnowledgeBaseModule } from '../knowledge-base/knowledge-base.module';
 import { ExecutionArtifactService } from './services/execution-artifact.service';
+import { FormDiscoveryService } from './services/form-discovery.service';
 import { ExecutionArtifactsController } from './execution-artifacts.controller';
 import { FlowEventListener } from './listeners/flow-event.listener';
 
@@ -49,8 +52,13 @@ import { FlowEventListener } from './listeners/flow-event.listener';
     NodeTypesModule,
     AiProvidersModule,
     FilesModule,
+    KnowledgeBaseModule,
   ],
-  controllers: [FlowsController, ExecutionsController, ExecutionArtifactsController],
+  controllers: [
+    FlowsController,
+    ExecutionsController,
+    ExecutionArtifactsController,
+  ],
   providers: [
     FlowsService,
     FlowsGateway,
@@ -68,13 +76,16 @@ import { FlowEventListener } from './listeners/flow-event.listener';
     ResponseHandlerExecutor,
     MultiSocialPostExecutor,
     DelayExecutor,
+    KBQueryExecutor,
     ExecutionArtifactService,
+    FormDiscoveryService,
     FlowEventListener,
   ],
   exports: [
     FlowsService,
     ExecutionService,
     ExecutionGateway,
+    FormDiscoveryService,
     FlowEventListener,
   ],
 })
@@ -92,6 +103,7 @@ export class FlowsModule implements OnModuleInit {
     private readonly responseHandlerExecutor: ResponseHandlerExecutor,
     private readonly multiSocialPostExecutor: MultiSocialPostExecutor,
     private readonly delayExecutor: DelayExecutor,
+    private readonly kbQueryExecutor: KBQueryExecutor,
   ) {}
 
   onModuleInit() {
@@ -109,6 +121,7 @@ export class FlowsModule implements OnModuleInit {
     this.strategy.register('response-handler', this.responseHandlerExecutor);
     this.strategy.register('multi-social-post', this.multiSocialPostExecutor);
     this.strategy.register('delay', this.delayExecutor);
+    this.strategy.register('kb-query', this.kbQueryExecutor);
 
     // Legacy webhook trigger (passthrough)
     this.strategy.register('webhook', {

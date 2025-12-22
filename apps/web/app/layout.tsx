@@ -7,8 +7,9 @@ import './globals.css'
 import { QueryProvider } from '@/components/providers/QueryProvider'
 import { I18nProvider } from '@/components/providers/I18nProvider'
 import { SessionProvider } from 'next-auth/react'
-import { ThemeProvider } from 'next-themes'
+import { ThemeProviderWrapper } from '@/components/providers/ThemeProviderWrapper'
 import { GlobalLoadingOverlay } from '@/components/providers/GlobalLoadingOverlay'
+import { ErrorBoundary } from '@/components/providers/ErrorBoundary'
 
 const inter = Inter({
     subsets: ['latin'],
@@ -28,23 +29,20 @@ export default function RootLayout({
     children: React.ReactNode
 }) {
     return (
-        <html lang="en" suppressHydrationWarning>
+        <html lang="en">
             <body className={`${inter.className} font-sans antialiased`}>
                 <I18nProvider>
                     <SessionProvider>
                         <QueryProvider>
-                            <ThemeProvider
-                                attribute="class"
-                                defaultTheme="system"
-                                enableSystem
-                                disableTransitionOnChange
-                            >
+                            <ThemeProviderWrapper>
                                 <ReduxProvider>
-                                    {children}
+                                    <ErrorBoundary>
+                                        {children}
+                                    </ErrorBoundary>
                                     <GlobalLoadingOverlay />
                                     <Toaster />
                                 </ReduxProvider>
-                            </ThemeProvider>
+                            </ThemeProviderWrapper>
                         </QueryProvider>
                     </SessionProvider>
                 </I18nProvider>

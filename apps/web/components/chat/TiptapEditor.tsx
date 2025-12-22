@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
+import { LinkDialog } from '@/components/ui/LinkDialog';
 
 interface TiptapEditorProps {
     onSend: (content: string) => Promise<void> | void;
@@ -30,8 +31,9 @@ export function TiptapEditor({
     disabled = false,
     className
 }: TiptapEditorProps) {
-    // âœ… FIX: Track content state for send button
+    // Track content state for send button
     const [hasContent, setHasContent] = useState(false);
+    const [showLinkDialog, setShowLinkDialog] = useState(false);
     
     const editor = useEditor({
         immediatelyRender: false,
@@ -116,8 +118,18 @@ export function TiptapEditor({
     }
 
     return (
-        <div className={cn('border border-border rounded-lg bg-background', className)}>
-            {/* Toolbar */}
+        <>
+            <LinkDialog
+                open={showLinkDialog}
+                onOpenChange={setShowLinkDialog}
+                onConfirm={(url) => {
+                    if (editor) {
+                        editor.chain().focus().setLink({ href: url }).run();
+                    }
+                }}
+            />
+            <div className={cn('border border-border rounded-lg bg-background', className)}>
+                {/* Toolbar */}
             <div className="border-b border-border px-2 py-1 flex items-center gap-1 flex-wrap">
                 <Button
                     type="button"
@@ -187,12 +199,7 @@ export function TiptapEditor({
                         'h-8 w-8',
                         editor.isActive('link') && 'bg-muted'
                     )}
-                    onClick={() => {
-                        const url = window.prompt('Enter URL:');
-                        if (url) {
-                            editor.chain().focus().setLink({ href: url }).run();
-                        }
-                    }}
+                    onClick={() => setShowLinkDialog(true)}
                     disabled={disabled}
                 >
                     <MdLink className="w-4 h-4" />
@@ -224,6 +231,7 @@ export function TiptapEditor({
                 </Button>
             </div>
         </div>
+        </>
     );
 }
 

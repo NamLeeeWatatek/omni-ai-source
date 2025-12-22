@@ -4,12 +4,17 @@ import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/Button'
 import toast from '@/lib/toast'
 import { FiUpload, FiX, FiImage, FiFile, FiCheck } from 'react-icons/fi'
-import axiosClient from '@/lib/axios-client'
+import { MediaService, useAsyncState } from '@/lib/services/api.service'
 
 interface MediaUploaderProps {
     onUploadComplete: (url: string, publicId: string) => void
     onClose: () => void
     type?: 'image' | 'file'
+}
+
+interface UploadResponse {
+    secure_url: string
+    public_id: string
 }
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024
@@ -81,20 +86,14 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
             setUploading(true)
             setProgress(0)
 
-            const formData = new FormData()
-            formData.append('file', file)
-
-            const endpoint = type === 'image' ? '/media/upload/image' : '/media/upload/file'
-
             const progressInterval = setInterval(() => {
                 setProgress(prev => Math.min(prev + 10, 90))
             }, 200)
 
-            const result = await axiosClient.post(endpoint, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            })
+            const result = await (type === 'image'
+                ? MediaService.uploadImage(file)
+                : MediaService.uploadFile(file)
+            ) as UploadResponse
 
             clearInterval(progressInterval)
             setProgress(100)
@@ -105,7 +104,6 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
 
         } catch (e: any) {
             toast.error('Upload failed: ' + (e.message || 'Unknown error'))
-
         } finally {
             setUploading(false)
         }
@@ -139,7 +137,16 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
                             onDragOver={handleDrag}
                             onDrop={handleDrop}
                             onClick={() => fileInputRef.current?.click()}
-                            className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all ${dragActive
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault()
+                                    fileInputRef.current?.click()
+                                }
+                            }}
+                            tabIndex={0}
+                            role="button"
+                            aria-label={`Upload ${type === 'image' ? 'image' : 'file'}. Drop here or click to browse`}
+                            className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${dragActive
                                     ? 'border-purple-500 bg-purple-500/10'
                                     : 'border-slate-600/30 hover:border-zinc-600'
                                 }`}
@@ -240,4 +247,3 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
         </div>
     )
 }
-

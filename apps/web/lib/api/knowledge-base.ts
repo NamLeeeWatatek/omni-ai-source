@@ -36,12 +36,10 @@ import type {
 
 /**
  * Get all knowledge bases
- * @param workspaceId - Optional workspace ID to filter knowledge bases
+ * @param params - Optional pagination and filter parameters
  */
-export async function getKnowledgeBases(workspaceId?: string): Promise<GetKnowledgeBasesResponse> {
-  return axiosClient.get('/knowledge-bases', {
-    params: workspaceId ? { workspaceId } : undefined
-  })
+export async function getKnowledgeBases(params?: any): Promise<GetKnowledgeBasesResponse> {
+  return axiosClient.get('/knowledge-bases', { params })
 }
 
 /**
@@ -131,9 +129,9 @@ export async function createKBDocument(data: CreateDocumentDto): Promise<CreateD
 /**
  * Get documents in knowledge base
  */
-export async function getKBDocuments(kbId: string, folderId?: string): Promise<GetDocumentsResponse> {
+export async function getKBDocuments(kbId: string, params?: any): Promise<GetDocumentsResponse> {
   return axiosClient.get(`/knowledge-bases/${kbId}/documents`, {
-    params: folderId ? { folderId } : undefined
+    params: params
   })
 }
 
@@ -179,7 +177,7 @@ export async function getKBDocumentDownloadUrl(documentId: string): Promise<{
 /**
  * Upload document file
  */
-export async function uploadKBDocument(file: File, kbId: string, folderId?: string): Promise<CreateDocumentResponse> {
+export async function uploadKBDocument(file: File, kbId: string, folderId?: string | null): Promise<CreateDocumentResponse> {
   const formData = new FormData()
   formData.append('file', file)
   formData.append('knowledgeBaseId', kbId)

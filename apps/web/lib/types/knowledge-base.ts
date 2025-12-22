@@ -91,7 +91,7 @@ export interface CreateFolderDto {
   knowledgeBaseId: string;
   name: string;
   description?: string;
-  parentFolderId?: string;
+  parentFolderId?: string | null;
   icon?: string;
   color?: string;
   order?: number;
@@ -100,7 +100,7 @@ export interface CreateFolderDto {
 export interface UpdateFolderDto {
   name?: string;
   description?: string;
-  parentFolderId?: string;
+  parentFolderId?: string | null;
   icon?: string;
   color?: string;
   order?: number;
@@ -134,7 +134,7 @@ export interface CreateDocumentDto {
   knowledgeBaseId: string;
   name: string;
   content: string;
-  folderId?: string;
+  folderId?: string | null;
   fileType?: string;
   mimeType?: string;
   metadata?: Record<string, any>;
@@ -144,7 +144,7 @@ export interface CreateDocumentDto {
 export interface UpdateDocumentDto {
   name?: string;
   content?: string;
-  folderId?: string;
+  folderId?: string | null;
   metadata?: Record<string, any>;
   tags?: string[];
 }
@@ -152,7 +152,7 @@ export interface UpdateDocumentDto {
 export interface UploadDocumentDto {
   file: File;
   knowledgeBaseId: string;
-  folderId?: string;
+  folderId?: string | null;
 }
 
 export interface QueryKnowledgeBaseDto {
@@ -216,7 +216,9 @@ export interface AssignAgentDto {
   similarityThreshold?: number;
 }
 
-export type GetKnowledgeBasesResponse = KnowledgeBase[];
+import type { PaginatedResponse } from './pagination'
+
+export type GetKnowledgeBasesResponse = KnowledgeBase[] | PaginatedResponse<KnowledgeBase>;
 export type GetKnowledgeBaseResponse = KnowledgeBase;
 export type CreateKnowledgeBaseResponse = KnowledgeBase;
 export type UpdateKnowledgeBaseResponse = KnowledgeBase;

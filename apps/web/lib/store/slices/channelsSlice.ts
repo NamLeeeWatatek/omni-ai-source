@@ -14,6 +14,7 @@ import {
   disconnectChannel,
 } from '@/lib/api/channels';
 import { axiosClient } from '@/lib/axios-client';
+import { setGlobalLoading } from './uiSlice';
 
 // Async actions defined in slice (Redux Toolkit 2.0 style)
 export const loadChannelsData = createAsyncThunk(
@@ -37,48 +38,60 @@ export const loadChannelsData = createAsyncThunk(
 
 export const disconnectChannelAsync = createAsyncThunk(
   'channels/disconnect',
-  async (channelId: number, { rejectWithValue }) => {
+  async (channelId: number, { dispatch, rejectWithValue }) => {
+    dispatch(setGlobalLoading({ actionId: 'disconnect-channel', isLoading: true, message: 'Disconnecting channel...' }))
     try {
       await disconnectChannel(channelId);
       return channelId;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to disconnect channel');
+    } finally {
+      dispatch(setGlobalLoading({ actionId: 'disconnect-channel', isLoading: false }))
     }
   }
 );
 
 export const deleteConfigAsync = createAsyncThunk(
   'channels/deleteConfig',
-  async (configId: number, { rejectWithValue }) => {
+  async (configId: number, { dispatch, rejectWithValue }) => {
+    dispatch(setGlobalLoading({ actionId: 'delete-config', isLoading: true, message: 'Deleting configuration...' }))
     try {
       await deleteIntegration(configId);
       return configId;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to delete configuration');
+    } finally {
+      dispatch(setGlobalLoading({ actionId: 'delete-config', isLoading: false }))
     }
   }
 );
 
 export const createConfigAsync = createAsyncThunk(
   'channels/createConfig',
-  async (data: any, { rejectWithValue }) => {
+  async (data: any, { dispatch, rejectWithValue }) => {
+    dispatch(setGlobalLoading({ actionId: 'create-config', isLoading: true, message: 'Creating configuration...' }))
     try {
       const config = await createIntegration(data);
       return config;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to create configuration');
+    } finally {
+      dispatch(setGlobalLoading({ actionId: 'create-config', isLoading: false }))
     }
   }
 );
 
 export const updateConfigAsync = createAsyncThunk(
   'channels/updateConfig',
-  async ({ id, data }: { id: number; data: any }, { rejectWithValue }) => {
+  async ({ id, data }: { id: number; data: any }, { dispatch, rejectWithValue }) => {
+    dispatch(setGlobalLoading({ actionId: 'update-config', isLoading: true, message: 'Updating configuration...' }))
     try {
       const config = await updateIntegration(id, data);
       return config;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to update configuration');
+    } finally {
+      dispatch(setGlobalLoading({ actionId: 'update-config', isLoading: false }))
     }
   }
 );
@@ -87,7 +100,7 @@ export const loadBotsForFacebook = createAsyncThunk(
   'channels/loadBotsForFacebook',
   async (workspaceId: string, { rejectWithValue }) => {
     try {
-      const response = await axiosClient.get(`/bots?workspaceId=${workspaceId}`);
+      const response = await axiosClient.get<any>(`/bots?workspaceId=${workspaceId}`);
 
       let botsList = [];
       if (Array.isArray(response)) {
@@ -105,7 +118,8 @@ export const loadBotsForFacebook = createAsyncThunk(
 
 export const connectFacebookPage = createAsyncThunk(
   'channels/connectFacebookPage',
-  async ({ page, botId, tempToken }: { page: any; botId: string; tempToken: string }, { rejectWithValue }) => {
+  async ({ page, botId, tempToken }: { page: any; botId: string; tempToken: string }, { dispatch, rejectWithValue }) => {
+    dispatch(setGlobalLoading({ actionId: 'connect-fb', isLoading: true, message: 'Connecting Facebook page...' }))
     try {
       const response = await axiosClient.post('/channels/facebook/connect', {
         pageId: page.id,
@@ -121,6 +135,8 @@ export const connectFacebookPage = createAsyncThunk(
       };
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message || 'Failed to connect page');
+    } finally {
+      dispatch(setGlobalLoading({ actionId: 'connect-fb', isLoading: false }))
     }
   }
 );
@@ -286,84 +302,84 @@ const channelsSlice = createSlice({
         state.error = action.payload as string;
       })
 
-    // Disconnect channel
-    .addCase(disconnectChannelAsync.pending, (state) => {
-      state.error = null;
-    })
-    .addCase(disconnectChannelAsync.fulfilled, (state, action) => {
-      state.channels = state.channels.filter(c => c.id !== action.payload);
-    })
-    .addCase(disconnectChannelAsync.rejected, (state, action) => {
-      state.error = action.payload as string;
-    })
+      // Disconnect channel
+      .addCase(disconnectChannelAsync.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(disconnectChannelAsync.fulfilled, (state, action) => {
+        state.channels = state.channels.filter(c => c.id !== action.payload);
+      })
+      .addCase(disconnectChannelAsync.rejected, (state, action) => {
+        state.error = action.payload as string;
+      })
 
-    // Delete config
-    .addCase(deleteConfigAsync.pending, (state) => {
-      state.error = null;
-    })
-    .addCase(deleteConfigAsync.fulfilled, (state, action) => {
-      state.configs = state.configs.filter(c => c.id !== action.payload);
-    })
-    .addCase(deleteConfigAsync.rejected, (state, action) => {
-      state.error = action.payload as string;
-    })
+      // Delete config
+      .addCase(deleteConfigAsync.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(deleteConfigAsync.fulfilled, (state, action) => {
+        state.configs = state.configs.filter(c => c.id !== action.payload);
+      })
+      .addCase(deleteConfigAsync.rejected, (state, action) => {
+        state.error = action.payload as string;
+      })
 
-    // Create config
-    .addCase(createConfigAsync.pending, (state) => {
-      state.error = null;
-    })
-    .addCase(createConfigAsync.fulfilled, (state, action) => {
-      state.configs.push(action.payload);
-    })
-    .addCase(createConfigAsync.rejected, (state, action) => {
-      state.error = action.payload as string;
-    })
+      // Create config
+      .addCase(createConfigAsync.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(createConfigAsync.fulfilled, (state, action) => {
+        state.configs.push(action.payload);
+      })
+      .addCase(createConfigAsync.rejected, (state, action) => {
+        state.error = action.payload as string;
+      })
 
-    // Update config
-    .addCase(updateConfigAsync.pending, (state) => {
-      state.error = null;
-    })
-    .addCase(updateConfigAsync.fulfilled, (state, action) => {
-      const index = state.configs.findIndex(c => c.id === action.payload.id);
-      if (index !== -1) {
-        state.configs[index] = action.payload;
-      }
-    })
-    .addCase(updateConfigAsync.rejected, (state, action) => {
-      state.error = action.payload as string;
-    })
+      // Update config
+      .addCase(updateConfigAsync.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(updateConfigAsync.fulfilled, (state, action) => {
+        const index = state.configs.findIndex(c => c.id === action.payload.id);
+        if (index !== -1) {
+          state.configs[index] = action.payload;
+        }
+      })
+      .addCase(updateConfigAsync.rejected, (state, action) => {
+        state.error = action.payload as string;
+      })
 
-    // Load bots for Facebook
-    .addCase(loadBotsForFacebook.pending, (state) => {
-      state.loadingBots = true;
-      state.error = null;
-    })
-    .addCase(loadBotsForFacebook.fulfilled, (state, action) => {
-      state.loadingBots = false;
-      state.bots = action.payload;
-      if (action.payload.length > 0 && !state.selectedBotId) {
-        state.selectedBotId = action.payload[0].id;
-      }
-    })
-    .addCase(loadBotsForFacebook.rejected, (state, action) => {
-      state.loadingBots = false;
-      state.error = action.payload as string;
-    })
+      // Load bots for Facebook
+      .addCase(loadBotsForFacebook.pending, (state) => {
+        state.loadingBots = true;
+        state.error = null;
+      })
+      .addCase(loadBotsForFacebook.fulfilled, (state, action) => {
+        state.loadingBots = false;
+        state.bots = action.payload;
+        if (action.payload.length > 0 && !state.selectedBotId) {
+          state.selectedBotId = action.payload[0].id;
+        }
+      })
+      .addCase(loadBotsForFacebook.rejected, (state, action) => {
+        state.loadingBots = false;
+        state.error = action.payload as string;
+      })
 
-    // Connect Facebook page
-    .addCase(connectFacebookPage.pending, (state) => {
-      state.connectingPage = true;
-      state.error = null;
-    })
-    .addCase(connectFacebookPage.fulfilled, (state, action) => {
-      state.connectingPage = false;
-      state.facebookPages = state.facebookPages.filter(p => p.id !== action.payload.pageId);
-      // Reload channels data will be handled by component
-    })
-    .addCase(connectFacebookPage.rejected, (state, action) => {
-      state.connectingPage = false;
-      state.error = action.payload as string;
-    });
+      // Connect Facebook page
+      .addCase(connectFacebookPage.pending, (state) => {
+        state.connectingPage = true;
+        state.error = null;
+      })
+      .addCase(connectFacebookPage.fulfilled, (state, action) => {
+        state.connectingPage = false;
+        state.facebookPages = state.facebookPages.filter(p => p.id !== action.payload.pageId);
+        // Reload channels data will be handled by component
+      })
+      .addCase(connectFacebookPage.rejected, (state, action) => {
+        state.connectingPage = false;
+        state.error = action.payload as string;
+      });
   },
 });
 

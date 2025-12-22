@@ -1,22 +1,24 @@
 ﻿import { Injectable } from '@nestjs/common';
 import {
-  NodeExecutor,
   NodeExecutionInput,
   NodeExecutionOutput,
 } from '../node-executor.interface';
 import { AiProvidersService } from '../../../ai-providers/ai-providers.service';
+import { BaseNodeExecutor } from '../base-node-executor';
 
 @Injectable()
-export class AIChatExecutor implements NodeExecutor {
-  constructor(private readonly aiProvidersService: AiProvidersService) {}
+export class AIChatExecutor extends BaseNodeExecutor {
+  constructor(private readonly aiProvidersService: AiProvidersService) {
+    super();
+  }
 
-  async execute(input: NodeExecutionInput): Promise<NodeExecutionOutput> {
+  protected async run(input: NodeExecutionInput): Promise<NodeExecutionOutput> {
     try {
       const { model, prompt, temperature, maxTokens } = input.data;
       const { workspaceId } = input.context;
 
-      // Interpolate variables in prompt
-      const interpolatedPrompt = this.interpolate(prompt, input.input);
+      // Variables in prompt are already interpolated by BaseNodeExecutor
+      const interpolatedPrompt = prompt;
 
       // Determine which provider to use based on model or user settings
       let providerId = 'openai'; // default
@@ -33,20 +35,22 @@ export class AIChatExecutor implements NodeExecutor {
       if (workspaceId) {
         try {
           // Get workspace configs first
-          const workspaceConfigs = await this.aiProvidersService.getWorkspaceConfigs(workspaceId);
-          const matchingConfig = workspaceConfigs.find(config =>
-            config.provider?.key === providerId && config.isActive
+          const workspaceConfigs =
+            await this.aiProvidersService.getWorkspaceConfigs(workspaceId);
+          const matchingConfig = workspaceConfigs.find(
+            (config) => config.provider?.key === providerId && config.isActive,
           );
 
           if (matchingConfig) {
             // Use workspace config
-            const result = await this.aiProvidersService.chatWithHistoryUsingProvider(
-              [{ role: 'user', content: interpolatedPrompt }],
-              actualModel,
-              matchingConfig.id,
-              'workspace',
-              workspaceId
-            );
+            const result =
+              await this.aiProvidersService.chatWithHistoryUsingProvider(
+                [{ role: 'user', content: interpolatedPrompt }],
+                actualModel,
+                matchingConfig.id,
+                'workspace',
+                workspaceId,
+              );
 
             return {
               success: true,
@@ -59,7 +63,10 @@ export class AIChatExecutor implements NodeExecutor {
             };
           }
         } catch (workspaceError) {
-          console.warn('Workspace AI config failed, trying user config:', workspaceError.message);
+          console.warn(
+            'Workspace AI config failed, trying user config:',
+            workspaceError.message,
+          );
         }
       }
 
@@ -68,7 +75,7 @@ export class AIChatExecutor implements NodeExecutor {
         const result = await this.aiProvidersService.chat(
           interpolatedPrompt,
           actualModel,
-          providerId
+          providerId,
         );
 
         return {
@@ -86,17 +93,21 @@ export class AIChatExecutor implements NodeExecutor {
         // Final fallback: try to use any available user config
         if (workspaceId) {
           try {
-            const workspaceConfigs = await this.aiProvidersService.getWorkspaceConfigs(workspaceId);
-            const anyActiveConfig = workspaceConfigs.find(config => config.isActive);
+            const workspaceConfigs =
+              await this.aiProvidersService.getWorkspaceConfigs(workspaceId);
+            const anyActiveConfig = workspaceConfigs.find(
+              (config) => config.isActive,
+            );
 
             if (anyActiveConfig) {
-              const result = await this.aiProvidersService.chatWithHistoryUsingProvider(
-                [{ role: 'user', content: interpolatedPrompt }],
-                actualModel,
-                anyActiveConfig.id,
-                'workspace',
-                workspaceId
-              );
+              const result =
+                await this.aiProvidersService.chatWithHistoryUsingProvider(
+                  [{ role: 'user', content: interpolatedPrompt }],
+                  actualModel,
+                  anyActiveConfig.id,
+                  'workspace',
+                  workspaceId,
+                );
 
               return {
                 success: true,
@@ -109,7 +120,10 @@ export class AIChatExecutor implements NodeExecutor {
               };
             }
           } catch (fallbackError) {
-            console.warn('Fallback AI config also failed:', fallbackError.message);
+            console.warn(
+              'Fallback AI config also failed:',
+              fallbackError.message,
+            );
           }
         }
 
@@ -119,7 +133,6 @@ export class AIChatExecutor implements NodeExecutor {
           error: `AI chat failed: ${systemError.message}. Please check your AI provider settings.`,
         };
       }
-
     } catch (error) {
       return {
         success: false,
@@ -127,16 +140,5 @@ export class AIChatExecutor implements NodeExecutor {
         error: `AI chat execution failed: ${error.message}`,
       };
     }
-  }
-
-  private interpolate(template: string, data: any): string {
-    return template.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
-      const keys = key.trim().split('.');
-      let value = data;
-      for (const k of keys) {
-        value = value?.[k];
-      }
-      return value !== undefined ? value : match;
-    });
   }
 }

@@ -1,182 +1,180 @@
-﻿import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
+﻿'use client'
+
+import { useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog'
 import { Button } from '@/components/ui/Button'
-import { Spinner } from '@/components/ui/Spinner'
-import {
-    Form,
-    FormControl,
-    FormDescription,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from '@/components/ui/Form'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
-import { handleFormError } from '@/lib/utils/form-errors'
-
-const templateFormSchema = z.object({
-    name: z.string().min(1, 'Name is required'),
-    description: z.string().optional(),
-    category: z.string().min(1, 'Category is required'),
-    tags: z.string().optional(),
-})
+import { Switch } from '@/components/ui/Switch'
+import { Label } from '@/components/ui/Label'
+import type { Template } from '@/lib/types/template'
 
 interface TemplateDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    template?: any | null
-    categories: Array<{ value: string; label: string }>
-    onSubmit: (data: any) => Promise<void>
+    template?: Template | null
+    onSubmit: (data: Partial<Template>) => Promise<void>
 }
+
+const categoryOptions = [
+    { value: 'image-generation', label: 'Image Generation' },
+    { value: 'video-editing', label: 'Video Editing' },
+    { value: 'text-to-speech', label: 'Text to Speech' },
+    { value: 'social-media', label: 'Social Media' },
+    { value: 'marketing', label: 'Marketing' },
+    { value: 'other', label: 'Other' },
+]
 
 export function TemplateDialog({
     open,
     onOpenChange,
     template,
-    categories,
     onSubmit
 }: TemplateDialogProps) {
-    const form = useForm<z.infer<typeof templateFormSchema>>({
-        resolver: zodResolver(templateFormSchema),
-        defaultValues: {
-            name: '',
-            description: '',
-            category: '',
-            tags: '',
-        },
+    const [formData, setFormData] = useState({
+        name: '',
+        description: '',
+        prompt: '',
+        category: '',
+        isActive: true,
     })
+    const [loading, setLoading] = useState(false)
 
     useEffect(() => {
         if (template && open) {
-            form.reset({
+            setFormData({
                 name: template.name,
                 description: template.description || '',
-                category: template.category,
-                tags: template.tags?.join(', ') || '',
+                prompt: template.prompt || '',
+                category: template.category || '',
+                isActive: template.isActive,
             })
         } else if (!open) {
-            form.reset()
+            setFormData({
+                name: '',
+                description: '',
+                prompt: '',
+                category: '',
+                isActive: true,
+            })
         }
-    }, [template, open, form])
+    }, [template, open])
 
-    // ...
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!formData.name.trim()) {
+            alert('Name is required')
+            return
+        }
 
-    const handleSubmit = async (values: z.infer<typeof templateFormSchema>) => {
+        setLoading(true)
         try {
-            const data = {
-                ...values,
-                tags: values.tags ? values.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-            }
-            await onSubmit(data)
-            form.reset()
+            await onSubmit(formData)
             onOpenChange(false)
-        } catch (error: any) {
-            handleFormError(error, form)
+        } catch (error) {
+            console.error('Submit error:', error)
+        } finally {
+            setLoading(false)
         }
+    }
+
+    const updateField = (field: string, value: any) => {
+        setFormData(prev => ({ ...prev, [field]: value }))
     }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{template ? 'Edit Template' : 'Create Template'}</DialogTitle>
                 </DialogHeader>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                        {form.formState.errors.root && (
-                            <div className="bg-destructive/15 p-3 rounded-md flex items-center gap-2 text-sm text-destructive">
-                                <span className="font-medium">Error:</span>
-                                {form.formState.errors.root.message}
-                            </div>
-                        )}
-                        <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Name</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Customer Support Flow" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Name *</Label>
+                        <Input
+                            id="name"
+                            placeholder="My Awesome Template"
+                            value={formData.name}
+                            onChange={(e) => updateField('name', e.target.value)}
+                            required
                         />
-                        <FormField
-                            control={form.control}
-                            name="description"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Description</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            placeholder="A template for handling customer support..."
-                                            rows={3}
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="description">Description</Label>
+                        <Textarea
+                            id="description"
+                            placeholder="Describe what this template is for..."
+                            rows={3}
+                            value={formData.description}
+                            onChange={(e) => updateField('description', e.target.value)}
                         />
-                        <FormField
-                            control={form.control}
-                            name="category"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Category</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select category" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {categories.map((cat) => (
-                                                <SelectItem key={cat.value} value={cat.value}>
-                                                    {cat.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="category">Category</Label>
+                        <Select value={formData.category} onValueChange={(value) => updateField('category', value)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {categoryOptions.map((cat) => (
+                                    <SelectItem key={cat.value} value={cat.value}>
+                                        {cat.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="prompt">AI Prompt</Label>
+                        <Textarea
+                            id="prompt"
+                            placeholder="Enter the AI prompt for content generation..."
+                            rows={4}
+                            value={formData.prompt}
+                            onChange={(e) => updateField('prompt', e.target.value)}
                         />
-                        <FormField
-                            control={form.control}
-                            name="tags"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Tags</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="support, automation, ai" {...field} />
-                                    </FormControl>
-                                    <FormDescription>
-                                        Comma-separated tags
-                                    </FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
+                        <p className="text-sm text-muted-foreground">
+                            The prompt that will be used to generate content with AI
+                        </p>
+                    </div>
+
+                    <div className="flex items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <Label className="text-base">Active</Label>
+                            <p className="text-sm text-muted-foreground">
+                                Whether this template is available for use
+                            </p>
+                        </div>
+                        <Switch
+                            checked={formData.isActive}
+                            onCheckedChange={(checked) => updateField('isActive', checked)}
                         />
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                                Cancel
-                            </Button>
-                            <Button type="submit" disabled={form.formState.isSubmitting}>
-                                {form.formState.isSubmitting && <Spinner className="w-4 h-4 mr-2" />}
-                                {template ? 'Update' : 'Create'}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
+                    </div>
+
+                    {/* Future enhancement: Add media file selection and style config editor */}
+                    <div className="text-sm text-muted-foreground p-4 bg-muted rounded-lg">
+                        <p className="font-medium mb-2">Advanced Features (Coming Soon):</p>
+                        <ul className="list-disc list-inside space-y-1 text-xs">
+                            <li>Media file attachments (images, videos)</li>
+                            <li>Style configuration editor</li>
+                            <li>Workspace assignment</li>
+                        </ul>
+                    </div>
+
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={loading}>
+                            {loading ? 'Saving...' : (template ? 'Update Template' : 'Create Template')}
+                        </Button>
+                    </DialogFooter>
+                </form>
             </DialogContent>
         </Dialog>
     )
 }
-

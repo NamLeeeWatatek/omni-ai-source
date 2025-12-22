@@ -1,10 +1,14 @@
-﻿import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
   WorkspaceEntity,
   WorkspaceMemberEntity,
 } from './infrastructure/persistence/relational/entities/workspace.entity';
+import {
+  getWorkspaceRoleId,
+  getWorkspaceRoleFromEntity,
+} from './utils/workspace-role.helper';
 
 @Injectable()
 export class WorkspaceHelperService {
@@ -55,7 +59,6 @@ export class WorkspaceHelperService {
       name: workspaceName,
       slug,
       ownerId: userId,
-      plan: 'free',
     });
 
     const saved = await this.workspaceRepository.save(workspace);
@@ -63,7 +66,7 @@ export class WorkspaceHelperService {
     await this.memberRepository.save({
       workspaceId: saved.id,
       userId,
-      role: 'owner',
+      roleId: getWorkspaceRoleId('owner'),
     });
 
     return saved;
@@ -85,8 +88,9 @@ export class WorkspaceHelperService {
   ): Promise<'owner' | 'admin' | 'member' | null> {
     const member = await this.memberRepository.findOne({
       where: { userId, workspaceId },
+      relations: ['role'],
     });
-    return member?.role || null;
+    return getWorkspaceRoleFromEntity(member?.role) || null;
   }
 
   async validateUserWorkspaceAccess(

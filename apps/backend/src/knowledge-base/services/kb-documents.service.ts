@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { CreateDocumentDto, UpdateDocumentDto } from '../dto/kb-document.dto';
+import { FilterDocumentDto, SortDocumentDto } from '../dto/query-document.dto';
+import { IPaginationOptions } from '../../utils/types/pagination-options';
 import { KBManagementService } from './kb-management.service';
 import { KBEmbeddingsService } from './kb-embeddings.service';
 import {
@@ -15,7 +17,10 @@ import { KBProcessingQueueService } from './kb-processing-queue.service';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import mammoth from 'mammoth';
 import PDFParser from 'pdf2json';
-import { KbDocumentEntity, KnowledgeBaseDocumentEntity } from '../infrastructure/persistence/relational/entities/knowledge-base.entity';
+import {
+  KbDocumentEntity,
+  KnowledgeBaseDocumentEntity,
+} from '../infrastructure/persistence/relational/entities/knowledge-base.entity';
 import { KBChunkEntity } from '../infrastructure/persistence/relational/entities/kb-chunk.entity';
 
 @Injectable()
@@ -31,7 +36,7 @@ export class KBDocumentsService {
     private readonly embeddingsService: KBEmbeddingsService,
     private readonly filesService: FilesService,
     private readonly processingQueue: KBProcessingQueueService,
-  ) {}
+  ) { }
 
   private async extractPdfWithPdf2json(buffer: Buffer): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -203,9 +208,26 @@ export class KBDocumentsService {
     buffer: Buffer,
     filename: string,
     mimeType: string,
+    knowledgeBaseId?: string,
+    userId?: string,
   ): Promise<{ fileUrl: string; fileId: string }> {
     try {
       this.logger.log(`ðŸ“¤ Uploading file to storage: ${filename}`);
+
+      let workspaceId: string | undefined;
+      if (knowledgeBaseId && userId) {
+        try {
+          const kb = await this.kbManagementService.findOne(
+            knowledgeBaseId,
+            userId,
+          );
+          workspaceId = kb.workspaceId || undefined;
+        } catch (kbError) {
+          this.logger.warn(
+            `Could not fetch KB ${knowledgeBaseId} to get workspaceId: ${kbError.message}`,
+          );
+        }
+      }
 
       const uploadDto = {
         fileName: filename,
@@ -213,7 +235,7 @@ export class KBDocumentsService {
         bucket: 'documents', // Knowledge base documents go to documents bucket
       };
 
-      const result = await this.filesService.create(uploadDto);
+      const result = await this.filesService.create(uploadDto, workspaceId);
 
       if (!result || !result.uploadSignedUrl || !result.file) {
         throw new Error('Failed to generate upload URL');
@@ -247,7 +269,7 @@ export class KBDocumentsService {
     }
   }
 
-  async create(userId: string, createDto: CreateDocumentDto) {
+  async create(userId: string, createDto: CreateDocumentDto): Promise<KbDocumentEntity> {
     const kb = await this.kbManagementService.findOne(
       createDto.knowledgeBaseId,
       userId,
@@ -272,6 +294,7 @@ export class KBDocumentsService {
 
     const document = this.documentRepository.create({
       ...createDto,
+      workspaceId: kb.workspaceId,
       title: sanitizedName,
       name: sanitizedName,
       content: sanitizedContent.length < 50000 ? sanitizedContent : '',
@@ -319,21 +342,66 @@ export class KBDocumentsService {
     throw new Error('Document has no content or file URL');
   }
 
-  async findAll(kbId: string, userId: string, folderId?: string) {
+  async findManyWithPagination({
+    kbId,
+    filterOptions,
+    sortOptions,
+    paginationOptions,
+    userId,
+  }: {
+    kbId: string;
+    filterOptions?: FilterDocumentDto | null;
+    sortOptions?: SortDocumentDto[] | null;
+    paginationOptions: IPaginationOptions;
+    userId: string;
+  }): Promise<{ data: KbDocumentEntity[]; total: number }> {
     await this.kbManagementService.findOne(kbId, userId);
 
     const query = this.documentRepository
       .createQueryBuilder('doc')
-      .where('doc.knowledgeBaseId = :kbId', { kbId })
-      .orderBy('doc.createdAt', 'DESC');
+      .where('doc.knowledgeBaseId = :kbId', { kbId });
 
-    if (folderId) {
-      query.andWhere('doc.folderId = :folderId', { folderId });
-    } else {
+    if (filterOptions?.folderId) {
+      query.andWhere('doc.folderId = :folderId', {
+        folderId: filterOptions.folderId,
+      });
+    } else if (filterOptions?.folderId === null) {
       query.andWhere('doc.folderId IS NULL');
     }
 
-    return query.getMany();
+    if (filterOptions?.search) {
+      query.andWhere('(doc.name ILIKE :search OR doc.title ILIKE :search)', {
+        search: `%${filterOptions.search}%`,
+      });
+    }
+
+    if (sortOptions?.length) {
+      sortOptions.forEach((sort) => {
+        if (sort.orderBy && (sort.orderBy as any) !== 'undefined') {
+          query.addOrderBy(`doc.${sort.orderBy}`, sort.order as any);
+        }
+      });
+    } else {
+      query.orderBy('doc.createdAt', 'DESC');
+    }
+
+    query
+      .skip((paginationOptions.page - 1) * paginationOptions.limit)
+      .take(paginationOptions.limit);
+
+    const [results, total] = await query.getManyAndCount();
+
+    return { data: results, total };
+  }
+
+  async findAll(kbId: string, userId: string, folderId?: string) {
+    const { data } = await this.findManyWithPagination({
+      kbId,
+      filterOptions: { folderId: folderId || null },
+      paginationOptions: { page: 1, limit: 1000 },
+      userId,
+    });
+    return data;
   }
 
   async findOne(documentId: string, userId: string) {

@@ -9,7 +9,11 @@ export interface AiProviderClient {
   /**
    * Send conversation history to the AI provider
    */
-  chatWithHistory(messages: ChatMessage[], model: string, options?: ChatOptions): Promise<string>;
+  chatWithHistory(
+    messages: ChatMessage[],
+    model: string,
+    options?: ChatOptions,
+  ): Promise<string>;
 
   /**
    * Generate embeddings for text
@@ -46,5 +50,5 @@ export enum AiProviderType {
   GOOGLE = 'google',
   OLLAMA = 'ollama',
   AZURE = 'azure',
-  CUSTOM = 'custom'
+  CUSTOM = 'custom',
 }

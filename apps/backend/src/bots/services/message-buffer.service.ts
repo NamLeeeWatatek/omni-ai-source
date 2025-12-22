@@ -21,9 +21,9 @@ export class MessageBufferService {
   private readonly logger = new Logger(MessageBufferService.name);
   private buffers = new Map<string, ConversationBuffer>();
 
-  private readonly BUFFER_DELAY = 4000
+  private readonly BUFFER_DELAY = 4000;
 
-  private readonly MAX_BUFFER_TIME = 15000; 
+  private readonly MAX_BUFFER_TIME = 15000;
 
   addMessage(
     conversationId: string,

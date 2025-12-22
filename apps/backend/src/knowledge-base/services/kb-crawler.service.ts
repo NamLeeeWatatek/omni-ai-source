@@ -40,7 +40,7 @@ export class KBCrawlerService {
     private readonly processingQueue: KBProcessingQueueService,
     private readonly kbManagementService: KBManagementService,
     private readonly embeddingsService: KBEmbeddingsService,
-  ) {}
+  ) { }
 
   async crawlUrl(url: string): Promise<CrawlResult> {
     try {
@@ -80,7 +80,7 @@ export class KBCrawlerService {
           try {
             const absoluteUrl = new URL(href, url).href;
             links.push(absoluteUrl);
-          } catch (e) {}
+          } catch (e) { }
         }
       });
 
@@ -106,7 +106,11 @@ export class KBCrawlerService {
     knowledgeBaseId: string,
     userId: string,
     options: CrawlOptions = {},
-  ): Promise<{ documentsCreated: number; errors: string[]; processingStarted: number }> {
+  ): Promise<{
+    documentsCreated: number;
+    errors: string[];
+    processingStarted: number;
+  }> {
     const {
       maxPages = 50,
       maxDepth = 3,
@@ -171,6 +175,7 @@ export class KBCrawlerService {
 
         const document = this.documentRepository.create({
           knowledgeBaseId,
+          workspaceId: kb.workspaceId,
           name: result.title,
           title: result.title,
           content: result.content,
@@ -223,11 +228,11 @@ export class KBCrawlerService {
       }
     }
 
-    this.logger.log(`Crawling completed: ${documentsCreated} documents created, ${processingStarted} processing started, ${errors.length} errors`);
+    this.logger.log(
+      `Crawling completed: ${documentsCreated} documents created, ${processingStarted} processing started, ${errors.length} errors`,
+    );
     return { documentsCreated, errors, processingStarted };
   }
-
-
 
   private async processDocument(
     document: KbDocumentEntity,

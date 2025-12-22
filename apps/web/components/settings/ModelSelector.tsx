@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import React, { useEffect, useState } from 'react';
-import { axiosClient } from '@/lib/axios-client';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/Select';
+import { MetadataService, useAsyncState } from '@/lib/services/api.service';
 
 interface ModelOption {
   provider: string;
@@ -24,6 +24,10 @@ interface ModelOption {
   max_tokens: number;
   is_default?: boolean;
   is_recommended?: boolean;
+}
+
+interface ProviderModelsResponse {
+  models: ModelOption[];
 }
 
 interface ModelSelectorProps {
@@ -41,23 +45,25 @@ export function ModelSelector({
 }: ModelSelectorProps) {
   const { t } = useTranslation()
   const [models, setModels] = useState<ModelOption[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { loading, error, execute } = useAsyncState();
 
   useEffect(() => {
-    loadModels();
-  }, []);
+    const loadModels = async () => {
+      await execute(
+        () => MetadataService.getModels(),
+        (response: ProviderModelsResponse[]) => {
+          const allModels = response.flatMap((p: ProviderModelsResponse) => p.models);
+          setModels(allModels);
+        },
+        (err) => {
+          console.error('Failed to load models:', err);
+          setModels([]);
+        }
+      );
+    };
 
-  const loadModels = async () => {
-    try {
-      const response = await axiosClient.get('/ai-providers/models');
-      const allModels = response.flatMap((p: any) => p.models);
-      setModels(allModels);
-    } catch {
-      console.error('Failed to load models:');
-    } finally {
-      setLoading(false);
-    }
-  };
+    loadModels();
+  }, [execute]);
 
   const filteredModels = filterProvider
     ? models.filter(m => m.provider === filterProvider)

@@ -19,12 +19,12 @@ export class Workspace {
   @ApiPropertyOptional({ type: String, description: 'Workspace avatar URL' })
   avatarUrl?: string | null;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: String,
     enum: ['free', 'starter', 'pro', 'enterprise'],
     default: 'free',
   })
-  plan: 'free' | 'starter' | 'pro' | 'enterprise';
+  plan?: 'free' | 'starter' | 'pro' | 'enterprise';
 
   @ApiProperty({ type: String })
   ownerId: string;

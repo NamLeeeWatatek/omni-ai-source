@@ -1,8 +1,8 @@
 import { useProgressOverlay } from '@/lib/hooks/useProgressOverlay'
 import { Dialog, DialogContent } from '@/components/ui/Dialog'
 import { Progress } from '@/components/ui/Progress'
-import { Spinner } from '@/components/ui/Spinner'
-import { FiCheckCircle, FiLoader } from 'react-icons/fi'
+import { LoadingLogo } from '@/components/ui/LoadingLogo'
+import { FiCheckCircle } from 'react-icons/fi'
 
 export function ProgressOverlay() {
     const {
@@ -29,9 +29,7 @@ export function ProgressOverlay() {
                 <div className="space-y-6">
                     {/* Header */}
                     <div className="text-center">
-                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-                            <FiLoader className="w-8 h-8 text-primary animate-spin" />
-                        </div>
+                        <LoadingLogo size="lg" className="mb-4" />
                         <h3 className="text-lg font-semibold">{title}</h3>
                         <p className="text-sm text-muted-foreground">{description}</p>
                     </div>
@@ -49,7 +47,7 @@ export function ProgressOverlay() {
                         <div className="space-y-2">
                             <p className="text-sm font-medium">Current step:</p>
                             <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
-                                <Spinner className="w-4 h-4" />
+                                <LoadingLogo size="xs" />
                                 <span className="text-sm">{steps[currentStep] || steps[steps.length - 1]}</span>
                             </div>
                         </div>
@@ -63,7 +61,7 @@ export function ProgressOverlay() {
                                     {index < currentStep ? (
                                         <FiCheckCircle className="w-3 h-3 text-green-500" />
                                     ) : index === currentStep ? (
-                                        <Spinner className="w-3 h-3" />
+                                        <LoadingLogo size="xs" />
                                     ) : (
                                         <div className="w-3 h-3 rounded-full border border-muted-foreground/30" />
                                     )}

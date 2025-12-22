@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Label } from '@/components/ui/Label'
-import { Spinner } from '@/components/ui/Spinner'
 import {
     Dialog,
     DialogContent,
@@ -236,10 +235,7 @@ export function BotFunctionModal({
                     <Button variant="outline" onClick={onClose}>
                         Cancel
                     </Button>
-                    <Button onClick={saveFunction} disabled={saving}>
-                        {saving ? (
-                            <Spinner className="size-4 mr-2" />
-                        ) : null}
+                    <Button onClick={saveFunction} loading={saving}>
                         {botFunction ? 'Update' : 'Create'}
                     </Button>
                 </DialogFooter>

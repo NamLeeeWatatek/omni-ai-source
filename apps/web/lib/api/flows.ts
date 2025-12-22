@@ -1,92 +1,25 @@
 ﻿import axiosClient from '@/lib/axios-client';
 
-export interface Flow {
-    id: string;
-    name: string;
-    description?: string;
-    status: 'draft' | 'published' | 'archived';
-    version?: number;
-    visibility?: 'private' | 'team' | 'public';
-    nodes: Array<{
-        id: string;
-        type: string;
-        position: { x: number; y: number };
-        data?: Record<string, any>;
-        properties?: NodeProperty[]; // Enriched by backend - NodeType properties for form generation
-        nodeTypeInfo?: {
-            id: string;
-            label: string;
-            category: string;
-            icon: string;
-            color: string;
-            description?: string;
-        };
-    }>;
-    edges: Array<{
-        id: string;
-        source: string;
-        target: string;
-        sourceHandle?: string;
-        targetHandle?: string;
-    }>;
 
-    // Backward compatibility
-    data?: {
-        nodes: any[];
-        edges: any[];
-    };
-    templateId?: string;
-    tags?: string[];
-    icon?: string;
-    category?: string;
-    createdAt: string;
-    updatedAt: string;
-}
-
-export interface NodeProperty {
-    name: string;
-    label: string;
-    type: 'string' | 'text' | 'number' | 'boolean' | 'select' | 'multi-select' | 'json' | 'file' | 'files' | 'key-value' | 'dynamic-form';
-    required?: boolean;
-    default?: any;
-    placeholder?: string;
-    description?: string;
-    options?: Array<{ value: string; label: string } | string>;
-    showWhen?: Record<string, any>;
-    min?: number;
-    max?: number;
-    pattern?: string;
-    maxLength?: number;
-    rows?: number;
-    helpText?: string;
-    accept?: string;
-    multiple?: boolean;
-    properties?: NodeProperty[];
-}
-
-export interface FlowExecution {
-    id: string;
-    flowId: string;
-    status: 'pending' | 'running' | 'completed' | 'failed';
-    input?: any;
-    output?: any;
-    error?: string;
-    startedAt: string;
-    completedAt?: string;
-}
-
-export interface CreateFlowFromTemplateDto {
-    templateId: string;
-    name: string;
-    description?: string;
-}
+import type {
+    Flow,
+    FlowExecution,
+    CreateFlowFromTemplateDto
+} from '@/lib/types/flow';
 
 export const flowsApi = {
     /**
-     * Get all flows
+     * Get all flows with pagination and filters
      */
-    async getAll(params?: { published?: boolean }): Promise<Flow[]> {
+    async getAll(params?: Record<string, any>): Promise<any> {
         return await axiosClient.get('/flows', { params });
+    },
+
+    /**
+     * Get workflow statistics
+     */
+    async getStats(): Promise<any> {
+        return await axiosClient.get('/flows/stats');
     },
 
     /**
@@ -115,6 +48,20 @@ export const flowsApi = {
      */
     async getExecutions(flowId: string): Promise<FlowExecution[]> {
         return await axiosClient.get(`/flows/${flowId}/executions`);
+    },
+
+    /**
+     * Create new flow
+     */
+    async create(data: Partial<Flow>): Promise<Flow> {
+        return await axiosClient.post('/flows', data);
+    },
+
+    /**
+     * Duplicate existing flow
+     */
+    async duplicate(id: string): Promise<Flow> {
+        return await axiosClient.post(`/flows/${id}/duplicate`);
     },
 
     /**

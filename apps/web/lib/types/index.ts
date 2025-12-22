@@ -1,6 +1,26 @@
 ﻿
-export * from './flow'
-export * from './node'
+// Export everything from flow except NodeProperty
+export type {
+  FlowStatus,
+  FlowVisibility,
+  FlowNode,
+  FlowEdge,
+  FlowStats,
+  Flow,
+  CreateFlowDto,
+  UpdateFlowDto,
+  CreateFlowFromTemplateDto,
+  FlowExecution
+} from './flow'
+
+// Export everything from node except NodeProperty
+export type {
+  NodeType,
+  NodeCategory,
+  CreateNodeTypeDto,
+  UpdateNodeTypeDto
+} from './node'
+
 export * from './channel'
 export * from './inbox'
 
@@ -22,3 +42,6 @@ export * from './settings'
 export * from './pagination'
 export * from './permissions'
 
+// Explicitly re-export conflicting types with aliases to resolve ambiguity
+export type { NodeProperty as FlowNodeProperty } from './flow'
+export type { NodeProperty as NodeTypeProperty } from './node'

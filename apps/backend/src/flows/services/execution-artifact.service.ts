@@ -23,7 +23,9 @@ export class ExecutionArtifactService {
     private readonly filesService: FilesService,
   ) {}
 
-  async createArtifact(dto: CreateArtifactDto): Promise<ExecutionArtifactEntity> {
+  async createArtifact(
+    dto: CreateArtifactDto,
+  ): Promise<ExecutionArtifactEntity> {
     const artifact = this.artifactRepository.create({
       executionId: dto.executionId,
       fileId: dto.fileId,
@@ -38,16 +40,20 @@ export class ExecutionArtifactService {
     return this.artifactRepository.save(artifact);
   }
 
-  async findByExecutionId(executionId: string): Promise<ExecutionArtifactEntity[]> {
+  async findByExecutionId(
+    executionId: string,
+  ): Promise<ExecutionArtifactEntity[]> {
     return this.artifactRepository.find({
       where: { executionId },
       order: { createdAt: 'ASC' },
     });
   }
 
-  async findByExecutionIds(executionIds: string[]): Promise<ExecutionArtifactEntity[]> {
+  async findByExecutionIds(
+    executionIds: string[],
+  ): Promise<ExecutionArtifactEntity[]> {
     return this.artifactRepository.find({
-      where: executionIds.map(id => ({ executionId: id })),
+      where: executionIds.map((id) => ({ executionId: id })),
       order: { createdAt: 'ASC' },
     });
   }
@@ -80,12 +86,14 @@ export class ExecutionArtifactService {
     const artifacts = await this.findByExecutionId(executionId);
     const artifactsWithUrls = await Promise.all(
       artifacts.map(async (artifact) => {
-        const url = await this.filesService.generateDownloadUrl(artifact.fileId);
+        const url = await this.filesService.generateDownloadUrl(
+          artifact.fileId,
+        );
         return {
           ...artifact,
           downloadUrl: url,
         };
-      })
+      }),
     );
     return artifactsWithUrls;
   }

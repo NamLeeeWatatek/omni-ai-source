@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog'
 import { Button } from '@/components/ui/Button'
-import { Spinner } from '@/components/ui/Spinner'
 import { Switch } from '@/components/ui/Switch'
 import {
     Form,
@@ -313,15 +312,8 @@ export function KBCollectionDialog({
                             >
                                 Cancel
                             </Button>
-                            <Button type="submit" disabled={form.formState.isSubmitting}>
-                                {form.formState.isSubmitting ? (
-                                    <>
-                                        <Spinner className="w-4 h-4 mr-2" />
-                                        {knowledgeBase ? 'Updating...' : 'Creating...'}
-                                    </>
-                                ) : (
-                                    knowledgeBase ? 'Update' : 'Create'
-                                )}
+                            <Button type="submit" loading={form.formState.isSubmitting}>
+                                {knowledgeBase ? 'Update' : 'Create'}
                             </Button>
                         </DialogFooter>
                     </form>

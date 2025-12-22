@@ -9,8 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/Avatar';
 import axiosClient from '@/lib/axios-client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
+import { PageLoading } from '@/components/ui/PageLoading';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/DropdownMenu';
 import { Badge } from '@/components/ui/Badge';
 
@@ -39,7 +39,7 @@ export default function ConversationPage() {
     const loadConversation = async () => {
         try {
             setLoading(true);
-            const data = await axiosClient.get(`/conversations/${conversationId}`);
+            const data: any = await axiosClient.get(`/conversations/${conversationId}`);
             setConversation(data);
         } catch (error) {
             toast.error('Failed to load conversation');
@@ -86,11 +86,7 @@ export default function ConversationPage() {
     };
 
     if (loading) {
-        return (
-            <div className="h-[calc(100vh-4rem)] flex items-center justify-center">
-                <Spinner className="w-8 h-8" />
-            </div>
-        );
+        return <PageLoading message="Loading conversation..." />
     }
 
     if (!conversation) {

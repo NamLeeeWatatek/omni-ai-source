@@ -96,20 +96,38 @@ export class SubscriptionsService {
   }
 
   async getQuota(workspaceId: string) {
-    const periodStart = this.getCurrentPeriodStart();
+    const subscription = await this.getSubscription(workspaceId);
+    let periodStart: Date;
+
+    if (subscription) {
+      // Derive current period start from end date (e.g., end date minus 1 month)
+      periodStart = new Date(subscription.currentPeriodEnd);
+      periodStart.setMonth(periodStart.getMonth() - 1);
+      // Normalize to date-only to match DB column type "date"
+      periodStart.setHours(0, 0, 0, 0);
+    } else {
+      periodStart = this.getCurrentPeriodStart();
+    }
 
     let quota = await this.quotaRepo.findOne({
       where: { workspaceId, periodStart },
     });
 
     if (!quota) {
-      quota = this.quotaRepo.create({
-        workspaceId,
-        periodStart,
-        messagesUsed: 0,
-        storageUsedGb: 0,
-      });
-      await this.quotaRepo.save(quota);
+      try {
+        quota = this.quotaRepo.create({
+          workspaceId,
+          periodStart,
+          messagesUsed: 0,
+          storageUsedGb: 0,
+        });
+        await this.quotaRepo.save(quota);
+      } catch (e) {
+        // Handle race condition if two requests try to create the same quota entry
+        quota = (await this.quotaRepo.findOne({
+          where: { workspaceId, periodStart },
+        })) as UsageQuotaEntity;
+      }
     }
 
     return quota;
@@ -117,14 +135,16 @@ export class SubscriptionsService {
 
   async incrementMessageUsage(workspaceId: string, count: number = 1) {
     const quota = await this.getQuota(workspaceId);
-    quota.messagesUsed += count;
-    return this.quotaRepo.save(quota);
-  }
 
-  async updateStorageUsage(workspaceId: string, storageGb: number) {
-    const quota = await this.getQuota(workspaceId);
-    quota.storageUsedGb = storageGb;
-    return this.quotaRepo.save(quota);
+    // Atomic increment to prevent race conditions
+    await this.quotaRepo.increment(
+      { workspaceId: quota.workspaceId, periodStart: quota.periodStart },
+      'messagesUsed',
+      count,
+    );
+
+    // No need to save manually, increment() handles it directly in SQL
+    return this.getQuota(workspaceId);
   }
 
   async checkQuotaLimit(workspaceId: string): Promise<{
@@ -136,10 +156,24 @@ export class SubscriptionsService {
   }> {
     const subscription = await this.getSubscription(workspaceId);
     if (!subscription) {
-      throw new BadRequestException('No active subscription');
+      // Allow minimal usage for workspaces without subscriptions or fall back to a "Free" plan defaults
+      const freePlan = await this.planRepo.findOne({ where: { name: 'Free' } });
+      if (!freePlan)
+        throw new BadRequestException(
+          'No active subscription or default plan found',
+        );
+
+      const quota = await this.getQuota(workspaceId);
+      return {
+        withinLimit: quota.messagesUsed < freePlan.maxMessages,
+        messagesUsed: quota.messagesUsed,
+        messagesLimit: freePlan.maxMessages,
+        storageUsedGb: Number(quota.storageUsedGb),
+        storageLimit: freePlan.maxStorageGb,
+      };
     }
 
-    const plan = await this.getPlan(subscription.planId);
+    const plan = subscription.plan || (await this.getPlan(subscription.planId));
     const quota = await this.getQuota(workspaceId);
 
     return {

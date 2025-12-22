@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { AiProviderClient, AiProviderType } from './ai-provider-client.interface';
+import {
+  AiProviderClient,
+  AiProviderType,
+} from './ai-provider-client.interface';
 import { OpenAiClient } from './impl/openai-client';
 import { GoogleAiClient } from './impl/google-client';
 import { AnthropicClient } from './impl/anthropic-client';

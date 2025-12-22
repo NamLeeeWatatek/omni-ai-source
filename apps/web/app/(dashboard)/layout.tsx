@@ -10,6 +10,7 @@ import { ProgressOverlay } from '@/components/ui/ProgressOverlay'
 import toast from '@/lib/toast'
 import { AlertDialogConfirm } from '@/components/ui/AlertDialogConfirm'
 import { useTranslation } from 'react-i18next'
+import { ErrorBoundary } from '@/components/providers/ErrorBoundary'
 
 export default function DashboardLayout({
     children,
@@ -116,7 +117,9 @@ export default function DashboardLayout({
                 {/* Content area with conditional container classes */}
                 <div className="flex-1 overflow-hidden relative min-h-0">
                     <div className={`h-full ${isSpecialPage ? '' : isFlowPage ? 'page-container-full overflow-auto' : 'page-container overflow-auto'}`}>
-                        {children}
+                        <ErrorBoundary>
+                            {children}
+                        </ErrorBoundary>
                     </div>
                 </div>
             </main>

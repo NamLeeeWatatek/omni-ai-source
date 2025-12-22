@@ -10,20 +10,32 @@
   UseGuards,
   Request,
   BadRequestException,
+  HttpStatus,
+  HttpCode,
+  SerializeOptions,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
   ApiOperation,
   ApiResponse,
+  ApiCreatedResponse,
+  ApiOkResponse,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { plainToInstance } from 'class-transformer';
 import { FlowsService } from './flows.service';
 import { ExecutionService } from './execution.service';
 import { CreateFlowDto } from './dto/create-flow.dto';
 import { UpdateFlowDto } from './dto/update-flow.dto';
 import { CreateFlowFromTemplateDto } from './dto/create-flow-from-template.dto';
 import { PublicFlowDto, DetailedFlowDto } from './dto/public-flow.dto';
+import { QueryFlowDto } from './dto/query-flow.dto';
+import {
+  InfinityPaginationResponse,
+  InfinityPaginationResponseDto,
+} from 'src/utils/dto/infinity-pagination-response.dto';
+import { CurrentWorkspace } from 'src/workspaces/decorators/current-workspace.decorator';
 
 @ApiTags('Flows')
 @ApiBearerAuth()
@@ -33,12 +45,23 @@ export class FlowsController {
   constructor(
     private readonly flowsService: FlowsService,
     private readonly executionService: ExecutionService,
-  ) {}
+  ) { }
 
-  @Post()
-  @ApiOperation({ summary: 'Create flow' })
-  create(@Body() createDto: CreateFlowDto, @Request() req) {
-    return this.flowsService.create(createDto, req.user.id);
+  @Get('stats')
+  @ApiOperation({ summary: 'Get workflow statistics' })
+  getStats(@CurrentWorkspace() workspaceId: string) {
+    return this.flowsService.getStats(workspaceId);
+  }
+
+  create(
+    @Body() createDto: CreateFlowDto,
+    @Request() req,
+    @CurrentWorkspace() workspaceId: string,
+  ) {
+    return this.flowsService.create(
+      { ...createDto, workspaceId: createDto.workspaceId || workspaceId },
+      req.user.id,
+    );
   }
 
   @Post('from-template')
@@ -51,19 +74,47 @@ export class FlowsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all flows' })
-  @ApiResponse({ status: 200, type: [PublicFlowDto] })
-  async findAll(@Request() req, @Query('published') published?: string) {
-    const publishedBoolean =
-      published === 'true' ? true : published === 'false' ? false : undefined;
+  @ApiOkResponse({ type: InfinityPaginationResponse(PublicFlowDto) })
+  @ApiOperation({ summary: 'Get all flows with pagination' })
+  @HttpCode(HttpStatus.OK)
+  async findAll(
+    @Request() req,
+    @Query() query: QueryFlowDto,
+    @CurrentWorkspace() workspaceId: string,
+  ): Promise<InfinityPaginationResponseDto<PublicFlowDto>> {
+    const page = query?.page ?? 1;
+    let limit = query?.limit ?? 10;
+    if (limit > 50) {
+      limit = 50;
+    }
 
-    const flows = await this.flowsService.findAll(
-      req.user.id,
-      publishedBoolean,
-    );
+    // Extract filters and sort from query
+    const filters = query?.filters || {};
+    const sort = query?.sort || [];
 
-    // Interceptor will automatically transform to PublicFlowDto
-    return flows;
+    // Convert to individual parameters for service
+    const search = filters.search;
+    const status = filters.status;
+    const published = filters.published;
+    const category = filters.category;
+
+    const result = await this.flowsService.findManyWithPagination({
+      filterOptions: {
+        workspaceId,
+        search,
+        status,
+        published,
+        category,
+      },
+      sortOptions: sort,
+      paginationOptions: { page, limit },
+    });
+
+    // Transform Flow[] to PublicFlowDto[] to handle null values
+    return {
+      ...result,
+      data: plainToInstance(PublicFlowDto, result.data),
+    };
   }
 
   @Get(':id')
@@ -76,19 +127,34 @@ export class FlowsController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update flow' })
-  update(@Param('id') id: string, @Body() updateDto: UpdateFlowDto) {
-    return this.flowsService.update(id, updateDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateFlowDto,
+    @Request() req,
+  ) {
+    return this.flowsService.update(id, updateDto, req.user.id);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete flow' })
-  remove(@Param('id') id: string) {
-    return this.flowsService.remove(id);
+  remove(@Param('id') id: string, @Request() req) {
+    return this.flowsService.remove(id, req.user.id);
+  }
+  @Post(':id/duplicate')
+  @ApiOperation({ summary: 'Duplicate flow' })
+  @HttpCode(HttpStatus.CREATED)
+  duplicate(@Param('id') id: string, @Request() req) {
+    return this.flowsService.duplicate(id, req.user.id);
   }
 
   @Post(':id/execute')
   @ApiOperation({ summary: 'Execute flow' })
-  async execute(@Param('id') id: string, @Body() input?: any, @Request() req?: any) {
+  async execute(
+    @Param('id') id: string,
+    @Body() input?: any,
+    @Request() req?: any,
+    @CurrentWorkspace() workspaceId?: string,
+  ) {
     // Log for debugging invalid IDs
     console.log('Execute request for flow ID:', id, 'typeof:', typeof id);
 
@@ -105,14 +171,15 @@ export class FlowsController {
       edges: flow.edges || [],
     };
 
-    // Get workspaceId from request (user's default workspace)
-    const workspaceId = req?.user?.workspaceId || req?.user?.id;
+    // Get workspaceId from request (CurrentWorkspace decorator or user's default)
+    // If no workspace is available, pass null to allow execution without workspace isolation
+    const activeWorkspaceId = workspaceId || req?.user?.workspaceId || null;
 
     const executionId = await this.executionService.executeFlow(
       id,
       flowData,
       input,
-      { workspaceId } // Pass workspaceId in metadata
+      { workspaceId: activeWorkspaceId }, // Pass workspaceId in metadata
     );
     return {
       executionId,
@@ -145,8 +212,9 @@ export class FlowsController {
   createVersion(
     @Param('id') id: string,
     @Body() versionData: { name: string; description?: string },
+    @Request() req,
   ) {
-    return this.flowsService.createVersion(id, versionData);
+    return this.flowsService.createVersion(id, versionData, req.user.id);
   }
 
   @Post(':id/versions/:versionId/restore')
@@ -154,13 +222,14 @@ export class FlowsController {
   restoreVersion(
     @Param('id') id: string,
     @Param('versionId') versionId: string,
+    @Request() req,
   ) {
-    return this.flowsService.restoreVersion(id, versionId);
+    return this.flowsService.restoreVersion(id, versionId, req.user.id);
   }
 
   @Post(':id/generate-form-schema')
   @ApiOperation({ summary: 'Auto-generate formSchema for flow (UGC Factory)' })
-  generateFormSchema(@Param('id') id: string) {
-    return this.flowsService.generateFormSchema(id);
+  generateFormSchema(@Param('id') id: string, @Request() req) {
+    return this.flowsService.generateFormSchema(id, req.user.id);
   }
 }

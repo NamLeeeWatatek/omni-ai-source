@@ -21,12 +21,17 @@ import { KBProcessingQueueService } from './services/kb-processing-queue.service
 import { KBSyncService } from './services/kb-sync.service';
 import { KBCrawlerService } from './services/kb-crawler.service';
 
-
 import {
   BotEntity,
   BotKnowledgeBaseEntity,
 } from '../bots/infrastructure/persistence/relational/entities/bot.entity';
-import { KbDocumentEntity, KbDocumentVersionEntity, KbFolderEntity, KnowledgeBaseEntity, RagFeedbackEntity } from './infrastructure/persistence/relational/entities/knowledge-base.entity';
+import {
+  KbDocumentEntity,
+  KbDocumentVersionEntity,
+  KbFolderEntity,
+  KnowledgeBaseEntity,
+  RagFeedbackEntity,
+} from './infrastructure/persistence/relational/entities/knowledge-base.entity';
 import { KBChunkEntity } from './infrastructure/persistence/relational/entities/kb-chunk.entity';
 
 @Module({

@@ -11,6 +11,7 @@ export interface NodeExecutionInput {
     flowId: string;
     workspaceId?: string;
     flowExecutionId?: string;
+    results?: Record<string, any>;
   };
 }
 

@@ -28,9 +28,6 @@ export class WorkspaceEntity extends EntityRelationalHelper {
   @Column({ name: 'avatar_url', type: String, nullable: true })
   avatarUrl?: string | null;
 
-  @Column({ type: String, default: 'free' })
-  plan: 'free' | 'starter' | 'pro' | 'enterprise';
-
   @Column({ name: 'owner_id', type: 'uuid' })
   ownerId: string;
 
@@ -51,6 +48,8 @@ export class WorkspaceEntity extends EntityRelationalHelper {
   updatedAt: Date;
 }
 
+import { RoleEntity } from '../../../../../roles/infrastructure/persistence/relational/entities/role.entity';
+
 @Entity({ name: 'workspace_member' })
 @Index(['workspaceId', 'userId'], { unique: true })
 export class WorkspaceMemberEntity extends EntityRelationalHelper {
@@ -60,8 +59,12 @@ export class WorkspaceMemberEntity extends EntityRelationalHelper {
   @Column({ name: 'user_id', type: 'uuid', primary: true })
   userId: string;
 
-  @Column({ type: String, default: 'member' })
-  role: 'owner' | 'admin' | 'member';
+  @Column({ name: 'role_id', type: 'int', default: 3 }) // Default to 'member' (id: 3)
+  roleId: number;
+
+  @ManyToOne(() => RoleEntity)
+  @JoinColumn({ name: 'role_id' })
+  role?: RoleEntity;
 
   @ManyToOne(() => WorkspaceEntity, (workspace) => workspace.members, {
     onDelete: 'CASCADE',

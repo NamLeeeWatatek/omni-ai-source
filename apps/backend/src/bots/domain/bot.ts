@@ -36,8 +36,8 @@ export class Bot {
   })
   status: 'draft' | 'active' | 'paused' | 'archived';
 
-  @ApiProperty({ type: String })
-  createdBy: string;
+  @ApiProperty({ type: String, nullable: true })
+  createdBy: string | null;
 
   @ApiPropertyOptional({ type: String, deprecated: true })
   icon?: string;

@@ -25,7 +25,7 @@ export function KBSyncPanel({ knowledgeBaseId }: SyncPanelProps) {
     const handleVerify = async () => {
         setVerifying(true)
         try {
-            const result = await axiosClient.get(`/knowledge-bases/${knowledgeBaseId}/verify-collection`)
+            const result = await axiosClient.get<VerifyResult>(`/knowledge-bases/${knowledgeBaseId}/verify-collection`)
             setVerifyResult(result)
 
             if (result.missingVectors === 0 && result.failedEmbeddings === 0) {
@@ -44,9 +44,9 @@ export function KBSyncPanel({ knowledgeBaseId }: SyncPanelProps) {
     const handleSyncMissing = async () => {
         setSyncing(true)
         try {
-            const result = await axiosClient.post(`/knowledge-bases/${knowledgeBaseId}/sync-missing`)
+            const result = await axiosClient.post<{ synced: number; errors: number }>(`/knowledge-bases/${knowledgeBaseId}/sync-missing`)
 
-            toast.success(`Synced ${result.data.synced} vectors (${result.data.errors} errors)`)
+            toast.success(`Synced ${result.synced} vectors (${result.errors} errors)`)
 
             handleVerify()
         } catch {
@@ -64,9 +64,9 @@ export function KBSyncPanel({ knowledgeBaseId }: SyncPanelProps) {
 
         setRebuilding(true)
         try {
-            const result = await axiosClient.post(`/knowledge-bases/${knowledgeBaseId}/rebuild-collection`)
+            const result = await axiosClient.post<{ chunksProcessed: number; errors: number }>(`/knowledge-bases/${knowledgeBaseId}/rebuild-collection`)
 
-            toast.success(`Rebuilt ${result.data.chunksProcessed} chunks (${result.data.errors} errors)`)
+            toast.success(`Rebuilt ${result.chunksProcessed} chunks (${result.errors} errors)`)
 
             handleVerify()
         } catch {

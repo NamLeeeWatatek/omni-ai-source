@@ -4,24 +4,14 @@ import { useEffect, useState } from 'react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
-import axiosClient from '@/lib/axios-client'
+import { useAppDispatch, useAppSelector } from '@/lib/store/hooks'
+import { fetchExecutionsByFlowId } from '@/lib/store/slices/ugcFactorySlice'
+import { Execution } from '@/lib/types'
 import {
     FiActivity,
     FiCheckCircle,
     FiClock
 } from 'react-icons/fi'
-
-interface Execution {
-    id: string
-    flow_id: string
-    status: 'completed' | 'failed' | 'running' | 'pending'
-    started_at: string
-    completed_at?: string
-    duration_ms?: number
-    error_message?: string
-    total_nodes: number
-    completed_nodes: number
-}
 
 interface UGCFactoryExecutionHistoryProps {
     flowId: string
@@ -40,8 +30,9 @@ export function UGCFactoryExecutionHistory({
     error,
     onStartNew
 }: UGCFactoryExecutionHistoryProps) {
-    const [executions, setExecutions] = useState<Execution[]>([])
-    const [loading, setLoading] = useState(true)
+    const dispatch = useAppDispatch()
+    const { executions: reduxExecutions, loading } = useAppSelector((state) => state.ugcFactory)
+
     const [stats, setStats] = useState({
         totalExecutions: 0,
         successRate: 0,
@@ -54,36 +45,34 @@ export function UGCFactoryExecutionHistory({
 
     const loadExecutions = async () => {
         try {
-            setLoading(true)
-            const data = await axiosClient.get(`/executions/?flow_id=${flowId}&limit=100`)
-            setExecutions(data)
-
-            // Calculate stats
-            const totalExecutions = data.length
-            const completedExecutions = data.filter((e: Execution) => e.status === 'completed')
-            const successRate = totalExecutions > 0
-                ? (completedExecutions.length / totalExecutions) * 100
-                : 0
-
-            const durations = data
-                .filter((e: Execution) => e.duration_ms)
-                .map((e: Execution) => e.duration_ms!)
-            const avgDuration = durations.length > 0
-                ? durations.reduce((a: number, b: number) => a + b, 0) / durations.length
-                : 0
-
-            setStats({
-                totalExecutions,
-                successRate,
-                avgDuration
-            })
+            await dispatch(fetchExecutionsByFlowId({ flowId, limit: 100 })).unwrap()
         } catch (err) {
             console.error('Failed to load executions:', err)
-            setExecutions([])
-        } finally {
-            setLoading(false)
         }
     }
+
+    // Calculate stats when executions change
+    useEffect(() => {
+        const data = reduxExecutions
+        const totalExecutions = data.length
+        const completedExecutions = data.filter((e: Execution) => e.status === 'completed')
+        const successRate = totalExecutions > 0
+            ? (completedExecutions.length / totalExecutions) * 100
+            : 0
+
+        const durations = data
+            .filter((e: Execution) => e.duration_ms)
+            .map((e: Execution) => e.duration_ms!)
+        const avgDuration = durations.length > 0
+            ? durations.reduce((a: number, b: number) => a + b, 0) / durations.length
+            : 0
+
+        setStats({
+            totalExecutions,
+            successRate,
+            avgDuration
+        })
+    }, [reduxExecutions])
 
     const formatDuration = (ms: number) => {
         if (ms < 1000) return `${ms}ms`
@@ -125,7 +114,7 @@ export function UGCFactoryExecutionHistory({
                     <Spinner className="w-8 h-8 mx-auto mb-4" />
                     Loading executions...
                 </div>
-            ) : executions.length === 0 ? (
+            ) : reduxExecutions.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                     <FiActivity className="w-16 h-16 mx-auto mb-4 opacity-30" />
                     <p className="text-lg font-medium mb-2">No executions yet</p>
@@ -136,7 +125,7 @@ export function UGCFactoryExecutionHistory({
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {executions.map((execution, index) => (
+                    {reduxExecutions.map((execution: Execution, index: number) => (
                         <div
                             key={execution.id}
                             className={`p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors ${index === 0 && execution.id === executionId ? 'ring-2 ring-primary/40' : ''
@@ -163,7 +152,7 @@ export function UGCFactoryExecutionHistory({
                                     )}
                                     <div>
                                         <p className="font-medium">
-                                            Execution #{executions.length - index}
+                                            Execution #{reduxExecutions.length - index}
                                             {index === 0 && execution.id === executionId && (
                                                 <span className="ml-2 px-2 py-0.5 rounded text-xs font-medium bg-primary text-white">
                                                     Current
@@ -172,10 +161,10 @@ export function UGCFactoryExecutionHistory({
                                         </p>
                                         <p className="text-sm text-muted-foreground capitalize flex items-center gap-1.5">
                                             <span>{execution.status}</span>
-                                            {execution.total_nodes > 0 && (
+                                            {execution.total_nodes && execution.total_nodes > 0 && (
                                                 <>
                                                     <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
-                                                    <span>{execution.completed_nodes}/{execution.total_nodes} nodes</span>
+                                                    <span>{execution.completed_nodes || 0}/{execution.total_nodes} nodes</span>
                                                 </>
                                             )}
                                         </p>
@@ -186,17 +175,17 @@ export function UGCFactoryExecutionHistory({
                                         <p className="text-sm font-medium">{formatDuration(execution.duration_ms)}</p>
                                     )}
                                     <p className="text-xs text-muted-foreground">
-                                        {formatDate(execution.started_at)}
+                                        {execution.started_at ? formatDate(execution.started_at) : 'Unknown'}
                                     </p>
                                 </div>
                             </div>
 
                             {/* Progress Bar */}
-                            {execution.total_nodes > 0 && (
+                            {execution.total_nodes && execution.total_nodes > 0 && (
                                 <div className="mb-2">
                                     <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
                                         <span>Progress</span>
-                                        <span>{execution.completed_nodes}/{execution.total_nodes} nodes</span>
+                                        <span>{execution.completed_nodes || 0}/{execution.total_nodes} nodes</span>
                                     </div>
                                     <div className="h-2 bg-muted rounded-full overflow-hidden">
                                         <div
@@ -206,7 +195,7 @@ export function UGCFactoryExecutionHistory({
                                                         'bg-gray-400'
                                                 }`}
                                             style={{
-                                                width: `${(execution.completed_nodes / execution.total_nodes) * 100}%`
+                                                width: `${((execution.completed_nodes || 0) / execution.total_nodes) * 100}%`
                                             }}
                                         />
                                     </div>

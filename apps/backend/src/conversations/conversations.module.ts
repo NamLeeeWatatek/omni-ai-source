@@ -6,6 +6,7 @@ import {
   MessageFeedbackEntity,
 } from './infrastructure/persistence/relational/entities/conversation.entity';
 import { AiConversationEntity } from './infrastructure/persistence/relational/entities/ai-conversation.entity';
+import { ContactEntity } from './infrastructure/persistence/relational/entities/contact.entity';
 import { ConversationsService } from './conversations.service';
 import { ConversationsController } from './conversations.controller';
 import { AiConversationsService } from './ai-conversations.service';
@@ -13,6 +14,9 @@ import { AiConversationsController } from './ai-conversations.controller';
 import { ConversationsGateway } from './conversations.gateway';
 import { ConversationEventListener } from './listeners/conversation-event.listener';
 import { ChannelsModule } from '../channels/channels.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { KnowledgeBaseModule } from '../knowledge-base/knowledge-base.module';
+import { AiProvidersModule } from '../ai-providers/ai-providers.module';
 
 @Module({
   imports: [
@@ -21,8 +25,12 @@ import { ChannelsModule } from '../channels/channels.module';
       MessageEntity,
       MessageFeedbackEntity,
       AiConversationEntity,
+      ContactEntity,
     ]),
     forwardRef(() => ChannelsModule),
+    forwardRef(() => SubscriptionsModule),
+    forwardRef(() => KnowledgeBaseModule),
+    AiProvidersModule,
   ],
   controllers: [ConversationsController, AiConversationsController],
   providers: [

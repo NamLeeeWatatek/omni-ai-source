@@ -39,7 +39,7 @@ export class AuthService {
     private mailService: MailService,
     private configService: ConfigService<AllConfigType>,
     private workspaceHelper: WorkspaceHelperService,
-  ) {}
+  ) { }
 
   async validateLogin(loginDto: AuthEmailLoginDto): Promise<LoginResponseDto> {
     const user = await this.usersService.findByEmail(loginDto.email);
@@ -95,17 +95,18 @@ export class AuthService {
       hash,
     });
 
+    const workspace = await this.workspaceHelper.ensureUserHasWorkspace(
+      user.id,
+      user.name || undefined,
+    );
+
     const { token, refreshToken, tokenExpires } = await this.getTokensData({
       id: user.id,
       role: user.role,
       sessionId: session.id,
       hash,
+      workspaceId: workspace?.id,
     });
-
-    const workspace = await this.workspaceHelper.ensureUserHasWorkspace(
-      user.id,
-      user.name || undefined,
-    );
     const workspaces = await this.workspaceHelper.getUserWorkspaces(user.id);
 
     return {
@@ -178,6 +179,11 @@ export class AuthService {
       hash,
     });
 
+    const workspace = await this.workspaceHelper.ensureUserHasWorkspace(
+      user.id,
+      user.name || undefined,
+    );
+
     const {
       token: jwtToken,
       refreshToken,
@@ -187,12 +193,8 @@ export class AuthService {
       role: user.role,
       sessionId: session.id,
       hash,
+      workspaceId: workspace?.id,
     });
-
-    const workspace = await this.workspaceHelper.ensureUserHasWorkspace(
-      user.id,
-      user.name || undefined,
-    );
     const workspaces = await this.workspaceHelper.getUserWorkspaces(user.id);
 
     return {
@@ -577,6 +579,7 @@ export class AuthService {
     role: User['role'];
     sessionId: Session['id'];
     hash: Session['hash'];
+    workspaceId?: string;
   }) {
     const tokenExpiresIn = this.configService.getOrThrow('auth.expires', {
       infer: true,
@@ -590,6 +593,7 @@ export class AuthService {
           id: data.id,
           role: data.role,
           sessionId: data.sessionId,
+          workspaceId: data.workspaceId,
         },
         {
           secret: this.configService.getOrThrow('auth.secret', { infer: true }),

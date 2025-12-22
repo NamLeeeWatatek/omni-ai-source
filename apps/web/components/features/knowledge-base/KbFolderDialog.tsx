@@ -3,7 +3,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog'
 import { Button } from '@/components/ui/Button'
-import { Spinner } from '@/components/ui/Spinner'
 import {
     Form,
     FormControl,
@@ -101,8 +100,7 @@ export function KBFolderDialog({ open, onOpenChange, onSubmit }: KBFolderDialogP
                             >
                                 Cancel
                             </Button>
-                            <Button type="submit" disabled={form.formState.isSubmitting}>
-                                {form.formState.isSubmitting && <Spinner className="w-4 h-4 mr-2" />}
+                            <Button type="submit" loading={form.formState.isSubmitting}>
                                 Create
                             </Button>
                         </DialogFooter>

@@ -22,7 +22,10 @@ import {
   FlowEntity,
   FlowExecutionEntity,
 } from '../flows/infrastructure/persistence/relational/entities';
-import { WorkspaceEntity } from '../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
+import {
+  WorkspaceEntity,
+  WorkspaceMemberEntity,
+} from '../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
 
 @Injectable()
 export class StatsService {
@@ -98,15 +101,15 @@ export class StatsService {
 
       if (workspaceId) {
         query
-          .innerJoin('workspace_member', 'wm', 'wm.userId = user.id')
+          .innerJoin(WorkspaceMemberEntity, 'wm', 'wm.userId = user.id')
           .where('wm.workspaceId = :workspaceId', { workspaceId });
       }
 
       if (dateFilter) {
-        const condition = workspaceId
-          ? 'user.createdAt BETWEEN :startDate AND :endDate'
-          : 'user.createdAt BETWEEN :startDate AND :endDate';
-        query.andWhere(condition, dateFilter.createdAt);
+        query.andWhere(
+          'user.createdAt BETWEEN :startDate AND :endDate',
+          dateFilter.createdAt,
+        );
       }
 
       return query;
@@ -208,7 +211,7 @@ export class StatsService {
     const buildQuery = (additionalWhere: any = {}) => {
       const query = this.conversationRepository
         .createQueryBuilder('conversation')
-        .leftJoin('conversation.bot', 'bot');
+        .leftJoin(BotEntity, 'bot', 'bot.id = conversation.botId');
 
       if (workspaceId) {
         query.where('bot.workspaceId = :workspaceId', { workspaceId });
@@ -285,7 +288,7 @@ export class StatsService {
     const buildQuery = () => {
       const query = this.flowExecutionRepository
         .createQueryBuilder('execution')
-        .leftJoin('flow', 'flow', 'flow.id = execution.flowId');
+        .leftJoin(FlowEntity, 'flow', 'flow.id = execution.flowId');
 
       if (workspaceId) {
         query.where('execution.workspaceId = :workspaceId', { workspaceId });
@@ -414,7 +417,7 @@ export class StatsService {
   ): Promise<TopItemDto[]> {
     const queryBuilder = this.botRepository
       .createQueryBuilder('bot')
-      .leftJoin('conversation', 'conv', 'conv.botId = bot.id')
+      .leftJoin(ConversationEntity, 'conv', 'conv.botId = bot.id')
       .select('bot.id', 'id')
       .addSelect('bot.name', 'name')
       .addSelect('COUNT(conv.id)', 'count')
@@ -450,7 +453,7 @@ export class StatsService {
   ): Promise<TopItemDto[]> {
     const queryBuilder = this.flowExecutionRepository
       .createQueryBuilder('exec')
-      .leftJoin('flow', 'flow', 'flow.id = exec.flowId')
+      .leftJoin(FlowEntity, 'flow', 'flow.id = exec.flowId')
       .select('flow.id', 'id')
       .addSelect('flow.name', 'name')
       .addSelect('COUNT(exec.id)', 'count')
@@ -464,7 +467,7 @@ export class StatsService {
       });
 
     if (workspaceId) {
-      queryBuilder.where('exec.workspaceId = :workspaceId', { workspaceId });
+      queryBuilder.andWhere('exec.workspaceId = :workspaceId', { workspaceId });
     }
 
     const flows = await queryBuilder
@@ -572,7 +575,7 @@ export class StatsService {
   ): Promise<TimeSeriesDataPoint[]> {
     const query = this.userRepository
       .createQueryBuilder('user')
-      .select('DATE(user.createdAt)', 'date')
+      .select("TO_CHAR(user.createdAt, 'YYYY-MM-DD')", 'date')
       .addSelect('COUNT(user.id)', 'value')
       .where('user.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
@@ -581,13 +584,13 @@ export class StatsService {
 
     if (workspaceId) {
       query
-        .innerJoin('workspace_member', 'wm', 'wm.userId = user.id')
+        .innerJoin(WorkspaceMemberEntity, 'wm', 'wm.userId = user.id')
         .andWhere('wm.workspaceId = :workspaceId', { workspaceId });
     }
 
     const trend = await query
-      .groupBy('DATE(user.createdAt)')
-      .orderBy('DATE(user.createdAt)', 'ASC')
+      .groupBy("TO_CHAR(user.createdAt, 'YYYY-MM-DD')")
+      .orderBy("TO_CHAR(user.createdAt, 'YYYY-MM-DD')", 'ASC')
       .getRawMany();
 
     return this.fillMissingDates(trend, startDate, endDate);
@@ -600,7 +603,7 @@ export class StatsService {
   ): Promise<TimeSeriesDataPoint[]> {
     const query = this.botRepository
       .createQueryBuilder('bot')
-      .select('DATE(bot.createdAt)', 'date')
+      .select("TO_CHAR(bot.createdAt, 'YYYY-MM-DD')", 'date')
       .addSelect('COUNT(bot.id)', 'value')
       .where('bot.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
@@ -612,8 +615,8 @@ export class StatsService {
     }
 
     const trend = await query
-      .groupBy('DATE(bot.createdAt)')
-      .orderBy('DATE(bot.createdAt)', 'ASC')
+      .groupBy("TO_CHAR(bot.createdAt, 'YYYY-MM-DD')")
+      .orderBy("TO_CHAR(bot.createdAt, 'YYYY-MM-DD')", 'ASC')
       .getRawMany();
 
     return this.fillMissingDates(trend, startDate, endDate);
@@ -626,7 +629,7 @@ export class StatsService {
   ): Promise<TimeSeriesDataPoint[]> {
     const query = this.conversationRepository
       .createQueryBuilder('conversation')
-      .select('DATE(conversation.createdAt)', 'date')
+      .select("TO_CHAR(conversation.createdAt, 'YYYY-MM-DD')", 'date')
       .addSelect('COUNT(conversation.id)', 'value')
       .where('conversation.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
@@ -635,13 +638,13 @@ export class StatsService {
 
     if (workspaceId) {
       query
-        .leftJoin('conversation.bot', 'bot')
+        .leftJoin(BotEntity, 'bot', 'bot.id = conversation.botId')
         .andWhere('bot.workspaceId = :workspaceId', { workspaceId });
     }
 
     const trend = await query
-      .groupBy('DATE(conversation.createdAt)')
-      .orderBy('DATE(conversation.createdAt)', 'ASC')
+      .groupBy("TO_CHAR(conversation.createdAt, 'YYYY-MM-DD')")
+      .orderBy("TO_CHAR(conversation.createdAt, 'YYYY-MM-DD')", 'ASC')
       .getRawMany();
 
     return this.fillMissingDates(trend, startDate, endDate);
@@ -654,7 +657,7 @@ export class StatsService {
   ): Promise<TimeSeriesDataPoint[]> {
     const query = this.flowExecutionRepository
       .createQueryBuilder('execution')
-      .select('DATE(execution.createdAt)', 'date')
+      .select("TO_CHAR(execution.createdAt, 'YYYY-MM-DD')", 'date')
       .addSelect('COUNT(execution.id)', 'value')
       .where('execution.createdAt BETWEEN :startDate AND :endDate', {
         startDate,
@@ -662,12 +665,12 @@ export class StatsService {
       });
 
     if (workspaceId) {
-      query.where('execution.workspaceId = :workspaceId', { workspaceId });
+      query.andWhere('execution.workspaceId = :workspaceId', { workspaceId });
     }
 
     const trend = await query
-      .groupBy('DATE(execution.createdAt)')
-      .orderBy('DATE(execution.createdAt)', 'ASC')
+      .groupBy("TO_CHAR(execution.createdAt, 'YYYY-MM-DD')")
+      .orderBy("TO_CHAR(execution.createdAt, 'YYYY-MM-DD')", 'ASC')
       .getRawMany();
 
     return this.fillMissingDates(trend, startDate, endDate);
@@ -706,7 +709,13 @@ export class StatsService {
   ): TimeSeriesDataPoint[] {
     const result: TimeSeriesDataPoint[] = [];
     const trendMap = new Map(
-      trend.map((item) => [item.date, parseInt(item.value) || 0]),
+      trend.map((item) => {
+        const dateKey =
+          item.date instanceof Date
+            ? item.date.toISOString().split('T')[0]
+            : String(item.date).split('T')[0];
+        return [dateKey, parseInt(item.value) || 0];
+      }),
     );
 
     const currentDate = new Date(startDate);

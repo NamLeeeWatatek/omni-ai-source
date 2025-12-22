@@ -2,17 +2,23 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BotEntity } from '../../../../bots/infrastructure/persistence/relational/entities/bot.entity';
+import { UserEntity } from '../../../../users/infrastructure/persistence/relational/entities/user.entity';
+import { WorkspaceEntity } from '../../../../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
 
 @Injectable()
 export class BotSeedService {
   constructor(
     @InjectRepository(BotEntity)
     private repository: Repository<BotEntity>,
-  ) {}
+    @InjectRepository(UserEntity)
+    private userRepository: Repository<UserEntity>,
+    @InjectRepository(WorkspaceEntity)
+    private workspaceRepository: Repository<WorkspaceEntity>,
+  ) { }
 
   async run() {
     const count = await this.repository.count();
-    
+
     if (count > 0) {
       console.log('ℹ️ Bots already exist, skipping seed');
       return;
@@ -21,15 +27,18 @@ export class BotSeedService {
     const bots = [
       {
         name: 'Customer Support Assistant',
-        description: 'AI-powered customer service bot for handling common inquiries and support tickets',
+        description:
+          'AI-powered customer service bot for handling common inquiries and support tickets',
         isActive: true,
         configuration: {
           model: 'gpt-4',
           temperature: 0.7,
           maxTokens: 2000,
-          systemPrompt: 'You are a helpful customer service assistant. Always be polite and professional.',
+          systemPrompt:
+            'You are a helpful customer service assistant. Always be polite and professional.',
           welcomeMessage: 'Hello! How can I help you today?',
-          fallbackMessage: 'I apologize, but I\'m having trouble understanding. Could you please rephrase?',
+          fallbackMessage:
+            "I apologize, but I'm having trouble understanding. Could you please rephrase?",
           handoffThreshold: 0.3,
         },
         metadata: {
@@ -40,15 +49,19 @@ export class BotSeedService {
       },
       {
         name: 'Sales Assistant',
-        description: 'Intelligent sales bot that helps customers find products and complete purchases',
+        description:
+          'Intelligent sales bot that helps customers find products and complete purchases',
         isActive: true,
         configuration: {
           model: 'gpt-4',
           temperature: 0.8,
           maxTokens: 1500,
-          systemPrompt: 'You are a friendly sales assistant. Help customers find the right products and guide them through the purchase process.',
-          welcomeMessage: 'Welcome! I\'m here to help you find the perfect product. What are you looking for?',
-          fallbackMessage: 'Let me connect you with a human sales expert who can better assist you.',
+          systemPrompt:
+            'You are a friendly sales assistant. Help customers find the right products and guide them through the purchase process.',
+          welcomeMessage:
+            "Welcome! I'm here to help you find the perfect product. What are you looking for?",
+          fallbackMessage:
+            'Let me connect you with a human sales expert who can better assist you.',
           handoffThreshold: 0.4,
         },
         metadata: {
@@ -59,15 +72,19 @@ export class BotSeedService {
       },
       {
         name: 'Technical Support Bot',
-        description: 'Specialized bot for technical troubleshooting and product support',
+        description:
+          'Specialized bot for technical troubleshooting and product support',
         isActive: true,
         configuration: {
           model: 'gpt-4',
           temperature: 0.3,
           maxTokens: 2500,
-          systemPrompt: 'You are a technical support specialist. Provide accurate technical information and step-by-step troubleshooting guides.',
-          welcomeMessage: 'Technical Support here! What technical issue can I help you resolve today?',
-          fallbackMessage: 'This requires specialized technical knowledge. Let me transfer you to our technical team.',
+          systemPrompt:
+            'You are a technical support specialist. Provide accurate technical information and step-by-step troubleshooting guides.',
+          welcomeMessage:
+            'Technical Support here! What technical issue can I help you resolve today?',
+          fallbackMessage:
+            'This requires specialized technical knowledge. Let me transfer you to our technical team.',
           handoffThreshold: 0.2,
         },
         metadata: {
@@ -78,15 +95,19 @@ export class BotSeedService {
       },
       {
         name: 'Lead Generation Bot',
-        description: 'Marketing bot designed to capture leads and qualify potential customers',
+        description:
+          'Marketing bot designed to capture leads and qualify potential customers',
         isActive: true,
         configuration: {
           model: 'gpt-4',
           temperature: 0.6,
           maxTokens: 1000,
-          systemPrompt: 'You are a lead generation specialist. Qualify leads and collect relevant information while building rapport.',
-          welcomeMessage: 'Hi there! I\'d love to learn more about your needs and see how we can help.',
-          fallbackMessage: 'Let me get one of our sales specialists to better understand your requirements.',
+          systemPrompt:
+            'You are a lead generation specialist. Qualify leads and collect relevant information while building rapport.',
+          welcomeMessage:
+            "Hi there! I'd love to learn more about your needs and see how we can help.",
+          fallbackMessage:
+            'Let me get one of our sales specialists to better understand your requirements.',
           handoffThreshold: 0.5,
         },
         metadata: {
@@ -97,15 +118,19 @@ export class BotSeedService {
       },
       {
         name: 'FAQ Bot',
-        description: 'Knowledge base bot that answers frequently asked questions instantly',
+        description:
+          'Knowledge base bot that answers frequently asked questions instantly',
         isActive: true,
         configuration: {
           model: 'gpt-3.5-turbo',
           temperature: 0.1,
           maxTokens: 800,
-          systemPrompt: 'You are an FAQ bot. Provide concise, accurate answers based on our knowledge base.',
-          welcomeMessage: 'Hello! I can answer your frequently asked questions. What would you like to know?',
-          fallbackMessage: 'I don\'t have information about that. Let me find someone who can help.',
+          systemPrompt:
+            'You are an FAQ bot. Provide concise, accurate answers based on our knowledge base.',
+          welcomeMessage:
+            'Hello! I can answer your frequently asked questions. What would you like to know?',
+          fallbackMessage:
+            "I don't have information about that. Let me find someone who can help.",
           handoffThreshold: 0.6,
         },
         metadata: {
@@ -116,15 +141,19 @@ export class BotSeedService {
       },
       {
         name: 'Order Tracking Bot',
-        description: 'Specialized bot for tracking orders, returns, and delivery status',
+        description:
+          'Specialized bot for tracking orders, returns, and delivery status',
         isActive: true,
         configuration: {
           model: 'gpt-3.5-turbo',
           temperature: 0.2,
           maxTokens: 600,
-          systemPrompt: 'You are an order tracking specialist. Help customers track orders, process returns, and provide delivery updates.',
-          welcomeMessage: 'I can help you track your order and process returns. What\'s your order number?',
-          fallbackMessage: 'Let me connect you with our order specialist for detailed assistance.',
+          systemPrompt:
+            'You are an order tracking specialist. Help customers track orders, process returns, and provide delivery updates.',
+          welcomeMessage:
+            "I can help you track your order and process returns. What's your order number?",
+          fallbackMessage:
+            'Let me connect you with our order specialist for detailed assistance.',
           handoffThreshold: 0.3,
         },
         metadata: {
@@ -135,15 +164,19 @@ export class BotSeedService {
       },
       {
         name: 'Appointment Scheduling Bot',
-        description: 'Calendar integration bot for scheduling appointments and managing bookings',
+        description:
+          'Calendar integration bot for scheduling appointments and managing bookings',
         isActive: false, // Under maintenance
         configuration: {
           model: 'gpt-4',
           temperature: 0.4,
           maxTokens: 1200,
-          systemPrompt: 'You are an appointment scheduling assistant. Help customers book, reschedule, or cancel appointments.',
-          welcomeMessage: 'I can help you schedule an appointment. What type of service do you need?',
-          fallbackMessage: 'Let me transfer you to our scheduling team for complex requests.',
+          systemPrompt:
+            'You are an appointment scheduling assistant. Help customers book, reschedule, or cancel appointments.',
+          welcomeMessage:
+            'I can help you schedule an appointment. What type of service do you need?',
+          fallbackMessage:
+            'Let me transfer you to our scheduling team for complex requests.',
           handoffThreshold: 0.4,
         },
         metadata: {
@@ -154,15 +187,19 @@ export class BotSeedService {
       },
       {
         name: 'Feedback Collection Bot',
-        description: 'Survey bot for collecting customer feedback and satisfaction ratings',
+        description:
+          'Survey bot for collecting customer feedback and satisfaction ratings',
         isActive: true,
         configuration: {
           model: 'gpt-3.5-turbo',
           temperature: 0.5,
           maxTokens: 1000,
-          systemPrompt: 'You are a feedback collection specialist. Gather customer feedback in a friendly and professional manner.',
-          welcomeMessage: 'We\'d love to hear your feedback! Can you share your experience with us?',
-          fallbackMessage: 'Thank you for your time. Your feedback is valuable to us.',
+          systemPrompt:
+            'You are a feedback collection specialist. Gather customer feedback in a friendly and professional manner.',
+          welcomeMessage:
+            "We'd love to hear your feedback! Can you share your experience with us?",
+          fallbackMessage:
+            'Thank you for your time. Your feedback is valuable to us.',
           handoffThreshold: 0.7,
         },
         metadata: {
@@ -176,17 +213,39 @@ export class BotSeedService {
     const daysAgo = 60;
     const now = new Date();
 
+    // Get the admin user to associate bots with their workspace
+    const adminUser = await this.userRepository.findOne({
+      where: { email: 'admin@example.com' },
+    });
+
+    if (!adminUser) {
+      console.error('❌ Admin user not found, skipping bot seed');
+      return;
+    }
+
+    const workspace = await this.workspaceRepository.findOne({
+      where: { ownerId: adminUser.id },
+    });
+
+    if (!workspace) {
+      console.error('❌ Admin workspace not found, skipping bot seed');
+      return;
+    }
+
     for (let i = 0; i < bots.length; i++) {
       const botData = bots[i];
       const daysOffset = Math.floor(Math.random() * daysAgo);
       const hoursOffset = Math.floor(Math.random() * 24);
-      
+
       const createdAt = new Date(now);
       createdAt.setDate(createdAt.getDate() - daysOffset);
       createdAt.setHours(createdAt.getHours() - hoursOffset);
 
       const bot = this.repository.create({
         ...botData,
+        workspaceId: workspace.id,
+        createdBy: adminUser.id,
+        updatedBy: adminUser.id,
         createdAt,
         updatedAt: new Date(),
       });

@@ -24,9 +24,12 @@ interface NodeProperty {
     name: string
     label: string
     type: 'string' | 'text' | 'textarea' | 'number' | 'boolean' | 'select' | 'multi-select' | 'json' | 'file' | 'files' | 'key-value' | 'dynamic-form' | 'channel-select'
+    displayName?: string
+    description?: string
+    helpText?: string
+    hint?: string
     required?: boolean
     placeholder?: string
-    description?: string
     options?: Array<{ value: string; label: string } | string> | string
     default?: any
     showWhen?: Record<string, any>
@@ -130,13 +133,13 @@ export const DynamicFormField = memo(function DynamicFormField({
             if (optionsConfig.startsWith('ai-models:')) {
                 const typeFilter = optionsConfig.split(':')[1]
                 // Call the correct dynamic options endpoint
-                const data = await axiosClient.get(`/node-types/dynamic-options/ai-models?type=${typeFilter}`)
-                setDynamicOptions(data)
+                const data = await axiosClient.get<any[]>(`/node-types/dynamic-options/ai-models?type=${typeFilter}`)
+                setDynamicOptions(data as any)
             }
             else if (optionsConfig === 'channels') {
                 // Call the correct dynamic options endpoint
-                const data = await axiosClient.get('/node-types/dynamic-options/channels')
-                setDynamicOptions(data)
+                const data = await axiosClient.get<any[]>('/node-types/dynamic-options/channels')
+                setDynamicOptions(data as any)
             }
         } catch (error) {
             console.warn('Failed to load dynamic options:', error)
@@ -547,40 +550,40 @@ export const DynamicFormField = memo(function DynamicFormField({
                                         return isImage ? (
                                             <div className="relative group">
                                                 <div className="relative w-full rounded-lg overflow-hidden border border-border/40 bg-muted/20">
-                                                <img
-                                                    src={fileObj.url}
-                                                    alt="Uploaded image"
-                                                    className="w-full h-auto max-h-64 object-contain"
-                                                    onLoad={() => console.log('✅ Image loaded successfully:', fileObj.url)}
-                                                    onError={(e) => {
-                                                        console.error('❌ Image failed to load:', fileObj.url, e);
-                                                        const target = e.currentTarget;
-                                                        target.style.display = 'none';
-                                                        const parent = target.parentElement;
-                                                        if (parent) {
-                                                            const fileName = fileObj.url ? fileObj.url.split('/').pop() || 'File' : 'File';
-                                                            parent.innerHTML = `<div class="flex items-center justify-center p-4 text-xs text-muted-foreground break-all">${fileName}</div>`;
-                                                        }
-                                                    }}
-                                                />
-                                                {canDelete && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={async () => {
-                                                            if (fileObj.fileId) {
-                                                                try {
-                                                                    await handleFileDelete(fileObj.fileId)
-                                                                } catch (error) {
-                                                                    console.error('Failed to delete file:', error)
-                                                                }
+                                                    <img
+                                                        src={fileObj.url}
+                                                        alt="Uploaded image"
+                                                        className="w-full h-auto max-h-64 object-contain"
+                                                        onLoad={() => console.log('✅ Image loaded successfully:', fileObj.url)}
+                                                        onError={(e) => {
+                                                            console.error('❌ Image failed to load:', fileObj.url, e);
+                                                            const target = e.currentTarget;
+                                                            target.style.display = 'none';
+                                                            const parent = target.parentElement;
+                                                            if (parent) {
+                                                                const fileName = fileObj.url ? fileObj.url.split('/').pop() || 'File' : 'File';
+                                                                parent.innerHTML = `<div class="flex items-center justify-center p-4 text-xs text-muted-foreground break-all">${fileName}</div>`;
                                                             }
-                                                            onChange(field.name, null)
                                                         }}
-                                                        className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                                                    >
-                                                        <FiX className="w-4 h-4 text-white" />
-                                                    </button>
-                                                )}
+                                                    />
+                                                    {canDelete && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={async () => {
+                                                                if (fileObj.fileId) {
+                                                                    try {
+                                                                        await handleFileDelete(fileObj.fileId)
+                                                                    } catch (error) {
+                                                                        console.error('Failed to delete file:', error)
+                                                                    }
+                                                                }
+                                                                onChange(field.name, null)
+                                                            }}
+                                                            className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                                                        >
+                                                            <FiX className="w-4 h-4 text-white" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                                 <p className="text-xs text-muted-foreground mt-1 truncate">{fileObj.name || fileObj.url.split('/').pop() || 'Image'}</p>
                                             </div>
@@ -668,7 +671,7 @@ export const DynamicFormField = memo(function DynamicFormField({
                     </DropdownMenu>
                 )
 
-break;
+                break;
 
             default:
                 return (
@@ -681,13 +684,21 @@ break;
 
     return (
         <div className={cn('mb-4', className)}>
-            <Label htmlFor={fieldId} className="block text-sm font-medium mb-2">
-                {field.label}
+            <Label htmlFor={fieldId} className="block text-sm font-medium mb-1">
+                {field.displayName || field.label}
                 {field.required && <span className="text-red-500 ml-1">*</span>}
             </Label>
+
+            {field.hint && (
+                <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-semibold mb-1.5">{field.hint}</p>
+            )}
+
             {renderField()}
-            {field.description && (
-                <p className="text-xs text-muted-foreground mt-1">{field.description}</p>
+
+            {(field.helpText || field.description) && (
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                    {field.helpText || field.description}
+                </p>
             )}
         </div>
     )

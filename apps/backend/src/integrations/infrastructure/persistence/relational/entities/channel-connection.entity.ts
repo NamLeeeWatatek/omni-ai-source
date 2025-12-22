@@ -1,18 +1,17 @@
 ﻿import {
   Column,
-  CreateDateColumn,
   Entity,
   ManyToOne,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
   Index,
   JoinColumn,
 } from 'typeorm';
-import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
+import { WorkspaceOwnedEntity } from '../../../../../utils/workspace-owned.entity';
 import { ChannelCredentialEntity } from './channel-credential.entity';
+import { EncryptionTransformer } from '../../../../../utils/transformers/encryption.transformer';
 
 @Entity({ name: 'channel_connection' })
-export class ChannelConnectionEntity extends EntityRelationalHelper {
+export class ChannelConnectionEntity extends WorkspaceOwnedEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -24,25 +23,32 @@ export class ChannelConnectionEntity extends EntityRelationalHelper {
   type: string;
 
   @Index()
-  @Column({ type: 'uuid', nullable: true })
+  @Column({ name: 'credential_id', type: 'uuid', nullable: true })
   credentialId?: string | null;
 
-  @ManyToOne(() => ChannelCredentialEntity, { nullable: true })
-  @JoinColumn({ name: 'credentialId' })
+  @ManyToOne(() => ChannelCredentialEntity, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'credential_id' })
   credential?: ChannelCredentialEntity | null;
-
-  @Index()
-  @Column({ type: 'uuid', nullable: true })
-  workspaceId?: string | null;
 
   @Index()
   @Column({ type: 'uuid', nullable: true, name: 'bot_id' })
   botId?: string | null;
 
-  @Column({ type: String, nullable: true })
+  @Column({
+    type: String,
+    nullable: true,
+    transformer: new EncryptionTransformer(),
+  })
   accessToken?: string | null;
 
-  @Column({ type: String, nullable: true })
+  @Column({
+    type: String,
+    nullable: true,
+    transformer: new EncryptionTransformer(),
+  })
   refreshToken?: string | null;
 
   @Column({ type: 'timestamp', nullable: true })
@@ -54,12 +60,10 @@ export class ChannelConnectionEntity extends EntityRelationalHelper {
   @Column({ type: String, default: 'active' })
   status: string;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+    name: 'connected_at',
+  })
   connectedAt: Date;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
 }

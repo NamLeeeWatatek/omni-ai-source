@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FlowEntity } from '../../../../flows/infrastructure/persistence/relational/entities/flow.entity';
 import { UserEntity } from '../../../../users/infrastructure/persistence/relational/entities/user.entity';
+import { WorkspaceEntity } from '../../../../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
 
 // React Icons mapping for consistency
 const ICONS = {
@@ -18,7 +19,9 @@ export class FlowSeedService {
     private flowRepository: Repository<FlowEntity>,
     @InjectRepository(UserEntity)
     private userRepository: Repository<UserEntity>,
-  ) {}
+    @InjectRepository(WorkspaceEntity)
+    private workspaceRepository: Repository<WorkspaceEntity>,
+  ) { }
 
   async run() {
     // Get admin user to assign as owner
@@ -28,6 +31,15 @@ export class FlowSeedService {
 
     if (!adminUser) {
       console.log('Admin user not found, skipping flow seeds');
+      return;
+    }
+
+    const workspace = await this.workspaceRepository.findOne({
+      where: { ownerId: adminUser.id },
+    });
+
+    if (!workspace) {
+      console.log('Admin workspace not found, skipping flow seeds');
       return;
     }
 
@@ -49,7 +61,6 @@ export class FlowSeedService {
             type: 'manual',
             position: { x: 100, y: 100 },
             data: {},
-            // Properties for UGC Factory form - moved from flow level
             properties: [
               {
                 name: 'prompt',
@@ -126,7 +137,6 @@ export class FlowSeedService {
             target: 'code-1',
           },
         ],
-        // Properties moved to manual trigger node in UGC Factory flows
       },
       {
         name: 'SEO Content Writer',
@@ -145,7 +155,6 @@ export class FlowSeedService {
             type: 'manual',
             position: { x: 100, y: 100 },
             data: {},
-            // Properties for UGC Factory form
             properties: [
               {
                 name: 'topic',
@@ -229,7 +238,6 @@ export class FlowSeedService {
             target: 'json-1',
           },
         ],
-        // Properties moved to manual trigger node
       },
       {
         name: 'OmniPost AI - Multi-Platform Publisher',
@@ -254,7 +262,6 @@ export class FlowSeedService {
             type: 'manual',
             position: { x: 100, y: 100 },
             data: {},
-            // Properties for UGC Factory form
             properties: [
               {
                 name: 'content',
@@ -352,7 +359,6 @@ export class FlowSeedService {
             target: 'code-2',
           },
         ],
-        // Properties moved to manual trigger node
       },
     ];
 
@@ -362,11 +368,16 @@ export class FlowSeedService {
       });
 
       if (!existingFlow) {
-        const flow = this.flowRepository.create(flowData);
+        const flow = this.flowRepository.create({
+          ...flowData,
+          workspaceId: workspace.id,
+          createdBy: adminUser.id,
+          updatedBy: adminUser.id,
+        } as any);
         await this.flowRepository.save(flow);
-        console.log(`âœ… Created flow: ${flowData.name}`);
+        console.log(`✅ Created flow: ${flowData.name}`);
       } else {
-        console.log(`â­ï¸  Flow already exists: ${flowData.name}`);
+        console.log(`⭐️  Flow already exists: ${flowData.name}`);
       }
     }
   }

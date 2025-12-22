@@ -11,9 +11,15 @@ export class GoogleAiClient implements AiProviderClient {
     this.genAI = new GoogleGenerativeAI(apiKey);
   }
 
-  async chat(prompt: string, model: string, options?: ChatOptions): Promise<string> {
+  async chat(
+    prompt: string,
+    model: string,
+    options?: ChatOptions,
+  ): Promise<string> {
     try {
-      const chatModel = this.genAI.getGenerativeModel({ model: model || 'gemini-pro' });
+      const chatModel = this.genAI.getGenerativeModel({
+        model: model || 'gemini-pro',
+      });
       const result = await chatModel.generateContent(prompt);
       const response = await result.response;
       return response.text();
@@ -22,9 +28,15 @@ export class GoogleAiClient implements AiProviderClient {
     }
   }
 
-  async chatWithHistory(messages: ChatMessage[], model: string, options?: ChatOptions): Promise<string> {
+  async chatWithHistory(
+    messages: ChatMessage[],
+    model: string,
+    options?: ChatOptions,
+  ): Promise<string> {
     try {
-      const chatModel = this.genAI.getGenerativeModel({ model: model || 'gemini-pro' });
+      const chatModel = this.genAI.getGenerativeModel({
+        model: model || 'gemini-pro',
+      });
 
       // Filter out system messages and convert to Google Gemini format
       const userMessages = messages.filter((m) => m.role !== 'system');
@@ -57,7 +69,9 @@ export class GoogleAiClient implements AiProviderClient {
 
   async generateEmbedding(text: string, model: string): Promise<number[]> {
     try {
-      const embeddingModel = this.genAI.getGenerativeModel({ model: model || 'text-embedding-004' });
+      const embeddingModel = this.genAI.getGenerativeModel({
+        model: model || 'text-embedding-004',
+      });
       const result = await embeddingModel.embedContent(text);
       return result.embedding.values;
     } catch (error) {

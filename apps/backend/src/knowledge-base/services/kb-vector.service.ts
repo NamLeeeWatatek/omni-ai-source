@@ -25,7 +25,6 @@ export class KBVectorService {
     const qdrantApiKey = process.env.QDRANT_API_KEY;
     if (qdrantUrl && qdrantApiKey) {
       try {
-
         this.qdrantClient = new QdrantClient({
           url: qdrantUrl,
           apiKey: qdrantApiKey,
@@ -127,7 +126,7 @@ export class KBVectorService {
     }
   }
 
-  async upsertVector(point: VectorPoint): Promise<string> {
+  async upsertVector(point: VectorPoint, workspaceId: string): Promise<string> {
     if (!this.qdrantClient) {
       throw new Error('Qdrant client not available');
     }
@@ -135,6 +134,7 @@ export class KBVectorService {
     try {
       const sanitizedPayload = {
         ...point.payload,
+        workspace_id: workspaceId,
         content: point.payload.content
           ? Buffer.from(point.payload.content, 'utf-8').toString('utf-8')
           : '',
@@ -159,6 +159,7 @@ export class KBVectorService {
 
   async search(
     vector: number[],
+    workspaceId: string,
     limit: number = 5,
     filter?: Record<string, any>,
   ): Promise<SearchResult[]> {
@@ -168,10 +169,15 @@ export class KBVectorService {
     }
 
     try {
+      const searchFilter = {
+        ...filter,
+        workspace_id: workspaceId,
+      };
+
       const searchResult = await this.qdrantClient.search(this.collectionName, {
         vector,
         limit,
-        filter: filter ? this.buildFilter(filter) : undefined,
+        filter: this.buildFilter(searchFilter),
       });
 
       return searchResult.map((result) => ({
@@ -201,15 +207,23 @@ export class KBVectorService {
     }
   }
 
-  async deleteByFilter(filter: Record<string, any>): Promise<void> {
+  async deleteByFilter(
+    workspaceId: string,
+    filter: Record<string, any>,
+  ): Promise<void> {
     if (!this.qdrantClient) {
       this.logger.warn('Qdrant client not available - skipping delete');
       return;
     }
 
     try {
+      const deleteFilter = {
+        ...filter,
+        workspace_id: workspaceId,
+      };
+
       await this.qdrantClient.delete(this.collectionName, {
-        filter: this.buildFilter(filter),
+        filter: this.buildFilter(deleteFilter),
       });
     } catch (error) {
       this.logger.error(`Error deleting by filter: ${error.message}`);
@@ -218,10 +232,49 @@ export class KBVectorService {
   }
 
   private buildFilter(filter: Record<string, any>): any {
-    const must = Object.entries(filter).map(([key, value]) => ({
-      key,
-      match: { value },
-    }));
+    const must: any[] = [];
+
+    for (const [key, value] of Object.entries(filter)) {
+      if (value === undefined || value === null) continue;
+
+      if (Array.isArray(value)) {
+        // Match any value in array
+        must.push({
+          key,
+          match: { any: value },
+        });
+      } else if (typeof value === 'object' && !Array.isArray(value)) {
+        // Range filter
+        if (
+          'gte' in value ||
+          'lte' in value ||
+          'gt' in value ||
+          'lt' in value
+        ) {
+          must.push({
+            key,
+            range: {
+              gt: value.gt,
+              gte: value.gte,
+              lt: value.lt,
+              lte: value.lte,
+            },
+          });
+        } else {
+          // Standard equality for objects (if any)
+          must.push({
+            key,
+            match: { value: JSON.stringify(value) },
+          });
+        }
+      } else {
+        // Standard equality
+        must.push({
+          key,
+          match: { value },
+        });
+      }
+    }
 
     return { must };
   }

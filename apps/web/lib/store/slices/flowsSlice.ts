@@ -3,11 +3,11 @@
  */
 import { createSlice, createAsyncThunk, type PayloadAction, type ActionReducerMapBuilder } from '@reduxjs/toolkit'
 import type { Draft } from '@reduxjs/toolkit'
-import { flowsApi, type Flow as FlowsApiFlow } from '@/lib/api/flows'
-import type { PaginatedResponse, PaginationParams } from '@/lib/types/pagination'
+import { flowsApi } from '@/lib/api/flows'
+import type { Flow } from '@/lib/types/flow'
+import { PaginatedResponse, PaginationParams } from '@/lib/types/pagination'
+import { setGlobalLoading } from './uiSlice'
 
-// Use Flow type from flowsApi for consistency
-type Flow = FlowsApiFlow
 
 interface FlowsState {
   items: Flow[]
@@ -21,10 +21,12 @@ interface FlowsState {
   hasNext: boolean
   hasPrev: boolean
   stats?: {
-    total_flows: number
-    total_published: number
-    total_draft: number
-    total_archived: number
+    total: number
+    published: number
+    draft: number
+    active: number
+    successRate: number
+    avgDuration: number
   }
 }
 
@@ -43,22 +45,49 @@ const initialState: FlowsState = {
 }
 
 export const fetchFlows = createAsyncThunk<
-  PaginatedResponse<Flow>,
-  Partial<PaginationParams & { status?: string }> | void
+  {
+    items: Flow[]
+    total: number
+    page: number
+    pageSize: number
+    totalPages: number
+    hasNext: boolean
+    hasPrev: boolean
+  },
+  Partial<PaginationParams & { status?: string; filters?: string; sort?: string }> | void
 >(
   'flows/fetchFlows',
   async (params) => {
-    const flows = await flowsApi.getAll()
-    console.log('flows from service', flows)
-    if (Array.isArray(flows)) {
+    const response = await flowsApi.getAll(params as any)
+
+    // Handle InfinityPaginationResponseDto { data, hasNextPage, total }
+    if (response && response.data && Array.isArray(response.data)) {
+      const items = response.data
+      const total = response.total || items.length
+      const page = (params as any)?.page || 1
+      const pageSize = (params as any)?.limit || items.length
+
       return {
-        items: flows,
-        total: flows.length,
+        items,
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize),
+        hasNext: response.hasNextPage || false,
+        hasPrev: page > 1,
+      }
+    }
+
+    // Handle direct array response
+    if (Array.isArray(response)) {
+      return {
+        items: response,
+        total: response.length,
         page: 1,
-        page_size: flows.length,
-        total_pages: 1,
-        has_next: false,
-        has_prev: false,
+        pageSize: response.length,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
       }
     }
 
@@ -66,11 +95,18 @@ export const fetchFlows = createAsyncThunk<
       items: [],
       total: 0,
       page: 1,
-      page_size: 25,
-      total_pages: 1,
-      has_next: false,
-      has_prev: false,
+      pageSize: 25,
+      totalPages: 1,
+      hasNext: false,
+      hasPrev: false,
     }
+  }
+)
+
+export const fetchFlowsStats = createAsyncThunk<any, void>(
+  'flows/fetchStats',
+  async () => {
+    return await flowsApi.getStats()
   }
 )
 
@@ -83,40 +119,77 @@ export const fetchFlow = createAsyncThunk<Flow, string>(
 
 export const createFlow = createAsyncThunk<Flow, Partial<Flow>>(
   'flows/createFlow',
-  async (data: Partial<Flow>) => {
-    // TODO: Implement create in flowsApi
-    throw new Error('createFlow not implemented in flowsApi')
+  async (data: Partial<Flow>, { dispatch }) => {
+    dispatch(setGlobalLoading({ actionId: 'create-flow', isLoading: true, message: 'Creating flow...' }))
+    try {
+      return await flowsApi.create(data)
+    } finally {
+      dispatch(setGlobalLoading({ actionId: 'create-flow', isLoading: false }))
+    }
   }
 )
 
 export const updateFlow = createAsyncThunk<Flow, { id: string; data: Partial<Flow> }>(
   'flows/updateFlow',
-  async ({ id, data }: { id: string; data: Partial<Flow> }) => {
-    return await flowsApi.update(id, data)
+  async ({ id, data }: { id: string; data: Partial<Flow> }, { dispatch }) => {
+    dispatch(setGlobalLoading({ actionId: 'update-flow', isLoading: true, message: 'Updating flow...' }))
+    try {
+      return await flowsApi.update(id, data)
+    } finally {
+      dispatch(setGlobalLoading({ actionId: 'update-flow', isLoading: false }))
+    }
   }
 )
 
 export const deleteFlow = createAsyncThunk<string, string>(
   'flows/deleteFlow',
-  async (id: string) => {
-    await flowsApi.delete(id)
-    return id
+  async (id: string, { dispatch }) => {
+    dispatch(setGlobalLoading({ actionId: 'delete-flow', isLoading: true, message: 'Deleting flow...' }))
+    try {
+      await flowsApi.delete(id)
+      return id
+    } finally {
+      dispatch(setGlobalLoading({ actionId: 'delete-flow', isLoading: false }))
+    }
   }
 )
 
 export const duplicateFlow = createAsyncThunk<Flow, string>(
   'flows/duplicateFlow',
-  async (id: string) => {
-    // TODO: Implement duplicate in flowsApi
-    throw new Error('duplicateFlow not implemented in flowsApi')
+  async (id: string, { dispatch }) => {
+    dispatch(setGlobalLoading({ actionId: 'duplicate-flow', isLoading: true, message: 'Duplicating flow...' }))
+    try {
+      return await flowsApi.duplicate(id)
+    } finally {
+      dispatch(setGlobalLoading({ actionId: 'duplicate-flow', isLoading: false }))
+    }
   }
 )
 
 export const archiveFlow = createAsyncThunk<Flow, string>(
   'flows/archiveFlow',
-  async (id: string) => {
-    // TODO: Implement archive in flowsApi
-    throw new Error('archiveFlow not implemented in flowsApi')
+  async (id: string, { dispatch }) => {
+    dispatch(setGlobalLoading({ actionId: 'archive-flow', isLoading: true, message: 'Archiving flow...' }))
+    try {
+      return await flowsApi.update(id, { status: 'archived' })
+    } finally {
+      dispatch(setGlobalLoading({ actionId: 'archive-flow', isLoading: false }))
+    }
+  }
+)
+
+export const executeFlow = createAsyncThunk<
+  { executionId: string; flowId: string; status: string; startedAt: string },
+  { id: string; input?: any }
+>(
+  'flows/executeFlow',
+  async ({ id, input }, { dispatch }) => {
+    dispatch(setGlobalLoading({ actionId: 'execute-flow', isLoading: true, message: 'Starting workflow...' }))
+    try {
+      return await flowsApi.execute(id, input)
+    } finally {
+      dispatch(setGlobalLoading({ actionId: 'execute-flow', isLoading: false }))
+    }
   }
 )
 
@@ -133,6 +206,9 @@ const flowsSlice = createSlice({
   },
   extraReducers: (builder: ActionReducerMapBuilder<FlowsState>) => {
     builder
+      .addCase(fetchFlowsStats.fulfilled, (state: Draft<FlowsState>, action: PayloadAction<any>) => {
+        state.stats = action.payload
+      })
       .addCase(fetchFlows.pending, (state: Draft<FlowsState>) => {
         state.loading = true
         state.error = null
@@ -142,10 +218,10 @@ const flowsSlice = createSlice({
         state.items = action.payload.items
         state.total = action.payload.total
         state.page = action.payload.page
-        state.pageSize = action.payload.page_size
-        state.totalPages = action.payload.total_pages
-        state.hasNext = action.payload.has_next
-        state.hasPrev = action.payload.has_prev
+        state.pageSize = action.payload.pageSize
+        state.totalPages = action.payload.totalPages
+        state.hasNext = action.payload.hasNext
+        state.hasPrev = action.payload.hasPrev
         if (action.payload.stats) {
           state.stats = action.payload.stats
         }
@@ -196,4 +272,3 @@ const flowsSlice = createSlice({
 
 export const { setCurrentFlow, clearError } = flowsSlice.actions
 export default flowsSlice.reducer
-

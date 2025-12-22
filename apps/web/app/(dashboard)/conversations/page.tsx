@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useConversationsSocket } from '@/lib/hooks/useConversationsSocket';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { useNotificationPreferences } from '@/components/notifications/NotificationSettings';
@@ -45,7 +44,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/DropdownMenu';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/Tabs';
-import { Spinner } from '@/components/ui/Spinner';
+import { LoadingLogo } from '@/components/ui/LoadingLogo';
 import { ChatInterface } from '@/components/chat/ChatInterface';
 import { NotificationSettings } from '@/components/notifications/NotificationSettings';
 import axiosClient from '@/lib/axios-client';
@@ -241,7 +240,7 @@ export default function ConversationsPage() {
         }
       }
 
-      const data = await axiosClient.get(`/conversations?${params.toString()}`);
+      const data: any = await axiosClient.get(`/conversations?${params.toString()}`);
 
 
 
@@ -274,7 +273,7 @@ export default function ConversationsPage() {
   const loadChannels = async () => {
     try {
       setChannelsLoading(true);
-      const data = await axiosClient.get('/channels');
+      const data: any = await axiosClient.get('/channels');
 
       const mappedChannels: Channel[] = (data?.items || data || []).map((channel: any) => ({
         id: channel.id,
@@ -325,7 +324,7 @@ export default function ConversationsPage() {
       setSyncing(true);
       toast.info('Syncing conversations from Facebook...');
 
-      const data = await axiosClient.post(
+      const data: any = await axiosClient.post(
         `/channels/facebook/connections/${channel.id}/sync-to-db`,
         {
           conversationLimit: 25,
@@ -491,7 +490,7 @@ export default function ConversationsPage() {
 
             {channelsLoading ? (
               <div className="flex items-center justify-center py-12">
-                <Spinner className="w-6 h-6" />
+                <LoadingLogo size="sm" />
               </div>
             ) : channelsWithCounts.length === 0 ? (
               <div className="px-4 py-12 text-center">
@@ -566,18 +565,8 @@ export default function ConversationsPage() {
                     ? 'All Messages'
                     : channels.find(c => c.id === selectedChannel)?.name || 'Messages'}
                 </h1>
-                {/* Connection status - improved */}
                 <div className="flex items-center gap-1.5">
-                  <motion.div
-                    animate={isConnected ? {
-                      scale: [1, 1.2, 1],
-                      opacity: [0.8, 1, 0.8],
-                    } : {}}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
+                  <div
                     className={cn(
                       'w-2 h-2 rounded-full',
                       isConnected ? 'bg-green-500' : 'bg-gray-400'
@@ -613,9 +602,9 @@ export default function ConversationsPage() {
                   size="sm"
                   onClick={handleSync}
                   className="h-9 gap-2"
-                  disabled={syncing || loading}
+                  loading={syncing}
                 >
-                  <RefreshCw className={cn('w-4 h-4', syncing && 'animate-spin')} />
+                  <RefreshCw className="w-4 h-4" />
                   <span className="text-xs">Sync</span>
                 </Button>
               )}
@@ -624,9 +613,9 @@ export default function ConversationsPage() {
                 size="icon"
                 onClick={() => loadConversations(false)}
                 className="h-9 w-9"
-                disabled={loading || refreshing}
+                loading={refreshing}
               >
-                <Filter className={cn('w-4 h-4', refreshing && 'animate-spin')} />
+                <Filter className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -654,26 +643,17 @@ export default function ConversationsPage() {
 
 
         <ScrollArea className="flex-1">
-          <AnimatePresence mode="wait">
-            {loading ? (
-              <motion.div
-                key="loading"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex items-center justify-center py-20"
-              >
-                <Spinner className="w-6 h-6" />
-              </motion.div>
-            ) : filteredConversations.length === 0 ? (
-              <motion.div
-                key="empty"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="flex flex-col items-center justify-center py-20 px-6 text-center"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
+          {loading ? (
+            <div
+              className="flex items-center justify-center py-20"
+            >
+              <LoadingLogo size="md" text="Loading conversations..." />
+            </div>
+          ) : filteredConversations.length === 0 ? (
+            <div
+              className="flex flex-col items-center justify-center py-20 px-6 text-center"
+            >
+              <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
                   <MessageSquare className="w-8 h-8 text-muted-foreground" />
                 </div>
                 <h3 className="font-semibold text-base mb-2">No conversations yet</h3>
@@ -692,21 +672,14 @@ export default function ConversationsPage() {
                     {syncing ? 'Syncing...' : 'Sync Now'}
                   </button>
                 )}
-              </motion.div>
+              </div>
             ) : (
-              <motion.div
-                key="list"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+              <div
                 className="divide-y divide-border/50"
               >
                 {filteredConversations.map((conv, index) => (
-                  <motion.button
+                  <button
                     key={conv.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: Math.min(index * 0.02, 0.2) }}
                     onClick={() => handleSelectConversation(conv.id)}
                     className={cn(
                       'w-full px-4 py-3 text-left transition-all duration-200 relative group',
@@ -793,11 +766,10 @@ export default function ConversationsPage() {
                         </div>
                       </div>
                     </div>
-                  </motion.button>
+                  </button>
                 ))}
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
         </ScrollArea>
       </div>
 
@@ -807,10 +779,7 @@ export default function ConversationsPage() {
           <ConversationChat conversationId={selectedId} />
         ) : (
           <div className="flex-1 flex items-center justify-center p-8">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3 }}
+            <div
               className="text-center max-w-md"
             >
               <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary/5">
@@ -820,7 +789,7 @@ export default function ConversationsPage() {
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Choose a conversation from the list to view messages and reply to your customers
               </p>
-            </motion.div>
+            </div>
           </div>
         )}
       </div>
@@ -894,7 +863,7 @@ function ConversationChat({
   const loadConversation = async () => {
     try {
       setLoading(true);
-      const data = await axiosClient.get(`/conversations/${conversationId}`);
+      const data: any = await axiosClient.get(`/conversations/${conversationId}`);
 
       const mappedConversation = {
         id: data.id,
@@ -984,7 +953,7 @@ function ConversationChat({
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <Spinner className="w-8 h-8" />
+        <LoadingLogo size="md" />
       </div>
     );
   }

@@ -4,6 +4,7 @@
   Logger,
   Inject,
   forwardRef,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual } from 'typeorm';
@@ -12,6 +13,8 @@ import {
   MessageEntity,
   MessageFeedbackEntity,
 } from './infrastructure/persistence/relational/entities/conversation.entity';
+import { ContactEntity } from './infrastructure/persistence/relational/entities/contact.entity';
+import { KBRagService } from '../knowledge-base/services/kb-rag.service';
 import {
   CreateConversationDto,
   CreateMessageDto,
@@ -22,6 +25,8 @@ import {
 import { ConversationsGateway } from './conversations.gateway';
 import { ChannelStrategy } from '../channels/channel.strategy';
 import { ChannelsService } from '../channels/channels.service';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { AiProvidersService } from '../ai-providers/ai-providers.service';
 
 @Injectable()
 export class ConversationsService {
@@ -34,38 +39,95 @@ export class ConversationsService {
     private messageRepository: Repository<MessageEntity>,
     @InjectRepository(MessageFeedbackEntity)
     private feedbackRepository: Repository<MessageFeedbackEntity>,
+    @InjectRepository(ContactEntity)
+    private contactRepository: Repository<ContactEntity>,
     @Inject(forwardRef(() => ConversationsGateway))
     private conversationsGateway: ConversationsGateway,
     @Inject(forwardRef(() => ChannelStrategy))
     private channelStrategy: ChannelStrategy,
     @Inject(forwardRef(() => ChannelsService))
     private channelsService: ChannelsService,
+    @Inject(forwardRef(() => SubscriptionsService))
+    private subscriptionsService: SubscriptionsService,
+    private ragService: KBRagService,
+    private aiProvidersService: AiProvidersService,
   ) {}
 
-  async create(createDto: CreateConversationDto) {
-    // âœ… FIX: Validate channel exists if channelId is provided
+  async create(
+    createDto: CreateConversationDto & {
+      workspaceId?: string;
+      source?: any;
+      type?: any;
+      status?: any;
+    },
+  ) {
+    // Validate channel if provided
     if (createDto.channelId) {
       const channel = await this.channelsService.findOne(createDto.channelId);
       if (!channel) {
-        this.logger.error(
-          `âŒ Cannot create conversation: Channel ${createDto.channelId} not found`,
-        );
-        throw new Error(
-          `Channel ${createDto.channelId} not found. Please reconnect the channel.`,
-        );
+        throw new Error(`Channel ${createDto.channelId} not found.`);
       }
-      this.logger.log(
-        `âœ… Channel ${createDto.channelId} validated for new conversation`,
-      );
+    }
+
+    // Resolve or Create Contact
+    let contactId = createDto.metadata?.contactId;
+    if (!contactId && (createDto.externalId || createDto.metadata?.email)) {
+      const contact = await this.findOrCreateContact({
+        workspaceId: createDto.workspaceId!,
+        externalId: createDto.externalId || undefined,
+        name: createDto.metadata?.name,
+        email: createDto.metadata?.email,
+      });
+      contactId = contact.id;
     }
 
     const conversation = this.conversationRepository.create({
       ...createDto,
+      workspaceId: createDto.workspaceId,
       channelType: createDto.channelType ?? 'web',
+      source: createDto.source ?? 'web',
+      type: createDto.type ?? 'support',
       status: 'active',
+      contactId,
       metadata: createDto.metadata || {},
     });
     return this.conversationRepository.save(conversation);
+  }
+
+  private async findOrCreateContact(params: {
+    workspaceId: string;
+    externalId?: string;
+    email?: string;
+    name?: string;
+    avatar?: string;
+  }): Promise<ContactEntity> {
+    let contact: ContactEntity | null = null;
+
+    if (params.externalId) {
+      contact = await this.contactRepository.findOne({
+        where: {
+          workspaceId: params.workspaceId,
+          externalId: params.externalId,
+        },
+      });
+    } else if (params.email) {
+      contact = await this.contactRepository.findOne({
+        where: { workspaceId: params.workspaceId, email: params.email },
+      });
+    }
+
+    if (!contact) {
+      contact = this.contactRepository.create({
+        workspaceId: params.workspaceId,
+        externalId: params.externalId,
+        email: params.email,
+        name: params.name,
+        avatar: params.avatar,
+      });
+      return this.contactRepository.save(contact);
+    }
+
+    return contact;
   }
 
   async findAll(options: {
@@ -90,24 +152,20 @@ export class ConversationsService {
       .where('conversation.deletedAt IS NULL')
       .andWhere('conversation.channelId IS NOT NULL'); // âœ… ALWAYS filter for channel conversations
 
-    // If filtering by workspace, use INNER JOIN to ensure bot exists and belongs to workspace
-    // Otherwise use LEFT JOIN to include conversations without bots
+    // âœ… Use decentralized workspaceId for direct filtering
     if (options.workspaceId) {
       this.logger.log(`âœ… Filter: workspaceId = ${options.workspaceId}`);
-      query.innerJoinAndSelect(
-        'conversation.bot',
-        'bot',
-        'bot.workspaceId = :workspaceId',
-        {
-          workspaceId: options.workspaceId,
-        },
-      );
+      query.andWhere('conversation.workspaceId = :workspaceId', {
+        workspaceId: options.workspaceId,
+      });
     } else {
       this.logger.warn(
-        'âš ï¸ NO workspaceId filter - will return all workspaces!',
+        'âš ï¸  NO workspaceId filter - will return all workspaces!',
       );
-      query.leftJoinAndSelect('conversation.bot', 'bot');
     }
+
+    // Join bot relation for metadata/UI
+    query.leftJoinAndSelect('conversation.bot', 'bot');
 
     if (options.botId) {
       this.logger.log(`âœ… Filter: botId = ${options.botId}`);
@@ -288,7 +346,7 @@ export class ConversationsService {
       .to(id)
       .emit('conversation:updated', updated);
 
-    this.logger.log(`ðŸ¤– Conversation ${id} handed back to bot`);
+    this.logger.log(`🤖 Conversation ${id} handed back to bot`);
 
     return updated;
   }
@@ -308,15 +366,25 @@ export class ConversationsService {
       throw new NotFoundException(`Conversation ${conversationId} not found`);
     }
 
+    // âœ… Check Quota before proceeding
+    const workspaceId =
+      conversation.workspaceId || conversation.bot?.workspaceId;
+    if (workspaceId) {
+      const quota =
+        await this.subscriptionsService.checkQuotaLimit(workspaceId);
+      if (!quota.withinLimit) {
+        throw new BadRequestException(
+          'Message limit exceeded for this workspace. Please upgrade your plan.',
+        );
+      }
+    }
+
     const message = this.messageRepository.create({
+      ...createDto,
       conversationId,
-      role: createDto.role,
-      content: createDto.content,
-      attachments: createDto.attachments,
-      metadata: createDto.metadata || {},
-      sources: createDto.sources,
-      toolCalls: createDto.toolCalls,
+      workspaceId,
       sender: createDto.sender ?? createDto.role,
+      metadata: createDto.metadata || {},
     });
 
     const savedMessage = await this.messageRepository.save(message);
@@ -326,6 +394,20 @@ export class ConversationsService {
 
     conversation.lastMessageAt = new Date();
     await this.conversationRepository.save(conversation);
+
+    // âœ… Automated RAG Discovery Interception
+    if (
+      createDto.role === 'user' &&
+      (conversation.type === 'discovery' ||
+        conversation.metadata?.discoveryEnabled)
+    ) {
+      this.handleRagDiscovery(conversation, savedMessage);
+    }
+
+    // âœ… Increment Quota usage
+    if (workspaceId) {
+      await this.subscriptionsService.incrementMessageUsage(workspaceId);
+    }
 
     // Try to send to external channel if it's an assistant message
     if (
@@ -342,9 +424,6 @@ export class ConversationsService {
         // Log error but don't fail the request - message is already saved
         this.logger.error(
           `Failed to send message to external channel: ${error.message}`,
-        );
-        this.logger.warn(
-          `ðŸ’¡ Message saved to database but not sent to ${conversation.channelType}`,
         );
       }
     }
@@ -375,14 +454,12 @@ export class ConversationsService {
       // Get channel connection to get access token
       if (!conversation.channelId) {
         this.logger.warn(
-          `âš ï¸  No channelId for conversation ${conversation.id}. Channel may have been disconnected. Skipping external message send.`,
+          `âš ï¸   No channelId for conversation ${conversation.id}. Channel may have been disconnected. Skipping external message send.`,
         );
         return; // Gracefully skip if channel was disconnected
       }
 
-      // Get channel by ID (don't filter by workspace since bot and channel may be in different workspaces)
-      this.logger.debug(`Looking for channel ${conversation.channelId}`);
-
+      // Get channel by ID
       const channel = await this.channelsService.findOne(
         conversation.channelId,
         undefined, // Don't filter by workspace
@@ -390,18 +467,10 @@ export class ConversationsService {
 
       if (!channel) {
         this.logger.warn(
-          `âš ï¸ Channel ${conversation.channelId} not found - conversation may be orphaned`,
+          `âš ï¸  Channel ${conversation.channelId} not found - conversation may be orphaned`,
         );
-        this.logger.warn(
-          `ðŸ’¡ Message saved to database but not sent to external channel`,
-        );
-        // Don't throw error - message is already saved, just can't send to external channel
         return;
       }
-
-      this.logger.log(
-        `âœ… Found channel: ${channel.name} (${channel.id}, workspace: ${channel.workspaceId})`,
-      );
 
       // Get provider for this channel type
       const provider = this.channelStrategy.getProvider(
@@ -415,7 +484,7 @@ export class ConversationsService {
         return;
       }
 
-      // Set credentials if provider supports it (for Facebook, Instagram, etc.)
+      // Set credentials if provider supports it
       if ('setCredentials' in provider && channel.accessToken) {
         (provider as any).setCredentials(
           channel.accessToken,
@@ -435,7 +504,7 @@ export class ConversationsService {
         );
       } else {
         this.logger.error(
-          `âŒ Failed to send message to ${conversation.channelType}: ${result.error}`,
+          `â Œ Failed to send message to ${conversation.channelType}: ${result.error}`,
         );
       }
     } catch (error) {
@@ -443,6 +512,130 @@ export class ConversationsService {
         `Error sending message to external channel: ${error.message}`,
         error.stack,
       );
+    }
+  }
+
+  private async handleRagDiscovery(
+    conversation: ConversationEntity,
+    userMessage: MessageEntity,
+  ) {
+    try {
+      this.logger.log(
+        `ðŸ”  Triggering automated RAG discovery for conversation ${conversation.id}`,
+      );
+
+      const workspaceId =
+        conversation.workspaceId || conversation.bot?.workspaceId;
+      if (!workspaceId) return;
+
+      // 1. Fetch recent history for context
+      const historyItems = await this.messageRepository.find({
+        where: { conversationId: conversation.id },
+        order: { sentAt: 'DESC' },
+        take: 6, // Current message + 5 previous
+      });
+      // Reverse to chronological and exclude current message
+      const history = historyItems
+        .reverse()
+        .filter((m) => m.id !== userMessage.id);
+
+      // 2. Adaptive Routing & Query Rewriting
+      const { searchQuery, needsKB } = await this.rewriteDiscoveryQuery(
+        workspaceId,
+        history,
+        userMessage.content,
+      );
+
+      if (!needsKB) {
+        this.logger.log(
+          `âœ¨ Message classified as GENERAL. Skipping KB search.`,
+        );
+        return;
+      }
+
+      this.logger.log(`ðŸ”„ Standalone Discovery Query: "${searchQuery}"`);
+
+      // 3. Perform semantic search with rewritten query
+      const results = await this.ragService.query(
+        searchQuery,
+        workspaceId,
+        undefined,
+        3,
+        0.5,
+      );
+
+      if (results.length > 0) {
+        // 4. Format helpful response with citations
+        const citationText = results
+          .map((r, i) => `[${i + 1}] ${r.content}`)
+          .join('\n\n');
+        const responseContent = `Based on our knowledge base:\n\n${citationText}\n\nHow else can I help?`;
+
+        // 5. Add assistant message with sources
+        await this.addMessage(conversation.id, {
+          role: 'assistant',
+          content: responseContent,
+          sources: results.map((r) => ({
+            documentId: r.documentId!,
+            title: r.metadata?.title || 'Knowledge Base Source',
+            content: r.content,
+            score: r.score,
+          })),
+        });
+      }
+    } catch (error) {
+      this.logger.error(`â Œ RAG Discovery failed: ${error.message}`);
+    }
+  }
+
+  private async rewriteDiscoveryQuery(
+    workspaceId: string,
+    history: MessageEntity[],
+    currentMessage: string,
+  ): Promise<{ searchQuery: string; needsKB: boolean }> {
+    try {
+      const historyText = history
+        .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+        .join('\n');
+
+      const prompt = `Analyze the conversation history and the new message. 
+Determine if the message requires searching a Knowledge Base (factual questions, "how-to", product info) or if it is just a general greeting/casual talk.
+
+Output format:
+ACTION: [SEARCH or GENERAL]
+QUERY: [Standalone search query if SEARCH, otherwise the original message]
+
+History:
+${historyText}
+
+Message: ${currentMessage}`;
+
+      const response = await this.aiProvidersService.chat(
+        prompt,
+        'gemini-2.0-flash',
+      );
+
+      const lines = response.split('\n');
+      const action =
+        lines
+          .find((l) => l.startsWith('ACTION:'))
+          ?.split(':')[1]
+          ?.trim() || 'SEARCH';
+      const queryValue =
+        lines
+          .find((l) => l.startsWith('QUERY:'))
+          ?.split(':')[1]
+          ?.trim() || currentMessage;
+
+      return {
+        searchQuery: queryValue.replace(/^"|"$/g, ''),
+        needsKB: action === 'SEARCH',
+      };
+    } catch (error) {
+      this.logger.warn(
+        `Failed to rewrite query: ${error.message}. Defaulting to SEARCH.`,
+      );
+      return { searchQuery: currentMessage, needsKB: true };
     }
   }
 
@@ -595,6 +788,7 @@ export class ConversationsService {
     externalId: string,
     channelType: string,
     contactInfo?: { name?: string; avatar?: string },
+    workspaceId?: string,
   ) {
     let conversation = await this.conversationRepository.findOne({
       where: { botId, externalId, channelType },
@@ -605,8 +799,11 @@ export class ConversationsService {
         botId,
         externalId,
         channelType,
-        contactName: contactInfo?.name,
-        contactAvatar: contactInfo?.avatar,
+        workspaceId,
+        metadata: {
+          name: contactInfo?.name,
+          avatar: contactInfo?.avatar,
+        },
       });
     }
 
@@ -621,8 +818,9 @@ export class ConversationsService {
     contactName?: string;
     contactAvatar?: string;
     metadata?: Record<string, any>;
+    workspaceId?: string;
   }): Promise<ConversationEntity> {
-    // Find by externalId + botId + channelType to avoid duplicates when channel changes
+    // Find by externalId + botId + channelType
     let conversation = await this.conversationRepository.findOne({
       where: {
         externalId: params.externalId,
@@ -630,22 +828,24 @@ export class ConversationsService {
         channelType: params.channelType,
       },
       order: {
-        createdAt: 'DESC', // Get the most recent one
+        createdAt: 'DESC',
       },
     });
 
     if (!conversation) {
-      // Create new conversation
-      conversation = this.conversationRepository.create({
+      // Create new conversation (this will handle contact resolution internally)
+      conversation = await this.create({
         botId: params.botId,
         channelId: params.channelId,
         channelType: params.channelType,
         externalId: params.externalId,
-        contactName: params.contactName,
-        contactAvatar: params.contactAvatar,
+        workspaceId: params.workspaceId,
         status: 'active',
-        lastMessageAt: new Date(),
-        metadata: params.metadata || {},
+        metadata: {
+          ...params.metadata,
+          name: params.contactName,
+          avatar: params.contactAvatar,
+        },
       });
 
       this.logger.log(
@@ -653,17 +853,11 @@ export class ConversationsService {
       );
     } else {
       // Update existing conversation
-      conversation.contactName = params.contactName || conversation.contactName;
-      conversation.contactAvatar =
-        params.contactAvatar || conversation.contactAvatar;
       conversation.lastMessageAt = new Date();
       conversation.status = 'active';
 
-      // Update channelId if it changed (reconnected channel)
+      // Update channelId if it changed
       if (conversation.channelId !== params.channelId) {
-        this.logger.log(
-          `Updating channelId for conversation ${conversation.id}: ${conversation.channelId} -> ${params.channelId}`,
-        );
         conversation.channelId = params.channelId;
       }
 
@@ -673,9 +867,10 @@ export class ConversationsService {
           ...params.metadata,
         };
       }
+      conversation = await this.conversationRepository.save(conversation);
     }
 
-    return this.conversationRepository.save(conversation);
+    return conversation;
   }
 
   async addMessageFromWebhook(params: {
@@ -684,13 +879,11 @@ export class ConversationsService {
     role: 'user' | 'assistant';
     metadata?: Record<string, any>;
   }): Promise<MessageEntity> {
-    const message = this.messageRepository.create({
-      conversationId: params.conversationId,
+    return this.addMessage(params.conversationId, {
       role: params.role,
       content: params.content,
-      metadata: params.metadata || {},
+      metadata: params.metadata,
+      sender: params.role === 'user' ? 'customer' : 'assistant',
     });
-
-    return this.messageRepository.save(message);
   }
 }

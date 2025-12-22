@@ -4,6 +4,7 @@ export abstract class FlowRepository {
   abstract create(data: FlowCreateData): Promise<Flow>;
 
   abstract findAll(options?: {
+    workspaceId?: string;
     ownerId?: string;
     status?: string;
     category?: string;
@@ -18,6 +19,7 @@ export abstract class FlowRepository {
   }): Promise<Flow[]>;
 
   abstract findAllComplex(options: {
+    workspaceId?: string;
     ownerId?: string;
     status?: string;
     published?: boolean;
@@ -25,6 +27,23 @@ export abstract class FlowRepository {
     limit?: number;
     offset?: number;
   }): Promise<Flow[]>;
+
+  abstract findAllPaginated(options: {
+    workspaceId?: string;
+    ownerId?: string;
+    status?: string;
+    published?: boolean;
+    category?: string;
+    limit?: number;
+    offset?: number;
+    page?: number;
+    search?: string;
+    sort?: { orderBy: string; order: 'ASC' | 'DESC' }[];
+  }): Promise<{
+    data: Flow[];
+    hasNextPage: boolean;
+    total: number;
+  }>;
 
   abstract findById(id: Flow['id']): Promise<NullableType<Flow>>;
 
@@ -45,6 +64,7 @@ export abstract class FlowRepository {
   abstract remove(id: Flow['id']): Promise<void>;
 
   abstract count(options?: {
+    workspaceId?: string;
     ownerId?: string;
     status?: string;
   }): Promise<number>;

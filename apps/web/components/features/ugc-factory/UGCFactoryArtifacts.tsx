@@ -3,9 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Spinner } from '@/components/ui/Spinner'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table'
-import axiosClient from '@/lib/axios-client'
+import { DataTable, type Column } from '@/components/ui/DataTable'
 import {
     FiDownload,
     FiImage,
@@ -14,9 +12,16 @@ import {
     FiMusic,
     FiFileText,
     FiTrash2,
-    FiExternalLink
+    FiExternalLink,
+    FiAlertTriangle
 } from 'react-icons/fi'
+import { UGCFactoryService, useAsyncState } from '@/lib/services/api.service'
+import { Execution } from '@/lib/types'
+import { useAppDispatch } from '@/lib/store/hooks'
+import { deleteArtifact } from '@/lib/store/slices/ugcFactorySlice'
 import { toast } from '@/lib/toast'
+import { NoDataEmptyState, ErrorEmptyState } from '@/components/ui/EmptyState'
+import { TableSkeleton } from '@/components/ui/LoadingSkeleton'
 
 interface ExecutionArtifact {
     id: string
@@ -44,9 +49,11 @@ export function UGCFactoryArtifacts({
     executionId,
     onStartNew
 }: UGCFactoryArtifactsProps) {
+    const dispatch = useAppDispatch()
     const [artifacts, setArtifacts] = useState<ExecutionArtifact[]>([])
     const [loading, setLoading] = useState(true)
     const [allArtifacts, setAllArtifacts] = useState<ExecutionArtifact[]>([])
+    const { execute } = useAsyncState()
 
     useEffect(() => {
         if (executionId) {
@@ -57,43 +64,45 @@ export function UGCFactoryArtifacts({
     }, [flowId, executionId])
 
     const loadExecutionArtifacts = async (execId: string) => {
-        try {
-            setLoading(true)
-            const data = await axiosClient.get(`/execution-artifacts/?execution_id=${execId}`)
-            setArtifacts(data)
-        } catch (err) {
-            console.error('Failed to load artifacts:', err)
-            setArtifacts([])
-        } finally {
-            setLoading(false)
-        }
+        await execute(
+            () => UGCFactoryService.getExecutionArtifacts(execId),
+            (data: ExecutionArtifact[]) => {
+                setArtifacts(data)
+            },
+            (err) => {
+                console.error('Failed to load execution artifacts:', err)
+                setArtifacts([])
+            }
+        )
     }
 
     const loadAllArtifacts = async () => {
-        try {
-            setLoading(true)
-            // Load all executions for this flow and get their artifacts
-            const executions = await axiosClient.get(`/executions/?flow_id=${flowId}&limit=100`)
+        await execute(
+            async () => {
+                // Load all executions for this flow and get their artifacts
+                const executions = await UGCFactoryService.getExecutions(flowId, 100)
 
-            const allArtifactsPromises = executions.map(async (execution: any) => {
-                try {
-                    return await axiosClient.get(`/execution-artifacts/?execution_id=${execution.execution_id}`)
-                } catch {
-                    return []
-                }
-            })
+                const allArtifactsPromises = executions.map(async (execution: Execution) => {
+                    try {
+                        return await UGCFactoryService.getExecutionArtifacts(String(execution.id))
+                    } catch {
+                        return []
+                    }
+                })
 
-            const artifactsArrays = await Promise.all(allArtifactsPromises)
-            const flattened = artifactsArrays.flat()
-            setAllArtifacts(flattened)
-            setArtifacts(flattened)
-        } catch (err) {
-            console.error('Failed to load artifacts:', err)
-            setAllArtifacts([])
-            setArtifacts([])
-        } finally {
-            setLoading(false)
-        }
+                const artifactsArrays = await Promise.all(allArtifactsPromises)
+                return artifactsArrays.flat()
+            },
+            (flattened: ExecutionArtifact[]) => {
+                setAllArtifacts(flattened)
+                setArtifacts(flattened)
+            },
+            (err) => {
+                console.error('Failed to load all artifacts:', err)
+                setAllArtifacts([])
+                setArtifacts([])
+            }
+        )
     }
 
     const getArtifactIcon = (type: string) => {
@@ -142,10 +151,10 @@ export function UGCFactoryArtifacts({
         if (!confirm('Are you sure you want to delete this artifact?')) return
 
         try {
-            await axiosClient.delete(`/execution-artifacts/${artifact.id}`)
+            await dispatch(deleteArtifact(artifact.id)).unwrap()
             toast.success('Artifact deleted successfully')
 
-            // Remove from state
+            // Redux will automatically update the state, but we also update local state for immediate UI feedback
             setArtifacts(prev => prev.filter(a => a.id !== artifact.id))
             setAllArtifacts(prev => prev.filter(a => a.id !== artifact.id))
         } catch (err) {
@@ -181,12 +190,82 @@ export function UGCFactoryArtifacts({
         )
     }
 
+    const columns: Column<ExecutionArtifact>[] = [
+        {
+            key: 'preview',
+            label: 'Preview',
+            className: 'w-20',
+            render: (_, artifact) => renderArtifactPreview(artifact)
+        },
+        {
+            key: 'name',
+            label: 'Name',
+            render: (_, artifact) => (
+                <div>
+                    <p className="font-medium">{artifact.name}</p>
+                    {artifact.description && (
+                        <p className="text-sm text-muted-foreground">
+                            {artifact.description}
+                        </p>
+                    )}
+                </div>
+            )
+        },
+        {
+            key: 'artifact_type',
+            label: 'Type',
+            render: (_, artifact) => (
+                <div className="flex items-center gap-2">
+                    {getArtifactIcon(artifact.artifact_type)}
+                    <span className="capitalize">{artifact.artifact_type}</span>
+                </div>
+            )
+        },
+        {
+            key: 'size',
+            label: 'Size',
+            render: (_, artifact) => formatFileSize(artifact.size)
+        },
+        {
+            key: 'created_at',
+            label: 'Created',
+            render: (_, artifact) => formatDate(artifact.created_at)
+        },
+        {
+            key: 'actions',
+            label: 'Actions',
+            className: 'w-32',
+            render: (_, artifact) => (
+                <div className="flex items-center gap-2">
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDownload(artifact)}
+                        className="h-8 px-2"
+                    >
+                        <FiDownload className="w-3 h-3" />
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDelete(artifact)}
+                        className="h-8 px-2 text-red-600 hover:text-red-700"
+                    >
+                        <FiTrash2 className="w-3 h-3" />
+                    </Button>
+                </div>
+            )
+        }
+    ]
+
     if (loading) {
         return (
             <Card className="p-6">
-                <div className="text-center text-muted-foreground">
-                    Loading artifacts...
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-semibold">Generated Artifacts</h3>
+                    <div className="h-8 w-32 bg-muted animate-pulse rounded" />
                 </div>
+                <TableSkeleton rows={5} columns={6} />
             </Card>
         )
     }
@@ -201,80 +280,21 @@ export function UGCFactoryArtifacts({
             </div>
 
             {artifacts.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                    <FiImage className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                    <p className="text-lg font-medium mb-2">No artifacts yet</p>
-                    <p className="text-sm mb-4">Run executions to generate images, videos, and other files</p>
-                    <Button onClick={onStartNew}>
-                        Generate First Artifact
-                    </Button>
-                </div>
+                <NoDataEmptyState
+                    icon={<FiImage className="w-16 h-16" />}
+                    title="Chưa có artifacts nào"
+                    description="Chạy executions để tạo images, videos và các files khác"
+                    onCreate={onStartNew}
+                    createLabel="Tạo Artifact đầu tiên"
+                />
             ) : (
-                <div className="rounded-md border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-20">Preview</TableHead>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Type</TableHead>
-                                <TableHead>Size</TableHead>
-                                <TableHead>Created</TableHead>
-                                <TableHead className="w-32">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {artifacts.map((artifact) => (
-                                <TableRow key={artifact.id}>
-                                    <TableCell>
-                                        {renderArtifactPreview(artifact)}
-                                    </TableCell>
-                                    <TableCell>
-                                        <div>
-                                            <p className="font-medium">{artifact.name}</p>
-                                            {artifact.description && (
-                                                <p className="text-sm text-muted-foreground">
-                                                    {artifact.description}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            {getArtifactIcon(artifact.artifact_type)}
-                                            <span className="capitalize">{artifact.artifact_type}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        {formatFileSize(artifact.size)}
-                                    </TableCell>
-                                    <TableCell>
-                                        {formatDate(artifact.created_at)}
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => handleDownload(artifact)}
-                                                className="h-8 px-2"
-                                            >
-                                                <FiDownload className="w-3 h-3" />
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => handleDelete(artifact)}
-                                                className="h-8 px-2 text-red-600 hover:text-red-700"
-                                            >
-                                                <FiTrash2 className="w-3 h-3" />
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
+                <DataTable
+                    data={artifacts}
+                    columns={columns}
+                    loading={loading}
+                    emptyMessage="No artifacts found"
+                    compact={true}
+                />
             )}
 
             {artifacts.length > 0 && (

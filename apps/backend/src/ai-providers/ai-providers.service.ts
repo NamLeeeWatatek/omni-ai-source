@@ -41,7 +41,7 @@ export class AiProvidersService {
     private readonly aiProviderConfigRepository: AiProviderConfigRepository,
     private readonly systemAiSettingsRepository: SystemAiSettingsRepository,
     private readonly encryptionService: EncryptionUtil,
-  ) {}
+  ) { }
 
   /**
    * Encrypt sensitive fields in config (apiKey, baseUrl for custom providers)
@@ -713,6 +713,60 @@ export class AiProvidersService {
     }
   }
 
+  async generateImage(
+    prompt: string,
+    provider?: string,
+    model?: string,
+    size?: string,
+    apiKey?: string | null,
+  ): Promise<Buffer | null> {
+    const providerKey = provider || 'openai'; // default to openai
+
+    switch (providerKey) {
+      case 'openai':
+        return this.generateOpenAIImage(prompt, model, size, apiKey);
+      default:
+        throw new BadRequestException(
+          `Unsupported provider for image generation: ${providerKey}`,
+        );
+    }
+  }
+
+  protected async generateOpenAIImage(
+    prompt: string,
+    model?: string,
+    size?: string,
+    apiKey?: string | null,
+  ): Promise<Buffer | null> {
+    const key = apiKey || this.getApiKey('openai');
+    const openai = new OpenAI({ apiKey: key });
+
+    try {
+      const response = await openai.images.generate({
+        model: model || 'dall-e-3',
+        prompt,
+        size: (size as any) || '1024x1024',
+        quality: 'standard',
+        n: 1,
+        response_format: 'b64_json',
+      });
+
+      if (!response.data || !response.data[0]) {
+        throw new Error('No image data received from OpenAI');
+      }
+
+      const base64Image = response.data[0].b64_json;
+      if (!base64Image) {
+        throw new Error('No base64 image data in response');
+      }
+
+      return Buffer.from(base64Image, 'base64');
+    } catch (error) {
+      this.logger.error(`OpenAI image generation failed: ${error.message}`);
+      throw error;
+    }
+  }
+
   /**
    * Fetch available models from a provider using their API
    */
@@ -926,7 +980,8 @@ export class AiProvidersService {
   ): Promise<string[]> {
     try {
       // Get provider info to determine type
-      const provider = await this.aiProviderConfigRepository.findProviderById(providerId);
+      const provider =
+        await this.aiProviderConfigRepository.findProviderById(providerId);
       if (!provider) {
         throw new NotFoundException('Provider not found');
       }
@@ -975,14 +1030,20 @@ export class AiProvidersService {
       providerConfigId,
       tone,
       style,
-      additionalContext
+      additionalContext,
     } = options;
 
-    this.logger.log(`Generating system prompt for user ${userId} with config ${providerConfigId}`);
+    this.logger.log(
+      `Generating system prompt for user ${userId} with config ${providerConfigId}`,
+    );
 
     try {
       // Try to get AI configuration for prompt generation
-      let aiConfig: null | { apiKey: string; providerKey: string; model: string } = null;
+      let aiConfig: null | {
+        apiKey: string;
+        providerKey: string;
+        model: string;
+      } = null;
       let configSource = 'fallback'; // Track where config came from
 
       // Method 1: Try System AI Settings FIRST (global defaults - highest priority)
@@ -991,33 +1052,46 @@ export class AiProvidersService {
         if (systemSettings?.defaultProviderId && systemSettings?.defaultModel) {
           // System defaults use any user config that matches the provider key and has API key
           const userConfigs = await this.getUserConfigs(userId);
-          const systemProviderConfig = userConfigs.find(config =>
-            config.provider?.key === systemSettings.defaultProviderId && config.isActive && config.config?.apiKey
+          const systemProviderConfig = userConfigs.find(
+            (config) =>
+              config.provider?.key === systemSettings.defaultProviderId &&
+              config.isActive &&
+              config.config?.apiKey,
           );
 
           if (systemProviderConfig) {
             aiConfig = {
               apiKey: systemProviderConfig.config.apiKey,
               providerKey: systemProviderConfig.provider?.key || 'openai',
-              model: systemSettings.defaultModel
+              model: systemSettings.defaultModel,
             };
             configSource = 'system-defaults';
-            this.logger.log(`Found system defaults using ${systemProviderConfig.provider?.key}, model: ${systemSettings.defaultModel}`);
+            this.logger.log(
+              `Found system defaults using ${systemProviderConfig.provider?.key}, model: ${systemSettings.defaultModel}`,
+            );
           } else {
-            this.logger.warn(`System default provider ${systemSettings.defaultProviderId} configured but no matching user config with API key found`);
+            this.logger.warn(
+              `System default provider ${systemSettings.defaultProviderId} configured but no matching user config with API key found`,
+            );
           }
         }
       } catch (systemError) {
-        this.logger.warn(`Failed to load system AI settings: ${systemError.message}`);
+        this.logger.warn(
+          `Failed to load system AI settings: ${systemError.message}`,
+        );
       }
 
       // Method 2: If no system defaults, try user's global active configs
       if (!aiConfig) {
         try {
           const userConfigs = await this.getUserConfigs(userId);
-          const activeConfig = userConfigs.find(config =>
-            config.isActive && config.config?.apiKey &&
-            ['openai', 'anthropic', 'ollama'].includes(config.provider?.key || '')
+          const activeConfig = userConfigs.find(
+            (config) =>
+              config.isActive &&
+              config.config?.apiKey &&
+              ['openai', 'anthropic', 'ollama'].includes(
+                config.provider?.key || '',
+              ),
           );
 
           if (activeConfig) {
@@ -1027,9 +1101,10 @@ export class AiProvidersService {
             if (activeConfig.modelList && activeConfig.modelList.length > 0) {
               // For Ollama, exclude embedding models that contain 'embed'
               if (activeConfig.provider?.key === 'ollama') {
-                const chatModels = activeConfig.modelList.filter(model =>
-                  !model.toLowerCase().includes('embed') &&
-                  !model.toLowerCase().includes('all-minilm')
+                const chatModels = activeConfig.modelList.filter(
+                  (model) =>
+                    !model.toLowerCase().includes('embed') &&
+                    !model.toLowerCase().includes('all-minilm'),
                 );
                 chatModel = chatModels[0] || activeConfig.modelList[0];
               } else {
@@ -1055,13 +1130,17 @@ export class AiProvidersService {
             aiConfig = {
               apiKey: activeConfig.config.apiKey,
               providerKey: activeConfig.provider?.key || 'openai',
-              model: chatModel
+              model: chatModel,
             };
             configSource = 'active-user-config';
-            this.logger.log(`Found user's active config for ${activeConfig.provider?.key}, using model: ${chatModel}`);
+            this.logger.log(
+              `Found user's active config for ${activeConfig.provider?.key}, using model: ${chatModel}`,
+            );
           }
         } catch (configError) {
-          this.logger.warn(`Failed to load user's active configs: ${configError.message}`);
+          this.logger.warn(
+            `Failed to load user's active configs: ${configError.message}`,
+          );
         }
       }
 
@@ -1076,9 +1155,10 @@ export class AiProvidersService {
             if (botConfig.modelList && botConfig.modelList.length > 0) {
               // For Ollama, exclude embedding models that contain 'embed'
               if (botConfig.provider?.key === 'ollama') {
-                const chatModels = botConfig.modelList.filter(model =>
-                  !model.toLowerCase().includes('embed') &&
-                  !model.toLowerCase().includes('all-minilm')
+                const chatModels = botConfig.modelList.filter(
+                  (model) =>
+                    !model.toLowerCase().includes('embed') &&
+                    !model.toLowerCase().includes('all-minilm'),
                 );
                 chatModel = chatModels[0] || botConfig.modelList[0];
               } else {
@@ -1104,13 +1184,17 @@ export class AiProvidersService {
             aiConfig = {
               apiKey: botConfig.config.apiKey,
               providerKey: botConfig.provider?.key || 'openai',
-              model: chatModel
+              model: chatModel,
             };
             configSource = 'bot-config';
-            this.logger.log(`Found bot-specific config for ${botConfig.provider?.key}, using model: ${chatModel}`);
+            this.logger.log(
+              `Found bot-specific config for ${botConfig.provider?.key}, using model: ${chatModel}`,
+            );
           }
         } catch (configError) {
-          this.logger.warn(`Failed to load bot config ${providerConfigId}: ${configError.message}`);
+          this.logger.warn(
+            `Failed to load bot config ${providerConfigId}: ${configError.message}`,
+          );
         }
       }
 
@@ -1118,7 +1202,9 @@ export class AiProvidersService {
       // TODO: Implement workspace config lookup
 
       // Build the AI generation prompt
-      const systemTemplate = template || `You are an expert system prompt engineer. Create highly effective, professional system prompts for AI assistants based on user requirements.
+      const systemTemplate =
+        template ||
+        `You are an expert system prompt engineer. Create highly effective, professional system prompts for AI assistants based on user requirements.
 
 Guidelines for perfect prompts:
 - Start with clear, authoritative role definition
@@ -1178,27 +1264,34 @@ Please structure your response as:
 
       if (aiConfig && aiConfig.apiKey) {
         try {
-          this.logger.log(`Attempting AI generation with ${aiConfig.providerKey} (${configSource})`);
+          this.logger.log(
+            `Attempting AI generation with ${aiConfig.providerKey} (${configSource})`,
+          );
 
           // Use the configured AI to generate the prompt
           generatedContent = await this.chat(
             userPrompt,
             aiConfig.model,
             aiConfig.providerKey,
-            aiConfig.apiKey
+            aiConfig.apiKey,
           );
           generationMethod = 'ai-powered';
-          this.logger.log(`AI generation successful using ${aiConfig.providerKey}`);
-
+          this.logger.log(
+            `AI generation successful using ${aiConfig.providerKey}`,
+          );
         } catch (aiError) {
-          this.logger.warn(`AI generation failed with ${aiConfig.providerKey}: ${aiError.message}`);
+          this.logger.warn(
+            `AI generation failed with ${aiConfig.providerKey}: ${aiError.message}`,
+          );
           // Fall through to fallback
         }
       }
 
       // Use enhanced fallback if AI generation failed or no config
       if (!generatedContent) {
-        this.logger.log(`Using fallback generation (no valid AI config: ${configSource})`);
+        this.logger.log(
+          `Using fallback generation (no valid AI config: ${configSource})`,
+        );
         generatedContent = await this.generateEnhancedFallbackPrompt({
           description,
           tone,
@@ -1210,16 +1303,25 @@ Please structure your response as:
       // Parse the generated content to extract structured components
       const result = this.parseEnhancedPromptResult(generatedContent, options);
 
-      this.logger.log(`Prompt generation completed: method=${generationMethod}, config=${configSource}`);
+      this.logger.log(
+        `Prompt generation completed: method=${generationMethod}, config=${configSource}`,
+      );
 
       return result;
-
     } catch (error) {
-      this.logger.error(`Critical error in generateSystemPrompt: ${error.message}`, error.stack);
+      this.logger.error(
+        `Critical error in generateSystemPrompt: ${error.message}`,
+        error.stack,
+      );
 
       // Ultimate fallback - still try to create a reasonable prompt
       return {
-        prompt: this.generateBasicPrompt(description, tone, style, additionalContext),
+        prompt: this.generateBasicPrompt(
+          description,
+          tone,
+          style,
+          additionalContext,
+        ),
         improvements: ['Generated with basic template enhancement'],
         suggestions: [
           'Configure an AI provider in your settings for better prompt generation.',
@@ -1329,10 +1431,15 @@ Always provide well-reasoned responses and suggest next steps when appropriate.`
     const { description, tone, style, additionalContext } = options;
 
     // Start with basic prompt
-    let prompt = this.generateBasicPrompt(description, tone, style, additionalContext);
+    const prompt = this.generateBasicPrompt(
+      description,
+      tone,
+      style,
+      additionalContext,
+    );
 
     // Add key improvements
-    let improvements = `**KEY IMPROVEMENTS:**
+    const improvements = `**KEY IMPROVEMENTS:**
 - Structured role definition with clear responsibilities
 - Incorporated specific communication ${tone ? tone.toLowerCase() : 'professional'} tone
 - Added behavioral expectations and work style guidelines
@@ -1350,56 +1457,67 @@ Always provide well-reasoned responses and suggest next steps when appropriate.`
   /**
    * Parse the enhanced AI-generated content to extract structured components
    */
-  private parseEnhancedPromptResult(
-    generatedContent: string,
-    options: any,
-  ){
+  private parseEnhancedPromptResult(generatedContent: string, options: any) {
     try {
       // Extract system prompt section
-      const systemPromptMatch = generatedContent.match(/\*\*SYSTEM PROMPT:\*\*\s*([\s\S]*?)(?=\*\*KEY IMPROVEMENTS|\*\*USAGE)/);
+      const systemPromptMatch = generatedContent.match(
+        /\*\*SYSTEM PROMPT:\*\*\s*([\s\S]*?)(?=\*\*KEY IMPROVEMENTS|\*\*USAGE)/,
+      );
       const prompt = systemPromptMatch
         ? systemPromptMatch[1].trim().replace(/^\n+|\n+$/g, '')
         : generatedContent.substring(0, 500).trim();
 
       // Extract improvements section
-      const improvementsMatch = generatedContent.match(/\*\*KEY IMPROVEMENTS:\*\*\s*([\s\S]*?)(?=\*\*USAGE|\*\*KEY|\*\*SUGGESTIONS)/);
+      const improvementsMatch = generatedContent.match(
+        /\*\*KEY IMPROVEMENTS:\*\*\s*([\s\S]*?)(?=\*\*USAGE|\*\*KEY|\*\*SUGGESTIONS)/,
+      );
       const improvements = improvementsMatch
         ? improvementsMatch[1]
-            .trim()
-            .split('\n')
-            .map((line) => line.replace(/^[-•]/, '').trim())
-            .filter((line) => line && !line.match(/^\*\*/))
-            .slice(0, 5) // Limit to 5 improvements
+          .trim()
+          .split('\n')
+          .map((line) => line.replace(/^[-•]/, '').trim())
+          .filter((line) => line && !line.match(/^\*\*/))
+          .slice(0, 5) // Limit to 5 improvements
         : ['Professional prompt structure with clear guidelines'];
 
       // Extract suggestions section
-      const suggestionsMatch = generatedContent.match(/\*\*(?:USAGE SUGGESTIONS|SUGGESTIONS?):\*\*\s*([\s\S]*)$/);
+      const suggestionsMatch = generatedContent.match(
+        /\*\*(?:USAGE SUGGESTIONS|SUGGESTIONS?):\*\*\s*([\s\S]*)$/,
+      );
       const suggestions = suggestionsMatch
         ? suggestionsMatch[1]
-            .trim()
-            .split('\n')
-            .map((line) => line.replace(/^[-•]/, '').trim())
-            .filter((line) => line && !line.match(/^\*\*/))
-            .slice(0, 5) // Limit to 5 suggestions
-        : ['Use this prompt as the system message when configuring your AI assistant'];
+          .trim()
+          .split('\n')
+          .map((line) => line.replace(/^[-•]/, '').trim())
+          .filter((line) => line && !line.match(/^\*\*/))
+          .slice(0, 5) // Limit to 5 suggestions
+        : [
+          'Use this prompt as the system message when configuring your AI assistant',
+        ];
 
       return {
-        prompt: prompt.length > 20 ? prompt : `You are a helpful AI assistant that ${options.description}. ${prompt}`,
+        prompt:
+          prompt.length > 20
+            ? prompt
+            : `You are a helpful AI assistant that ${options.description}. ${prompt}`,
         improvements,
         suggestions,
       };
     } catch (error) {
       // Fallback parsing for unexpected formats
       return {
-        prompt: generatedContent.length > 50 ? generatedContent : `You are a helpful AI assistant specializing in ${options.description}. Be professional and helpful.`,
+        prompt:
+          generatedContent.length > 50
+            ? generatedContent
+            : `You are a helpful AI assistant specializing in ${options.description}. Be professional and helpful.`,
         improvements: [
           'Basic role definition established',
           'Core behavioral expectations set',
-          'Ethical guidelines included'
+          'Ethical guidelines included',
         ],
         suggestions: [
           'Use this prompt as the system message for your AI assistant',
-          'Test and refine based on performance'
+          'Test and refine based on performance',
         ],
       };
     }
@@ -1458,22 +1576,27 @@ Always provide well-reasoned responses and suggest next steps when appropriate.`
     if (style) {
       switch (style.toLowerCase()) {
         case 'concise':
-          prompt += 'Provide clear, concise answers without unnecessary elaboration.';
+          prompt +=
+            'Provide clear, concise answers without unnecessary elaboration.';
           break;
         case 'detailed':
-          prompt += 'Provide comprehensive, detailed responses with thorough explanations.';
+          prompt +=
+            'Provide comprehensive, detailed responses with thorough explanations.';
           break;
         case 'conversational':
           prompt += 'Communicate in a natural, conversational manner.';
           break;
         case 'structured':
-          prompt += 'Structure your responses clearly with logical organization.';
+          prompt +=
+            'Structure your responses clearly with logical organization.';
           break;
         case 'analytical':
-          prompt += 'Use analytical thinking and provide evidence-based responses.';
+          prompt +=
+            'Use analytical thinking and provide evidence-based responses.';
           break;
         case 'creative':
-          prompt += 'Be creative and innovative in your approaches and solutions.';
+          prompt +=
+            'Be creative and innovative in your approaches and solutions.';
           break;
         default:
           prompt += `Use a ${style} response style.`;
@@ -1498,7 +1621,8 @@ Always provide well-reasoned responses and suggest next steps when appropriate.`
     }
 
     // Add general capabilities
-    prompt += ' Focus on being helpful, knowledgeable, and providing practical value to users.';
+    prompt +=
+      ' Focus on being helpful, knowledgeable, and providing practical value to users.';
 
     return prompt;
   }
@@ -1528,10 +1652,10 @@ Always provide well-reasoned responses and suggest next steps when appropriate.`
       );
       const improvements = improvementsMatch
         ? improvementsMatch[1]
-            .trim()
-            .split('\n')
-            .map((line) => line.replace(/^[-•]/, '').trim())
-            .filter((line) => line)
+          .trim()
+          .split('\n')
+          .map((line) => line.replace(/^[-•]/, '').trim())
+          .filter((line) => line)
         : ['Enhanced prompt structure based on your description'];
 
       // Try to extract suggestions section
@@ -1540,13 +1664,13 @@ Always provide well-reasoned responses and suggest next steps when appropriate.`
       );
       const suggestions = suggestionsMatch
         ? suggestionsMatch[1]
-            .trim()
-            .split('\n')
-            .map((line) => line.replace(/^[-•]/, '').trim())
-            .filter((line) => line)
+          .trim()
+          .split('\n')
+          .map((line) => line.replace(/^[-•]/, '').trim())
+          .filter((line) => line)
         : [
-            'Use this prompt as the system message when configuring your AI assistant',
-          ];
+          'Use this prompt as the system message when configuring your AI assistant',
+        ];
 
       return {
         prompt:

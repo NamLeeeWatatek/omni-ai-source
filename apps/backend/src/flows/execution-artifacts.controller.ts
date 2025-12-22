@@ -16,13 +16,16 @@ export class ExecutionArtifactsController {
   @ApiQuery({ name: 'execution_id', required: true })
   async findByExecutionId(@Query('execution_id') executionId: string) {
     // Find the FlowExecutionEntity by executionId string to get the UUID
-    const execution = await this.executionService.findByExecutionId(executionId);
+    const execution =
+      await this.executionService.findByExecutionId(executionId);
     if (!execution) {
       return [];
     }
 
-    const artifacts = await this.artifactService.getArtifactsWithUrls(execution.id);
-    return artifacts.map(artifact => ({
+    const artifacts = await this.artifactService.getArtifactsWithUrls(
+      execution.id,
+    );
+    return artifacts.map((artifact) => ({
       id: artifact.id,
       execution_id: artifact.executionId,
       file_id: artifact.fileId,

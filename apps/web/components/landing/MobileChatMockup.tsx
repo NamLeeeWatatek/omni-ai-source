@@ -113,10 +113,10 @@ export default function MobileChatMockup() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <div className="bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-full text-xs text-indigo-700 font-medium">
-                    ðŸ’¬ AI Chatbot
+                    AI Chatbot
                   </div>
                   <div className="bg-purple-50 border border-purple-200 px-3 py-1.5 rounded-full text-xs text-purple-700 font-medium">
-                    ðŸ¤– Automation
+                    Automation
                   </div>
                 </div>
               </div>

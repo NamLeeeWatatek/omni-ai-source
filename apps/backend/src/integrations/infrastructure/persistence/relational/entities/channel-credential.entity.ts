@@ -1,15 +1,9 @@
-﻿import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-  Index,
-} from 'typeorm';
-import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
+﻿import { Column, Entity, PrimaryGeneratedColumn, Index } from 'typeorm';
+import { WorkspaceOwnedEntity } from '../../../../../utils/workspace-owned.entity';
+import { EncryptionTransformer } from '../../../../../utils/transformers/encryption.transformer';
 
 @Entity({ name: 'channel_credential' })
-export class ChannelCredentialEntity extends EntityRelationalHelper {
+export class ChannelCredentialEntity extends WorkspaceOwnedEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -17,17 +11,21 @@ export class ChannelCredentialEntity extends EntityRelationalHelper {
   @Column({ type: String })
   provider: string;
 
-  @Index()
-  @Column({ type: 'uuid', nullable: true })
-  workspaceId?: string | null;
-
   @Column({ type: String, nullable: true })
   name?: string | null;
 
-  @Column({ type: String, nullable: true })
+  @Column({
+    type: String,
+    nullable: true,
+    transformer: new EncryptionTransformer(),
+  })
   clientId?: string | null;
 
-  @Column({ type: String, nullable: true })
+  @Column({
+    type: String,
+    nullable: true,
+    transformer: new EncryptionTransformer(),
+  })
   clientSecret?: string | null;
 
   @Column({ type: String, nullable: true })
@@ -38,10 +36,4 @@ export class ChannelCredentialEntity extends EntityRelationalHelper {
 
   @Column({ type: 'jsonb', nullable: true, default: {} })
   metadata?: Record<string, any>;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
 }

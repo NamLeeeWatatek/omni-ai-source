@@ -12,6 +12,8 @@
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 import { WorkspaceEntity } from '../../../../../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
 import { UserEntity } from '../../../../../users/infrastructure/persistence/relational/entities/user.entity';
+import { EncryptionTransformer } from '../../../../../utils/transformers/encryption.transformer';
+import { WorkspaceOwnedEntity } from '../../../../../utils/workspace-owned.entity';
 
 @Entity({ name: 'ai_providers' })
 export class AiProviderEntity extends EntityRelationalHelper {
@@ -19,13 +21,13 @@ export class AiProviderEntity extends EntityRelationalHelper {
   id: string;
 
   @Column({ name: 'key', type: String, unique: true })
-  key: string; // 'openai', 'gemini', 'claude', 'ollama', 'custom'
+  key: string;
 
   @Column({ name: 'label', type: String })
-  label: string; // 'OpenAI GPT', 'Google Gemini', etc.
+  label: string;
 
   @Column({ name: 'icon', type: String, nullable: true })
-  icon?: string; // React icon component name
+  icon?: string;
 
   @Column({ name: 'description', type: 'text', nullable: true })
   description?: string;
@@ -68,10 +70,14 @@ export class AiProviderConfigEntity extends EntityRelationalHelper {
   providerId: string;
 
   @Column({ name: 'model', type: String })
-  model: string; // 'gpt-4.1', 'llama3', 'gemini-2.0-pro'
+  model: string;
 
-  @Column({ name: 'api_key', type: String })
-  apiKey: string; // encrypted/hashed
+  @Column({
+    name: 'api_key',
+    type: String,
+    transformer: new EncryptionTransformer(),
+  })
+  apiKey: string;
 
   @Column({ name: 'base_url', type: String, nullable: true })
   baseUrl?: string;
@@ -95,7 +101,7 @@ export class AiProviderConfigEntity extends EntityRelationalHelper {
 
   @Column({ name: 'owner_id', type: 'uuid', nullable: true })
   @Index()
-  ownerId?: string; // null for system configs, user_id/workspace_id otherwise
+  ownerId?: string;
 
   @Column({ name: 'is_default', type: Boolean, default: false })
   isDefault: boolean;
@@ -103,7 +109,6 @@ export class AiProviderConfigEntity extends EntityRelationalHelper {
   @Column({ name: 'is_active', type: Boolean, default: true })
   isActive: boolean;
 
-  // Relations
   @ManyToOne(() => AiProviderEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'provider_id' })
   provider?: AiProviderEntity;
@@ -157,13 +162,13 @@ export class UserAiProviderConfigEntity extends EntityRelationalHelper {
 }
 
 @Entity({ name: 'workspace_ai_provider_configs' })
-export class WorkspaceAiProviderConfigEntity extends EntityRelationalHelper {
+export class WorkspaceAiProviderConfigEntity extends WorkspaceOwnedEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'workspace_id', type: 'uuid' })
-  @Index()
-  workspaceId: string;
+  // workspaceId and relation are now inherited from WorkspaceOwnedEntity
+  // but we keep the relation here for clarity or custom options if needed.
+  // Actually, we should let inheritance handle it to be DRY.
 
   @Column({ name: 'provider_id', type: 'uuid' })
   @Index()
@@ -182,29 +187,17 @@ export class WorkspaceAiProviderConfigEntity extends EntityRelationalHelper {
   isActive: boolean;
 
   // Relations
-  @ManyToOne(() => WorkspaceEntity, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'workspace_id' })
-  workspace?: WorkspaceEntity;
-
   @ManyToOne(() => AiProviderEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'provider_id' })
   provider?: AiProviderEntity;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
 }
 
 @Entity({ name: 'ai_usage_log' })
-export class AiUsageLogEntity extends EntityRelationalHelper {
+export class AiUsageLogEntity extends WorkspaceOwnedEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'workspace_id', type: 'uuid' })
-  @Index()
-  workspaceId: string;
+  // workspaceId and relation are now inherited from WorkspaceOwnedEntity
 
   @Column({ name: 'user_id', type: 'uuid' })
   @Index()
@@ -232,10 +225,6 @@ export class AiUsageLogEntity extends EntityRelationalHelper {
   })
   @Index()
   requestedAt: Date;
-
-  @ManyToOne(() => WorkspaceEntity, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'workspace_id' })
-  workspace?: WorkspaceEntity;
 
   @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })

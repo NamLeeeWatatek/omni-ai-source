@@ -12,7 +12,7 @@ export class RoleSeedService {
     private roleRepository: Repository<RoleEntity>,
     @InjectRepository(PermissionEntity)
     private permissionRepository: Repository<PermissionEntity>,
-  ) {}
+  ) { }
 
   async run() {
     const allPermissions = await this.permissionRepository.find();
@@ -32,46 +32,52 @@ export class RoleSeedService {
       ].includes(p.name),
     );
 
-    let adminRole = await this.roleRepository.findOne({
-      where: { id: RoleEnum.admin },
-      relations: ['permissions'],
-    });
-
-    if (!adminRole) {
-      adminRole = this.roleRepository.create({
+    const roles = [
+      {
         id: RoleEnum.admin,
         name: 'Admin',
         description: 'Administrator with full access',
         casdoorRoleName: 'admin',
         permissions: adminPermissions,
-      });
-      await this.roleRepository.save(adminRole);
-    } else {
-      adminRole.permissions = adminPermissions;
-      adminRole.description = 'Administrator with full access';
-      adminRole.casdoorRoleName = 'admin';
-      await this.roleRepository.save(adminRole);
-    }
-
-    let userRole = await this.roleRepository.findOne({
-      where: { id: RoleEnum.user },
-      relations: ['permissions'],
-    });
-
-    if (!userRole) {
-      userRole = this.roleRepository.create({
+      },
+      {
         id: RoleEnum.user,
         name: 'User',
         description: 'Regular user with limited access',
         casdoorRoleName: 'user',
         permissions: userPermissions,
+      },
+      {
+        id: RoleEnum.member,
+        name: 'Member',
+        description: 'Workspace member',
+        casdoorRoleName: 'member',
+        permissions: userPermissions,
+      },
+      {
+        id: RoleEnum.owner,
+        name: 'Owner',
+        description: 'Workspace owner',
+        casdoorRoleName: 'owner',
+        permissions: adminPermissions,
+      },
+    ];
+
+    for (const roleData of roles) {
+      let role = await this.roleRepository.findOne({
+        where: { id: roleData.id },
+        relations: ['permissions'],
       });
-      await this.roleRepository.save(userRole);
-    } else {
-      userRole.permissions = userPermissions;
-      userRole.description = 'Regular user with limited access';
-      userRole.casdoorRoleName = 'user';
-      await this.roleRepository.save(userRole);
+
+      if (!role) {
+        role = this.roleRepository.create(roleData);
+      } else {
+        role.name = roleData.name;
+        role.description = roleData.description;
+        role.casdoorRoleName = roleData.casdoorRoleName;
+        role.permissions = roleData.permissions;
+      }
+      await this.roleRepository.save(role);
     }
   }
 }

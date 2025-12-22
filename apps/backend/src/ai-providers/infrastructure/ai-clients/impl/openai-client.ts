@@ -7,14 +7,21 @@ import { ChatMessage } from '../../../ai-providers.service';
 export class OpenAiClient implements AiProviderClient {
   private openai: OpenAI;
 
-  constructor(apiKey: string, private readonly baseURL?: string) {
+  constructor(
+    apiKey: string,
+    private readonly baseURL?: string,
+  ) {
     this.openai = new OpenAI({
       apiKey,
       baseURL: baseURL || 'https://api.openai.com/v1',
     });
   }
 
-  async chat(prompt: string, model: string, options?: ChatOptions): Promise<string> {
+  async chat(
+    prompt: string,
+    model: string,
+    options?: ChatOptions,
+  ): Promise<string> {
     try {
       const response = await this.openai.chat.completions.create({
         model,
@@ -30,7 +37,11 @@ export class OpenAiClient implements AiProviderClient {
     }
   }
 
-  async chatWithHistory(messages: ChatMessage[], model: string, options?: ChatOptions): Promise<string> {
+  async chatWithHistory(
+    messages: ChatMessage[],
+    model: string,
+    options?: ChatOptions,
+  ): Promise<string> {
     try {
       const response = await this.openai.chat.completions.create({
         model,
@@ -83,13 +94,7 @@ export class OpenAiClient implements AiProviderClient {
       return supportedModels;
     } catch (error) {
       // Return popular static list as fallback
-      return [
-        'gpt-4o',
-        'gpt-4o-mini',
-        'gpt-4-turbo',
-        'gpt-4',
-        'gpt-3.5-turbo',
-      ];
+      return ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'];
     }
   }
 

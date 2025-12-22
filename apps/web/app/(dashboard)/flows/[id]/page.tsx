@@ -158,7 +158,7 @@ function VersionsTab({ flowId, onUpdate }: { flowId: string, onUpdate: () => voi
     const loadVersions = async () => {
         try {
             setLoading(true)
-            const data = await axiosClient.get(`/flows/${flowId}/versions`)
+            const data: any = await axiosClient.get(`/flows/${flowId}/versions`)
             setVersions(data)
         } catch (e: any) {
 
@@ -1112,7 +1112,7 @@ function WorkflowDetailPageInner({ params }: { params: { id: string } }) {
     const loadRecentExecutions = async () => {
         try {
             setExecutionsLoading(true)
-            const data = await (await axiosClient.get(`/executions/?flow_id=${params.id}&limit=5`))
+            const data: any = await (await axiosClient.get(`/executions/?flow_id=${params.id}&limit=5`))
             setRecentExecutions(data)
         } catch (e: any) {
 
@@ -1123,7 +1123,7 @@ function WorkflowDetailPageInner({ params }: { params: { id: string } }) {
 
     const loadStats = async () => {
         try {
-            const allExecutions = await axiosClient.get(`/executions/?flow_id=${params.id}&limit=100`)
+            const allExecutions: any = await axiosClient.get(`/executions/?flow_id=${params.id}&limit=100`)
 
             const totalExecutions = allExecutions.length
             const completedExecutions = allExecutions.filter((e: any) => e.status === 'completed')

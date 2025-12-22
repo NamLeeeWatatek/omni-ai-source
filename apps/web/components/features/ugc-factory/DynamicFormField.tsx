@@ -28,10 +28,14 @@ import { useState, useEffect } from 'react'
 
 interface FormField {
     id: string
+    name?: string
     type: 'text' | 'url' | 'textarea' | 'json' | 'select' | 'boolean' | 'switch' | 'number' | 'file' | 'files' | 'image' | 'key-value' | 'multi-select' | 'dynamic-form' | 'channel-select' | 'ai-model-select'
     label: string
-    placeholder?: string
+    displayName?: string
     description?: string
+    helpText?: string
+    hint?: string
+    placeholder?: string
     required?: boolean
     defaultValue?: any
     options?: Array<{ value: string; label: string }>
@@ -429,13 +433,13 @@ export function DynamicFormField({
 
     return (
         <div className={cn('space-y-2', className)}>
-            <Label htmlFor={fieldId}>
-                {field.label}
+            <Label htmlFor={fieldId} className="block text-sm font-medium mb-1">
+                {field.displayName || field.label}
                 {field.required && <span className="text-destructive ml-1">*</span>}
             </Label>
 
-            {field.description && (
-                <p className="text-sm text-muted-foreground">{field.description}</p>
+            {field.hint && (
+                <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-semibold mb-1.5">{field.hint}</p>
             )}
 
             <DynamicInput
@@ -443,6 +447,12 @@ export function DynamicFormField({
                 value={value}
                 onChange={onChange}
             />
+
+            {(field.helpText || field.description) && (
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                    {field.helpText || field.description}
+                </p>
+            )}
         </div>
     )
 }

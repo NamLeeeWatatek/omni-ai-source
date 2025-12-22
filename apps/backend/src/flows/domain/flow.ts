@@ -1,4 +1,5 @@
 ﻿import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { NodeProperty } from '../../node-types/types';
 
 export type FlowStatus = 'draft' | 'published' | 'archived';
 
@@ -58,6 +59,9 @@ export class Flow {
   edges: FlowEdge[];
 
   @ApiPropertyOptional()
+  workspaceId: string;
+
+  @ApiPropertyOptional()
   ownerId?: string | null;
 
   @ApiProperty({ default: 'private' })
@@ -74,6 +78,12 @@ export class Flow {
 
   @ApiPropertyOptional()
   teamId?: string | null;
+
+  @ApiPropertyOptional()
+  inputs?: NodeProperty[];
+
+  @ApiPropertyOptional()
+  outputSchema?: Record<string, any>;
 
   @ApiPropertyOptional()
   createdAt?: Date;
@@ -158,6 +168,8 @@ export class Flow {
     if (data.teamId !== undefined) this.teamId = data.teamId;
     if (data.nodes !== undefined) this.nodes = data.nodes;
     if (data.edges !== undefined) this.edges = data.edges;
+    if (data.inputs !== undefined) this.inputs = data.inputs;
+    if (data.outputSchema !== undefined) this.outputSchema = data.outputSchema;
   }
 }
 
@@ -167,12 +179,15 @@ export type FlowCreateData = {
   status: FlowStatus;
   nodes: FlowNode[];
   edges: FlowEdge[];
+  workspaceId: string;
   ownerId?: string | null;
   visibility: FlowVisibility;
   tags?: string[] | null;
   category?: string | null;
   icon?: string | null;
   teamId?: string | null;
+  inputs?: NodeProperty[];
+  outputSchema?: Record<string, any>;
 };
 export type FlowUpdateData = Partial<
   Omit<Flow, 'id' | 'createdAt' | 'updatedAt' | 'ownerId'>

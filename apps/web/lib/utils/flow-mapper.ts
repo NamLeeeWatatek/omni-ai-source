@@ -4,7 +4,7 @@
  */
 
 import type { Node, Edge } from 'reactflow'
-import type { Flow, WorkflowNode, WorkflowEdge } from '@/lib/types/flow'
+import type { Flow, FlowNode, FlowEdge } from '@/lib/types/flow'
 import type { NodeType } from '@/lib/types/node'
 import {
   mapBackendNodeToReactFlow,
@@ -22,7 +22,7 @@ export interface BackendFlow {
   status: string
   version: number
   nodes: BackendNode[]
-  edges: WorkflowEdge[]
+  edges: FlowEdge[]
   ownerId?: string
   teamId?: string
   visibility?: string
@@ -62,12 +62,11 @@ export function mapBackendFlowToFrontend(
     description: backendFlow.description,
     status: backendFlow.status as 'draft' | 'published' | 'archived',
     version: backendFlow.version,
-    nodes: backendFlow.nodes as WorkflowNode[],
+    nodes: backendFlow.nodes as FlowNode[],
     edges: backendFlow.edges,
     ownerId: backendFlow.ownerId,
-    userId: backendFlow.ownerId, // Alias
     teamId: backendFlow.teamId,
-    visibility: backendFlow.visibility as 'private' | 'public',
+    visibility: backendFlow.visibility as 'private' | 'team' | 'public',
     published: backendFlow.published,
     tags: backendFlow.tags,
     createdAt: backendFlow.createdAt,
@@ -115,7 +114,7 @@ export function mapFrontendFlowToBackend(
     version: flow.version,
     nodes: backendNodes,
     edges: backendEdges,
-    ownerId: flow.ownerId || flow.userId,
+    ownerId: flow.ownerId,
     teamId: flow.teamId,
     visibility: flow.visibility,
     published: flow.published,
@@ -154,4 +153,3 @@ export function validateBackendFlow(flow: any): flow is BackendFlow {
     Array.isArray(flow.edges)
   )
 }
-

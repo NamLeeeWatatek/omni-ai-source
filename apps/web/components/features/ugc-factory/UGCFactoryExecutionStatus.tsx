@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import React from 'react'
-import { Spinner } from '@/components/ui/Spinner'
+import { LoadingLogo } from '@/components/ui/LoadingLogo'
 
 interface UGCFactoryExecutionStatusProps {
     status: 'idle' | 'running' | 'completed' | 'failed'
@@ -21,9 +21,8 @@ const UGCFactoryExecutionStatus = React.memo<UGCFactoryExecutionStatusProps>(({
     if (status === 'running') {
         return (
             <div className="flex flex-col items-center justify-center py-12">
-                <Spinner className="w-12 h-12 mb-4" />
-                <p className="text-lg font-medium">Executing workflow...</p>
-                <p className="text-sm text-muted-foreground">Execution ID: {executionId}</p>
+                <LoadingLogo size="lg" text="Executing workflow..." />
+                <p className="text-sm text-muted-foreground mt-4">Execution ID: {executionId}</p>
             </div>
         )
     }

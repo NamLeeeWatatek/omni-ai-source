@@ -1,25 +1,27 @@
 ﻿import {
   Column,
-  CreateDateColumn,
   Entity,
   Index,
   ManyToOne,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
   JoinColumn,
 } from 'typeorm';
-import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
+import { WorkspaceOwnedEntity } from '../../../../../utils/workspace-owned.entity';
 import { BotEntity } from '../../../../../bots/infrastructure/persistence/relational/entities/bot.entity';
-import { UserEntity } from '../../../../../users/infrastructure/persistence/relational/entities/user.entity';
+import { ChannelConnectionEntity } from '../../../../../integrations/infrastructure/persistence/relational/entities/channel-connection.entity';
 
 @Entity({ name: 'channel' })
-export class ChannelEntity extends EntityRelationalHelper {
+export class ChannelEntity extends WorkspaceOwnedEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ name: 'bot_id', type: 'uuid' })
   @Index()
   botId: string;
+
+  @Column({ name: 'connection_id', type: 'uuid', nullable: true })
+  @Index()
+  connectionId?: string | null;
 
   @Column({ type: String })
   type: string;
@@ -36,20 +38,14 @@ export class ChannelEntity extends EntityRelationalHelper {
   @Column({ name: 'connected_at', type: 'timestamp', nullable: true })
   connectedAt?: Date | null;
 
-  @Column({ name: 'created_by', type: 'uuid' })
-  createdBy: string;
-
   @ManyToOne(() => BotEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'bot_id' })
   bot?: BotEntity;
 
-  @ManyToOne(() => UserEntity)
-  @JoinColumn({ name: 'created_by' })
-  creator?: UserEntity;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  @ManyToOne(() => ChannelConnectionEntity, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
+  @JoinColumn({ name: 'connection_id' })
+  connection?: ChannelConnectionEntity | null;
 }

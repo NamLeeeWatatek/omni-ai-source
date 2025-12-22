@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
+import { PageLoading } from '@/components/ui/PageLoading'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Spinner } from '@/components/ui/Spinner'
+import { LoadingLogo } from '@/components/ui/LoadingLogo'
 import toast from '@/lib/toast'
 import {
     FiArrowLeft,
@@ -87,7 +88,7 @@ export default function ExecutionDetailPage({
             case 'failed':
                 return <FiXCircle className="w-5 h-5 text-red-500" />
             case 'running':
-                return <Spinner className="size-5 text-blue-500" />
+                return <LoadingLogo size="sm" className="inline-flex" />
             case 'skipped':
                 return <FiAlertCircle className="w-5 h-5 text-yellow-500" />
             default:
@@ -229,11 +230,10 @@ export default function ExecutionDetailPage({
                                 </span>
                             )}
                             {availability && (
-                                <span className={`px-2 py-1 rounded text-xs ${
-                                    availability === 'in_stock' || availability === true
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-red-100 text-red-800'
-                                }`}>
+                                <span className={`px-2 py-1 rounded text-xs ${availability === 'in_stock' || availability === true
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-red-100 text-red-800'
+                                    }`}>
                                     {availability === 'in_stock' || availability === true ? '✅ In Stock' : '❌ Out of Stock'}
                                 </span>
                             )}
@@ -250,7 +250,7 @@ export default function ExecutionDetailPage({
                                 {data.url && (
                                     <div className="text-xs">
                                         <a href={data.url} target="_blank" rel="noopener noreferrer"
-                                           className="text-primary hover:underline">
+                                            className="text-primary hover:underline">
                                             🔗 View Product
                                         </a>
                                     </div>
@@ -368,11 +368,7 @@ export default function ExecutionDetailPage({
     }
 
     if (loading) {
-        return (
-            <div className="p-8 flex items-center justify-center">
-                <Spinner className="size-8 text-primary" />
-            </div>
-        )
+        return <PageLoading message="Loading execution details..." />
     }
 
     if (!execution) {

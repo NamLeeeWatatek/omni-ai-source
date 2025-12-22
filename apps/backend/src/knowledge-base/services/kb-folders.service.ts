@@ -11,14 +11,16 @@ export class KBFoldersService {
     @InjectRepository(KbFolderEntity)
     private readonly folderRepository: Repository<KbFolderEntity>,
     private readonly kbManagementService: KBManagementService,
-  ) {}
+  ) { }
 
   async create(userId: string, createDto: CreateFolderDto) {
-    await this.kbManagementService.findOne(createDto.knowledgeBaseId, userId);
+    const kb = await this.kbManagementService.findOne(createDto.knowledgeBaseId, userId);
 
     const folderData = {
       ...createDto,
+      workspaceId: kb.workspaceId,
       parentId: createDto.parentFolderId,
+      createdBy: userId,
     };
 
     const folder = this.folderRepository.create(folderData);

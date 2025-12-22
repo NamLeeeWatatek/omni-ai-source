@@ -12,15 +12,13 @@
 } from 'typeorm';
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 import { WorkspaceEntity } from '../../../../../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
+import { WorkspaceOwnedEntity } from '../../../../../utils/workspace-owned.entity';
+import { FlowVersionEntity } from '../../../../../flows/infrastructure/persistence/relational/entities/flow-version.entity';
 
 @Entity({ name: 'bot' })
-export class BotEntity extends EntityRelationalHelper {
+export class BotEntity extends WorkspaceOwnedEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
-
-  @Column({ name: 'workspace_id', type: 'uuid' })
-  @Index()
-  workspaceId: string;
 
   @Column({ type: String })
   name: string;
@@ -39,9 +37,6 @@ export class BotEntity extends EntityRelationalHelper {
 
   @Column({ type: String, default: 'draft' })
   status: 'draft' | 'active' | 'paused' | 'archived';
-
-  @Column({ name: 'created_by', type: 'uuid' })
-  createdBy: string;
 
   @Column({ type: String, default: 'FiMessageSquare', nullable: true })
   icon?: string;
@@ -69,9 +64,6 @@ export class BotEntity extends EntityRelationalHelper {
 
   @Column({ name: 'ai_parameters', type: 'jsonb', nullable: true })
   aiParameters?: Record<string, any> | null;
-
-  @Column({ name: 'knowledge_base_ids', type: 'simple-array', nullable: true })
-  knowledgeBaseIds?: string[] | null;
 
   @Column({ name: 'enable_auto_learn', type: Boolean, default: false })
   enableAutoLearn: boolean;
@@ -103,12 +95,12 @@ export class BotEntity extends EntityRelationalHelper {
   @Column({ name: 'widget_enabled', type: Boolean, default: true })
   widgetEnabled: boolean;
 
-  @Column({ name: 'widget_config', type: 'jsonb', nullable: true })
-  widgetConfig?: Record<string, any> | null;
+  @Column({ name: 'active_version_id', type: 'uuid', nullable: true })
+  activeVersionId?: string | null;
 
-  @ManyToOne(() => WorkspaceEntity, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'workspace_id' })
-  workspace?: WorkspaceEntity;
+  @ManyToOne(() => FlowVersionEntity, { nullable: true })
+  @JoinColumn({ name: 'active_version_id' })
+  activeVersion?: FlowVersionEntity;
 
   @OneToMany(() => FlowVersionEntity, (version) => version.bot)
   flowVersions?: FlowVersionEntity[];
@@ -118,64 +110,11 @@ export class BotEntity extends EntityRelationalHelper {
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt?: Date | null;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
-}
-
-@Entity({ name: 'flow_version' })
-@Index(['botId', 'version'], { unique: true })
-export class FlowVersionEntity extends EntityRelationalHelper {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column({ name: 'bot_id', type: 'uuid' })
-  @Index()
-  botId: string;
-
-  @Column({ type: 'int' })
-  version: number;
-
-  @Column({ type: String, nullable: true })
-  name?: string | null;
-
-  @Column({ type: String, nullable: true })
-  description?: string | null;
-
-  @Column({ type: String, default: 'draft' })
-  status: 'draft' | 'published' | 'archived';
-
-  @Column({ name: 'published_at', type: 'timestamp', nullable: true })
-  publishedAt?: Date | null;
-
-  @Column({ name: 'created_by', type: 'uuid' })
-  createdBy: string;
-
-  @Column({ type: 'jsonb' })
-  flow: Record<string, any>;
-
-  @Column({ name: 'is_published', type: Boolean, default: false })
-  isPublished: boolean;
-
-  @ManyToOne(() => BotEntity, (bot) => bot.flowVersions, {
-    onDelete: 'CASCADE',
-  })
-  @JoinColumn({ name: 'bot_id' })
-  bot?: BotEntity;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
 }
 
 @Entity({ name: 'bot_knowledge_base' })
 @Index(['botId', 'knowledgeBaseId'], { unique: true })
-export class BotKnowledgeBaseEntity extends EntityRelationalHelper {
+export class BotKnowledgeBaseEntity extends WorkspaceOwnedEntity {
   @Column({ name: 'bot_id', type: 'uuid', primary: true })
   botId: string;
 
@@ -196,7 +135,4 @@ export class BotKnowledgeBaseEntity extends EntityRelationalHelper {
   })
   @JoinColumn({ name: 'bot_id' })
   bot?: BotEntity;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
 }

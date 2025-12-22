@@ -8,15 +8,38 @@ export interface ChatOptions {
 }
 
 export interface ChatService {
-  chat(prompt: string, model: string, provider?: string, apiKey?: string | null): Promise<string>;
-  chatWithHistory(messages: ChatMessage[], model: string, provider?: string, apiKey?: string | null): Promise<string>;
-  generateEmbedding(query: string, provider?: string, model?: string, apiKey?: string | null): Promise<number[]>;
+  chat(
+    prompt: string,
+    model: string,
+    provider?: string,
+    apiKey?: string | null,
+  ): Promise<string>;
+  chatWithHistory(
+    messages: ChatMessage[],
+    model: string,
+    provider?: string,
+    apiKey?: string | null,
+  ): Promise<string>;
+  generateEmbedding(
+    query: string,
+    provider?: string,
+    model?: string,
+    apiKey?: string | null,
+  ): Promise<number[]>;
 }
 
 export interface EmbeddingService {
-  generateEmbedding(query: string, provider?: string, model?: string, apiKey?: string | null): Promise<number[]>;
+  generateEmbedding(
+    query: string,
+    provider?: string,
+    model?: string,
+    apiKey?: string | null,
+  ): Promise<number[]>;
 }
 
 export interface ModelFetchService {
-  fetchModelsByProvider(providerKey: string, config: Record<string, any>): Promise<string[]>;
+  fetchModelsByProvider(
+    providerKey: string,
+    config: Record<string, any>,
+  ): Promise<string[]>;
 }

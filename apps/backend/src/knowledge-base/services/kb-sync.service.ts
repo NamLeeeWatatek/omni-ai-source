@@ -1,4 +1,4 @@
-﻿import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { KBChunkEntity } from '../infrastructure/persistence/relational/entities/kb-chunk.entity';
@@ -59,17 +59,20 @@ export class KBSyncService {
               kb.embeddingModel || 'text-embedding-004',
             );
 
-            const vectorId = await this.vectorService.upsertVector({
-              id: chunk.id,
-              vector: embedding,
-              payload: {
-                content: chunk.content,
-                documentId: chunk.documentId,
-                knowledgeBaseId: chunk.knowledgeBaseId,
-                chunkIndex: chunk.chunkIndex,
-                metadata: chunk.metadata,
+            const vectorId = await this.vectorService.upsertVector(
+              {
+                id: chunk.id,
+                vector: embedding,
+                payload: {
+                  content: chunk.content,
+                  documentId: chunk.documentId,
+                  knowledgeBaseId: chunk.knowledgeBaseId,
+                  chunkIndex: chunk.chunkIndex,
+                  metadata: chunk.metadata,
+                },
               },
-            });
+              kb.workspaceId,
+            );
 
             chunk.vectorId = vectorId;
             chunk.embeddingStatus = 'completed';
@@ -168,17 +171,20 @@ export class KBSyncService {
           kb.embeddingModel || 'text-embedding-004',
         );
 
-        const vectorId = await this.vectorService.upsertVector({
-          id: chunk.id,
-          vector: embedding,
-          payload: {
-            content: chunk.content,
-            documentId: chunk.documentId,
-            knowledgeBaseId: chunk.knowledgeBaseId,
-            chunkIndex: chunk.chunkIndex,
-            metadata: chunk.metadata,
+        const vectorId = await this.vectorService.upsertVector(
+          {
+            id: chunk.id,
+            vector: embedding,
+            payload: {
+              content: chunk.content,
+              documentId: chunk.documentId,
+              knowledgeBaseId: chunk.knowledgeBaseId,
+              chunkIndex: chunk.chunkIndex,
+              metadata: chunk.metadata,
+            },
           },
-        });
+          kb.workspaceId,
+        );
 
         chunk.vectorId = vectorId;
         chunk.embeddingStatus = 'completed';

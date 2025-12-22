@@ -5,6 +5,9 @@ import { KBChunkEntity } from '../infrastructure/persistence/relational/entities
 import { AiProvidersService } from '../../ai-providers/ai-providers.service';
 import { KBVectorService } from './kb-vector.service';
 import { KnowledgeBaseEntity } from '../infrastructure/persistence/relational/entities/knowledge-base.entity';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { Inject } from '@nestjs/common';
 
 export interface TextChunk {
   content: string;
@@ -24,6 +27,7 @@ export class KBEmbeddingsService {
     private readonly kbRepository: Repository<KnowledgeBaseEntity>,
     private readonly aiProvidersService: AiProvidersService,
     private readonly vectorService: KBVectorService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   chunkText(
@@ -97,9 +101,9 @@ export class KBEmbeddingsService {
 
     // Get provider config based on KB's settings
     const providerConfig = await this.getProviderConfig(
-      userId,
-      workspaceId,
-      kbAiProviderId,
+      userId || undefined,
+      workspaceId || undefined,
+      kbAiProviderId || undefined,
     );
     const provider = providerConfig.provider;
     const model = providerConfig.model;
@@ -267,17 +271,21 @@ export class KBEmbeddingsService {
               }
             }
 
-            const vectorId = await this.vectorService.upsertVector({
-              id: chunk.id,
-              vector: embedding,
-              payload: {
-                content: chunk.content,
-                documentId: chunk.documentId,
-                knowledgeBaseId: chunk.knowledgeBaseId,
-                chunkIndex: chunk.chunkIndex,
-                metadata: chunk.metadata,
+            const vectorId = await this.vectorService.upsertVector(
+              {
+                id: chunk.id,
+                vector: embedding,
+                payload: {
+                  content: chunk.content,
+                  documentId: chunk.documentId,
+                  knowledgeBaseId: chunk.knowledgeBaseId,
+                  workspace_id: workspaceId,
+                  chunkIndex: chunk.chunkIndex,
+                  metadata: chunk.metadata,
+                },
               },
-            });
+              workspaceId || 'default',
+            );
 
             chunk.vectorId = vectorId;
             chunk.embeddingStatus = 'completed';
@@ -322,14 +330,14 @@ export class KBEmbeddingsService {
         where: { id: kbId },
         select: ['workspaceId', 'createdBy', 'aiProviderId', 'embeddingModel'],
       });
-      userId = kb?.createdBy;
+      userId = kb?.createdBy ?? undefined;
       workspaceId = kb?.workspaceId || undefined;
     }
 
     // Get provider config using the same logic as chunk processing
     const providerConfig = await this.getProviderConfig(
-      userId,
-      workspaceId,
+      userId || undefined,
+      workspaceId || undefined,
       kbId,
     );
     const provider = providerConfig.provider;
@@ -371,13 +379,27 @@ export class KBEmbeddingsService {
       }
     }
 
+    // Check cache first
+    const cacheKey = `embedding:${provider}:${model}:${Buffer.from(query).toString('base64').substring(0, 100)}`;
+    const cached = await this.cacheManager.get<number[]>(cacheKey);
+    if (cached) {
+      this.logger.log(
+        `ðŸš€ Using cached embedding for: "${query.substring(0, 50)}..."`,
+      );
+      return cached;
+    }
+
     try {
-      return this.aiProvidersService.generateEmbedding(
+      const embedding = await this.aiProvidersService.generateEmbedding(
         query,
         provider,
         model,
         apiKey,
       );
+
+      // Cache for 1 hour (3600 seconds)
+      await this.cacheManager.set(cacheKey, embedding, 3600);
+      return embedding;
     } catch (error) {
       // If the selected provider fails, try fallback providers
       this.logger.error(

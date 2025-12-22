@@ -5,13 +5,11 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { PageLoading } from '@/components/layout/PageLoading'
+import { PageLoading } from '@/components/ui/PageLoading'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
-import { Label } from '@/components/ui/Label'
-import { Spinner } from '@/components/ui/Spinner'
 import { IconPicker } from '@/components/ui/IconPicker'
 import {
     Dialog,
@@ -37,7 +35,6 @@ import {
     FiPlus,
     FiEdit2,
     FiTrash2,
-    FiRefreshCw,
     FiMessageSquare,
     FiActivity
 } from 'react-icons/fi'
@@ -45,7 +42,6 @@ import { botsApi, type Bot } from '@/lib/api/bots'
 import { AlertDialogConfirm } from '@/components/ui/AlertDialogConfirm'
 import { Badge } from '@/components/ui/Badge'
 
-// Form validation schema
 const botFormSchema = z.object({
     name: z.string().min(1, 'Bot name is required'),
     description: z.string().optional(),
@@ -62,7 +58,6 @@ export default function BotsPage() {
     const [editingBot, setEditingBot] = useState<Bot | null>(null)
     const { workspace, workspaceId } = useWorkspace()
 
-    // Setup react-hook-form with zod validation
     const form = useForm<BotFormValues>({
         resolver: zodResolver(botFormSchema),
         defaultValues: {
@@ -80,8 +75,9 @@ export default function BotsPage() {
 
         try {
             setLoading(true)
-            const data = await botsApi.getAll(workspaceId)
-            setBots(Array.isArray(data) ? data : [])
+            const response: any = await botsApi.getAll(workspaceId)
+            const botsData = Array.isArray(response) ? response : (response?.data || [])
+            setBots(botsData)
         } catch (error: any) {
             toast.error(error?.response?.data?.message || 'Failed to load bots')
         } finally {
@@ -187,12 +183,7 @@ export default function BotsPage() {
                     </p>
                 </div>
                 <div className="flex gap-3">
-                    <Button variant="outline" onClick={loadBots} disabled={loading}>
-                        {loading ? (
-                            <Spinner className="size-4 mr-2" />
-                        ) : (
-                            <FiRefreshCw className="w-4 h-4 mr-2" />
-                        )}
+                    <Button variant="outline" onClick={loadBots} loading={loading}>
                         Refresh
                     </Button>
                     <Button onClick={() => openModal()}>
@@ -334,7 +325,7 @@ export default function BotsPage() {
                                 <Button type="button" variant="outline" onClick={closeModal}>
                                     Cancel
                                 </Button>
-                                <Button type="submit">
+                                <Button type="submit" loading={form.formState.isSubmitting}>
                                     {editingBot ? 'Update' : 'Create'}
                                 </Button>
                             </DialogFooter>
@@ -343,7 +334,6 @@ export default function BotsPage() {
                 </DialogContent>
             </Dialog>
 
-            { }
             <AlertDialogConfirm
                 open={deleteId !== null}
                 onOpenChange={(open) => !open && setDeleteId(null)}

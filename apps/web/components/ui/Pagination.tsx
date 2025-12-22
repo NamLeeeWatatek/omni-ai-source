@@ -1,159 +1,292 @@
-﻿'use client'
+'use client'
 
-import { Button } from './Button'
-import { FiChevronLeft, FiChevronRight, FiChevronsLeft, FiChevronsRight } from 'react-icons/fi'
-import { cn } from '@/lib/utils'
+import * as React from 'react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  MoreHorizontal
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Button, buttonVariants } from "./Button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./Select"
 
-interface PaginationProps {
-  currentPage: number
-  totalPages: number
-  pageSize: number
+export interface PaginationInfo {
+  page: number
+  limit: number
   total: number
-  onPageChange: (page: number) => void
-  onPageSizeChange?: (pageSize: number) => void
-  pageSizeOptions?: number[]
+  hasNextPage: boolean
+  totalPages: number
 }
 
+export interface PaginationProps {
+  pagination: PaginationInfo
+  pageSizeOptions?: number[]
+  onPageChange?: (page: number) => void
+  onPageSizeChange?: (pageSize: number) => void
+  className?: string
+}
+
+const PaginationRoot = ({ className, ...props }: React.ComponentProps<"nav">) => (
+  <nav
+    role="navigation"
+    aria-label="pagination"
+    className={cn("mx-auto flex w-full justify-center", className)}
+    {...props}
+  />
+)
+PaginationRoot.displayName = "Pagination"
+
+const PaginationContent = React.forwardRef<
+  HTMLUListElement,
+  React.ComponentProps<"ul">
+>(({ className, ...props }, ref) => (
+  <ul
+    ref={ref}
+    className={cn("flex flex-row items-center gap-1", className)}
+    {...props}
+  />
+))
+PaginationContent.displayName = "PaginationContent"
+
+const PaginationItem = React.forwardRef<
+  HTMLLIElement,
+  React.ComponentProps<"li">
+>(({ className, ...props }, ref) => (
+  <li ref={ref} className={cn("", className)} {...props} />
+))
+PaginationItem.displayName = "PaginationItem"
+
+type PaginationLinkProps = {
+  isActive?: boolean
+  size?: "default" | "sm" | "icon"
+} & React.ComponentProps<"a">
+
+const PaginationLink = ({
+  className,
+  isActive,
+  size = "icon",
+  ...props
+}: PaginationLinkProps) => (
+  <a
+    aria-current={isActive ? "page" : undefined}
+    className={cn(
+      buttonVariants({
+        variant: isActive ? "outline" : "ghost",
+        size,
+      }),
+      className
+    )}
+    {...props}
+  />
+)
+PaginationLink.displayName = "PaginationLink"
+
+const PaginationPrevious = ({
+  className,
+  ...props
+}: React.ComponentProps<typeof PaginationLink>) => (
+  <PaginationLink
+    aria-label="Go to previous page"
+    size="default"
+    className={cn("gap-1 pl-2.5", className)}
+    {...props}
+  >
+    <ChevronLeft className="h-4 w-4" />
+    <span>Previous</span>
+  </PaginationLink>
+)
+PaginationPrevious.displayName = "PaginationPrevious"
+
+const PaginationNext = ({
+  className,
+  ...props
+}: React.ComponentProps<typeof PaginationLink>) => (
+  <PaginationLink
+    aria-label="Go to next page"
+    size="default"
+    className={cn("gap-1 pr-2.5", className)}
+    {...props}
+  >
+    <span>Next</span>
+    <ChevronRight className="h-4 w-4" />
+  </PaginationLink>
+)
+PaginationNext.displayName = "PaginationNext"
+
+const PaginationEllipsis = ({
+  className,
+  ...props
+}: React.ComponentProps<"span">) => (
+  <span
+    aria-hidden
+    className={cn("flex h-9 w-9 items-center justify-center", className)}
+    {...props}
+  >
+    <MoreHorizontal className="h-4 w-4" />
+    <span className="sr-only">More pages</span>
+  </span>
+)
+PaginationEllipsis.displayName = "PaginationEllipsis"
+
 export function Pagination({
-  currentPage,
-  totalPages,
-  pageSize,
-  total,
+  pagination,
+  pageSizeOptions = [5, 10, 20, 50, 100],
   onPageChange,
   onPageSizeChange,
-  pageSizeOptions = [10, 25, 50, 100]
+  className
 }: PaginationProps) {
-  const startItem = (currentPage - 1) * pageSize + 1
-  const endItem = Math.min(currentPage * pageSize, total)
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= pagination.totalPages) {
+      onPageChange?.(page)
+    }
+  }
 
-  const getPageNumbers = () => {
-    const pages: (number | string)[] = []
-    const maxVisible = 7
+  const handlePageSizeChange = (pageSize: number) => {
+    onPageSizeChange?.(pageSize)
+  }
 
-    if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i)
-      }
+  if (pagination.total === 0) {
+    return null
+  }
+
+  const generatePages = () => {
+    const pages = []
+    const totalPages = pagination.totalPages
+    const currentPage = pagination.page
+
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i)
     } else {
-      if (currentPage <= 3) {
+      if (currentPage <= 4) {
         for (let i = 1; i <= 5; i++) pages.push(i)
-        pages.push('...')
+        pages.push('ellipsis')
         pages.push(totalPages)
-      } else if (currentPage >= totalPages - 2) {
+      } else if (currentPage >= totalPages - 3) {
         pages.push(1)
-        pages.push('...')
+        pages.push('ellipsis')
         for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i)
       } else {
         pages.push(1)
-        pages.push('...')
+        pages.push('ellipsis')
         for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i)
-        pages.push('...')
+        pages.push('ellipsis')
         pages.push(totalPages)
       }
     }
-
     return pages
   }
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-t border-border/40">
-      { }
-      <div className="flex items-center gap-4">
+    <div className={cn("flex flex-col sm:flex-row items-center justify-between gap-4 py-2", className)}>
+      <div className="flex items-center gap-2">
         <p className="text-sm text-muted-foreground">
-          Showing <span className="font-medium">{startItem}</span> to{' '}
-          <span className="font-medium">{endItem}</span> of{' '}
-          <span className="font-medium">{total}</span> results
+          Showing <span className="font-medium">{(pagination.page - 1) * pagination.limit + 1}</span> to{' '}
+          <span className="font-medium">{Math.min(pagination.page * pagination.limit, pagination.total)}</span> of{' '}
+          <span className="font-medium text-foreground">{pagination.total}</span> results
         </p>
-
-        { }
-        {onPageSizeChange && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Per page:</span>
-            <select
-              value={pageSize}
-              onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="px-2 py-1 text-sm border border-border/40 rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-            >
-              {pageSizeOptions.map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
-          </div>
+        {pageSizeOptions.length > 1 && (
+          <>
+            <span className="text-sm text-muted-foreground">•</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">Rows:</span>
+              <Select
+                value={String(pagination.limit)}
+                onValueChange={(value) => handlePageSizeChange(Number(value))}
+              >
+                <SelectTrigger className="w-[70px] h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {pageSizeOptions.map((size) => (
+                    <SelectItem key={size} value={String(size)}>
+                      {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </>
         )}
       </div>
 
-      { }
-      <div className="flex items-center gap-2">
-        { }
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => onPageChange(1)}
-          disabled={currentPage === 1}
-          className="h-8 w-8"
-        >
-          <FiChevronsLeft className="w-4 h-4" />
-        </Button>
+      <PaginationRoot className="mx-0 w-auto">
+        <PaginationContent>
+          {/* First Page */}
+          <PaginationItem>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => handlePageChange(1)}
+              disabled={pagination.page === 1}
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+          </PaginationItem>
 
-        { }
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          className="h-8 w-8"
-        >
-          <FiChevronLeft className="w-4 h-4" />
-        </Button>
+          {/* Previous Page */}
+          <PaginationItem>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          </PaginationItem>
 
-        { }
-        <div className="flex items-center gap-1">
-          {getPageNumbers().map((page, index) => (
-            <div key={index}>
-              {page === '...' ? (
-                <span className="px-3 py-1 text-sm text-muted-foreground">...</span>
+          {/* Page Numbers */}
+          {generatePages().map((page, index) => (
+            <PaginationItem key={index}>
+              {page === 'ellipsis' ? (
+                <PaginationEllipsis className="h-8 w-8" />
               ) : (
                 <Button
-                  variant={currentPage === page ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => onPageChange(page as number)}
+                  variant={pagination.page === page ? "outline" : "ghost"}
+                  size="icon"
                   className={cn(
-                    'h-8 min-w-[32px]',
-                    currentPage === page && 'bg-primary text-primary-foreground'
+                    "h-8 w-8",
+                    pagination.page === page && "border-primary text-primary hover:bg-primary/5 shadow-sm"
                   )}
+                  onClick={() => handlePageChange(page as number)}
                 >
                   {page}
                 </Button>
               )}
-            </div>
+            </PaginationItem>
           ))}
-        </div>
 
-        { }
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className="h-8 w-8"
-        >
-          <FiChevronRight className="w-4 h-4" />
-        </Button>
+          {/* Next Page */}
+          <PaginationItem>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={pagination.page === pagination.totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </PaginationItem>
 
-        { }
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => onPageChange(totalPages)}
-          disabled={currentPage === totalPages}
-          className="h-8 w-8"
-        >
-          <FiChevronsRight className="w-4 h-4" />
-        </Button>
-      </div>
+          {/* Last Page */}
+          <PaginationItem>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => handlePageChange(pagination.totalPages)}
+              disabled={pagination.page === pagination.totalPages}
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </PaginationItem>
+        </PaginationContent>
+      </PaginationRoot>
     </div>
   )
 }
-

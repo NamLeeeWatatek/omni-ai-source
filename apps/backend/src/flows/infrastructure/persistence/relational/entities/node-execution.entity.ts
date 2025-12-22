@@ -8,11 +8,11 @@
   Index,
   JoinColumn,
 } from 'typeorm';
-import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
+import { WorkspaceOwnedEntity } from '../../../../../utils/workspace-owned.entity';
 import { FlowExecutionEntity } from './flow-execution.entity';
 
 @Entity({ name: 'node_execution' })
-export class NodeExecutionEntity extends EntityRelationalHelper {
+export class NodeExecutionEntity extends WorkspaceOwnedEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -57,9 +57,7 @@ export class NodeExecutionEntity extends EntityRelationalHelper {
   @Column({ type: String })
   status: string;
 
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
+  @Index()
+  @Column({ name: 'workspace_id', type: 'uuid', nullable: false })
+  workspaceId: string;
 }

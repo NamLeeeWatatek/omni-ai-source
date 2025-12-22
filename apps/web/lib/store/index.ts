@@ -7,6 +7,7 @@ import nodeTypesReducer from './slices/nodeTypesSlice'
 import workflowEditorReducer from './slices/workflowEditorSlice'
 import uiReducer from './slices/uiSlice'
 import knowledgeBaseReducer from './slices/knowledgeBaseSlice'
+import ugcFactoryReducer from './slices/ugcFactorySlice'
 import { listenerMiddleware } from './middleware/listenerMiddleware'
 
 import workspaceReducer from './slices/workspaceSlice'
@@ -20,6 +21,7 @@ export const store = configureStore({
     workflowEditor: workflowEditorReducer,
     ui: uiReducer,
     knowledgeBase: knowledgeBaseReducer,
+    ugcFactory: ugcFactoryReducer,
     workspace: workspaceReducer,
     notifications: notificationsReducer,
     channels: channelsReducer,

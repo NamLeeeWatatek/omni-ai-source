@@ -47,7 +47,7 @@ export function useAIModels(): UseAIModelsReturn {
         try {
             setLoading(true)
             setError(null)
-            const response = await axiosClient.get('/ai-providers/models')
+            const response = await axiosClient.get<AIProvider[]>('/ai-providers/models')
             setProviders(response || [])
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to load models')
@@ -93,4 +93,3 @@ export function useAIModels(): UseAIModelsReturn {
         getDefaultModel
     }
 }
-

@@ -6,6 +6,11 @@ export class CreateDocumentDto {
   @IsUUID()
   knowledgeBaseId: string;
 
+  @ApiPropertyOptional()
+  @IsUUID()
+  @IsOptional()
+  workspaceId?: string;
+
   @ApiProperty()
   @IsString()
   name: string;
@@ -17,7 +22,7 @@ export class CreateDocumentDto {
   @ApiPropertyOptional()
   @IsUUID()
   @IsOptional()
-  folderId?: string;
+  folderId?: string | null;
 
   @ApiPropertyOptional()
   @IsString()
@@ -59,7 +64,12 @@ export class UpdateDocumentDto {
   @ApiPropertyOptional()
   @IsUUID()
   @IsOptional()
-  folderId?: string;
+  folderId?: string | null;
+
+  @ApiPropertyOptional()
+  @IsUUID()
+  @IsOptional()
+  workspaceId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

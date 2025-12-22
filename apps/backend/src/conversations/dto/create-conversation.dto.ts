@@ -33,15 +33,40 @@ export class CreateConversationDto {
   @IsUUID()
   channelId?: string | null;
 
-  @ApiPropertyOptional({ example: 'John Doe' })
+  @ApiPropertyOptional({ example: 'John Doe', deprecated: true })
   @IsOptional()
   @IsString()
   contactName?: string | null;
 
-  @ApiPropertyOptional({ example: 'https://example.com/avatar.jpg' })
+  @ApiPropertyOptional({
+    example: 'https://example.com/avatar.jpg',
+    deprecated: true,
+  })
   @IsOptional()
   @IsString()
   contactAvatar?: string | null;
+
+  @ApiPropertyOptional({ description: 'Workspace ID' })
+  @IsOptional()
+  @IsUUID()
+  workspaceId?: string;
+
+  @ApiPropertyOptional({ description: 'Source channel/platform' })
+  @IsOptional()
+  @IsString()
+  source?: string;
+
+  @ApiPropertyOptional({
+    description: 'Conversation type (chat, discovery, support)',
+  })
+  @IsOptional()
+  @IsString()
+  type?: string;
+
+  @ApiPropertyOptional({ description: 'Conversation status' })
+  @IsOptional()
+  @IsString()
+  status?: string;
 
   @ApiPropertyOptional({ type: Object })
   @IsOptional()
@@ -120,7 +145,10 @@ export class CreateMessageDto {
     result?: any;
   }> | null;
 
-  @ApiPropertyOptional({ deprecated: true })
+  @ApiPropertyOptional({
+    description: 'Message sender name or handle',
+    deprecated: true,
+  })
   @IsOptional()
   @IsString()
   sender?: string;

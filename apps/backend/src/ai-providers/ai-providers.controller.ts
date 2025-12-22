@@ -294,7 +294,8 @@ export class AiProvidersController {
 
   @Post('generate-prompt')
   @ApiOperation({
-    summary: 'Generate an enhanced system prompt based on detailed user requirements',
+    summary:
+      'Generate an enhanced system prompt based on detailed user requirements',
   })
   @ApiOkResponse({
     schema: {
@@ -366,13 +367,18 @@ export class AiProvidersController {
   }
 
   @Get('fetch-models/:configId/user')
-  @ApiOperation({ summary: 'Fetch available models from user AI provider config' })
+  @ApiOperation({
+    summary: 'Fetch available models from user AI provider config',
+  })
   @ApiOkResponse({
     type: [String],
-    description: 'Array of available model names from the provider'
+    description: 'Array of available model names from the provider',
   })
   @ApiParam({ name: 'configId', type: String })
-  async fetchModelsForUserConfig(@Param('configId') configId: string, @Request() req) {
+  async fetchModelsForUserConfig(
+    @Param('configId') configId: string,
+    @Request() req,
+  ) {
     return this.aiProvidersService.fetchProviderModels(
       configId,
       'user',
@@ -381,12 +387,16 @@ export class AiProvidersController {
   }
 
   @Post('verify-models')
-  @ApiOperation({ summary: 'Verify API key and fetch models without saving config' })
+  @ApiOperation({
+    summary: 'Verify API key and fetch models without saving config',
+  })
   @ApiOkResponse({
     type: [String],
-    description: 'Array of available model names from the provider'
+    description: 'Array of available model names from the provider',
   })
-  async verifyApiKeyAndGetModels(@Body() dto: { providerId: string; config: Record<string, any> }) {
+  async verifyApiKeyAndGetModels(
+    @Body() dto: { providerId: string; config: Record<string, any> },
+  ) {
     // Call service method with direct config instead of saved config lookup
     const service = this.aiProvidersService as any;
     return service.fetchModelsFromDirectConfig(dto.providerId, dto.config);

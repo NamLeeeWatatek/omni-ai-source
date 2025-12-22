@@ -99,24 +99,26 @@ export class ConversationsGateway
    * âœ… Format conversation data before emitting
    */
   broadcastConversationUpdate(conversation: any) {
-    // âœ… Ensure all required fields are present
+    // âœ… Resolve contact details from relation if available
+    const contact = conversation.contact;
     const formattedConversation = {
       id: conversation.id,
       externalId: conversation.externalId,
       channelId: conversation.channelId,
       channelType: conversation.channelType,
       channelName: conversation.channelName || conversation.channelType,
-      contactName:
-        conversation.contactName || conversation.customerName || 'Unknown',
-      contactAvatar: conversation.contactAvatar || conversation.customerAvatar,
-      customerName:
-        conversation.contactName || conversation.customerName || 'Unknown', // âœ… Alias for frontend
-      customerAvatar: conversation.contactAvatar || conversation.customerAvatar,
+      contactName: contact?.name || conversation.contactName || 'Unknown',
+      contactAvatar: contact?.avatar || conversation.contactAvatar,
+      customerName: contact?.name || conversation.contactName || 'Unknown',
+      customerAvatar: contact?.avatar || conversation.contactAvatar,
       lastMessage: conversation.lastMessage || 'New message',
       lastMessageAt: conversation.lastMessageAt || new Date().toISOString(),
       unreadCount: conversation.unreadCount || 0,
       status: conversation.status || 'active',
       metadata: conversation.metadata || {},
+      contactId: conversation.contactId,
+      // âœ… Placeholder for session promotion status
+      promotionStatus: conversation.promotionStatus || null,
     };
 
     this.server.emit('conversation-update', formattedConversation);
@@ -130,24 +132,23 @@ export class ConversationsGateway
    * âœ… Format conversation data before emitting
    */
   broadcastNewConversation(conversation: any) {
-    // âœ… Ensure all required fields are present
+    const contact = conversation.contact;
     const formattedConversation = {
       id: conversation.id,
       externalId: conversation.externalId,
       channelId: conversation.channelId,
       channelType: conversation.channelType,
       channelName: conversation.channelName || conversation.channelType,
-      contactName:
-        conversation.contactName || conversation.customerName || 'Unknown',
-      contactAvatar: conversation.contactAvatar || conversation.customerAvatar,
-      customerName:
-        conversation.contactName || conversation.customerName || 'Unknown', // âœ… Alias for frontend
-      customerAvatar: conversation.contactAvatar || conversation.customerAvatar,
+      contactName: contact?.name || conversation.contactName || 'Unknown',
+      contactAvatar: contact?.avatar || conversation.contactAvatar,
+      customerName: contact?.name || conversation.contactName || 'Unknown',
+      customerAvatar: contact?.avatar || conversation.contactAvatar,
       lastMessage: conversation.lastMessage || 'New conversation',
       lastMessageAt: conversation.lastMessageAt || new Date().toISOString(),
       unreadCount: conversation.unreadCount || 0,
       status: conversation.status || 'active',
       metadata: conversation.metadata || {},
+      contactId: conversation.contactId,
     };
 
     this.server.emit('new-conversation', formattedConversation);

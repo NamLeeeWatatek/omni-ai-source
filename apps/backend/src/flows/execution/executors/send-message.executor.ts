@@ -1,24 +1,29 @@
 ﻿import { Injectable } from '@nestjs/common';
 import {
-  NodeExecutor,
   NodeExecutionInput,
   NodeExecutionOutput,
 } from '../node-executor.interface';
 import { ChannelStrategy } from '../../../channels/channel.strategy';
+import { BaseNodeExecutor } from '../base-node-executor';
 
 @Injectable()
-export class SendMessageExecutor implements NodeExecutor {
-  constructor(private readonly channelStrategy: ChannelStrategy) {}
+export class SendMessageExecutor extends BaseNodeExecutor {
+  constructor(private readonly channelStrategy: ChannelStrategy) {
+    super();
+  }
 
-  async execute(input: NodeExecutionInput): Promise<NodeExecutionOutput> {
+  protected async run(input: NodeExecutionInput): Promise<NodeExecutionOutput> {
     try {
-      const { channel, to, message } = input.data;
+      const { channelId, channel, to, message } = input.data;
 
-      if (!channel) {
+      // Use channelId (new) or channel (legacy)
+      const actualChannel = channelId || channel;
+
+      if (!actualChannel) {
         return {
           success: false,
           output: null,
-          error: 'Channel type is required',
+          error: 'Channel is required',
         };
       }
 

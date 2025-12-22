@@ -17,6 +17,7 @@ import { NodeTypesService } from './node-types.service';
 import { NodeCategory } from './types';
 import { NodeType } from './domain/node-type';
 import { AiProvidersService } from '../ai-providers/ai-providers.service';
+import { ChannelsService } from '../channels/channels.service';
 
 @ApiTags('Node Types')
 @Controller({ path: 'node-types', version: '1' })
@@ -24,6 +25,7 @@ export class NodeTypesController {
   constructor(
     private readonly nodeTypesService: NodeTypesService,
     private readonly aiProvidersService: AiProvidersService,
+    private readonly channelsService: ChannelsService,
   ) {}
 
   @Get()
@@ -83,103 +85,84 @@ export class NodeTypesController {
       const workspaceId = req?.user?.workspaceId || userId;
 
       switch (source) {
-        case 'ai-models': {
-          if (!type) {
-            throw new BadRequestException('Type parameter required for ai-models');
-          }
-
+        case 'ai-models':
+        case 'getModels': {
+          const typeFilter = type || 'chat';
           let models: string[] = [];
 
-          // Try workspace configs first
           if (workspaceId) {
             try {
-              const workspaceConfigs = await this.aiProvidersService.getWorkspaceConfigs(workspaceId);
-              const activeConfigs = workspaceConfigs.filter(config => config.isActive);
+              const workspaceConfigs =
+                await this.aiProvidersService.getWorkspaceConfigs(workspaceId);
+              const activeConfigs = workspaceConfigs.filter(
+                (config) => config.isActive,
+              );
 
               for (const config of activeConfigs) {
                 try {
-                  const configModels = await this.aiProvidersService.fetchProviderModels(
-                    config.id,
-                    'workspace',
-                    workspaceId
+                  const configModels =
+                    await this.aiProvidersService.fetchProviderModels(
+                      config.id,
+                      'workspace',
+                      workspaceId,
+                    );
+                  models.push(
+                    ...configModels.map(
+                      (model) => `${config.provider?.key}/${model}`,
+                    ),
                   );
-                  models.push(...configModels.map(model => `${config.provider?.key}/${model}`));
                 } catch (error) {
-                  console.warn(`Failed to fetch models for workspace config ${config.id}:`, error.message);
+                  console.warn(
+                    `Failed to fetch models for workspace config ${config.id}:`,
+                    error.message,
+                  );
                 }
               }
             } catch (error) {
-              console.warn('Failed to get workspace AI configs:', error.message);
+              console.warn(
+                'Failed to get workspace AI configs:',
+                error.message,
+              );
             }
           }
 
-          // Fallback to user configs
-          if (models.length === 0 && userId) {
-            try {
-              const userConfigs = await this.aiProvidersService.getUserConfigs(userId);
-              const activeConfigs = userConfigs.filter(config => config.isActive);
-
-              for (const config of activeConfigs) {
-                try {
-                  const configModels = await this.aiProvidersService.fetchProviderModels(
-                    config.id,
-                    'user',
-                    userId
-                  );
-                  models.push(...configModels.map(model => `${config.provider?.key}/${model}`));
-                } catch (error) {
-                  console.warn(`Failed to fetch models for user config ${config.id}:`, error.message);
-                }
-              }
-            } catch (error) {
-              console.warn('Failed to get user AI configs:', error.message);
-            }
-          }
-
-          // If still no models, provide some defaults based on type
           if (models.length === 0) {
-            if (type === 'chat') {
+            if (typeFilter === 'chat') {
               models = [
                 'openai/gpt-4o-mini',
                 'openai/gpt-4o',
-                'openai/gpt-4-turbo',
                 'anthropic/claude-3-haiku-20240307',
-                'anthropic/claude-3-sonnet-20240229',
                 'google/gemini-1.5-flash',
               ];
-            } else if (type === 'image') {
-              models = [
-                'openai/dall-e-3',
-                'openai/dall-e-2',
-              ];
+            } else {
+              models = ['openai/dall-e-3', 'openai/dall-e-2'];
             }
           }
 
-          return models.map(model => ({
+          return models.map((model) => ({
             value: model,
-            label: model.split('/')[1] || model, // Show just the model name, not provider/model
+            label: model.split('/')[1] || model,
           }));
-
         }
 
-        case 'channels': {
-          // TODO: Implement channels dynamic options
-          // For now, return static options
-          return [
-            { value: 'facebook', label: 'Facebook' },
-            { value: 'instagram', label: 'Instagram' },
-            { value: 'tiktok', label: 'TikTok' },
-            { value: 'twitter', label: 'Twitter' },
-            { value: 'linkedin', label: 'LinkedIn' },
-          ];
+        case 'channels':
+        case 'getChannels': {
+          const channels = await this.channelsService.findAll(workspaceId);
+          return channels.map((channel) => ({
+            value: channel.id,
+            label:
+              channel.name || `${channel.type} (${channel.id.slice(0, 8)})`,
+          }));
         }
 
         default:
           throw new BadRequestException(`Unknown dynamic source: ${source}`);
       }
     } catch (error) {
-      console.error(`Error fetching dynamic options for ${source}:`, error.message);
-      // Return empty array on error to prevent UI breakage
+      console.error(
+        `Error fetching dynamic options for ${source}:`,
+        error.message,
+      );
       return [];
     }
   }

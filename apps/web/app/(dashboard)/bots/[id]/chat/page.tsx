@@ -23,14 +23,13 @@ export default function BotChatPage() {
   } = useBotRagChat({
     botId,
     botName: 'Test Bot',
-    knowledgeBaseIds: [], // Empty for now - will be populated when bot has KB configs
+    knowledgeBaseIds: [],
   });
 
   const handleSendMessage = async (content: string) => {
     await sendMessage(content);
   };
 
-  // Transform our messages to match the AiChatInterface format
   const chatMessages: Array<{
     role: 'user' | 'assistant' | 'system';
     content: string;
@@ -45,7 +44,6 @@ export default function BotChatPage() {
 
   return (
     <div className="container mx-auto px-6 py-8 max-w-6xl">
-      {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/bots">
@@ -68,7 +66,6 @@ export default function BotChatPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-4">
-        {/* Main Chat Interface */}
         <div className="lg:col-span-3">
           <AiChatInterface
             messages={chatMessages}
@@ -79,9 +76,7 @@ export default function BotChatPage() {
           />
         </div>
 
-        {/* Sidebar with Bot Info */}
         <div className="space-y-4">
-          {/* Bot Configuration Status */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Bot Configuration</CardTitle>
@@ -110,7 +105,6 @@ export default function BotChatPage() {
             </CardContent>
           </Card>
 
-          {/* Architecture Info */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Bot-First Architecture</CardTitle>
@@ -125,7 +119,6 @@ export default function BotChatPage() {
             </CardContent>
           </Card>
 
-          {/* Quick Actions */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Quick Actions</CardTitle>
@@ -145,7 +138,6 @@ export default function BotChatPage() {
         </div>
       </div>
 
-      {/* Error Display */}
       {error && (
         <Card className="mt-6 border-red-200 bg-red-50">
           <CardContent className="pt-6">

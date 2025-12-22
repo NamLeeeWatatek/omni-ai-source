@@ -1,10 +1,5 @@
-﻿import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog'
+﻿import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog'
 import { Button } from '@/components/ui/Button'
-import { Spinner } from '@/components/ui/Spinner'
 import {
     Form,
     FormControl,
@@ -16,64 +11,31 @@ import {
 } from '@/components/ui/Form'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
-import { handleFormError } from '@/lib/utils/form-errors'
+import { useBotForm } from '@/lib/hooks/useBotForm'
 
-const botFormSchema = z.object({
-    name: z.string().min(1, 'Name is required'),
-    description: z.string().optional(),
-    workspaceId: z.string(),
-    defaultLanguage: z.string(),
-    timezone: z.string(),
-})
+interface Bot {
+    id: string
+    name: string
+    description?: string
+    workspaceId: string
+    defaultLanguage?: string
+    timezone?: string
+}
 
 interface BotDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    bot?: any | null
+    bot?: Bot | null
     workspaceId: string
-    onSubmit: (data: z.infer<typeof botFormSchema>) => Promise<void>
 }
 
-export function BotDialog({ open, onOpenChange, bot, workspaceId, onSubmit }: BotDialogProps) {
-    const form = useForm<z.infer<typeof botFormSchema>>({
-        resolver: zodResolver(botFormSchema),
-        defaultValues: {
-            name: '',
-            description: '',
-            workspaceId,
-            defaultLanguage: 'en',
-            timezone: 'UTC',
-        },
-    })
+export function BotDialog({ open, onOpenChange, bot, workspaceId }: BotDialogProps) {
+    const { form, handleSubmit, isSubmitting, errors } = useBotForm(workspaceId, bot || undefined)
 
-    useEffect(() => {
-        if (bot && open) {
-            form.reset({
-                name: bot.name,
-                description: bot.description || '',
-                workspaceId: bot.workspaceId || workspaceId,
-                defaultLanguage: bot.defaultLanguage || 'en',
-                timezone: bot.timezone || 'UTC',
-            })
-        } else if (!open) {
-            form.reset({
-                name: '',
-                description: '',
-                workspaceId,
-                defaultLanguage: 'en',
-                timezone: 'UTC',
-            })
-        }
-    }, [bot, open, workspaceId, form])
-
-    const handleSubmit = async (values: z.infer<typeof botFormSchema>) => {
-        try {
-            await onSubmit(values)
-            form.reset()
-            onOpenChange(false)
-        } catch (error: any) {
-            handleFormError(error, form)
-        }
+    const onSubmit = async (data: any) => {
+        await handleSubmit(data)
+        form.reset()
+        onOpenChange(false)
     }
 
     return (
@@ -154,8 +116,7 @@ export function BotDialog({ open, onOpenChange, bot, workspaceId, onSubmit }: Bo
                             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                                 Cancel
                             </Button>
-                            <Button type="submit" disabled={form.formState.isSubmitting}>
-                                {form.formState.isSubmitting && <Spinner className="w-4 h-4 mr-2" />}
+                            <Button type="submit" loading={form.formState.isSubmitting}>
                                 {bot ? 'Update' : 'Create'}
                             </Button>
                         </DialogFooter>
@@ -165,4 +126,3 @@ export function BotDialog({ open, onOpenChange, bot, workspaceId, onSubmit }: Bo
         </Dialog>
     )
 }
-

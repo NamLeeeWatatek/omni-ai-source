@@ -23,7 +23,7 @@ export default function ChannelCallbackPage() {
       setStatus('error');
       setMessage('OAuth cancelled or failed');
       notifyParent('error', error);
-      setProcessed(true); // âœ… Mark as processed
+      setProcessed(true);
       return;
     }
 
@@ -31,7 +31,7 @@ export default function ChannelCallbackPage() {
       setStatus('error');
       setMessage('No authorization code received');
       notifyParent('error', 'No code');
-      setProcessed(true); // âœ… Mark as processed
+      setProcessed(true);
       return;
     }
 
@@ -44,13 +44,12 @@ export default function ChannelCallbackPage() {
       const wsId = (session as any)?.user?.workspaceId || (session as any)?.user?.id;
 
       if (provider === 'facebook') {
-        const res = await axiosClient.get(
+        const res: any = await axiosClient.get(
           `/channels/facebook/oauth/callback?code=${code}&workspace_id=${wsId}`
         );
         const response = res.data || res;
 
         if (response.success && response.pages && response.pages.length > 0) {
-          // âœ… FIX: Validate tempToken exists
           if (!response.tempToken) {
             setStatus('error');
             setMessage('Failed to get access token. Please try again.');
@@ -78,7 +77,6 @@ export default function ChannelCallbackPage() {
     } catch (error: any) {
       setStatus('error');
       
-      // âœ… FIX: Better error messages
       let errorMessage = 'Failed to process callback';
       
       if (error.response?.data?.message) {
@@ -87,7 +85,6 @@ export default function ChannelCallbackPage() {
         errorMessage = error.message;
       }
       
-      // Special handling for used authorization code
       if (errorMessage.includes('already been used')) {
         errorMessage = 'Authorization code expired. Please close this window and try connecting again.';
       }
@@ -113,12 +110,6 @@ export default function ChannelCallbackPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       <div className="max-w-md w-full bg-white/5 backdrop-blur-xl rounded-2xl shadow-2xl p-8 text-center border border-white/10">
-        {status === 'loading' && (
-          <>
-           
-          </>
-        )}
-
         {status === 'success' && (
           <>
             <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/30">

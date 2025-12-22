@@ -18,7 +18,7 @@ export class CreateFolderDto {
   @ApiPropertyOptional()
   @IsUUID()
   @IsOptional()
-  parentFolderId?: string;
+  parentFolderId?: string | null;
 
   @ApiPropertyOptional()
   @IsString()
@@ -50,7 +50,7 @@ export class UpdateFolderDto {
   @ApiPropertyOptional()
   @IsUUID()
   @IsOptional()
-  parentFolderId?: string;
+  parentFolderId?: string | null;
 
   @ApiPropertyOptional()
   @IsString()

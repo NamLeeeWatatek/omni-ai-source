@@ -1,4 +1,4 @@
-﻿import {
+import {
   Injectable,
   NotFoundException,
   ForbiddenException,
@@ -10,9 +10,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
   BotEntity,
-  FlowVersionEntity,
   BotKnowledgeBaseEntity,
 } from './infrastructure/persistence/relational/entities/bot.entity';
+import { FlowVersionEntity } from '../flows/infrastructure/persistence/relational/entities/flow-version.entity';
 import { WorkspaceMemberEntity } from '../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
 import { WorkspaceHelperService } from '../workspaces/workspace-helper.service';
 import { WidgetVersionService } from './services/widget-version.service';
@@ -22,6 +22,7 @@ import {
   CreateFlowVersionDto,
   LinkKnowledgeBaseDto,
 } from './dto/update-bot.dto';
+import { ChannelEntity } from '../channels/infrastructure/persistence/relational/entities/channel.entity';
 
 @Injectable()
 export class BotsService {
@@ -34,9 +35,11 @@ export class BotsService {
     private botKbRepository: Repository<BotKnowledgeBaseEntity>,
     @InjectRepository(WorkspaceMemberEntity)
     private workspaceMemberRepository: Repository<WorkspaceMemberEntity>,
+    @InjectRepository(ChannelEntity)
+    private channelRepository: Repository<ChannelEntity>,
     private workspaceHelper: WorkspaceHelperService,
     private widgetVersionService: WidgetVersionService,
-  ) { }
+  ) {}
 
   async getUserDefaultWorkspace(userId: string) {
     return this.workspaceHelper.getUserDefaultWorkspace(userId);
@@ -109,7 +112,7 @@ export class BotsService {
         defaultVersion.id,
         userId,
       );
-    } catch (error) { }
+    } catch (error) {}
 
     return savedBot;
   }
@@ -125,6 +128,64 @@ export class BotsService {
     }
 
     return query.orderBy('bot.createdAt', 'DESC').getMany();
+  }
+
+  async findManyWithPagination({
+    filterOptions,
+    sortOptions,
+    paginationOptions,
+  }: {
+    filterOptions?: any;
+    sortOptions?: any[];
+    paginationOptions?: { page: number; limit: number };
+  }) {
+    const query = this.botRepository
+      .createQueryBuilder('bot')
+      .leftJoinAndSelect('bot.workspace', 'workspace')
+      .leftJoinAndSelect('workspace.owner', 'owner')
+      .where('bot.deletedAt IS NULL');
+
+    // Apply filters
+    if (filterOptions?.workspaceId) {
+      query.andWhere('bot.workspaceId = :workspaceId', {
+        workspaceId: filterOptions.workspaceId,
+      });
+    }
+
+    if (filterOptions?.status) {
+      query.andWhere('bot.status = :status', { status: filterOptions.status });
+    }
+
+    if (filterOptions?.search) {
+      query.andWhere(
+        '(bot.name ILIKE :search OR bot.description ILIKE :search)',
+        { search: `%${filterOptions.search}%` },
+      );
+    }
+
+    if (filterOptions?.isActive !== undefined) {
+      query.andWhere('bot.isActive = :isActive', {
+        isActive: filterOptions.isActive,
+      });
+    }
+
+    // Apply sorting
+    if (sortOptions && sortOptions.length > 0) {
+      sortOptions.forEach((sort) => {
+        const order = sort.order === 'DESC' ? 'DESC' : 'ASC';
+        query.addOrderBy(`bot.${sort.orderBy}`, order);
+      });
+    } else {
+      query.orderBy('bot.createdAt', 'DESC');
+    }
+
+    // Apply pagination
+    if (paginationOptions) {
+      const { page, limit } = paginationOptions;
+      query.skip((page - 1) * limit).take(limit + 1); // +1 to check if there's a next page
+    }
+
+    return query.getMany();
   }
 
   async findOne(id: string) {
@@ -302,7 +363,7 @@ export class BotsService {
     }
 
     // Get all linked KB IDs
-    const kbIds = linkedRecords.map(r => r.knowledgeBaseId);
+    const kbIds = linkedRecords.map((r) => r.knowledgeBaseId);
 
     // Use query builder to get KBs with needed fields
     const kbEntities = await this.botKbRepository.manager
@@ -331,7 +392,7 @@ export class BotsService {
           .select('COUNT(doc.id)', 'count')
           .getRawOne();
         return { kbId, count: parseInt(count?.count || '0') };
-      })
+      }),
     );
 
     const docCountMap = new Map();
@@ -341,7 +402,7 @@ export class BotsService {
 
     // Create a map for easy lookup
     const kbMap = new Map();
-    kbEntities.forEach(kb => {
+    kbEntities.forEach((kb) => {
       kbMap.set(kb.id, {
         id: kb.id,
         name: kb.name,
@@ -354,7 +415,7 @@ export class BotsService {
     });
 
     // Merge the data
-    return linkedRecords.map(record => ({
+    return linkedRecords.map((record) => ({
       id: `${record.botId}-${record.knowledgeBaseId}`,
       botId: record.botId,
       knowledgeBaseId: record.knowledgeBaseId,
@@ -403,11 +464,7 @@ export class BotsService {
 
   async getBotChannels(botId: string) {
     await this.findOne(botId);
-    const { ChannelEntity } = await import(
-      '../channels/infrastructure/persistence/relational/entities/channel.entity'
-    );
-    const channelRepo = this.botRepository.manager.getRepository(ChannelEntity);
-    return channelRepo.find({
+    return this.channelRepository.find({
       where: { botId },
       order: { createdAt: 'DESC' },
     });
@@ -415,38 +472,42 @@ export class BotsService {
 
   async createBotChannel(
     botId: string,
-    dto: { type: string; name: string; config?: Record<string, any> },
+    dto: {
+      type: string;
+      name: string;
+      config?: Record<string, any>;
+      connectionId?: string;
+    },
     userId: string,
   ) {
-    await this.findOne(botId);
-    const { ChannelEntity } = await import(
-      '../channels/infrastructure/persistence/relational/entities/channel.entity'
-    );
-    const channelRepo = this.botRepository.manager.getRepository(ChannelEntity);
+    const bot = await this.findOne(botId);
 
-    const channel = channelRepo.create({
+    const channel = this.channelRepository.create({
       botId,
+      workspaceId: bot.workspaceId,
       type: dto.type,
       name: dto.name,
       config: dto.config,
+      connectionId: dto.connectionId,
       isActive: true,
       createdBy: userId,
     });
 
-    return channelRepo.save(channel);
+    return this.channelRepository.save(channel);
   }
 
   async updateBotChannel(
     botId: string,
     channelId: string,
-    dto: { name?: string; config?: Record<string, any>; isActive?: boolean },
+    dto: {
+      name?: string;
+      config?: Record<string, any>;
+      isActive?: boolean;
+      connectionId?: string;
+    },
+    userId: string,
   ) {
-    const { ChannelEntity } = await import(
-      '../channels/infrastructure/persistence/relational/entities/channel.entity'
-    );
-    const channelRepo = this.botRepository.manager.getRepository(ChannelEntity);
-
-    const channel = await channelRepo.findOne({
+    const channel = await this.channelRepository.findOne({
       where: { id: channelId, botId },
     });
 
@@ -455,16 +516,12 @@ export class BotsService {
     }
 
     Object.assign(channel, dto);
-    return channelRepo.save(channel);
+    channel.updatedBy = userId;
+    return this.channelRepository.save(channel);
   }
 
   async deleteBotChannel(botId: string, channelId: string) {
-    const { ChannelEntity } = await import(
-      '../channels/infrastructure/persistence/relational/entities/channel.entity'
-    );
-    const channelRepo = this.botRepository.manager.getRepository(ChannelEntity);
-
-    const channel = await channelRepo.findOne({
+    const channel = await this.channelRepository.findOne({
       where: { id: channelId, botId },
     });
 
@@ -472,11 +529,16 @@ export class BotsService {
       throw new NotFoundException('Channel not found');
     }
 
-    await channelRepo.remove(channel);
+    await this.channelRepository.remove(channel);
   }
 
-  async toggleBotChannel(botId: string, channelId: string, isActive: boolean) {
-    return this.updateBotChannel(botId, channelId, { isActive });
+  async toggleBotChannel(
+    botId: string,
+    channelId: string,
+    isActive: boolean,
+    userId: string,
+  ) {
+    return this.updateBotChannel(botId, channelId, { isActive }, userId);
   }
 
   async updateAppearance(

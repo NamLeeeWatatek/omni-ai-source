@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/Dialog'
 import { Button } from '@/components/ui/Button'
-import { Spinner } from '@/components/ui/Spinner'
 import {
     Form,
     FormControl,
@@ -88,14 +87,14 @@ export function KBSettingsDialog({ open, onOpenChange, knowledgeBase, onSave }: 
             const providers: AIProvider[] = []
 
             if (userResponse.status === 'fulfilled') {
-                providers.push(...userResponse.value.map((p: any) => ({
+                providers.push(...(userResponse.value as any).map((p: any) => ({
                     ...p,
                     scope: 'user' as const
                 })))
             }
 
             if (workspaceResponse.status === 'fulfilled') {
-                providers.push(...workspaceResponse.value.map((p: any) => ({
+                providers.push(...(workspaceResponse.value as any).map((p: any) => ({
                     ...p,
                     scope: 'workspace' as const
                 })))
@@ -374,8 +373,7 @@ export function KBSettingsDialog({ open, onOpenChange, knowledgeBase, onSave }: 
                             >
                                 Cancel
                             </Button>
-                            <Button type="submit" disabled={form.formState.isSubmitting}>
-                                {form.formState.isSubmitting && <Spinner className="w-4 h-4 mr-2" />}
+                            <Button type="submit" loading={form.formState.isSubmitting}>
                                 Save Changes
                             </Button>
                         </DialogFooter>

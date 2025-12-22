@@ -40,7 +40,7 @@ export class StatsController {
     @Query() query: StatsQueryDto,
     @Request() req,
   ): Promise<DashboardStatsDto> {
-    const workspaceId = req.user?.workspaceId || req.user?.id;
+    const workspaceId = query.workspaceId || req.user?.workspaceId;
     return this.statsService.getDashboardStats(query, workspaceId);
   }
 }

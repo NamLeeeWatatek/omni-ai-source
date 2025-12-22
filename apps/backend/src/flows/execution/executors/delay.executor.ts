@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { NodeExecutor, NodeExecutionInput, NodeExecutionOutput } from '../node-executor.interface';
+import {
+  NodeExecutor,
+  NodeExecutionInput,
+  NodeExecutionOutput,
+} from '../node-executor.interface';
 
 @Injectable()
 export class DelayExecutor implements NodeExecutor {
@@ -11,7 +15,7 @@ export class DelayExecutor implements NodeExecutor {
       console.log(`DelayExecutor: Delaying for ${delayMs}ms`);
 
       // Wait for the specified duration
-      await new Promise(resolve => setTimeout(resolve, delayMs));
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
 
       return {
         success: true,

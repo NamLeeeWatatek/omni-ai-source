@@ -2,15 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/Button'
-import { Spinner } from '@/components/ui/Spinner'
+import { LoadingLogo } from '@/components/ui/LoadingLogo'
 import { Card } from '@/components/ui/Card'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/Select'
 import axiosClient from '@/lib/axios-client'
 import toast from '@/lib/toast'
 import { useWorkspace } from '@/lib/hooks/useWorkspace'
@@ -75,8 +68,9 @@ export default function ChatWithAIPage() {
     const loadBots = async () => {
         try {
             if (!currentWorkspace) return
-            const data = await botsApi.getAll(currentWorkspace.id, 'active')
-            const activeBots = Array.isArray(data) ? data.filter((b: Bot) => b.status === 'active') : []
+            const response: any = await botsApi.getAll(currentWorkspace.id, 'active')
+            const botsData = Array.isArray(response) ? response : (response?.data || [])
+            const activeBots = botsData.filter((b: Bot) => b.status === 'active')
             setBots(activeBots)
         } catch {
             toast.error('Failed to load bots')
@@ -300,7 +294,7 @@ export default function ChatWithAIPage() {
                 responseText = res.response
                 sources = res.sources || []
             } else {
-                const res = await axiosClient.post('/knowledge-bases/chat', {
+                const res: any = await axiosClient.post('/knowledge-bases/chat', {
                     message: input,
                     model: modelName,
                     conversationHistory: updatedMessages.map(m => ({ role: m.role, content: m.content })),
@@ -443,19 +437,10 @@ export default function ChatWithAIPage() {
                         onClick={createNewConversation}
                         className="w-full"
                         size="lg"
-                        disabled={creatingConversation}
+                        loading={creatingConversation}
                     >
-                        {creatingConversation ? (
-                            <>
-                                <Spinner className="w-4 h-4 mr-2" />
-                                Creating...
-                            </>
-                        ) : (
-                            <>
-                                <FiPlus className="w-5 h-5 mr-2" />
-                                New Chat
-                            </>
-                        )}
+                        <FiPlus className="w-5 h-5 mr-2" />
+                        New Chat
                     </Button>
                 </div>
 
@@ -463,8 +448,7 @@ export default function ChatWithAIPage() {
                 <div className="flex-1 overflow-y-auto p-3 space-y-2">
                     {loadingConversations ? (
                         <div className="flex flex-col items-center justify-center py-12 gap-3">
-                            <Spinner className="w-8 h-8" />
-                            <p className="text-sm text-muted-foreground">Loading conversations...</p>
+                            <LoadingLogo size="md" text="Loading conversations..." />
                         </div>
                     ) : conversations.length === 0 ? (
                         <div className="text-center py-12 px-4">
@@ -614,20 +598,12 @@ export default function ChatWithAIPage() {
                                     </div>
                                     <Button
                                         onClick={updateConversationSettings}
-                                        disabled={!currentConversation || savingSettings}
+                                        loading={savingSettings}
+                                        disabled={!currentConversation}
                                         size="sm"
                                     >
-                                        {savingSettings ? (
-                                            <>
-                                                <Spinner className="w-4 h-4 mr-2" />
-                                                Saving...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <FiCheck className="w-4 h-4 mr-2" />
-                                                Save Settings
-                                            </>
-                                        )}
+                                        <FiCheck className="w-4 h-4 mr-2" />
+                                        Save Settings
                                     </Button>
                                 </div>
 

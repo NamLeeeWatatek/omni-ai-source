@@ -5,8 +5,13 @@ import { KBEmbeddingsService } from './kb-embeddings.service';
 import { KBVectorService } from './kb-vector.service';
 import { AiProvidersService } from '../../ai-providers/ai-providers.service';
 import type { ChatMessage } from '../../ai-providers/ai-providers.service';
-import { BotEntity, BotKnowledgeBaseEntity } from '../../bots/infrastructure/persistence/relational/entities/bot.entity';
+import {
+  BotEntity,
+  BotKnowledgeBaseEntity,
+} from '../../bots/infrastructure/persistence/relational/entities/bot.entity';
 import { KnowledgeBaseEntity } from '../infrastructure/persistence/relational/entities/knowledge-base.entity';
+import { KBChunkEntity } from '../infrastructure/persistence/relational/entities/kb-chunk.entity';
+import { ILike } from 'typeorm';
 
 export interface RAGResult {
   answer: string;
@@ -31,14 +36,28 @@ export class KBRagService {
     private readonly kbRepository: Repository<KnowledgeBaseEntity>,
     @InjectRepository(BotKnowledgeBaseEntity)
     private readonly botKbRepository: Repository<BotKnowledgeBaseEntity>,
+    @InjectRepository(KBChunkEntity)
+    private readonly chunkRepository: Repository<KBChunkEntity>,
   ) {}
 
   async query(
     query: string,
+    workspaceId: string,
     knowledgeBaseId?: string,
     limit: number = 5,
     similarityThreshold: number = 0.7,
+    useHybrid: boolean = true,
   ) {
+    if (useHybrid) {
+      return this.hybridQuery(
+        query,
+        workspaceId,
+        knowledgeBaseId,
+        limit,
+        similarityThreshold,
+      );
+    }
+
     try {
       const queryEmbedding =
         await this.embeddingsService.generateQueryEmbedding(
@@ -49,6 +68,7 @@ export class KBRagService {
       const filter = knowledgeBaseId ? { knowledgeBaseId } : undefined;
       const results = await this.vectorService.search(
         queryEmbedding,
+        workspaceId,
         limit,
         filter,
       );
@@ -67,15 +87,112 @@ export class KBRagService {
       const validResults = filteredResults.filter((r) => r.payload.content);
 
       return validResults.map((result) => ({
-        content: result.payload.content,
-        score: result.score,
-        metadata: result.payload.metadata,
-        documentId: result.payload.documentId,
-        chunkIndex: result.payload.chunkIndex,
+        content: String(result.payload.content || ''),
+        score: Number(result.score),
+        metadata: (result.payload.metadata as Record<string, any>) || {},
+        documentId: String(result.payload.documentId || ''),
+        chunkIndex: Number(result.payload.chunkIndex || 0),
       }));
     } catch (error) {
       this.logger.error(`Error querying knowledge base: ${error.message}`);
       throw error;
+    }
+  }
+
+  async hybridQuery(
+    query: string,
+    workspaceId: string,
+    knowledgeBaseId?: string,
+    limit: number = 5,
+    similarityThreshold: number = 0.7,
+  ) {
+    try {
+      this.logger.log(`ðŸ”„ Performing Hybrid Search for: "${query}"`);
+
+      // 1. Vector Search (Semantic)
+      const queryEmbedding =
+        await this.embeddingsService.generateQueryEmbedding(
+          query,
+          undefined,
+          knowledgeBaseId,
+        );
+      const vectorResults = await this.vectorService.search(
+        queryEmbedding,
+        workspaceId,
+        limit * 2, // Get more for re-ranking
+        knowledgeBaseId ? { knowledgeBaseId } : undefined,
+      );
+
+      // 2. Keyword Search (Relational)
+      const keywordResults = await this.chunkRepository.find({
+        where: {
+          knowledgeBaseId: knowledgeBaseId || undefined,
+          content: ILike(`%${query}%`),
+        },
+        take: limit * 2,
+      });
+
+      // 3. Merging with Reciprocal Rank Fusion (RRF)
+      const rrfResults = new Map<string, { chunk: any; score: number }>();
+      const k = 60; // Smoothing constant
+
+      // Process Vector Results
+      vectorResults.forEach((result, rank) => {
+        const score = 1 / (k + rank);
+        rrfResults.set(result.id, {
+          chunk: {
+            content: result.payload.content,
+            metadata: result.payload.metadata,
+            documentId: result.payload.documentId,
+            chunkIndex: result.payload.chunkIndex,
+          },
+          score: score,
+        });
+      });
+
+      // Process Keyword Results
+      keywordResults.forEach((chunk, rank) => {
+        const score = 1 / (k + rank);
+        const existing = rrfResults.get(chunk.id);
+        if (existing) {
+          existing.score += score;
+        } else {
+          rrfResults.set(chunk.id, {
+            chunk: {
+              content: chunk.content,
+              metadata: chunk.metadata,
+              documentId: chunk.documentId,
+              chunkIndex: chunk.chunkIndex,
+            },
+            score: score,
+          });
+        }
+      });
+
+      // Sort and Format
+      const sortedResults = Array.from(rrfResults.values())
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit);
+
+      return sortedResults.map((r) => ({
+        content: String(r.chunk.content || ''),
+        metadata: r.chunk.metadata || {},
+        documentId: String(r.chunk.documentId || ''),
+        chunkIndex: Number(r.chunk.chunkIndex || 0),
+        score: Number(r.score),
+      }));
+    } catch (error) {
+      this.logger.error(`Error in hybrid query: ${error.message}`);
+      // Fallback to simple vector search if hybrid fails
+      // Cast to any to bypass the missing hybridQuery error if it still exists during application
+      return (this as any).query(
+        query,
+        workspaceId,
+        knowledgeBaseId,
+        limit,
+        similarityThreshold,
+        false,
+      );
     }
   }
 
@@ -94,6 +211,7 @@ export class KBRagService {
 
       const relevantChunks = await this.query(
         question,
+        'system', // Default scope if knowledgeBaseId missing, but generateAnswerFromKb handles it
         knowledgeBaseId,
         limit,
         threshold,
@@ -174,7 +292,7 @@ Answer:`;
       const finalModel = kb?.ragModel || model || 'gemini-2.0-flash';
 
       if (kb && kb.aiProviderId) {
-        const userId = kb.createdBy;
+        const userId = kb.createdBy || 'system';
 
         // Try workspace provider first, then user provider
         if (
@@ -211,7 +329,7 @@ Answer:`;
             finalModel,
             kb.aiProviderId,
             'user',
-            userId,
+            userId as string,
           );
         } else {
           this.logger.log(
@@ -283,7 +401,7 @@ Answer:`;
         order: { priority: 'ASC' },
       });
 
-      const knowledgeBaseIds = linkedKBs.map(lkb => lkb.knowledgeBaseId);
+      const knowledgeBaseIds = linkedKBs.map((lkb) => lkb.knowledgeBaseId);
 
       // Try to query knowledge base, but don't fail if it errors
       if (knowledgeBaseIds.length > 0) {
@@ -291,7 +409,13 @@ Answer:`;
           // Query across all linked knowledge bases
           const allChunks: any[] = [];
           for (const kbId of knowledgeBaseIds) {
-            const chunks = await this.query(question, kbId, 3, 0.5);
+            const chunks = await this.query(
+              question,
+              workspaceId || 'default',
+              kbId,
+              3,
+              0.5,
+            );
             allChunks.push(...chunks);
           }
           // Sort by score and take top 5
@@ -344,7 +468,7 @@ Answer:`;
             modelName,
             aiProviderId,
             workspaceId ? 'workspace' : 'user',
-            workspaceId || bot.createdBy,
+            workspaceId || bot.createdBy || 'system',
           )
         : await this.aiProvidersService.chatWithHistory(messages, modelName);
 
@@ -449,7 +573,7 @@ Answer:`;
           order: { priority: 'ASC' },
         });
 
-        effectiveKnowledgeBaseIds = linkedKBs.map(lkb => lkb.knowledgeBaseId);
+        effectiveKnowledgeBaseIds = linkedKBs.map((lkb) => lkb.knowledgeBaseId);
         this.logger.log(
           `🔗 Using ${effectiveKnowledgeBaseIds.length} linked knowledge bases for bot ${bot?.name}`,
         );
@@ -468,8 +592,10 @@ Answer:`;
       }> = [];
 
       if (effectiveKnowledgeBaseIds && effectiveKnowledgeBaseIds.length > 0) {
+        const ragWorkspaceId = bot?.workspaceId || 'default';
         const allChunks = await this.gatherRAGContext(
           message,
+          ragWorkspaceId,
           effectiveKnowledgeBaseIds!,
         );
         ragSources = allChunks.slice(0, 5); // Top 5 results
@@ -518,7 +644,11 @@ Answer:`;
 
       return {
         answer,
-        sources: ragSources,
+        sources: ragSources.map((s) => ({
+          content: String(s.content || ''),
+          score: Number(s.score || 0),
+          metadata: (s.metadata as Record<string, any>) || {},
+        })),
       };
     } catch (error) {
       this.logger.error(`Error in chatWithBotAndRAG: ${error.message}`);
@@ -531,6 +661,7 @@ Answer:`;
    */
   private async gatherRAGContext(
     message: string,
+    workspaceId: string,
     knowledgeBaseIds: string[],
   ): Promise<
     Array<{
@@ -547,7 +678,7 @@ Answer:`;
 
     for (const kbId of knowledgeBaseIds) {
       try {
-        const chunks = await this.query(message, kbId, 3, 0.5);
+        const chunks = await this.query(message, workspaceId, kbId, 3, 0.5);
         allChunks.push(...chunks);
       } catch (error) {
         this.logger.warn(`Failed to query KB ${kbId}: ${error.message}`);
@@ -555,7 +686,13 @@ Answer:`;
     }
 
     // Sort by score descending
-    return allChunks.sort((a, b) => b.score - a.score);
+    return allChunks
+      .sort((a, b) => b.score - a.score)
+      .map((chunk) => ({
+        content: String(chunk.content || ''),
+        score: Number(chunk.score || 0),
+        metadata: (chunk.metadata as Record<string, any>) || {},
+      }));
   }
 
   /**
@@ -619,14 +756,14 @@ Answer:`;
         await this.aiProvidersService.configExists(
           bot.aiProviderId,
           'user',
-          bot.createdBy,
+          bot.createdBy || 'system',
         )
       ) {
         this.logger.log(`🎯 Using bot's user AI provider: ${bot.aiProviderId}`);
         return {
           providerId: bot.aiProviderId,
           scope: 'user',
-          scopeId: bot.createdBy,
+          scopeId: bot.createdBy || 'system',
         };
       }
     }
@@ -638,7 +775,7 @@ Answer:`;
       });
 
       if (kb?.aiProviderId) {
-        const userId = kb.createdBy;
+        const userId = kb.createdBy || 'system';
 
         if (
           kb.workspaceId &&
@@ -679,9 +816,9 @@ Answer:`;
 
     // 3. User's fallback providers (only if bot exists)
     if (bot) {
-      const userProviders = await this.aiProvidersService.getUserConfigs(
-        bot.createdBy,
-      );
+      const fallbackCreatorId = bot.createdBy || 'system';
+      const userProviders =
+        await this.aiProvidersService.getUserConfigs(fallbackCreatorId);
       const activeProviders = userProviders.filter((p) => p.isActive);
 
       if (activeProviders.length > 0) {
@@ -692,7 +829,7 @@ Answer:`;
         return {
           providerId: provider.providerId,
           scope: 'user',
-          scopeId: bot.createdBy,
+          scopeId: fallbackCreatorId,
         };
       }
     }

@@ -43,7 +43,7 @@ export function AIFloatingButton() {
         setLoading(true)
 
         try {
-            const response = await axiosClient.post('',)
+            const response: any = await axiosClient.post('',)
 
             setMessages(prev => [...prev, {
                 id: (Date.now() + 1).toString(),

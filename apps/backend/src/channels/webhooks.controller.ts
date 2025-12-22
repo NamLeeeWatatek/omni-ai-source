@@ -129,7 +129,6 @@ export class WebhooksController {
 
       const expectedToken = credential?.metadata?.verifyToken;
       if (token !== expectedToken) {
-  
         return 'Forbidden';
       }
 

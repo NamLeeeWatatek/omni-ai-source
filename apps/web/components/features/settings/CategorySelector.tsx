@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import React, { useEffect, useState } from 'react';
-import axiosClient from '@/lib/axios-client';
 import {
   Select,
   SelectContent,
@@ -12,29 +11,34 @@ import {
 import * as Icons from 'react-icons/fi';
 import { FiFolder } from 'react-icons/fi';
 import { Category, CategorySelectorProps } from '@/lib/types';
+import { MetadataService, useAsyncState } from '@/lib/services/api.service';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 export function CategorySelector({
   entityType,
   value,
   onChange,
-  placeholder = "Select category"
+  placeholder = "Chọn danh mục"
 }: CategorySelectorProps) {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { loading, error, execute } = useAsyncState();
 
   useEffect(() => {
     const loadCategories = async () => {
-      try {
-        const data = await axiosClient.get(`/metadata/categories?entity_type=${entityType}`);
-        setCategories(data);
-      } catch {
-
-      } finally {
-        setLoading(false);
-      }
+      await execute(
+        () => MetadataService.getCategories(entityType),
+        (data: Category[]) => {
+          setCategories(data);
+        },
+        (err) => {
+          console.error('Failed to load categories:', err);
+          setCategories([]);
+        }
+      );
     };
+
     loadCategories();
-  }, [entityType]);
+  }, [entityType, execute]);
 
   const selectedCategory = categories.find(c => c.id === value);
 
@@ -48,7 +52,7 @@ export function CategorySelector({
       onValueChange={(val) => onChange(val ? parseInt(val) : undefined)}
     >
       <SelectTrigger>
-        <SelectValue placeholder={placeholder}>
+        <SelectValue placeholder={placeholder} aria-label={`Chọn danh mục${selectedCategory ? `: ${selectedCategory.name}` : ''}`}>
           {selectedCategory && (
             <div className="flex items-center gap-2">
               {(() => {
@@ -59,6 +63,7 @@ export function CategorySelector({
                   <IconComponent
                     className="size-4"
                     style={{ color: selectedCategory.color }}
+                    aria-hidden="true"
                   />
                 );
               })()}
@@ -89,4 +94,3 @@ export function CategorySelector({
     </Select>
   );
 }
-

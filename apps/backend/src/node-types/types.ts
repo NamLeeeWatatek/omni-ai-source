@@ -27,41 +27,50 @@ export type NodePropertyType =
   | 'file' // Single file upload
   | 'files' // Multiple file upload
   | 'key-value' // Key-value pairs
-  | 'dynamic-form'; // Nested form structure
-  
+  | 'dynamic-form' // Nested form structure
+  | 'channel-select'; // Dynamic selection from available channels
+
 export interface NodeProperty {
   // Core domain properties
-  name: string; // Field identifier (required)
-  label: string; // Human readable label (required)
-  type: NodePropertyType; // Data type (required)
+  name: string; // Internal key (e.g. 'prompt', 'userId')
+  label: string; // display name in the editor UI
+  type: NodePropertyType;
 
-  // Validation & constraints
-  required?: boolean; // Field required flag
-  default?: any; // Default value
-  min?: number; // Min value/characters
-  max?: number; // Max value/characters
-  pattern?: string; // Validation regex pattern
+  // Display & UX
+  displayName?: string; // n8n-compatible display name
+  description?: string; // Detailed tooltip/description
+  helpText?: string; // Inline help text below the field
+  placeholder?: string; // Input placeholder
+  hint?: string; // Small hint text
+
+  // Data Loading
+  loadOptionsMethod?: string; // Backend method name to call for dynamic dropdowns
+  noDataExpression?: boolean; // Disable variable interpolation for this field
+
+  // Validation & defaults
+  required?: boolean;
+  default?: any;
+  min?: number;
+  max?: number;
+  pattern?: string;
+  validationRules?: Record<string, any>;
 
   // Options for select types
-  options?: Array<NodePropertyOption> | string; // Static options or dynamic source
+  options?: Array<NodePropertyOption> | string;
 
   // Conditional logic
-  showWhen?: Record<string, any>; // Show/hide conditions
+  showWhen?: Record<string, any>;
+
+  // Application logic
+  isPublic?: boolean; // If true, this field is exposed to the end-user dynamic form
 
   // Nested structure for complex forms
-  properties?: NodeProperty[]; // Nested properties for dynamic-form type
+  properties?: NodeProperty[];
 
-  // Documentation (shows in UI but domain-level)
-  description?: string; // Field description/tooltip
-
-  // Legacy UI props (deprecated - frontend should infer)
-  // @deprecated Use type 'files' instead of multiple=true
-  // @deprecated Frontend determines UI hints, mime types, etc.
+  // Legacy/Compatibility fields (some kept for internal logic)
   multiple?: boolean;
-  placeholder?: string;
   maxLength?: number;
   rows?: number;
-  helpText?: string;
   accept?: string;
   step?: number;
   credentialType?: string;

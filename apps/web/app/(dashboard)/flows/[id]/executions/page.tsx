@@ -20,8 +20,9 @@ import type { Execution } from '@/lib/types'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { AlertDialogConfirm } from '@/components/ui/AlertDialogConfirm'
-import { Spinner } from '@/components/ui/Spinner'
-import { DataTable, Column } from '@/components/ui/Table'
+import { LoadingLogo } from '@/components/ui/LoadingLogo'
+import { DataTable, type Column, type SortDirection } from '@/components/ui/DataTable'
+import { Pagination } from '@/components/ui/Pagination'
 
 export default function ExecutionsPage({ params }: { params: { id: string } }) {
     const router = useRouter()
@@ -75,7 +76,7 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
 
     const loadFlow = async () => {
         try {
-            const data = await axiosClient.get(`/flows/${params.id}`)
+            const data: any = await axiosClient.get(`/flows/${params.id}`)
             setFlowName(data.name)
         } catch (e: any) {
             toast.error('Failed to load flow')
@@ -85,7 +86,7 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
     const loadExecutions = async () => {
         try {
             setLoading(true)
-            const data = await axiosClient.get(`/executions/?flow_id=${params.id}`)
+            const data: any = await axiosClient.get(`/executions/?flow_id=${params.id}`)
             setExecutions(data)
         } catch (e: any) {
             toast.error('Failed to load executions')
@@ -117,7 +118,7 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
             case 'failed':
                 return <FiXCircle className="w-5 h-5 text-red-500" />
             case 'running':
-                return <Spinner className="size-5 text-blue-500" />
+                return <LoadingLogo size="sm" className="inline-flex" />
             default:
                 return <FiClock className="w-5 h-5 text-gray-500" />
         }
@@ -245,8 +246,8 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
                         </p>
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={loadExecutions} disabled={loading}>
-                            <FiRefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                        <Button variant="outline" onClick={loadExecutions} loading={loading}>
+                            <FiRefreshCw className="w-4 h-4 mr-2" />
                             Refresh
                         </Button>
                         <Link href={`/flows/${params.id}`}>
@@ -307,7 +308,7 @@ export default function ExecutionsPage({ params }: { params: { id: string } }) {
             { }
             {loading ? (
                 <div className="flex justify-center items-center py-20">
-                    <Spinner className="size-8 text-primary" />
+                    <LoadingLogo size="md" text="Loading executions..." />
                 </div>
             ) : executions.length === 0 ? (
                 <Card className="text-center py-20">

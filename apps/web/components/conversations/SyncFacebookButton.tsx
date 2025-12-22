@@ -29,7 +29,7 @@ export function SyncFacebookButton({
       setSyncing(true);
       toast.info('Syncing conversations from Facebook...');
 
-      const data = await axiosClient.post(
+      const data: any = await axiosClient.post(
         `/channels/facebook/connections/${channelId}/sync-to-db`,
         {
           conversationLimit: 25,

@@ -8,6 +8,7 @@ import { FlowSeedService } from './flow/flow-seed.service';
 import { AiProviderSeedService } from './ai-provider/ai-provider-seed.service';
 import { BotSeedService } from './bot/bot-seed.service';
 import { ConversationSeedService } from './conversation/conversation-seed.service';
+import { TemplatesSeedService } from './templates/templates-seed.service';
 import { SeedModule } from './seed.module';
 
 const runSeed = async () => {
@@ -31,6 +32,8 @@ const runSeed = async () => {
   await app.get(ConversationSeedService).run();
 
   await app.get(FlowSeedService).run();
+
+  await app.get(TemplatesSeedService).run();
 
   await app.close();
 };

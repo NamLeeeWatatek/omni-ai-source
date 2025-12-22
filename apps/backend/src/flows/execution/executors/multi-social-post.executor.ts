@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { NodeExecutor, NodeExecutionInput, NodeExecutionOutput } from '../node-executor.interface';
+import {
+  NodeExecutor,
+  NodeExecutionInput,
+  NodeExecutionOutput,
+} from '../node-executor.interface';
 import { ChannelsService } from '../../../channels/channels.service';
 
 @Injectable()
@@ -8,14 +12,15 @@ export class MultiSocialPostExecutor implements NodeExecutor {
 
   async execute(input: NodeExecutionInput): Promise<NodeExecutionOutput> {
     try {
-      const { content, channels, images, schedule, scheduleTime } = input.data || {};
+      const { content, channels, images, schedule, scheduleTime } =
+        input.data || {};
       const { workspaceId } = input.context;
 
       if (!content) {
         return {
           success: false,
           output: null,
-          error: 'Post content is required'
+          error: 'Post content is required',
         };
       }
 
@@ -23,7 +28,7 @@ export class MultiSocialPostExecutor implements NodeExecutor {
         return {
           success: false,
           output: null,
-          error: 'At least one channel must be selected'
+          error: 'At least one channel must be selected',
         };
       }
 
@@ -37,7 +42,7 @@ export class MultiSocialPostExecutor implements NodeExecutor {
           return {
             success: false,
             output: null,
-            error: 'Invalid schedule time format'
+            error: 'Invalid schedule time format',
           };
         }
 
@@ -51,7 +56,8 @@ export class MultiSocialPostExecutor implements NodeExecutor {
           let channel: any = null;
 
           // Check if it's a UUID (channel ID) or platform name
-          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          const uuidRegex =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
           if (uuidRegex.test(channelIdentifier)) {
             // It's a channel ID
@@ -59,30 +65,40 @@ export class MultiSocialPostExecutor implements NodeExecutor {
           } else {
             // It's a platform name, find the first active channel of that type
             // workspaceId might be undefined, which is okay
-            channel = await this.channelsService.findByType(channelIdentifier, workspaceId);
+            channel = await this.channelsService.findByType(
+              channelIdentifier,
+              workspaceId,
+            );
           }
 
           if (!channel) {
             const errorMsg = `Channel ${channelIdentifier} not found or not connected (workspaceId: ${workspaceId || 'none'})`;
-            console.log('MultiSocialPostExecutor - Channel not found:', errorMsg);
+            console.log(
+              'MultiSocialPostExecutor - Channel not found:',
+              errorMsg,
+            );
             errors.push(errorMsg);
             results.push({
               channelId: channelIdentifier,
               channelType: 'unknown',
               success: false,
-              error: 'Channel not found or not connected'
+              error: 'Channel not found or not connected',
             });
             continue;
           }
 
-          console.log('MultiSocialPostExecutor - Found channel:', channel.id, channel.type);
+          console.log(
+            'MultiSocialPostExecutor - Found channel:',
+            channel.id,
+            channel.type,
+          );
 
           // Post based on channel type
           const postResult = await this.postToChannel(channel, {
             content,
             images,
             schedule,
-            scheduleTime
+            scheduleTime,
           });
 
           results.push({
@@ -90,21 +106,22 @@ export class MultiSocialPostExecutor implements NodeExecutor {
             channelType: channel.type,
             success: true,
             postId: postResult?.id,
-            url: postResult?.url
+            url: postResult?.url,
           });
-
         } catch (error) {
-          errors.push(`Failed to post to channel ${channelIdentifier}: ${error.message}`);
+          errors.push(
+            `Failed to post to channel ${channelIdentifier}: ${error.message}`,
+          );
           results.push({
             channelId: channelIdentifier,
             channelType: 'unknown',
             success: false,
-            error: error.message
+            error: error.message,
           });
         }
       }
 
-      const successfulPosts = results.filter(r => r.success).length;
+      const successfulPosts = results.filter((r) => r.success).length;
       const hasAnySuccess = successfulPosts > 0;
 
       return {
@@ -117,15 +134,14 @@ export class MultiSocialPostExecutor implements NodeExecutor {
           errors: errors.length > 0 ? errors : undefined,
           message: hasAnySuccess
             ? `Successfully posted to ${successfulPosts} out of ${channels.length} channels`
-            : `Failed to post to any channels`
-        }
+            : `Failed to post to any channels`,
+        },
       };
-
     } catch (error) {
       return {
         success: false,
         output: null,
-        error: `Multi-social post execution failed: ${error.message}`
+        error: `Multi-social post execution failed: ${error.message}`,
       };
     }
   }
@@ -162,7 +178,7 @@ export class MultiSocialPostExecutor implements NodeExecutor {
     // For now, return mock success
     return {
       id: `fb_${Date.now()}`,
-      url: `https://facebook.com/${channel.metadata?.pageId || 'page'}/posts/${Date.now()}`
+      url: `https://facebook.com/${channel.metadata?.pageId || 'page'}/posts/${Date.now()}`,
     };
   }
 
@@ -170,7 +186,7 @@ export class MultiSocialPostExecutor implements NodeExecutor {
     // TODO: Implement Instagram posting logic
     return {
       id: `ig_${Date.now()}`,
-      url: `https://instagram.com/p/${Date.now()}`
+      url: `https://instagram.com/p/${Date.now()}`,
     };
   }
 
@@ -178,7 +194,7 @@ export class MultiSocialPostExecutor implements NodeExecutor {
     // TODO: Implement Twitter posting logic
     return {
       id: `tw_${Date.now()}`,
-      url: `https://twitter.com/i/status/${Date.now()}`
+      url: `https://twitter.com/i/status/${Date.now()}`,
     };
   }
 
@@ -186,7 +202,7 @@ export class MultiSocialPostExecutor implements NodeExecutor {
     // TODO: Implement LinkedIn posting logic
     return {
       id: `li_${Date.now()}`,
-      url: `https://linkedin.com/posts/${Date.now()}`
+      url: `https://linkedin.com/posts/${Date.now()}`,
     };
   }
 
@@ -194,7 +210,7 @@ export class MultiSocialPostExecutor implements NodeExecutor {
     // TODO: Implement TikTok posting logic
     return {
       id: `tt_${Date.now()}`,
-      url: `https://tiktok.com/@user/video/${Date.now()}`
+      url: `https://tiktok.com/@user/video/${Date.now()}`,
     };
   }
 }
