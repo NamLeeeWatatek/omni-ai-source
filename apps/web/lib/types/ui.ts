@@ -1,4 +1,4 @@
-﻿
+
 import type { ReactNode } from 'react'
 
 export interface AlertDialogConfirmProps {
@@ -20,11 +20,6 @@ export interface TreeNode {
   icon?: ReactNode
   actions?: ReactNode
   badge?: ReactNode
-}
-
-export interface TreeTableProps {
-  data: TreeNode[]
-  className?: string
 }
 
 export interface PaginationProps {

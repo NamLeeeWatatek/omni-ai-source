@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { MetadataService } from '@/lib/services/api.service'
+import { metadataApi } from '@/lib/api/metadata'
 import { Category } from '@/lib/types'
 import { CACHE_TIMES } from '@/lib/constants/app'
 
@@ -13,7 +13,7 @@ export const categoryKeys = {
 export function useCategories(entityType: string) {
   return useQuery({
     queryKey: categoryKeys.list(entityType),
-    queryFn: () => MetadataService.getCategories(entityType),
+    queryFn: () => metadataApi.getCategories(entityType),
     staleTime: CACHE_TIMES.MEDIUM,
     gcTime: CACHE_TIMES.LONG,
     enabled: !!entityType,
@@ -27,7 +27,7 @@ export function useAllCategories() {
       // Fetch categories for common entity types
       const entityTypes = ['bot', 'channel', 'flow', 'template']
       const results = await Promise.allSettled(
-        entityTypes.map(type => MetadataService.getCategories(type))
+        entityTypes.map(type => metadataApi.getCategories(type))
       )
 
       const categories: Category[] = []

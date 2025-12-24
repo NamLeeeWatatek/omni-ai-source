@@ -1,5 +1,6 @@
-﻿import { FiChevronRight, FiHome } from 'react-icons/fi'
+import { FiChevronRight, FiHome } from 'react-icons/fi'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/Button'
 
 interface Breadcrumb {
     id: string | null
@@ -14,9 +15,9 @@ interface KBBreadcrumbsProps {
     dragOverId?: string | null
 }
 
-export function KBBreadcrumbs({ 
-    rootName, 
-    breadcrumbs, 
+export function KBBreadcrumbs({
+    rootName,
+    breadcrumbs,
     onNavigate,
     onDrop,
     dragOverId,
@@ -28,40 +29,42 @@ export function KBBreadcrumbs({
 
     return (
         <div className="flex items-center gap-2 mb-4 text-sm flex-wrap">
-            <button
+            <Button
+                variant="ghost"
                 onClick={() => onNavigate(-1)}
                 onDragOver={handleDragOver}
-                onDrop={(e) => {
+                onDrop={(e: React.DragEvent) => {
                     e.preventDefault()
                     onDrop?.(null)
                 }}
                 className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-md transition-all",
+                    "flex items-center gap-2 px-3 py-1.5 h-auto font-normal rounded-md transition-all",
                     "text-muted-foreground hover:text-foreground hover:bg-muted",
                     dragOverId === null && "bg-primary/10 ring-2 ring-primary"
                 )}
             >
-                <FiHome className="w-4 h-4" />
+                <FiHome className="w-4 h-4 mr-2" />
                 {rootName}
-            </button>
+            </Button>
             {breadcrumbs.map((crumb, index) => (
                 <div key={crumb.id || index} className="flex items-center gap-2">
                     <FiChevronRight className="w-4 h-4 text-muted-foreground" />
-                    <button
+                    <Button
+                        variant="ghost"
                         onClick={() => onNavigate(index)}
                         onDragOver={handleDragOver}
-                        onDrop={(e) => {
+                        onDrop={(e: React.DragEvent) => {
                             e.preventDefault()
                             onDrop?.(crumb.id)
                         }}
                         className={cn(
-                            "px-3 py-1.5 rounded-md transition-all",
+                            "px-3 py-1.5 h-auto font-normal rounded-md transition-all",
                             "text-muted-foreground hover:text-foreground hover:bg-muted",
                             dragOverId === crumb.id && "bg-primary/10 ring-2 ring-primary"
                         )}
                     >
                         {crumb.name}
-                    </button>
+                    </Button>
                 </div>
             ))}
         </div>

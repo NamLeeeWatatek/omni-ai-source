@@ -14,7 +14,7 @@ export class BotSeedService {
     private userRepository: Repository<UserEntity>,
     @InjectRepository(WorkspaceEntity)
     private workspaceRepository: Repository<WorkspaceEntity>,
-  ) { }
+  ) {}
 
   async run() {
     const count = await this.repository.count();
@@ -213,46 +213,60 @@ export class BotSeedService {
     const daysAgo = 60;
     const now = new Date();
 
-    // Get the admin user to associate bots with their workspace
-    const adminUser = await this.userRepository.findOne({
-      where: { email: 'admin@example.com' },
+    // Fetch first 5 active users to seed data for (prevent excessive data creation)
+    const users = await this.userRepository.find({
+      where: { isActive: true },
+      take: 5,
     });
 
-    if (!adminUser) {
-      console.error('❌ Admin user not found, skipping bot seed');
+    if (users.length === 0) {
+      console.log('skipping bot seed (no users)');
       return;
     }
 
-    const workspace = await this.workspaceRepository.findOne({
-      where: { ownerId: adminUser.id },
-    });
-
-    if (!workspace) {
-      console.error('❌ Admin workspace not found, skipping bot seed');
-      return;
-    }
-
-    for (let i = 0; i < bots.length; i++) {
-      const botData = bots[i];
-      const daysOffset = Math.floor(Math.random() * daysAgo);
-      const hoursOffset = Math.floor(Math.random() * 24);
-
-      const createdAt = new Date(now);
-      createdAt.setDate(createdAt.getDate() - daysOffset);
-      createdAt.setHours(createdAt.getHours() - hoursOffset);
-
-      const bot = this.repository.create({
-        ...botData,
-        workspaceId: workspace.id,
-        createdBy: adminUser.id,
-        updatedBy: adminUser.id,
-        createdAt,
-        updatedAt: new Date(),
+    for (const user of users) {
+      const workspace = await this.workspaceRepository.findOne({
+        where: { ownerId: user.id },
       });
 
-      await this.repository.save(bot);
+      if (!workspace) {
+        console.log(
+          `skipping bot seed for user ${user.email || user.id} (no workspace)`,
+        );
+        continue;
+      }
+
+      // Create a subset of bots for each user to add variety
+      // Admin gets all bots, others get random 3-5 bots
+      const userBots =
+        user.email && user.email.includes('admin')
+          ? bots
+          : bots.sort(() => 0.5 - Math.random()).slice(0, 4);
+
+      for (const botData of userBots) {
+        const daysOffset = Math.floor(Math.random() * daysAgo);
+        const hoursOffset = Math.floor(Math.random() * 24);
+
+        const createdAt = new Date(now);
+        createdAt.setDate(createdAt.getDate() - daysOffset);
+        createdAt.setHours(createdAt.getHours() - hoursOffset);
+
+        const bot = this.repository.create({
+          ...botData,
+          workspaceId: workspace.id,
+          createdBy: user.id,
+          updatedBy: user.id,
+          createdAt,
+          updatedAt: new Date(),
+        });
+
+        await this.repository.save(bot);
+      }
+      console.log(
+        `✅ Seeded ${userBots.length} bots for ${user.email} in workspace ${workspace.name}`,
+      );
     }
 
-    console.log('✅ Bots seeded successfully');
+    console.log('✅ Bots seeded successfully for all test users');
   }
 }

@@ -12,6 +12,10 @@ import {
 } from 'typeorm';
 import { WorkspaceOwnedEntity } from '../../../../../utils/workspace-owned.entity';
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
+import {
+  KbProcessingStatus,
+  KbSourceType,
+} from '../../../../knowledge-base.enum';
 
 @Entity({ name: 'knowledge_base' })
 export class KnowledgeBaseEntity extends WorkspaceOwnedEntity {
@@ -130,6 +134,7 @@ export class KbDocumentEntity extends WorkspaceOwnedEntity {
   @Column({ name: 'mime_type', type: String, nullable: true })
   mimeType?: string | null;
 
+  @Index()
   @Column({ type: 'jsonb', nullable: true })
   metadata?: Record<string, any> | null;
 
@@ -144,8 +149,12 @@ export class KbDocumentEntity extends WorkspaceOwnedEntity {
   @Index()
   folderId?: string | null;
 
-  @Column({ name: 'processing_status', type: String, default: 'pending' })
-  processingStatus: 'pending' | 'processing' | 'completed' | 'failed';
+  @Column({
+    name: 'processing_status',
+    type: String,
+    default: KbProcessingStatus.PENDING,
+  })
+  processingStatus: KbProcessingStatus;
 
   @Column({ name: 'chunk_count', type: 'int', default: 0 })
   chunkCount: number;
@@ -165,9 +174,9 @@ export class KbDocumentEntity extends WorkspaceOwnedEntity {
   @Column({
     name: 'source_type',
     type: String,
-    default: 'manual',
+    default: KbSourceType.MANUAL,
   })
-  sourceType: 'manual' | 'file' | 'web';
+  sourceType: KbSourceType;
 
   @ManyToOne(() => KnowledgeBaseEntity, (kb) => kb.documents, {
     onDelete: 'CASCADE',

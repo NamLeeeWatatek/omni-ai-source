@@ -3,6 +3,10 @@ import { Repository } from 'typeorm';
 import { ChannelConnectionEntity } from '../../integrations/infrastructure/persistence/relational/entities/channel-connection.entity';
 import { ChannelCredentialEntity } from '../../integrations/infrastructure/persistence/relational/entities/channel-credential.entity';
 import { OAuthProviderInterface } from '../interfaces/oauth-provider.interface';
+import {
+  ChannelConnectionStatus,
+  ChannelType,
+} from '../../integrations/integrations.enum';
 
 /**
  * Base OAuth Service
@@ -77,9 +81,9 @@ export abstract class BaseOAuthService implements OAuthProviderInterface {
   ): Promise<ChannelConnectionEntity[]> {
     return this.connectionRepository.find({
       where: {
-        type: this.providerName,
+        type: this.providerName as ChannelType,
         workspaceId: workspaceId,
-        status: 'active',
+        status: ChannelConnectionStatus.ACTIVE,
       },
       order: {
         connectedAt: 'DESC',
@@ -98,7 +102,7 @@ export abstract class BaseOAuthService implements OAuthProviderInterface {
     try {
       const allConnections = await this.connectionRepository.find({
         where: {
-          type: this.providerName,
+          type: this.providerName as ChannelType,
           workspaceId: workspaceId,
         },
       });
@@ -115,7 +119,7 @@ export abstract class BaseOAuthService implements OAuthProviderInterface {
 
         existingConnection.accessToken = accessToken;
         existingConnection.credentialId = credential?.id; // âœ… Update credential link
-        existingConnection.status = 'active';
+        existingConnection.status = ChannelConnectionStatus.ACTIVE;
         existingConnection.connectedAt = new Date();
         existingConnection.metadata = {
           ...existingConnection.metadata,
@@ -135,11 +139,11 @@ export abstract class BaseOAuthService implements OAuthProviderInterface {
 
       const connection = this.connectionRepository.create({
         name: `${accountName} - ${this.providerName.charAt(0).toUpperCase() + this.providerName.slice(1)}`,
-        type: this.providerName,
+        type: this.providerName as ChannelType,
         workspaceId: workspaceId,
         credentialId: credential?.id, // âœ… Link to credential
         accessToken: accessToken,
-        status: 'active',
+        status: ChannelConnectionStatus.ACTIVE,
         connectedAt: new Date(),
         metadata: {
           accountId,

@@ -21,7 +21,7 @@ export class KBManagementService {
     private readonly kbRepository: Repository<KnowledgeBaseEntity>,
     @InjectRepository(BotKnowledgeBaseEntity)
     private readonly agentKbRepository: Repository<BotKnowledgeBaseEntity>,
-  ) { }
+  ) {}
 
   async create(userId: string, createDto: CreateKnowledgeBaseDto) {
     const kb = this.kbRepository.create({

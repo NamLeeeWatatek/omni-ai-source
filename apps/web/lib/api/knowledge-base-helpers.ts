@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Knowledge Base API Helpers
  * Higher-level functions that automatically handle workspace context
  */

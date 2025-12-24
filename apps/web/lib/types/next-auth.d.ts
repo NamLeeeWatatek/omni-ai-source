@@ -1,4 +1,4 @@
-﻿import { DefaultSession } from "next-auth"
+import { DefaultSession } from "next-auth"
 
 export interface SessionWorkspace {
   id: string
@@ -15,6 +15,7 @@ declare module "next-auth" {
     tokenExpires?: number
     workspace?: SessionWorkspace | null
     workspaces?: SessionWorkspace[]
+    error?: string
     user: {
       id: string
     } & DefaultSession["user"]
@@ -38,6 +39,7 @@ declare module "@auth/core/jwt" {
     id?: string
     workspace?: SessionWorkspace | null
     workspaces?: SessionWorkspace[]
+    error?: string
   }
 }
 

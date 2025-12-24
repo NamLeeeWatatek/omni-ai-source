@@ -9,6 +9,7 @@ import { ChannelsService } from '../channels.service';
 import { FacebookOAuthService } from '../facebook-oauth.service';
 import { ConversationsService } from '../../conversations/conversations.service';
 import { ConversationsGateway } from '../../conversations/conversations.gateway';
+import { MessageRole } from '../../conversations/conversations.enum';
 import { MessageReceivedEvent } from '../../shared/events';
 
 /**
@@ -255,7 +256,7 @@ export class FacebookWebhookProcessor extends BaseMessageProcessor<FacebookWebho
     const savedMessage = await this.conversationsService.addMessageFromWebhook({
       conversationId: conversation.id,
       content,
-      role: 'user',
+      role: MessageRole.USER,
       metadata: {
         externalId: messageId,
         senderId,

@@ -18,6 +18,7 @@ import { ChannelsService } from './channels.service';
 import { ChannelStrategy } from './channel.strategy';
 import { FacebookSyncService } from './services/facebook-sync.service';
 import { FacebookConversationSyncService } from './services/facebook-conversation-sync.service';
+import { CurrentWorkspace } from '../workspaces/decorators/current-workspace.decorator';
 
 @ApiTags('Facebook OAuth')
 @Controller({ path: 'channels/facebook', version: '1' })
@@ -36,16 +37,27 @@ export class FacebookOAuthController {
   @ApiOperation({ summary: 'Get Facebook OAuth URL' })
   async getOAuthUrl(
     @Request() req,
+    @CurrentWorkspace() workspaceId: string,
     @Query('redirect_uri') redirectUri?: string,
   ) {
-    const workspaceId = req.user.workspaceId || req.user.id;
+    // If no workspace context, use personal context (user.id)
+    const wsId = workspaceId || req.user.id;
 
-    const credential =
-      await this.facebookOAuthService.getCredential(workspaceId);
+    console.log(
+      `[FacebookOAuth] Getting OAuth URL for workspace: ${workspaceId} (user: ${req.user.id})`,
+    );
+
+    const credential = await this.facebookOAuthService.getCredential(
+      workspaceId || req.user.id,
+      req.user.id,
+    );
 
     if (!credential) {
+      console.warn(
+        `[FacebookOAuth] No credential found for workspace: ${wsId}`,
+      );
       throw new HttpException(
-        'Facebook App not configured. Please setup your Facebook App in Settings.',
+        `Facebook App not configured for workspace ${wsId}. Please setup your Facebook App in Channels -> Configurations first.`,
         HttpStatus.NOT_FOUND,
       );
     }
@@ -53,12 +65,16 @@ export class FacebookOAuthController {
     const defaultRedirectUri = `${process.env.FRONTEND_DOMAIN}/channels/callback?provider=facebook`;
     const uri = redirectUri || defaultRedirectUri;
 
-    const state = req.user?.id || 'anonymous';
+    const state = `${req.user?.id}:${wsId}`;
 
     const oauthUrl = this.facebookOAuthService.getOAuthUrl(
       credential.clientId!,
       uri,
       state,
+    );
+
+    console.log(
+      `[FacebookOAuth] Generated OAuth URL for client: ${credential.clientId}`,
     );
 
     return {
@@ -92,9 +108,29 @@ export class FacebookOAuthController {
     }
 
     try {
-      const wsId = workspaceId || state;
+      let wsId = workspaceId;
+      let userId: string | undefined;
 
-      const credential = await this.facebookOAuthService.getCredential(wsId);
+      if (state) {
+        // state is formatted as userId:workspaceId
+        const parts = state.split(':');
+        if (parts.length > 1) {
+          userId = parts[0];
+          if (!wsId) wsId = parts[1];
+        } else if (!wsId) {
+          wsId = state; // Fallback to state if not in our format
+          userId = state;
+        }
+      }
+
+      console.log(
+        `[FacebookOAuth] Handling callback for workspace: ${wsId}, user: ${userId}`,
+      );
+
+      const credential = await this.facebookOAuthService.getCredential(
+        wsId!,
+        userId,
+      );
 
       if (!credential) {
         throw new HttpException(
@@ -124,6 +160,7 @@ export class FacebookOAuthController {
           category: page.category,
           tasks: page.tasks,
         })),
+        workspaceId: wsId,
         tempToken: accessToken,
       };
     } catch (error) {
@@ -209,11 +246,13 @@ export class FacebookOAuthController {
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Get connected Facebook pages' })
-  async getConnections(@Request() req) {
-    const workspaceId = req.user.workspaceId || req.user.id;
+  async getConnections(
+    @Request() req,
+    @CurrentWorkspace() workspaceId: string,
+  ) {
+    const wsId = workspaceId || req.user.id;
 
-    const connections =
-      await this.facebookOAuthService.getConnectedPages(workspaceId);
+    const connections = await this.facebookOAuthService.getConnectedPages(wsId);
 
     return {
       success: true,
@@ -232,10 +271,14 @@ export class FacebookOAuthController {
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Disconnect a Facebook page' })
-  async disconnectPage(@Request() req, @Param('id') connectionId: string) {
-    const workspaceId = req.user.workspaceId || req.user.id;
+  async disconnectPage(
+    @Request() req,
+    @Param('id') connectionId: string,
+    @CurrentWorkspace() workspaceId: string,
+  ) {
+    const wsId = workspaceId || req.user.id;
 
-    await this.facebookOAuthService.disconnectPage(connectionId, workspaceId);
+    await this.facebookOAuthService.disconnectPage(connectionId, wsId);
 
     return {
       success: true,
@@ -249,15 +292,13 @@ export class FacebookOAuthController {
   @ApiOperation({ summary: 'Test Facebook page connection' })
   async testConnection(
     @Request() req,
+    @CurrentWorkspace() workspaceId: string,
     @Param('id') connectionId: string,
     @Body() body: { recipientId: string; message: string },
   ) {
-    const workspaceId = req.user.workspaceId || req.user.id;
+    const wsId = workspaceId || req.user.id;
 
-    const connection = await this.channelsService.findOne(
-      connectionId,
-      workspaceId,
-    );
+    const connection = await this.channelsService.findOne(connectionId, wsId);
     if (!connection) {
       throw new HttpException('Connection not found', HttpStatus.NOT_FOUND);
     }
@@ -302,11 +343,12 @@ export class FacebookOAuthController {
       appSecret: string;
       verifyToken?: string;
     },
+    @CurrentWorkspace() workspaceId: string,
   ) {
-    const workspaceId = req.user.workspaceId || req.user.id;
+    const wsId = workspaceId || req.user.id;
 
     const credential = await this.facebookOAuthService.updateCredential(
-      workspaceId,
+      wsId,
       body.appId,
       body.appSecret,
       body.verifyToken ? { verifyToken: body.verifyToken } : undefined,
@@ -328,11 +370,10 @@ export class FacebookOAuthController {
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Get Facebook App credentials' })
-  async getSetup(@Request() req) {
-    const workspaceId = req.user.workspaceId || req.user.id;
+  async getSetup(@Request() req, @CurrentWorkspace() workspaceId: string) {
+    const wsId = workspaceId || req.user.id;
 
-    const credential =
-      await this.facebookOAuthService.getCredential(workspaceId);
+    const credential = await this.facebookOAuthService.getCredential(wsId);
 
     if (!credential) {
       return {
@@ -362,17 +403,15 @@ export class FacebookOAuthController {
   @ApiOperation({ summary: 'Sync conversations and messages from Facebook' })
   async syncMessages(
     @Request() req,
+    @CurrentWorkspace() workspaceId: string,
     @Param('id') connectionId: string,
     @Query('conversation_limit') conversationLimit?: number,
     @Query('message_limit') messageLimit?: number,
   ) {
-    const workspaceId = req.user.workspaceId || req.user.id;
+    const wsId = workspaceId || req.user.id;
 
     // Get connection
-    const connection = await this.channelsService.findOne(
-      connectionId,
-      workspaceId,
-    );
+    const connection = await this.channelsService.findOne(connectionId, wsId);
     if (!connection) {
       throw new HttpException('Connection not found', HttpStatus.NOT_FOUND);
     }
@@ -433,6 +472,7 @@ export class FacebookOAuthController {
   @ApiOperation({ summary: 'Sync Facebook conversations into database' })
   async syncConversationsToDatabase(
     @Request() req,
+    @CurrentWorkspace() workspaceId: string,
     @Param('id') connectionId: string,
     @Body()
     body?: {
@@ -440,12 +480,12 @@ export class FacebookOAuthController {
       messageLimit?: number;
     },
   ) {
-    const workspaceId = req.user.workspaceId || req.user.id;
+    const wsId = workspaceId || req.user.id;
 
     const result =
       await this.facebookConversationSyncService.syncConversationsForChannel(
         connectionId,
-        workspaceId,
+        wsId,
         {
           conversationLimit: body?.conversationLimit || 25,
           messageLimit: body?.messageLimit || 50,

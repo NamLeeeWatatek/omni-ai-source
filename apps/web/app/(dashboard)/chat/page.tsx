@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/Button'
@@ -18,19 +18,26 @@ import { getKnowledgeBases } from '@/lib/api/knowledge-base'
 import type { AiConversation, AiMessage } from '@/lib/types/conversations'
 import type { KnowledgeBase } from '@/lib/types/knowledge-base'
 import {
-    FiMessageCircle,
-    FiSettings,
-    FiZap,
-    FiBook,
-    FiCheck,
-    FiPlus,
-    FiTrash2,
-    FiEdit2,
-    FiRefreshCw,
-} from 'react-icons/fi'
-import { AiChatInterface } from '@/components/chat/AiChatInterface'
+    MessageCircle,
+    Settings,
+    Zap,
+    Book,
+    Check,
+    Plus,
+    Trash2,
+    Edit2,
+    RefreshCw,
+    X,
+    ChevronDown,
+} from 'lucide-react'
+import { AiChatInterface } from '@/components/features/chat/AiChatInterface'
 import { AlertDialogConfirm } from '@/components/ui/AlertDialogConfirm'
 import { Badge } from '@/components/ui/Badge'
+import { MessageRole } from '@/lib/types/conversations'
+import { motion } from 'framer-motion'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { cn } from '@/lib/utils'
+import { ScrollArea } from '@/components/ui/ScrollArea'
 
 export default function ChatWithAIPage() {
     const { currentWorkspace } = useWorkspace()
@@ -258,7 +265,7 @@ export default function ChatWithAIPage() {
         }
 
         const userMessage: AiMessage = {
-            role: 'user',
+            role: MessageRole.USER,
             content: input,
             timestamp: new Date().toISOString(),
         }
@@ -304,7 +311,7 @@ export default function ChatWithAIPage() {
             }
 
             const assistantMessage: AiMessage = {
-                role: 'assistant',
+                role: MessageRole.ASSISTANT,
                 content: responseText,
                 timestamp: new Date().toISOString(),
                 metadata: {
@@ -428,18 +435,22 @@ export default function ChatWithAIPage() {
     const selectedBotData = bots.find((b) => b.id === selectedBot)
 
     return (
-        <div className="h-full flex">
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="h-full flex bg-grid-pattern"
+        >
             { }
             <aside className="w-80 border-r border-border/40 flex flex-col bg-background">
                 { }
                 <div className="p-4 border-b border-border/40">
                     <Button
                         onClick={createNewConversation}
-                        className="w-full"
+                        className="w-full rounded-xl shadow-md shadow-primary/10"
                         size="lg"
                         loading={creatingConversation}
                     >
-                        <FiPlus className="w-5 h-5 mr-2" />
+                        <Plus className="w-5 h-5 mr-2" />
                         New Chat
                     </Button>
                 </div>
@@ -453,7 +464,7 @@ export default function ChatWithAIPage() {
                     ) : conversations.length === 0 ? (
                         <div className="text-center py-12 px-4">
                             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-                                <FiMessageCircle className="w-8 h-8 text-muted-foreground" />
+                                <MessageCircle className="w-8 h-8 text-muted-foreground" />
                             </div>
                             <h3 className="font-semibold mb-1">No conversations yet</h3>
                             <p className="text-sm text-muted-foreground mb-4">
@@ -463,8 +474,9 @@ export default function ChatWithAIPage() {
                                 onClick={createNewConversation}
                                 size="sm"
                                 disabled={creatingConversation}
+                                className="rounded-lg"
                             >
-                                <FiPlus className="w-4 h-4 mr-2" />
+                                <Plus className="w-4 h-4 mr-2" />
                                 Create First Chat
                             </Button>
                         </div>
@@ -519,7 +531,7 @@ export default function ChatWithAIPage() {
                                                     }}
                                                     title="Edit title"
                                                 >
-                                                    <FiEdit2 className="w-3 h-3" />
+                                                    <Edit2 className="w-3 h-3" />
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
@@ -531,7 +543,7 @@ export default function ChatWithAIPage() {
                                                     }}
                                                     title="Delete conversation"
                                                 >
-                                                    <FiTrash2 className="w-3 h-3" />
+                                                    <Trash2 className="w-3 h-3" />
                                                 </Button>
                                             </div>
                                         </div>
@@ -568,13 +580,14 @@ export default function ChatWithAIPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setShowSettings(!showSettings)}
+                                className="rounded-lg"
                             >
-                                <FiSettings className="w-4 h-4 mr-2" />
+                                <Settings className="w-4 h-4 mr-2" />
                                 Settings
                             </Button>
                             {currentConversation && (
-                                <Button variant="outline" size="sm" onClick={clearChat}>
-                                    <FiRefreshCw className="w-4 h-4 mr-2" />
+                                <Button variant="outline" size="sm" onClick={clearChat} className="rounded-lg">
+                                    <RefreshCw className="w-4 h-4 mr-2" />
                                     New Chat
                                 </Button>
                             )}
@@ -589,7 +602,7 @@ export default function ChatWithAIPage() {
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <h3 className="text-lg font-semibold flex items-center gap-2">
-                                            <FiSettings className="w-5 h-5" />
+                                            <Settings className="w-5 h-5" />
                                             Chat Configuration
                                         </h3>
                                         <p className="text-sm text-muted-foreground mt-1">
@@ -601,8 +614,9 @@ export default function ChatWithAIPage() {
                                         loading={savingSettings}
                                         disabled={!currentConversation}
                                         size="sm"
+                                        className="rounded-lg"
                                     >
-                                        <FiCheck className="w-4 h-4 mr-2" />
+                                        <Check className="w-4 h-4 mr-2" />
                                         Save Settings
                                     </Button>
                                 </div>
@@ -610,21 +624,21 @@ export default function ChatWithAIPage() {
                                 { }
                                 <div className="space-y-3">
                                     <label className="text-sm font-semibold flex items-center gap-2">
-                                        <FiMessageCircle className="w-4 h-4" />
+                                        <MessageCircle className="w-4 h-4 text-primary" />
                                         Select Bot
                                     </label>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                         { }
                                         <Card
-                                            className={`p-4 cursor-pointer transition-all duration-200 ${selectedBot === 'none'
-                                                ? 'border-primary bg-primary/5 shadow-md'
+                                            className={`p-4 cursor-pointer transition-all duration-200 rounded-xl ${selectedBot === 'none'
+                                                ? 'border-primary bg-primary/5 shadow-md ring-1 ring-primary/20'
                                                 : 'hover:border-primary/40 hover:shadow-sm'
                                                 }`}
                                             onClick={() => setSelectedBot('none')}
                                         >
                                             <div className="flex items-start gap-3">
-                                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center flex-shrink-0">
-                                                    <FiZap className="w-5 h-5 text-white" />
+                                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center flex-shrink-0 shadow-lg">
+                                                    <Zap className="w-5 h-5 text-white" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <h4 className="font-semibold text-sm">Direct AI</h4>
@@ -639,15 +653,15 @@ export default function ChatWithAIPage() {
                                         {bots.map((bot) => (
                                             <Card
                                                 key={bot.id}
-                                                className={`p-4 cursor-pointer transition-all duration-200 ${selectedBot === bot.id
-                                                    ? 'border-primary bg-primary/5 shadow-md'
+                                                className={`p-4 cursor-pointer transition-all duration-200 rounded-xl ${selectedBot === bot.id
+                                                    ? 'border-primary bg-primary/5 shadow-md ring-1 ring-primary/20'
                                                     : 'hover:border-primary/40 hover:shadow-sm'
                                                     }`}
                                                 onClick={() => setSelectedBot(bot.id)}
                                             >
                                                 <div className="flex items-start gap-3">
-                                                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center flex-shrink-0">
-                                                        <FiMessageCircle className="w-5 h-5 text-white" />
+                                                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center flex-shrink-0 shadow-lg">
+                                                        <MessageCircle className="w-5 h-5 text-white" />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <h4 className="font-semibold text-sm truncate">{bot.name}</h4>
@@ -655,8 +669,8 @@ export default function ChatWithAIPage() {
                                                             {bot.description || 'No description'}
                                                         </p>
                                                         {bot.aiModelName && (
-                                                            <Badge variant="secondary" className="text-xs mt-2">
-                                                                <FiZap className="w-3 h-3 mr-1" />
+                                                            <Badge variant="secondary" className="text-[10px] mt-2 font-bold px-1.5 py-0 bg-primary/10 text-primary border-primary/20">
+                                                                <Zap className="w-3 h-3 mr-1" />
                                                                 {bot.aiModelName}
                                                             </Badge>
                                                         )}
@@ -672,7 +686,7 @@ export default function ChatWithAIPage() {
                                     <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                                         <div className="flex items-center justify-between">
                                             <label className="text-sm font-semibold flex items-center gap-2">
-                                                <FiBook className="w-4 h-4" />
+                                                <Book className="w-4 h-4 text-primary" />
                                                 Knowledge Sources
                                             </label>
                                             <div className="flex items-center gap-2">
@@ -700,8 +714,8 @@ export default function ChatWithAIPage() {
                                         {useKnowledgeBase && (
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
                                                 {knowledgeBases.length === 0 ? (
-                                                    <div className="col-span-full text-center py-8 px-4 border border-dashed border-border/40 rounded-lg">
-                                                        <FiBook className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                                                    <div className="col-span-full text-center py-8 px-4 border border-dashed border-border/40 rounded-xl">
+                                                        <Book className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
                                                         <p className="text-sm text-muted-foreground">
                                                             No knowledge bases available
                                                         </p>
@@ -712,8 +726,8 @@ export default function ChatWithAIPage() {
                                                         return (
                                                             <Card
                                                                 key={kb.id}
-                                                                className={`p-4 cursor-pointer transition-all duration-200 ${isSelected
-                                                                    ? 'border-primary bg-primary/5 shadow-md'
+                                                                className={`p-4 cursor-pointer transition-all duration-200 rounded-xl ${isSelected
+                                                                    ? 'border-primary bg-primary/5 shadow-md ring-1 ring-primary/20'
                                                                     : 'hover:border-primary/40 hover:shadow-sm'
                                                                     }`}
                                                                 onClick={() => {
@@ -725,19 +739,19 @@ export default function ChatWithAIPage() {
                                                                 }}
                                                             >
                                                                 <div className="flex items-start gap-3">
-                                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isSelected
+                                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg ${isSelected
                                                                         ? 'bg-gradient-to-br from-green-600 to-emerald-700'
                                                                         : 'bg-gradient-to-br from-amber-600 to-orange-700'
                                                                         }`}>
                                                                         {isSelected ? (
-                                                                            <FiCheck className="w-5 h-5 text-white" />
+                                                                            <Check className="w-5 h-5 text-white" />
                                                                         ) : (
-                                                                            <FiBook className="w-5 h-5 text-white" />
+                                                                            <Book className="w-5 h-5 text-white" />
                                                                         )}
                                                                     </div>
                                                                     <div className="flex-1 min-w-0">
                                                                         <h4 className="font-semibold text-sm truncate">{kb.name}</h4>
-                                                                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                                                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
                                                                             {kb.description || 'No description'}
                                                                         </p>
                                                                         {kb.totalDocuments !== undefined && (
@@ -756,7 +770,7 @@ export default function ChatWithAIPage() {
 
                                         {selectedKnowledgeBases.length > 0 && (
                                             <div className="flex items-center gap-2 text-sm text-muted-foreground bg-primary/5 p-3 rounded-lg border border-primary/20">
-                                                <FiCheck className="w-4 h-4 text-primary" />
+                                                <Check className="w-4 h-4 text-primary" />
                                                 <span>
                                                     {selectedKnowledgeBases.length} knowledge source{selectedKnowledgeBases.length > 1 ? 's' : ''} selected
                                                 </span>
@@ -765,11 +779,10 @@ export default function ChatWithAIPage() {
                                     </div>
                                 )}
 
-                                { }
                                 {selectedBot !== 'none' && selectedBotData && (
-                                    <div className="bg-muted/50 rounded-lg p-4 border border-border/40">
+                                    <div className="bg-muted/50 rounded-xl p-4 border border-border/40">
                                         <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                                            <FiZap className="w-4 h-4" />
+                                            <Zap className="w-4 h-4 text-primary" />
                                             Current Configuration
                                         </h4>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
@@ -798,7 +811,7 @@ export default function ChatWithAIPage() {
                     )}
                 </header>
 
-                {/* âœ… PROFESSIONAL: Use dedicated AI Chat Interface */}
+                {/* ✅ PROFESSIONAL: Use dedicated AI Chat Interface */}
                 <AiChatInterface
                     messages={messages}
                     onSendMessage={handleSend}
@@ -819,6 +832,6 @@ export default function ChatWithAIPage() {
                 onConfirm={confirmDelete}
                 variant="destructive"
             />
-        </div>
+        </motion.div>
     )
 }

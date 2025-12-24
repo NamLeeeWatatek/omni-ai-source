@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Centralized WebSocket Service
  * Uses Socket.IO for real-time communication
  */
@@ -24,9 +24,9 @@ class WebSocketService {
         this.baseUrl = apiUrl.replace('/api/v1', '')
     }
 
-    connect(namespace: string, onOpen?: () => void): Socket {
+    connect(namespace: string, options?: { token?: string, userId?: string }, onOpen?: () => void): Socket {
         const url = `${this.baseUrl}/${namespace}`
-        
+
         if (this.connections.has(namespace)) {
             const conn = this.connections.get(namespace)!
             if (conn.socket.connected) {
@@ -37,12 +37,29 @@ class WebSocketService {
             }
         }
 
-        const socket = io(url, {
+        const socketOptions: any = {
             transports: ['websocket', 'polling'],
             reconnection: true,
             reconnectionDelay: 1000,
             reconnectionAttempts: 5,
-        })
+        }
+
+        if (options?.token) {
+            socketOptions.extraHeaders = {
+                Authorization: `Bearer ${options.token}`
+            }
+            socketOptions.auth = {
+                token: options.token
+            }
+        }
+
+        if (options?.userId) {
+            socketOptions.query = {
+                userId: options.userId
+            }
+        }
+
+        const socket = io(url, socketOptions)
 
         const connection: WebSocketConnection = {
             socket,
@@ -92,7 +109,7 @@ class WebSocketService {
     on(endpoint: string, messageType: string, handler: MessageHandler): () => void {
         const connection = this.connections.get(endpoint)
         if (!connection) {
-            return () => {}
+            return () => { }
         }
 
         if (!connection.handlers.has(messageType)) {
@@ -114,7 +131,7 @@ class WebSocketService {
 
     onError(endpoint: string, handler: ErrorHandler): () => void {
         const connection = this.connections.get(endpoint)
-        if (!connection) return () => {}
+        if (!connection) return () => { }
 
         connection.errorHandlers.push(handler)
 
@@ -128,7 +145,7 @@ class WebSocketService {
 
     onClose(endpoint: string, handler: CloseHandler): () => void {
         const connection = this.connections.get(endpoint)
-        if (!connection) return () => {}
+        if (!connection) return () => { }
 
         connection.closeHandlers.push(handler)
 
@@ -160,7 +177,7 @@ class WebSocketService {
     }
 
     getActiveConnections(): string[] {
-        return Array.from(this.connections.keys()).filter(endpoint => 
+        return Array.from(this.connections.keys()).filter(endpoint =>
             this.isConnected(endpoint)
         )
     }

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { Bot, Settings, Zap, MessageSquare, Copy, Check, Sparkles, Lightbulb, Rocket, Wand2, Cpu, TrendingUp, Headphones, BookOpen, Code } from 'lucide-react';
 import { toast } from 'sonner';
 import React from 'react';
-import { axiosClient } from '@/lib/axios-client';
+import axiosClient from '@/lib/axios-client';
 import { Badge } from '@/components/ui/Badge';
 
 interface BotConfigData {
@@ -511,7 +511,7 @@ export function AIConfigSection({ data, onChange }: AIConfigSectionProps) {
                 const response = await axiosClient.get('/ai-providers/user/configs');
                 // Only show active and verified providers
                 // For now, consider active providers as verified (will be improved with proper verification logic)
-                const activeProviders = (response as any[]).filter((p: any) => p.isActive);
+                const activeProviders = ((response as unknown) as any[]).filter((p: any) => p.isActive);
                 setProviders(activeProviders);
             } catch (error) {
                 console.error('Failed to load AI providers:', error);

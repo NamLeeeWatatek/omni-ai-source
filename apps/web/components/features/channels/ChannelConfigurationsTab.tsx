@@ -8,38 +8,41 @@ import { Label } from '@/components/ui/Label';
 import { Badge } from '@/components/ui/Badge';
 import { AlertBanner, CodeBlock } from '@/components/ui/AlertBanner';
 import {
-  FiSettings,
-  FiTrash2,
-  FiCheck,
-  FiX,
-  FiPlus,
-  FiFacebook,
-  FiMessageCircle,
-  FiInstagram,
-  FiPhone,
-  FiMail,
-  FiYoutube,
-  FiTwitter,
-  FiLinkedin,
-  FiMusic,
-  FiMonitor,
-  FiMessageSquare,
-  FiSmartphone,
-  FiGlobe,
-  FiShoppingCart,
-  FiTarget,
-  FiCloud,
-  FiSend,
-  FiHash,
-  FiMapPin,
-  FiPhoneCall,
-  FiVideo,
-  FiZap,
-  FiBook,
-  FiBarChart,
-  FiUsers,
-  FiTrendingUp
-} from 'react-icons/fi';
+  Settings,
+  Trash2,
+  Check,
+  X,
+  Plus,
+  Facebook,
+  MessageCircle,
+  Instagram,
+  Phone,
+  Mail,
+  Youtube,
+  Twitter,
+  Linkedin,
+  Music,
+  Monitor,
+  MessageSquare,
+  Smartphone,
+  Globe,
+  ShoppingCart,
+  Target,
+  Cloud,
+  Send,
+  Hash,
+  MapPin,
+  PhoneCall,
+  Video,
+  Zap,
+  Book,
+  BarChart,
+  Users,
+  TrendingUp,
+  ExternalLink,
+  ShieldCheck,
+  Key
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface IntegrationConfig {
@@ -82,35 +85,35 @@ export function ChannelConfigurationsTab({
 
   const getIcon = (type: string) => {
     const icons: Record<string, JSX.Element> = {
-      'facebook': <FiFacebook className="w-6 h-6" />,
-      'messenger': <FiMessageCircle className="w-6 h-6" />,
-      'instagram': <FiInstagram className="w-6 h-6" />,
-      'whatsapp': <FiPhone className="w-6 h-6" />,
-      'telegram': <FiSend className="w-6 h-6" />,
-      'email': <FiMail className="w-6 h-6" />,
-      'youtube': <FiYoutube className="w-6 h-6" />,
-      'twitter': <FiTwitter className="w-6 h-6" />,
-      'linkedin': <FiLinkedin className="w-6 h-6" />,
-      'tiktok': <FiMusic className="w-6 h-6" />,
-      'discord': <FiHash className="w-6 h-6" />,
-      'slack': <FiMessageSquare className="w-6 h-6" />,
-      'zalo': <FiMessageCircle className="w-6 h-6" />,
-      'line': <FiMessageSquare className="w-6 h-6" />,
-      'viber': <FiPhoneCall className="w-6 h-6" />,
-      'wechat': <FiMessageCircle className="w-6 h-6" />,
-      'sms': <FiSmartphone className="w-6 h-6" />,
-      'webchat': <FiGlobe className="w-6 h-6" />,
-      'shopify': <FiShoppingCart className="w-6 h-6" />,
-      'google': <FiGlobe className="w-6 h-6" />,
-      'hubspot': <FiTarget className="w-6 h-6" />,
-      'salesforce': <FiCloud className="w-6 h-6" />,
-      'mailchimp': <FiMail className="w-6 h-6" />,
-      'intercom': <FiMessageSquare className="w-6 h-6" />,
-      'zapier': <FiZap className="w-6 h-6" />,
-      'notion': <FiBook className="w-6 h-6" />,
-      'airtable': <FiBarChart className="w-6 h-6" />,
+      'facebook': <Facebook className="w-6 h-6" />,
+      'messenger': <MessageCircle className="w-6 h-6" />,
+      'instagram': <Instagram className="w-6 h-6" />,
+      'whatsapp': <Phone className="w-6 h-6" />,
+      'telegram': <Send className="w-6 h-6" />,
+      'email': <Mail className="w-6 h-6" />,
+      'youtube': <Youtube className="w-6 h-6" />,
+      'twitter': <Twitter className="w-6 h-6" />,
+      'linkedin': <Linkedin className="w-6 h-6" />,
+      'tiktok': <Music className="w-6 h-6" />,
+      'discord': <Hash className="w-6 h-6" />,
+      'slack': <MessageSquare className="w-6 h-6" />,
+      'zalo': <MessageCircle className="w-6 h-6" />,
+      'line': <MessageSquare className="w-6 h-6" />,
+      'viber': <PhoneCall className="w-6 h-6" />,
+      'wechat': <MessageCircle className="w-6 h-6" />,
+      'sms': <Smartphone className="w-6 h-6" />,
+      'webchat': <Globe className="w-6 h-6" />,
+      'shopify': <ShoppingCart className="w-6 h-6" />,
+      'google': <Globe className="w-6 h-6" />,
+      'hubspot': <Target className="w-6 h-6" />,
+      'salesforce': <Cloud className="w-6 h-6" />,
+      'mailchimp': <Mail className="w-6 h-6" />,
+      'intercom': <MessageSquare className="w-6 h-6" />,
+      'zapier': <Zap className="w-6 h-6" />,
+      'notion': <Book className="w-6 h-6" />,
+      'airtable': <BarChart className="w-6 h-6" />,
     };
-    return icons[type] || <FiSmartphone className="w-6 h-6" />;
+    return icons[type] || <Smartphone className="w-6 h-6" />;
   };
 
   const getColor = (type: string) => {
@@ -226,267 +229,303 @@ export function ChannelConfigurationsTab({
   ];
 
   return (
-    <div className="space-y-10">
-      <div className="space-y-10">
-        {configs.length > 0 && (
-          <div>
-            <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-              Configured Integrations
-              <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                {configs.length}
-              </span>
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {configs.map((config) => {
-                const provider = config.provider;
-                const channelInfo = [...MESSAGING_CHANNELS, ...BUSINESS_INTEGRATIONS].find(c => c.id === provider);
-
-                return (
-                  <Card key={config.id}>
-                    <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                      <div className={`p-3 rounded-lg ${getColor(provider)}`}>
-                        {getIcon(provider)}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => openConfig(config.id)}
-                          className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                          title="Edit Configuration"
-                        >
-                          <FiSettings className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => config.id && onDeleteConfig(config.id)}
-                          className="p-2 rounded-lg hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive"
-                          title="Delete Configuration"
-                        >
-                          <FiTrash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <CardTitle className="text-lg font-semibold mb-1">{config.name || channelInfo?.name || provider}</CardTitle>
-                      <CardDescription className="mb-5">
-                        {channelInfo?.description || 'API configured'}
-                      </CardDescription>
-                      <div className="space-y-2 text-xs">
-                        <div className="flex items-center justify-between p-2 bg-muted rounded-lg">
-                          <span className="text-muted-foreground">Client ID</span>
-                          <span className="font-mono">{config.client_id?.slice(0, 12) || 'N/A'}...</span>
-                        </div>
-                        <div className="flex items-center justify-between p-2 bg-muted rounded-lg">
-                          <span className="text-muted-foreground">Status</span>
-                          <span className={`flex items-center gap-1.5 ${config.is_active ? 'text-success' : 'text-destructive'}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${config.is_active ? 'bg-success' : 'bg-destructive'}`}></span>
-                            {config.is_active ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex gap-3">
-                      <Button
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => onConnect(provider, config.id)}
-                      >
-                        Connect
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openConfig(config.id)}
-                      >
-                        Edit
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Available Integrations */}
+    <div>
+      {configs.length > 0 && (
         <div>
-          <h2 className="text-xl font-semibold mb-6">
-            Available Integrations
+          <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+            Configured Integrations
+            <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              {configs.length}
+            </span>
           </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {configs.map((config) => {
+              const provider = config.provider;
+              const channelInfo = [...MESSAGING_CHANNELS, ...BUSINESS_INTEGRATIONS].find(c => c.id === provider);
 
-          {/* Messaging Channels */}
-          <div className="mb-8">
-            <h3 className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wider pl-1">Messaging Channels</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {MESSAGING_CHANNELS.map((channel) => (
-                <Card
-                  key={channel.id}
-                  onClick={() => openConfig(undefined, channel.id)}
-                  className="cursor-pointer hover:scale-[1.02] transition-transform text-left group"
-                >
-                  <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                    <div className={`p-2.5 rounded-lg ${getColor(channel.id)}`}>
-                      {getIcon(channel.id)}
+              return (
+                <Card key={config.id} variant="glass" rounded="xl" className="group h-full flex flex-col hover:shadow-2xl transition-all duration-500 border-white/5 bg-card/40 backdrop-blur-md">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6 pt-6 px-6">
+                    <div className={cn("p-4 rounded-xl shadow-inner transform group-hover:rotate-6 transition-transform duration-500", getColor(provider))}>
+                      {getIcon(provider)}
                     </div>
-                    <FiSettings className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        rounded="lg"
+                        onClick={() => openConfig(config.id)}
+                        className="h-9 w-9 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                      >
+                        <Settings className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        rounded="lg"
+                        onClick={() => config.id && onDeleteConfig(config.id)}
+                        className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </CardHeader>
-                  <CardContent>
-                    <CardTitle className="text-base font-semibold mb-1">{channel.name}</CardTitle>
-                    <CardDescription className="text-xs line-clamp-2">
-                      {channel.description}
+                  <CardContent className="px-6 flex-1">
+                    <CardTitle className="text-xl font-black mb-1.5 tracking-tight">{config.name || channelInfo?.name || provider}</CardTitle>
+                    <CardDescription className="mb-6 font-medium text-xs leading-relaxed opacity-70">
+                      {channelInfo?.description || 'API configured'}
                     </CardDescription>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 bg-background/40 backdrop-blur rounded-xl border border-white/5">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">ID Tag</span>
+                        <span className="font-mono text-[10px] font-bold bg-muted px-2 py-0.5 rounded-lg">{config.client_id?.slice(0, 10) || 'N/A'}...</span>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-background/40 backdrop-blur rounded-xl border border-white/5">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Registry</span>
+                        <Badge variant="outline" rounded="lg" className={cn("text-[10px] font-black gap-1.5 py-0 px-2", config.is_active ? 'text-success border-success/30 bg-success/10' : 'text-destructive border-destructive/30 bg-destructive/10')}>
+                          <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", config.is_active ? 'bg-success' : 'bg-destructive')}></span>
+                          {config.is_active ? 'STABLE' : 'OFFLINE'}
+                        </Badge>
+                      </div>
+                    </div>
                   </CardContent>
+                  <CardFooter className="flex gap-3 px-6 pb-6 pt-4">
+                    <Button
+                      size="lg"
+                      rounded="xl"
+                      className="flex-1 font-black tracking-tight shadow-lg shadow-primary/10"
+                      onClick={() => onConnect(provider, config.id)}
+                    >
+                      <Zap className="w-4 h-4 mr-2" />
+                      Link Account
+                    </Button>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      rounded="xl"
+                      onClick={() => openConfig(config.id)}
+                      className="px-4 glass border-white/5"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                  </CardFooter>
                 </Card>
-              ))}
-            </div>
+              );
+            })}
           </div>
+        </div>
+      )}
 
-          {/* Business Integrations */}
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wider pl-1">Business Integrations</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {BUSINESS_INTEGRATIONS.map((integration) => (
-                <Card
-                  key={integration.id}
-                  onClick={() => openConfig(undefined, integration.id)}
-                  className="cursor-pointer hover:scale-[1.02] transition-transform text-left group"
-                >
-                  <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                    <div className={`p-2.5 rounded-lg ${getColor(integration.id)}`}>
-                      {getIcon(integration.id)}
-                    </div>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
-                      {integration.category}
-                    </span>
-                  </CardHeader>
-                  <CardContent>
-                    <CardTitle className="text-base font-semibold mb-1">{integration.name}</CardTitle>
-                    <CardDescription className="text-xs line-clamp-2">
-                      {integration.description}
-                    </CardDescription>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+      {/* Available Integrations */}
+      <div>
+        <h2 className="text-xl font-semibold mb-6">
+          Available Integrations
+        </h2>
+
+        {/* Messaging Channels */}
+        <div className="mb-12">
+          <div className="flex items-center gap-4 mb-6">
+            <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] pl-1">Global Messaging Channels</h3>
+            <div className="h-px flex-1 bg-gradient-to-r from-border/50 to-transparent" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {MESSAGING_CHANNELS.map((channel) => (
+              <Card
+                key={channel.id}
+                onClick={() => openConfig(undefined, channel.id)}
+                variant="glass"
+                rounded="xl"
+                className="cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all duration-300 group ring-1 ring-transparent hover:ring-primary/10 overflow-hidden"
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
+                  <div className={cn("p-3 rounded-xl shadow-inner group-hover:scale-110 transition-transform duration-500", getColor(channel.id))}>
+                    {getIcon(channel.id)}
+                  </div>
+                  <Settings className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:rotate-90" />
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <CardTitle className="text-md font-bold mb-1 group-hover:text-primary transition-colors">{channel.name}</CardTitle>
+                  <CardDescription className="text-[10px] opacity-70 font-medium leading-relaxed line-clamp-2">
+                    {channel.description}
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Business Integrations */}
+        <div>
+          <div className="flex items-center gap-4 mb-6">
+            <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] pl-1">Business Logic Integrations</h3>
+            <div className="h-px flex-1 bg-gradient-to-r from-border/50 to-transparent" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {BUSINESS_INTEGRATIONS.map((integration) => (
+              <Card
+                key={integration.id}
+                onClick={() => openConfig(undefined, integration.id)}
+                variant="glass"
+                rounded="xl"
+                className="cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all duration-300 group ring-1 ring-transparent hover:ring-primary/10 overflow-hidden"
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4">
+                  <div className={cn("p-3 rounded-xl shadow-inner group-hover:scale-110 transition-transform duration-500", getColor(integration.id))}>
+                    {getIcon(integration.id)}
+                  </div>
+                  <Badge variant="outline" rounded="lg" className="text-[9px] font-black tracking-widest bg-muted/30 border-white/5 uppercase py-0 px-2 opacity-60">
+                    {integration.category}
+                  </Badge>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <CardTitle className="text-md font-bold mb-1 group-hover:text-primary transition-colors">{integration.name}</CardTitle>
+                  <CardDescription className="text-[10px] opacity-70 font-medium leading-relaxed line-clamp-2">
+                    {integration.description}
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </div>
 
       {/* Configuration Dialog */}
       {showConfigDialog && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-card border border-border rounded-xl p-6 w-full max-w-md shadow-2xl relative overflow-hidden">
-            <div>
-              <div className="flex items-center gap-4 mb-8">
-                <div className={`p-3 rounded-lg ${getColor(configForm.provider)}`}>
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-xl flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+          <Card variant="premium" rounded="2xl" className="w-full max-w-md shadow-2xl border-white/10 ring-1 ring-white/10 overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-8">
+              <div className="flex items-center gap-5 mb-8">
+                <div className={cn("p-4 rounded-2xl shadow-inner transform rotate-3", getColor(configForm.provider))}>
                   {getIcon(configForm.provider)}
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold capitalize">{configForm.provider}</h3>
-                  <p className="text-xs text-muted-foreground">API Configuration</p>
+                  <h3 className="text-2xl font-black tracking-tight capitalize">{configForm.provider}</h3>
+                  <div className="flex items-center gap-1.5 mt-0.5 font-bold text-[10px] text-muted-foreground/60 uppercase tracking-widest">
+                    <ShieldCheck className="w-3 h-3 text-primary" />
+                    Security Protocol
+                  </div>
                 </div>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={closeConfigDialog}
-                  className="p-2 rounded-full hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors"
+                  rounded="full"
+                  className="hover:bg-destructive/10 hover:text-destructive transition-colors h-10 w-10"
                 >
-                  <FiX className="w-5 h-5" />
-                </button>
+                  <X className="w-6 h-6" />
+                </Button>
               </div>
 
-              <AlertBanner variant="tip" className="mb-6">
-                You need to create an app in the <span className="font-semibold">{configForm.provider} developer portal</span> to get these credentials.
+              <AlertBanner variant="info" className="mb-8 rounded-xl border-primary/20 bg-primary/5 font-bold text-xs p-4 leading-relaxed">
+                Connect via the <span className="text-primary underline cursor-pointer">{configForm.provider} developer portal</span> to retrieve your cryptographic credentials.
               </AlertBanner>
 
-              <div className="space-y-5">
+              <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Configuration Name <span className="text-muted-foreground font-normal">(Optional)</span>
-                  </label>
+                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-2 block ml-1">
+                    Label <span className="text-muted-foreground font-normal">(Friendly Name)</span>
+                  </Label>
                   <Input
                     type="text"
+                    rounded="xl"
                     value={configForm.name}
                     onChange={(e) => setConfigForm({ ...configForm, name: e.target.value })}
-                    placeholder="e.g. My Main Page"
+                    placeholder="e.g. Primary Facebook Portal"
+                    className="h-12 glass border-white/5 focus:ring-primary/40 pl-4 font-bold"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">
-                    App ID / Client ID <span className="text-destructive">*</span>
-                  </label>
-                  <Input
-                    type="text"
-                    value={configForm.client_id}
-                    onChange={(e) => setConfigForm({ ...configForm, client_id: e.target.value })}
-                    placeholder="Enter App ID"
-                  />
+                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-2 block ml-1">
+                    Access Identification <span className="text-destructive font-black">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/40" />
+                    <Input
+                      type="text"
+                      rounded="xl"
+                      value={configForm.client_id}
+                      onChange={(e) => setConfigForm({ ...configForm, client_id: e.target.value })}
+                      placeholder="Client / App ID"
+                      className="h-12 glass border-white/5 focus:ring-primary/40 pl-11 font-mono font-bold text-sm"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">
-                    App Secret / Client Secret <span className="text-destructive">*</span>
-                  </label>
-                  <Input
-                    type="password"
-                    value={configForm.client_secret}
-                    onChange={(e) => setConfigForm({ ...configForm, client_secret: e.target.value })}
-                    placeholder="Enter App Secret"
-                  />
+                  <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-2 block ml-1">
+                    Authorization Secret <span className="text-destructive font-black">*</span>
+                  </Label>
+                  <div className="relative">
+                    <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/40" />
+                    <Input
+                      type="password"
+                      rounded="xl"
+                      value={configForm.client_secret}
+                      onChange={(e) => setConfigForm({ ...configForm, client_secret: e.target.value })}
+                      placeholder="Secret Key"
+                      className="h-12 glass border-white/5 focus:ring-primary/40 pl-11 font-mono font-bold text-sm"
+                    />
+                  </div>
                 </div>
 
                 {(configForm.provider === 'facebook' || configForm.provider === 'messenger' || configForm.provider === 'instagram') && (
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Webhook Verify Token
-                    </label>
+                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-2 block ml-1">
+                      Webhook Verification
+                    </Label>
                     <Input
                       type="text"
+                      rounded="xl"
                       value={configForm.verify_token}
                       onChange={(e) => setConfigForm({ ...configForm, verify_token: e.target.value })}
-                      placeholder="Enter your verify token"
+                      placeholder="Security Token"
+                      className="h-12 glass border-white/5 focus:ring-primary/40 pl-4 font-bold"
                       required
                     />
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Use this token when setting up webhook in Facebook App
+                    <p className="text-[10px] font-bold text-muted-foreground/50 mt-2 ml-1">
+                      Target this token within your external developer dashboard.
                     </p>
                   </div>
                 )}
 
                 {configForm.provider !== 'facebook' && configForm.provider !== 'messenger' && configForm.provider !== 'instagram' && (
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Scopes <span className="text-muted-foreground font-normal">(Optional)</span>
-                    </label>
+                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-2 block ml-1">
+                      Permission Scopes
+                    </Label>
                     <Input
                       type="text"
+                      rounded="xl"
                       value={configForm.scopes}
                       onChange={(e) => setConfigForm({ ...configForm, scopes: e.target.value })}
-                      placeholder="email, public_profile"
+                      placeholder="e.g. read_messages, write_post"
+                      className="h-12 glass border-white/5 focus:ring-primary/40 pl-4 font-bold"
                     />
                   </div>
                 )}
 
-                {(configForm.provider === 'facebook' || configForm.provider === 'messenger' || configForm.provider === 'instagram') && (
-                  <CodeBlock label="Webhook URL">
-                    {process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}/api/webhooks/facebook
-                  </CodeBlock>
-                )}
-
-                <div className="flex justify-end gap-3 mt-8 pt-2">
+                <div className="flex gap-4 mt-10 pt-4 border-t border-white/5">
                   <Button
                     variant="ghost"
+                    rounded="xl"
+                    className="flex-1 h-12 font-black uppercase tracking-widest text-xs opacity-60 hover:opacity-100 transition-opacity"
                     onClick={closeConfigDialog}
                   >
-                    Cancel
+                    Discard
                   </Button>
                   <Button
+                    rounded="xl"
+                    className="flex-[2] h-12 font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 active:scale-95 transition-all"
                     onClick={saveConfig}
                     disabled={!configForm.client_id || !configForm.client_secret}
                   >
-                    {configForm.id ? 'Update Configuration' : 'Save Configuration'}
+                    {configForm.id ? 'Push Update' : 'Initialize Config'}
                   </Button>
                 </div>
               </div>
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </div>

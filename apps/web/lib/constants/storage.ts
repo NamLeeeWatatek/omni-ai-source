@@ -1,4 +1,4 @@
-﻿
+
 export const STORAGE_KEYS = {
   LEGACY_TOKEN: 'auth_token',
   LEGACY_USER: 'auth_user',

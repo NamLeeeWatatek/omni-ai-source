@@ -1,15 +1,9 @@
-﻿'use client';
+'use client';
 
 import { File, Download, Trash2, FileText, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/Table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
+
 
 interface FileItem {
   id?: string;
@@ -118,4 +112,3 @@ export function FileList({ files, onDelete }: FileListProps) {
     </div>
   );
 }
-

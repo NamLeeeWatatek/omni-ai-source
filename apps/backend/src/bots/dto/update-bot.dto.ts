@@ -1,6 +1,11 @@
 ﻿import { PartialType, ApiPropertyOptional } from '@nestjs/swagger';
 import { CreateBotDto } from './create-bot.dto';
 import {
+  BotStatus,
+  BotWidgetPosition,
+  BotWidgetButtonSize,
+} from '../bots.enum';
+import {
   IsString,
   IsOptional,
   IsEnum,
@@ -36,10 +41,10 @@ export class UpdateBotDto extends PartialType(CreateBotDto) {
   @IsString()
   timezone?: string;
 
-  @ApiPropertyOptional({ enum: ['draft', 'active', 'paused', 'archived'] })
+  @ApiPropertyOptional({ enum: BotStatus })
   @IsOptional()
-  @IsEnum(['draft', 'active', 'paused', 'archived'])
-  status?: 'draft' | 'active' | 'paused' | 'archived';
+  @IsEnum(BotStatus)
+  status?: BotStatus;
 
   @ApiPropertyOptional({ example: 'You are a helpful customer support agent.' })
   @IsOptional()
@@ -94,16 +99,16 @@ export class UpdateBotDto extends PartialType(CreateBotDto) {
   primaryColor?: string | null;
 
   @ApiPropertyOptional({
-    enum: ['bottom-right', 'bottom-left', 'top-right', 'top-left'],
+    enum: BotWidgetPosition,
   })
   @IsOptional()
-  @IsEnum(['bottom-right', 'bottom-left', 'top-right', 'top-left'])
-  widgetPosition?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+  @IsEnum(BotWidgetPosition)
+  widgetPosition?: BotWidgetPosition;
 
-  @ApiPropertyOptional({ enum: ['small', 'medium', 'large'] })
+  @ApiPropertyOptional({ enum: BotWidgetButtonSize })
   @IsOptional()
-  @IsEnum(['small', 'medium', 'large'])
-  widgetButtonSize?: 'small' | 'medium' | 'large';
+  @IsEnum(BotWidgetButtonSize)
+  widgetButtonSize?: BotWidgetButtonSize;
 
   @ApiPropertyOptional({
     example: 'Xin chÃ o! TÃ´i cÃ³ thá»ƒ giÃºp gÃ¬ cho báº¡n?',

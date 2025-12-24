@@ -1,4 +1,4 @@
-﻿import { Card } from '@/components/ui/Card'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { FiFolder, FiTrash2, FiChevronRight } from 'react-icons/fi'
 import type { KBFolder } from '@/lib/types/knowledge-base'

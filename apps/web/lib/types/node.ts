@@ -1,4 +1,4 @@
-﻿
+
 export interface NodeProperty {
   name: string
   label: string

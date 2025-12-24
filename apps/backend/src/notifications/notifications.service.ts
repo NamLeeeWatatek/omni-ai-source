@@ -1,13 +1,21 @@
-﻿import { Injectable, NotFoundException } from '@nestjs/common';
+﻿import {
+  Injectable,
+  NotFoundException,
+  forwardRef,
+  Inject,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { NotificationEntity } from './infrastructure/persistence/relational/entities/notification.entity';
+import { NotificationsGateway } from './notifications.gateway';
 
 @Injectable()
 export class NotificationsService {
   constructor(
     @InjectRepository(NotificationEntity)
     private notificationRepo: Repository<NotificationEntity>,
+    @Inject(forwardRef(() => NotificationsGateway))
+    private notificationsGateway: NotificationsGateway,
   ) {}
 
   async create(data: {
@@ -22,7 +30,18 @@ export class NotificationsService {
       type: data.type ?? 'info',
       isRead: false,
     });
-    return this.notificationRepo.save(notification);
+    const savedNotification = await this.notificationRepo.save(notification);
+
+    // Emit real-time notification to connected clients
+    try {
+      this.notificationsGateway.emitNewNotification(savedNotification);
+      this.notificationsGateway.broadcastUnreadCountUpdate(data.userId);
+    } catch (error) {
+      // Log error but don't fail the notification creation
+      console.error('Failed to emit real-time notification:', error.message);
+    }
+
+    return savedNotification;
   }
 
   async getNotifications(

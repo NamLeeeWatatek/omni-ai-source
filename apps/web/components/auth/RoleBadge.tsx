@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { usePermissions } from '@/lib/hooks/usePermissions'
 import type { Role, RoleBadgeProps } from '@/lib/types'

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { KbProcessingStatus } from '../knowledge-base.enum';
 import { KBChunkEntity } from '../infrastructure/persistence/relational/entities/kb-chunk.entity';
 import { KnowledgeBaseEntity } from '../infrastructure/persistence/relational/entities/knowledge-base.entity';
 import { KBVectorService } from './kb-vector.service';
@@ -75,7 +76,9 @@ export class KBSyncService {
             );
 
             chunk.vectorId = vectorId;
-            chunk.embeddingStatus = 'completed';
+            chunk.vectorId = vectorId;
+            chunk.embeddingStatus = KbProcessingStatus.COMPLETED;
+            await this.chunkRepository.save(chunk);
             await this.chunkRepository.save(chunk);
 
             processed++;
@@ -83,7 +86,7 @@ export class KBSyncService {
             this.logger.error(
               `âŒ Failed to rebuild chunk ${chunk.id}: ${error.message}`,
             );
-            chunk.embeddingStatus = 'failed';
+            chunk.embeddingStatus = KbProcessingStatus.FAILED;
             chunk.embeddingError = error.message;
             await this.chunkRepository.save(chunk);
             errors++;
@@ -121,11 +124,11 @@ export class KBSyncService {
     });
 
     const missingVectors = chunks.filter(
-      (c) => !c.vectorId || c.embeddingStatus !== 'completed',
+      (c) => !c.vectorId || c.embeddingStatus !== KbProcessingStatus.COMPLETED,
     ).length;
 
     const failedEmbeddings = chunks.filter(
-      (c) => c.embeddingStatus === 'failed',
+      (c) => c.embeddingStatus === KbProcessingStatus.FAILED,
     ).length;
 
     return {
@@ -154,7 +157,7 @@ export class KBSyncService {
       .createQueryBuilder('chunk')
       .where('chunk.knowledgeBaseId = :knowledgeBaseId', { knowledgeBaseId })
       .andWhere('(chunk.vectorId IS NULL OR chunk.embeddingStatus = :status)', {
-        status: 'failed',
+        status: KbProcessingStatus.FAILED,
       })
       .getMany();
 
@@ -187,7 +190,7 @@ export class KBSyncService {
         );
 
         chunk.vectorId = vectorId;
-        chunk.embeddingStatus = 'completed';
+        chunk.embeddingStatus = KbProcessingStatus.COMPLETED;
         await this.chunkRepository.save(chunk);
 
         synced++;

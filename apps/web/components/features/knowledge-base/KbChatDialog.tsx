@@ -1,12 +1,13 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
 import { LoadingLogo } from '@/components/ui/LoadingLogo'
-import { FiMessageSquare, FiTrash2 } from 'react-icons/fi'
+import { MessageSquare, Trash2, Send } from 'lucide-react'
 import { createAIConversation, getAIConversation, addAIConversationMessage } from '@/lib/api/conversations'
 import toast from '@/lib/toast'
+import { MessageRole } from '@/lib/types/conversations'
 
 interface KBChatDialogProps {
     open: boolean
@@ -17,7 +18,7 @@ interface KBChatDialogProps {
 
 interface Message {
     id: string
-    role: 'user' | 'assistant'
+    role: MessageRole
     content: string
     createdAt: string
 }
@@ -49,7 +50,7 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
             const fullConversation = await getAIConversation(conversation.id)
             setMessages((fullConversation.messages || []).map((m: any) => ({
                 id: m.id,
-                role: m.role as 'user' | 'assistant',
+                role: m.role as MessageRole,
                 content: m.content,
                 createdAt: m.createdAt,
             })))
@@ -70,7 +71,7 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
 
         const tempUserMsg: Message = {
             id: 'temp-' + Date.now(),
-            role: 'user',
+            role: MessageRole.USER,
             content: userMessage,
             createdAt: new Date().toISOString(),
         }
@@ -79,7 +80,7 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
         try {
             const updatedConversation = await addAIConversationMessage(conversationId, {
                 content: userMessage,
-                role: 'user',
+                role: MessageRole.USER,
                 timestamp: new Date().toISOString(),
                 metadata: {
                     knowledgeBaseId,
@@ -89,7 +90,7 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
 
             const userMessages = (updatedConversation.messages || []).map((m: any) => ({
                 id: m.id,
-                role: m.role as 'user' | 'assistant',
+                role: m.role as MessageRole,
                 content: m.content,
                 createdAt: m.createdAt || m.timestamp,
             }))
@@ -107,7 +108,7 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
 
             const finalConversation = await addAIConversationMessage(conversationId, {
                 content: answerResponse.answer,
-                role: 'assistant',
+                role: MessageRole.ASSISTANT,
                 timestamp: new Date().toISOString(),
                 metadata: {
                     sources: answerResponse.sources,
@@ -116,7 +117,7 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
 
             setMessages((finalConversation.messages || []).map((m: any) => ({
                 id: m.id,
-                role: m.role as 'user' | 'assistant',
+                role: m.role as MessageRole,
                 content: m.content,
                 createdAt: m.createdAt || m.timestamp,
             })))
@@ -147,8 +148,8 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
                     <div className="flex items-center justify-between">
                         <DialogTitle>Chat with AI</DialogTitle>
                         {messages.length > 0 && (
-                            <Button variant="ghost" size="sm" onClick={handleClear}>
-                                <FiTrash2 className="w-4 h-4 mr-2" />
+                            <Button variant="ghost" size="sm" onClick={handleClear} className="rounded-full text-xs hover:bg-destructive/10 hover:text-destructive">
+                                <Trash2 className="w-3.5 h-3.5 mr-2" />
                                 New Chat
                             </Button>
                         )}
@@ -162,8 +163,10 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
                         </div>
                     ) : messages.length === 0 ? (
                         <div className="text-center py-12 text-muted-foreground">
-                            <FiMessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                            <p>Start a conversation with AI</p>
+                            <div className="w-20 h-20 bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-6 ring-8 ring-primary/5">
+                                <MessageSquare className="w-10 h-10 text-primary opacity-40" />
+                            </div>
+                            <p className="font-bold text-foreground">Intelligence Interface</p>
                             <p className="text-sm mt-1">Ask questions about your knowledge base</p>
                         </div>
                     ) : (
@@ -171,14 +174,14 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
                             {messages.map((msg) => (
                                 <Card
                                     key={msg.id}
-                                    className={`p-4 ${msg.role === 'user'
+                                    className={`p-4 ${msg.role === MessageRole.USER
                                         ? 'bg-muted ml-8'
                                         : 'bg-primary/5 border-primary/20 mr-8'
                                         }`}
                                 >
                                     <div className="flex items-start gap-2">
                                         <div className="font-medium text-xs text-muted-foreground uppercase">
-                                            {msg.role === 'user' ? 'You' : 'AI'}
+                                            {msg.role === MessageRole.USER ? 'You' : 'AI'}
                                         </div>
                                     </div>
                                     <p className="text-sm whitespace-pre-wrap mt-1">{msg.content}</p>
@@ -202,8 +205,8 @@ export function KBChatDialog({ open, onOpenChange, knowledgeBaseId, knowledgeBas
                         onKeyDown={(e) => e.key === 'Enter' && !loading && handleChat()}
                         disabled={loading}
                     />
-                    <Button onClick={handleChat} loading={loading} disabled={!message.trim()}>
-                        {!loading && <FiMessageSquare className="w-4 h-4" />}
+                    <Button onClick={handleChat} loading={loading} disabled={!message.trim()} className="rounded-xl h-12 w-12 p-0">
+                        {!loading && <Send className="w-5 h-5" />}
                     </Button>
                 </div>
             </DialogContent>

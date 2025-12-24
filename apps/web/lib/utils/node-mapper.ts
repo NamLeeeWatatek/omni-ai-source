@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Node Mapper Utilities
  * Map between Backend and Frontend (ReactFlow) node structures
  */

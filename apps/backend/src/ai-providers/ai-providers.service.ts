@@ -41,13 +41,21 @@ export class AiProvidersService {
     private readonly aiProviderConfigRepository: AiProviderConfigRepository,
     private readonly systemAiSettingsRepository: SystemAiSettingsRepository,
     private readonly encryptionService: EncryptionUtil,
-  ) { }
+  ) {}
 
   /**
-   * Encrypt sensitive fields in config (apiKey, baseUrl for custom providers)
+   * Encrypts sensitive configuration fields like API keys and URLs.
+   * Handles nested config objects and recursively encrypts sensitive fields.
    */
-  private encryptConfig(config: Record<string, any>): Record<string, any> {
+  private encryptConfig(config: any): any {
+    if (!config) return config;
     const encrypted = { ...config };
+
+    // Handle domain object structure (e.g., WorkspaceAiProviderConfig)
+    if (encrypted.config && typeof encrypted.config === 'object') {
+      encrypted.config = this.encryptConfig(encrypted.config);
+      return encrypted;
+    }
 
     // Encrypt API keys
     if (encrypted.apiKey && typeof encrypted.apiKey === 'string') {
@@ -67,19 +75,42 @@ export class AiProvidersService {
   }
 
   /**
-   * Decrypt sensitive fields in config
+   * Decrypts sensitive configuration fields like API keys and URLs.
+   * Handles nested config objects and recursively decrypts sensitive fields.
    */
-  private decryptConfig(config: Record<string, any>): Record<string, any> {
+  private decryptConfig(config: any): any {
+    if (!config) return config;
     const decrypted = { ...config };
+
+    // Handle domain object structure (e.g., WorkspaceAiProviderConfig)
+    if (decrypted.config && typeof decrypted.config === 'object') {
+      decrypted.config = this.decryptConfig(decrypted.config);
+      return decrypted;
+    }
 
     // Decrypt API keys
     if (decrypted.apiKey && typeof decrypted.apiKey === 'string') {
-      decrypted.apiKey = this.encryptionService.decrypt(decrypted.apiKey);
+      try {
+        decrypted.apiKey = this.encryptionService.decrypt(decrypted.apiKey);
+      } catch (error) {
+        this.logger.warn(`Decryption of API key failed: ${error.message}`);
+      }
     }
 
     // Decrypt URLs for custom providers
-    if (decrypted.baseUrl && typeof decrypted.baseUrl === 'string') {
-      decrypted.baseUrl = this.encryptionService.decrypt(decrypted.baseUrl);
+    if (
+      decrypted.baseUrl &&
+      typeof decrypted.baseUrl === 'string' &&
+      decrypted.baseUrl.includes(':')
+    ) {
+      try {
+        // Only try to decrypt if it looks like encrypted format (has :)
+        if (decrypted.baseUrl.split(':').length === 3) {
+          decrypted.baseUrl = this.encryptionService.decrypt(decrypted.baseUrl);
+        }
+      } catch (error) {
+        // Not encrypted or wrong format
+      }
     }
 
     return decrypted;
@@ -99,7 +130,7 @@ export class AiProvidersService {
     model: string,
     apiKey?: string | null,
   ): Promise<string> {
-    const key = apiKey || this.getApiKey('google');
+    const key = apiKey || (await this.getApiKey('google'));
     const genAI = new GoogleGenerativeAI(key);
 
     // Convert messages to Google Gemini format
@@ -142,7 +173,7 @@ export class AiProvidersService {
     model: string,
     apiKey?: string | null,
   ): Promise<number[]> {
-    const key = apiKey || this.getApiKey('google');
+    const key = apiKey || (await this.getApiKey('google'));
     const genAI = new GoogleGenerativeAI(key);
     const embeddingModel = genAI.getGenerativeModel({ model });
     const result = await embeddingModel.embedContent(text);
@@ -154,7 +185,7 @@ export class AiProvidersService {
     model: string,
     apiKey?: string | null,
   ): Promise<string> {
-    const key = apiKey || this.getApiKey('openai');
+    const key = apiKey || (await this.getApiKey('openai'));
     const openai = new OpenAI({ apiKey: key });
     const response = await openai.chat.completions.create({
       model,
@@ -168,7 +199,7 @@ export class AiProvidersService {
     model: string,
     apiKey?: string | null,
   ): Promise<string> {
-    const key = apiKey || this.getApiKey('openai');
+    const key = apiKey || (await this.getApiKey('openai'));
     const openai = new OpenAI({ apiKey: key });
     const response = await openai.chat.completions.create({
       model,
@@ -182,7 +213,7 @@ export class AiProvidersService {
     model: string,
     apiKey?: string | null,
   ): Promise<number[]> {
-    const key = apiKey || this.getApiKey('openai');
+    const key = apiKey || (await this.getApiKey('openai'));
     const openai = new OpenAI({ apiKey: key });
     const response = await openai.embeddings.create({
       model,
@@ -196,7 +227,7 @@ export class AiProvidersService {
     model: string,
     apiKey?: string | null,
   ): Promise<string> {
-    const key = apiKey || this.getApiKey('anthropic');
+    const key = apiKey || (await this.getApiKey('anthropic'));
     const anthropic = new Anthropic({ apiKey: key });
     const response = await anthropic.messages.create({
       model,
@@ -212,7 +243,7 @@ export class AiProvidersService {
     model: string,
     apiKey?: string | null,
   ): Promise<string> {
-    const key = apiKey || this.getApiKey('anthropic');
+    const key = apiKey || (await this.getApiKey('anthropic'));
     const anthropic = new Anthropic({ apiKey: key });
 
     const systemMessage = messages.find((m) => m.role === 'system');
@@ -348,10 +379,7 @@ export class AiProvidersService {
       userId,
       id,
     );
-    if (config) {
-      config.config = this.decryptConfig(config.config);
-    }
-    return config;
+    return config ? this.decryptConfig(config) : null;
   }
 
   async updateUserConfig(
@@ -369,9 +397,15 @@ export class AiProvidersService {
     }
 
     // Merge configs, encrypt before save
-    const mergedConfig = { ...existing.config, ...dto.config };
-    const encryptedConfig = this.encryptConfig(mergedConfig);
-    const updateDto = { ...dto, config: encryptedConfig };
+    const mergedConfig = {
+      ...this.decryptConfig(existing).config,
+      ...dto.config,
+    };
+    const encryptedConfig = this.encryptConfig({
+      ...dto,
+      config: mergedConfig,
+    });
+    const updateDto = { ...dto, config: encryptedConfig.config };
 
     const updatedConfig =
       await this.aiProviderConfigRepository.updateUserConfig(
@@ -381,8 +415,7 @@ export class AiProvidersService {
       );
 
     // Decrypt for return
-    updatedConfig.config = this.decryptConfig(updatedConfig.config);
-    return updatedConfig;
+    return this.decryptConfig(updatedConfig);
   }
 
   async deleteUserConfig(userId: string, id: string): Promise<void> {
@@ -398,20 +431,19 @@ export class AiProvidersService {
     workspaceId: string,
     dto: CreateWorkspaceAiProviderConfigDto,
   ): Promise<WorkspaceAiProviderConfig> {
-    const encryptedConfig = this.encryptConfig(dto.config);
+    const encryptedConfig = this.encryptConfig(dto);
     const config = await this.aiProviderConfigRepository.createWorkspaceConfig(
       workspaceId,
       {
         providerId: dto.providerId,
         displayName: dto.displayName,
-        config: encryptedConfig,
+        config: encryptedConfig.config,
         modelList: dto.modelList || [],
       },
     );
 
     // Decrypt for return
-    config.config = this.decryptConfig(config.config);
-    return config;
+    return this.decryptConfig(config);
   }
 
   async getWorkspaceConfigs(
@@ -421,10 +453,7 @@ export class AiProvidersService {
       await this.aiProviderConfigRepository.getWorkspaceConfigs(workspaceId);
 
     // Decrypt sensitive fields
-    return configs.map((config) => ({
-      ...config,
-      config: this.decryptConfig(config.config),
-    }));
+    return configs.map((config) => this.decryptConfig(config));
   }
 
   async getWorkspaceConfig(
@@ -435,10 +464,7 @@ export class AiProvidersService {
       workspaceId,
       id,
     );
-    if (config) {
-      config.config = this.decryptConfig(config.config);
-    }
-    return config;
+    return config ? this.decryptConfig(config) : null;
   }
 
   async updateWorkspaceConfig(
@@ -456,9 +482,15 @@ export class AiProvidersService {
     }
 
     // Merge configs, encrypt before save
-    const mergedConfig = { ...existing.config, ...dto.config };
-    const encryptedConfig = this.encryptConfig(mergedConfig);
-    const updateDto = { ...dto, config: encryptedConfig };
+    const mergedConfig = {
+      ...this.decryptConfig(existing).config,
+      ...dto.config,
+    };
+    const encryptedConfig = this.encryptConfig({
+      ...dto,
+      config: mergedConfig,
+    });
+    const updateDto = { ...dto, config: encryptedConfig.config };
 
     const updatedConfig =
       await this.aiProviderConfigRepository.updateWorkspaceConfig(
@@ -468,8 +500,7 @@ export class AiProvidersService {
       );
 
     // Decrypt for return
-    updatedConfig.config = this.decryptConfig(updatedConfig.config);
-    return updatedConfig;
+    return this.decryptConfig(updatedConfig);
   }
 
   async deleteWorkspaceConfig(workspaceId: string, id: string): Promise<void> {
@@ -500,9 +531,78 @@ export class AiProvidersService {
   }
 
   // API key methods
-  private getApiKey(provider: string): string {
-    // Mock implementation - in real app this would get from config
-    // TODO: Implement actual API key retrieval from database/user config
+  private async getApiKey(
+    provider: string,
+    workspaceId?: string,
+  ): Promise<string> {
+    // 1. Try to get from Workspace first if provided
+    if (workspaceId) {
+      try {
+        const workspaceConfigs =
+          await this.aiProviderConfigRepository.getWorkspaceProviders(
+            workspaceId,
+          );
+        const providerEntity = workspaceConfigs.find(
+          (p) => p.key === provider || p.id === provider,
+        );
+
+        if (providerEntity) {
+          const apiKey =
+            await this.aiProviderConfigRepository.getApiKeyByProviderId(
+              providerEntity.id,
+              'workspace',
+            );
+          if (apiKey) return apiKey;
+        }
+
+        // Also try general config by providerId for this workspace
+        const config =
+          await this.aiProviderConfigRepository.getConfigByProviderId(
+            provider, // might be a provider key or ID
+            'workspace',
+            workspaceId,
+          );
+        if (config?.config?.apiKey) return config.config.apiKey;
+      } catch (error) {
+        this.logger.warn(`Failed to fetch workspace API key: ${error.message}`);
+      }
+    }
+
+    // 2. Try to get from database (ownerType: 'system')
+    try {
+      const providers = await this.getAvailableProviders();
+      const providerEntity = providers.find(
+        (p) => p.key === provider || p.id === provider,
+      );
+
+      if (providerEntity) {
+        const apiKey =
+          await this.aiProviderConfigRepository.getApiKeyByProviderId(
+            providerEntity.id,
+            'system',
+          );
+        if (apiKey) return apiKey;
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to fetch system API key from DB: ${error.message}`,
+      );
+    }
+
+    // 3. Check environment variables as fallback
+    const envKeyName = `${provider.toUpperCase()}_API_KEY`;
+    if (process.env[envKeyName]) {
+      return process.env[envKeyName] as string;
+    }
+
+    // Special case for some common providers
+    if (provider === 'openai' && process.env.OPENAI_API_KEY)
+      return process.env.OPENAI_API_KEY;
+    if (provider === 'anthropic' && process.env.ANTHROPIC_API_KEY)
+      return process.env.ANTHROPIC_API_KEY;
+    if (provider === 'google' && process.env.GOOGLE_API_KEY)
+      return process.env.GOOGLE_API_KEY;
+
     throw new Error(`API key for provider ${provider} not configured`);
   }
 
@@ -571,12 +671,12 @@ export class AiProvidersService {
     }
   }
 
-  // Main AI API methods
   async chat(
     prompt: string,
     model: string,
     provider?: string,
     apiKey?: string | null,
+    workspaceId?: string,
   ): Promise<string> {
     const providerKey = provider || 'openai'; // default to openai
 
@@ -597,23 +697,31 @@ export class AiProvidersService {
     model: string,
     provider?: string,
     apiKey?: string | null,
+    workspaceId?: string,
   ): Promise<string> {
     const providerKey = provider || 'openai'; // default to openai
 
-    // For backward compatibility, throw a proper error instead of calling mock getApiKey
-    if (!apiKey && (providerKey === 'openai' || providerKey === 'anthropic')) {
+    // Use provided key or try to get system/workspace key
+    const actualApiKey =
+      apiKey ||
+      (await this.getApiKey(providerKey, workspaceId).catch(() => null));
+
+    if (
+      !actualApiKey &&
+      (providerKey === 'openai' || providerKey === 'anthropic')
+    ) {
       throw new BadRequestException(
-        `API key required for provider "${providerKey}". Use chatWithHistoryUsingProvider() instead to load from database configurations.`,
+        `API key required for provider "${providerKey}". Please configure it in workspace or system settings or provide it directy.`,
       );
     }
 
     switch (providerKey) {
       case 'openai':
-        return this.chatWithOpenAIHistory(messages, model, apiKey);
+        return this.chatWithOpenAIHistory(messages, model, actualApiKey);
       case 'anthropic':
-        return this.chatWithAnthropicHistory(messages, model, apiKey);
+        return this.chatWithAnthropicHistory(messages, model, actualApiKey);
       case 'ollama':
-        return this.chatWithOllamaHistory(messages, model, apiKey); // apiKey can be baseUrl for Ollama
+        return this.chatWithOllamaHistory(messages, model, actualApiKey); // actualApiKey can be baseUrl for Ollama
       default:
         throw new BadRequestException(`Unsupported provider: ${providerKey}`);
     }
@@ -649,35 +757,20 @@ export class AiProvidersService {
       throw new NotFoundException(`Provider not found`);
     }
 
-    // Decrypt sensitive fields before using
-    const decryptedConfig = this.decryptConfig(config);
+    // Decrypt domain config and extract the actual provider config object
+    const decryptedDomainConfig = this.decryptConfig(config);
+    const apiConfig = decryptedDomainConfig.config || decryptedDomainConfig;
 
     // Route to appropriate provider method
     switch (provider.key) {
       case 'openai':
-        return this.chatWithOpenAIHistory(
-          messages,
-          model,
-          decryptedConfig.apiKey,
-        );
+        return this.chatWithOpenAIHistory(messages, model, apiConfig.apiKey);
       case 'anthropic':
-        return this.chatWithAnthropicHistory(
-          messages,
-          model,
-          decryptedConfig.apiKey,
-        );
+        return this.chatWithAnthropicHistory(messages, model, apiConfig.apiKey);
       case 'ollama':
-        return this.chatWithOllamaHistory(
-          messages,
-          model,
-          decryptedConfig.baseUrl,
-        );
+        return this.chatWithOllamaHistory(messages, model, apiConfig.baseUrl);
       case 'google':
-        return this.chatWithGoogleHistory(
-          messages,
-          model,
-          decryptedConfig.apiKey,
-        );
+        return this.chatWithGoogleHistory(messages, model, apiConfig.apiKey);
       case 'azure':
         // For Azure OpenAI, similar to OpenAI but with different base URL
         throw new BadRequestException(`Azure provider not yet implemented`);
@@ -738,7 +831,7 @@ export class AiProvidersService {
     size?: string,
     apiKey?: string | null,
   ): Promise<Buffer | null> {
-    const key = apiKey || this.getApiKey('openai');
+    const key = apiKey || (await this.getApiKey('openai'));
     const openai = new OpenAI({ apiKey: key });
 
     try {
@@ -1473,11 +1566,11 @@ Always provide well-reasoned responses and suggest next steps when appropriate.`
       );
       const improvements = improvementsMatch
         ? improvementsMatch[1]
-          .trim()
-          .split('\n')
-          .map((line) => line.replace(/^[-•]/, '').trim())
-          .filter((line) => line && !line.match(/^\*\*/))
-          .slice(0, 5) // Limit to 5 improvements
+            .trim()
+            .split('\n')
+            .map((line) => line.replace(/^[-•]/, '').trim())
+            .filter((line) => line && !line.match(/^\*\*/))
+            .slice(0, 5) // Limit to 5 improvements
         : ['Professional prompt structure with clear guidelines'];
 
       // Extract suggestions section
@@ -1486,14 +1579,14 @@ Always provide well-reasoned responses and suggest next steps when appropriate.`
       );
       const suggestions = suggestionsMatch
         ? suggestionsMatch[1]
-          .trim()
-          .split('\n')
-          .map((line) => line.replace(/^[-•]/, '').trim())
-          .filter((line) => line && !line.match(/^\*\*/))
-          .slice(0, 5) // Limit to 5 suggestions
+            .trim()
+            .split('\n')
+            .map((line) => line.replace(/^[-•]/, '').trim())
+            .filter((line) => line && !line.match(/^\*\*/))
+            .slice(0, 5) // Limit to 5 suggestions
         : [
-          'Use this prompt as the system message when configuring your AI assistant',
-        ];
+            'Use this prompt as the system message when configuring your AI assistant',
+          ];
 
       return {
         prompt:
@@ -1652,10 +1745,10 @@ Always provide well-reasoned responses and suggest next steps when appropriate.`
       );
       const improvements = improvementsMatch
         ? improvementsMatch[1]
-          .trim()
-          .split('\n')
-          .map((line) => line.replace(/^[-•]/, '').trim())
-          .filter((line) => line)
+            .trim()
+            .split('\n')
+            .map((line) => line.replace(/^[-•]/, '').trim())
+            .filter((line) => line)
         : ['Enhanced prompt structure based on your description'];
 
       // Try to extract suggestions section
@@ -1664,13 +1757,13 @@ Always provide well-reasoned responses and suggest next steps when appropriate.`
       );
       const suggestions = suggestionsMatch
         ? suggestionsMatch[1]
-          .trim()
-          .split('\n')
-          .map((line) => line.replace(/^[-•]/, '').trim())
-          .filter((line) => line)
+            .trim()
+            .split('\n')
+            .map((line) => line.replace(/^[-•]/, '').trim())
+            .filter((line) => line)
         : [
-          'Use this prompt as the system message when configuring your AI assistant',
-        ];
+            'Use this prompt as the system message when configuring your AI assistant',
+          ];
 
       return {
         prompt:

@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import * as z from 'zod'
-import { apiService } from '@/lib/services/api.service'
+import axiosClient from '@/lib/axios-client'
 import { handleFormError } from '@/lib/utils/form-errors'
 
 // Schema definitions
@@ -19,11 +19,11 @@ export type BotFormData = z.infer<typeof botFormSchema>
 
 // API functions
 const createBot = async (data: BotFormData) => {
-  return apiService.post('/bots', data)
+  return axiosClient.post('/bots', data)
 }
 
 const updateBot = async ({ id, data }: { id: string; data: BotFormData }) => {
-  return apiService.put(`/bots/${id}`, data)
+  return axiosClient.put(`/bots/${id}`, data)
 }
 
 // Hook for bot form logic

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { createContext, useContext, ReactNode } from 'react'
 import { useAuth } from '@/lib/hooks/useAuth'
@@ -28,9 +28,9 @@ interface AuthLoadingProviderProps {
  * Provider that wraps auth state and optionally shows a loading screen
  * Use showLoadingScreen={false} for pages that want to handle their own loading UI
  */
-export function AuthLoadingProvider({ 
-    children, 
-    showLoadingScreen = true 
+export function AuthLoadingProvider({
+    children,
+    showLoadingScreen = true
 }: AuthLoadingProviderProps) {
     const { isLoading, isAuthenticated } = useAuth()
 
@@ -43,7 +43,7 @@ export function AuthLoadingProvider({
         return (
             <AuthLoadingContext.Provider value={contextValue}>
                 <div className="min-h-screen flex items-center justify-center bg-background">
-                    <LoadingLogo size="lg" text="Loading..." />
+                    <LoadingLogo size="lg" text="Loading" />
                 </div>
             </AuthLoadingContext.Provider>
         )

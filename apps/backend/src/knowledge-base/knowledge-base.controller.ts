@@ -32,7 +32,12 @@ import {
   CreateKnowledgeBaseDto,
   UpdateKnowledgeBaseDto,
   AssignAgentDto,
+  BatchDeleteDto,
+  BatchMoveDto,
 } from './dto/kb-management.dto';
+import { KBFoldersService } from './services/kb-folders.service';
+import { KBDocumentsService } from './services/kb-documents.service';
+import { CurrentWorkspace } from '../workspaces/decorators/current-workspace.decorator';
 
 @ApiTags('Knowledge Base')
 @ApiBearerAuth()
@@ -43,7 +48,9 @@ export class KnowledgeBaseController {
     private readonly kbService: KBManagementService,
     private readonly vectorService: KBVectorService,
     private readonly kbRagService: KBRagService,
-  ) { }
+    private readonly foldersService: KBFoldersService,
+    private readonly documentsService: KBDocumentsService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all knowledge bases' })
@@ -53,6 +60,7 @@ export class KnowledgeBaseController {
   async getAll(
     @Request() req,
     @Query() query: QueryKnowledgeBaseDto,
+    @CurrentWorkspace() workspaceId: string,
   ): Promise<InfinityPaginationResponseDto<KnowledgeBaseEntity>> {
     const page = query?.page ?? 1;
     let limit = query?.limit ?? 10;
@@ -62,9 +70,6 @@ export class KnowledgeBaseController {
 
     // Extract filters
     const filters = query?.filters;
-
-    // Use query workspaceId or fallback to user's workspace
-    const workspaceId = filters?.workspaceId || req?.user?.workspaceId;
 
     const { data, total } = await this.kbService.findManyWithPagination({
       filterOptions: { ...filters, workspaceId },
@@ -78,9 +83,12 @@ export class KnowledgeBaseController {
 
   @Post()
   @ApiOperation({ summary: 'Create knowledge base' })
-  async create(@Request() req, @Body() createDto: CreateKnowledgeBaseDto) {
+  async create(
+    @Request() req,
+    @Body() createDto: CreateKnowledgeBaseDto,
+    @CurrentWorkspace() workspaceId: string,
+  ) {
     const userId = req.user.id;
-    const workspaceId = createDto.workspaceId || req.user.workspaceId;
 
     return this.kbService.create(userId, {
       ...createDto,
@@ -111,6 +119,97 @@ export class KnowledgeBaseController {
   async remove(@Param('id') id: string, @Request() req) {
     const userId = req.user.id;
     return this.kbService.remove(id, userId);
+  }
+
+  @Post('batch/delete')
+  @ApiOperation({ summary: 'Batch delete folders and documents' })
+  async batchDelete(@Request() req, @Body() body: BatchDeleteDto) {
+    const userId = req.user.id;
+    const { folderIds = [], documentIds = [] } = body;
+
+    const results = {
+      foldersDeleted: 0,
+      documentsDeleted: 0,
+      errors: [] as string[],
+    };
+
+    if (folderIds?.length) {
+      await Promise.all(
+        folderIds.map(async (id) => {
+          try {
+            await this.foldersService.remove(id, userId);
+            results.foldersDeleted++;
+          } catch (e) {
+            results.errors.push(`Failed to delete folder ${id}: ${e.message}`);
+          }
+        }),
+      );
+    }
+
+    if (documentIds?.length) {
+      await Promise.all(
+        documentIds.map(async (id) => {
+          try {
+            await this.documentsService.remove(id, userId);
+            results.documentsDeleted++;
+          } catch (e) {
+            results.errors.push(
+              `Failed to delete document ${id}: ${e.message}`,
+            );
+          }
+        }),
+      );
+    }
+
+    return results;
+  }
+
+  @Post('batch/move')
+  @ApiOperation({ summary: 'Batch move folders and documents' })
+  async batchMove(@Request() req, @Body() body: BatchMoveDto) {
+    const userId = req.user.id;
+    const { folderIds = [], documentIds = [], targetFolderId } = body;
+
+    const results = {
+      foldersMoved: 0,
+      documentsMoved: 0,
+      errors: [] as string[],
+    };
+
+    if (folderIds?.length) {
+      await Promise.all(
+        folderIds.map(async (id) => {
+          try {
+            // Folders service update needs UpdateFolderDto
+            await this.foldersService.update(id, userId, {
+              parentFolderId: targetFolderId,
+            });
+            results.foldersMoved++;
+          } catch (e) {
+            results.errors.push(`Failed to move folder ${id}: ${e.message}`);
+          }
+        }),
+      );
+    }
+
+    if (documentIds?.length) {
+      await Promise.all(
+        documentIds.map(async (id) => {
+          try {
+            await this.documentsService.moveToFolder(
+              id,
+              userId,
+              targetFolderId || null,
+            );
+            results.documentsMoved++;
+          } catch (e) {
+            results.errors.push(`Failed to move document ${id}: ${e.message}`);
+          }
+        }),
+      );
+    }
+
+    return results;
   }
 
   @Get(':id/stats')

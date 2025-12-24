@@ -1,6 +1,6 @@
 ﻿import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsOptional, IsBoolean } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Transform, Expose } from 'class-transformer';
 
 export class CreateCredentialDto {
   @ApiProperty({ example: 'facebook' })
@@ -14,17 +14,19 @@ export class CreateCredentialDto {
 
   @ApiProperty({
     example: '1234567890',
-    description: 'Client ID (can use client_id or clientId)',
+    description: 'Client ID',
   })
-  @Transform(({ obj }) => obj.clientId || obj.client_id)
+  @Expose({ name: 'client_id' })
+  @Transform(({ value, obj }) => value || obj.clientId || obj.client_id)
   @IsString()
   clientId: string;
 
   @ApiProperty({
     example: 'secret-key-here',
-    description: 'Client Secret (can use client_secret or clientSecret)',
+    description: 'Client Secret',
   })
-  @Transform(({ obj }) => obj.clientSecret || obj.client_secret)
+  @Expose({ name: 'client_secret' })
+  @Transform(({ value, obj }) => value || obj.clientSecret || obj.client_secret)
   @IsString()
   clientSecret: string;
 
@@ -33,9 +35,21 @@ export class CreateCredentialDto {
   @IsString()
   scopes?: string;
 
+  @ApiProperty({ example: 'verify-token', required: false })
+  @Expose({ name: 'verify_token' })
+  @Transform(({ value, obj }) => value || obj.verifyToken || obj.verify_token)
+  @IsOptional()
+  @IsString()
+  verifyToken?: string;
+
   @ApiProperty({ example: true, required: false })
-  @Transform(({ obj }) => obj.isActive ?? obj.is_active ?? true)
+  @Expose({ name: 'is_active' })
+  @Transform(({ value, obj }) => value ?? obj.isActive ?? obj.is_active ?? true)
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiProperty({ example: {}, required: false })
+  @IsOptional()
+  metadata?: Record<string, any>;
 }

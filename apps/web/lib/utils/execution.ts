@@ -1,4 +1,4 @@
-﻿
+
 /**
  * Generate execution reference string
  * @example "WF-123-EX-456"

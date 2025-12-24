@@ -1,11 +1,12 @@
-﻿'use client';
+'use client';
 
-import useSWR from 'swr';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { toast } from 'sonner';
-import { useSession } from 'next-auth/react';
+import toast from '@/lib/toast';
+import axiosClient from '@/lib/axios-client';
+import { useAuth } from './useAuth';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
 interface WidgetVersion {
     id: string;
@@ -41,27 +42,25 @@ interface WidgetDeployment {
     deployedBy?: string;
 }
 
-const fetcher = async (url: string, token: string) => {
-    const res = await fetch(url, {
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
-    });
-    if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Failed to fetch');
-    }
-    return res.json();
+/**
+ * Generic fetcher function that uses axiosClient to make API requests.
+ * Removes the API_BASE prefix from the URL since axiosClient handles it.
+ */
+const fetcher = async <T>(url: string): Promise<T> => {
+    return axiosClient.get<T>(url.replace(API_BASE, '')) as unknown as T;
 };
 
 export function useWidgetVersions(botId: string) {
-    const { data: session } = useSession();
-    const token = (session as any)?.accessToken;
+    const queryClient = useQueryClient();
+    const { data, error, isLoading } = useQuery<WidgetVersion[]>({
+        queryKey: ['widget-versions', botId],
+        queryFn: () => fetcher(`${API_BASE}/bots/${botId}/widget/versions`),
+        enabled: !!botId,
+    });
 
-    const { data, error, isLoading, mutate } = useSWR<WidgetVersion[]>(
-        botId && token ? [`${API_BASE}/bots/${botId}/widget/versions`, token] : null,
-        ([url, token]: [string, string]) => fetcher(url, token),
-    );
+    const mutate = () => {
+        queryClient.invalidateQueries({ queryKey: ['widget-versions', botId] });
+    };
 
     return {
         versions: data,
@@ -72,15 +71,16 @@ export function useWidgetVersions(botId: string) {
 }
 
 export function useWidgetVersion(botId: string, versionId: string) {
-    const { data: session } = useSession();
-    const token = (session as any)?.accessToken;
+    const queryClient = useQueryClient();
+    const { data, error, isLoading } = useQuery<WidgetVersionDetail>({
+        queryKey: ['widget-version', botId, versionId],
+        queryFn: () => fetcher(`${API_BASE}/bots/${botId}/widget/versions/${versionId}`),
+        enabled: !!(botId && versionId),
+    });
 
-    const { data, error, isLoading, mutate } = useSWR<WidgetVersionDetail>(
-        botId && versionId && token
-            ? [`${API_BASE}/bots/${botId}/widget/versions/${versionId}`, token]
-            : null,
-        ([url, token]: [string, string]) => fetcher(url, token),
-    );
+    const mutate = () => {
+        queryClient.invalidateQueries({ queryKey: ['widget-version', botId, versionId] });
+    };
 
     return {
         version: data,
@@ -91,13 +91,16 @@ export function useWidgetVersion(botId: string, versionId: string) {
 }
 
 export function useWidgetDeployments(botId: string) {
-    const { data: session } = useSession();
-    const token = (session as any)?.accessToken;
+    const queryClient = useQueryClient();
+    const { data, error, isLoading } = useQuery<WidgetDeployment[]>({
+        queryKey: ['widget-deployments', botId],
+        queryFn: () => fetcher(`${API_BASE}/bots/${botId}/widget/deployments`),
+        enabled: !!botId,
+    });
 
-    const { data, error, isLoading, mutate } = useSWR<WidgetDeployment[]>(
-        botId && token ? [`${API_BASE}/bots/${botId}/widget/deployments`, token] : null,
-        ([url, token]: [string, string]) => fetcher(url, token),
-    );
+    const mutate = () => {
+        queryClient.invalidateQueries({ queryKey: ['widget-deployments', botId] });
+    };
 
     return {
         deployments: data,
@@ -108,10 +111,8 @@ export function useWidgetDeployments(botId: string) {
 }
 
 export function useWidgetVersionActions(botId: string) {
+    const { accessToken: token } = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const { data: session } = useSession();
-    const token = (session as any)?.accessToken;
-
     const createVersion = async (data: {
         version: string;
         config: any;
@@ -125,23 +126,9 @@ export function useWidgetVersionActions(botId: string) {
 
         setIsSubmitting(true);
         try {
-            const res = await fetch(`${API_BASE}/bots/${botId}/widget/versions`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(data),
-            });
-
-            if (!res.ok) {
-                const error = await res.json();
-                throw new Error(error.message || 'Failed to create version');
-            }
-
-            const result = await res.json();
+            const result = await axiosClient.post(`/bots/${botId}/widget/versions`, data);
             toast.success('Version created successfully');
-            return result;
+            return result as any;
         } catch (error: any) {
             toast.error(error.message);
             throw error;
@@ -165,26 +152,9 @@ export function useWidgetVersionActions(botId: string) {
 
         setIsSubmitting(true);
         try {
-            const res = await fetch(
-                `${API_BASE}/bots/${botId}/widget/versions/${versionId}`,
-                {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify(data),
-                },
-            );
-
-            if (!res.ok) {
-                const error = await res.json();
-                throw new Error(error.message || 'Failed to update version');
-            }
-
-            const result = await res.json();
+            const result = await axiosClient.patch(`/bots/${botId}/widget/versions/${versionId}`, data);
             toast.success('Version updated successfully');
-            return result;
+            return result as any;
         } catch (error: any) {
             toast.error(error.message);
             throw error;
@@ -201,24 +171,9 @@ export function useWidgetVersionActions(botId: string) {
 
         setIsSubmitting(true);
         try {
-            const res = await fetch(
-                `${API_BASE}/bots/${botId}/widget/versions/${versionId}/publish`,
-                {
-                    method: 'POST',
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                },
-            );
-
-            if (!res.ok) {
-                const error = await res.json();
-                throw new Error(error.message || 'Failed to publish version');
-            }
-
-            const result = await res.json();
+            const result = await axiosClient.post(`/bots/${botId}/widget/versions/${versionId}/publish`);
             toast.success('Version published successfully');
-            return result;
+            return result as any;
         } catch (error: any) {
             toast.error(error.message);
             throw error;
@@ -235,26 +190,9 @@ export function useWidgetVersionActions(botId: string) {
 
         setIsSubmitting(true);
         try {
-            const res = await fetch(
-                `${API_BASE}/bots/${botId}/widget/versions/${versionId}/rollback`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({ reason }),
-                },
-            );
-
-            if (!res.ok) {
-                const error = await res.json();
-                throw new Error(error.message || 'Failed to rollback');
-            }
-
-            const result = await res.json();
+            const result = await axiosClient.post(`/bots/${botId}/widget/versions/${versionId}/rollback`, { reason });
             toast.success('Rollback successful');
-            return result;
+            return result as any;
         } catch (error: any) {
             toast.error(error.message);
             throw error;
@@ -271,21 +209,7 @@ export function useWidgetVersionActions(botId: string) {
 
         setIsSubmitting(true);
         try {
-            const res = await fetch(
-                `${API_BASE}/bots/${botId}/widget/versions/${versionId}/archive`,
-                {
-                    method: 'POST',
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                },
-            );
-
-            if (!res.ok) {
-                const error = await res.json();
-                throw new Error(error.message || 'Failed to archive version');
-            }
-
+            await axiosClient.post(`/bots/${botId}/widget/versions/${versionId}/archive`);
             toast.success('Version archived successfully');
         } catch (error: any) {
             toast.error(error.message);
@@ -303,21 +227,7 @@ export function useWidgetVersionActions(botId: string) {
 
         setIsSubmitting(true);
         try {
-            const res = await fetch(
-                `${API_BASE}/bots/${botId}/widget/versions/${versionId}`,
-                {
-                    method: 'DELETE',
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                },
-            );
-
-            if (!res.ok) {
-                const error = await res.json();
-                throw new Error(error.message || 'Failed to delete version');
-            }
-
+            await axiosClient.delete(`/bots/${botId}/widget/versions/${versionId}`);
             toast.success('Version deleted successfully');
         } catch (error: any) {
             toast.error(error.message);
@@ -337,4 +247,3 @@ export function useWidgetVersionActions(botId: string) {
         isSubmitting,
     };
 }
-

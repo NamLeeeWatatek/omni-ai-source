@@ -1,4 +1,5 @@
-﻿
+import { MessageRole } from './conversations';
+
 export interface KnowledgeBase {
   id: string;
   workspaceId?: string | null;
@@ -106,13 +107,27 @@ export interface UpdateFolderDto {
   order?: number;
 }
 
+export enum KbProcessingStatus {
+  PENDING = 'pending',
+  PROCESSING = 'processing',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+}
+
+export enum KbSourceType {
+  FILE = 'file',
+  URL = 'url',
+  TEXT = 'text',
+  MANUAL = 'manual',
+}
+
 export interface KBDocument {
   id: string;
   knowledgeBaseId: string;
   folderId?: string | null;
   name: string;
   title?: string;
-  type?: 'file' | 'url' | 'text';
+  type?: KbSourceType | string;
   fileType: string;
   fileSize: string;
   fileUrl?: string | null;
@@ -120,8 +135,8 @@ export interface KBDocument {
   mimeType?: string | null;
   content?: string | null;
   metadata?: Record<string, any> | null;
-  status?: 'pending' | 'processing' | 'completed' | 'failed';
-  processingStatus: 'pending' | 'processing' | 'completed' | 'failed';
+  status?: KbProcessingStatus;
+  processingStatus: KbProcessingStatus;
   processingError?: string | null;
   chunkCount: number;
   tags?: string[] | null;
@@ -180,7 +195,7 @@ export interface GenerateAnswerDto {
   question: string;
   knowledgeBaseId?: string;
   model?: string;
-  conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  conversationHistory?: Array<{ role: MessageRole; content: string }>;
 }
 
 export interface RAGSource {
@@ -214,6 +229,25 @@ export interface AssignAgentDto {
   priority?: number;
   maxResults?: number;
   similarityThreshold?: number;
+}
+
+export interface BatchDeleteDto {
+  folderIds?: string[];
+  documentIds?: string[];
+}
+
+export interface BatchMoveDto {
+  folderIds?: string[];
+  documentIds?: string[];
+  targetFolderId: string | null;
+}
+
+export interface BatchOperationResponse {
+  foldersDeleted?: number;
+  documentsDeleted?: number;
+  foldersMoved?: number;
+  documentsMoved?: number;
+  errors?: string[];
 }
 
 import type { PaginatedResponse } from './pagination'

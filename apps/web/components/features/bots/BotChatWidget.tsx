@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useRef, useEffect } from 'react'
 import { Send, Bot, User, Loader2 } from 'lucide-react'
@@ -7,10 +7,11 @@ import { Input } from '@/components/ui/Input'
 import { ScrollArea } from '@/components/ui/ScrollArea'
 import { Avatar, AvatarFallback } from '@/components/ui/Avatar'
 import { cn } from '@/lib/utils'
+import { MessageRole } from '@/lib/types/conversations'
 
 interface Message {
   id: string
-  role: 'user' | 'assistant'
+  role: MessageRole
   content: string
   timestamp: Date
 }
@@ -26,7 +27,7 @@ export function BotChatWidget({
   botId,
   functionId,
   className,
-  placeholder = 'Nháº­p tin nháº¯n...',
+  placeholder = 'Nhập tin nhắn...',
 }: BotChatWidgetProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -44,7 +45,7 @@ export function BotChatWidget({
 
     const userMessage: Message = {
       id: `msg-${Date.now()}`,
-      role: 'user',
+      role: MessageRole.USER,
       content: input.trim(),
       timestamp: new Date(),
     }
@@ -56,7 +57,7 @@ export function BotChatWidget({
     try {
       const botMessage: Message = {
         id: `msg-${Date.now()}-bot`,
-        role: 'assistant',
+        role: MessageRole.ASSISTANT,
         content: 'This feature needs to be updated to use the new API',
         timestamp: new Date(),
       }
@@ -66,8 +67,8 @@ export function BotChatWidget({
 
       const errorMessage: Message = {
         id: `msg-${Date.now()}-error`,
-        role: 'assistant',
-        content: 'ÄÃ£ xáº£y ra lá»—i. Vui lÃ²ng thá»­ láº¡i sau.',
+        role: MessageRole.ASSISTANT,
+        content: 'Đã xảy ra lỗi. Vui lòng thử lại sau.',
         timestamp: new Date(),
       }
       setMessages((prev) => [...prev, errorMessage])
@@ -94,7 +95,7 @@ export function BotChatWidget({
         </Avatar>
         <div>
           <h3 className="font-semibold">AI Assistant</h3>
-          <p className="text-xs text-muted-foreground">LuÃ´n sáºµn sÃ ng há»— trá»£ báº¡n</p>
+          <p className="text-xs text-muted-foreground">Luôn sẵn sàng hỗ trợ bạn</p>
         </div>
       </div>
 
@@ -104,7 +105,7 @@ export function BotChatWidget({
           {messages.length === 0 && (
             <div className="text-center text-muted-foreground py-8">
               <Bot className="size-12 mx-auto mb-2 opacity-50" />
-              <p>Xin chÃ o! TÃ´i cÃ³ thá»ƒ giÃºp gÃ¬ cho báº¡n?</p>
+              <p>Xin chào! Tôi có thể giúp gì cho bạn?</p>
             </div>
           )}
           {messages.map((message) => (
@@ -112,10 +113,10 @@ export function BotChatWidget({
               key={message.id}
               className={cn(
                 'flex gap-3',
-                message.role === 'user' ? 'justify-end' : 'justify-start'
+                message.role === MessageRole.USER ? 'justify-end' : 'justify-start'
               )}
             >
-              {message.role === 'assistant' && (
+              {message.role === MessageRole.ASSISTANT && (
                 <Avatar className="size-8">
                   <AvatarFallback className="bg-primary text-primary-foreground">
                     <Bot className="size-4" />
@@ -125,7 +126,7 @@ export function BotChatWidget({
               <div
                 className={cn(
                   'max-w-[80%] rounded-lg px-4 py-2',
-                  message.role === 'user'
+                  message.role === MessageRole.USER
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted'
                 )}
@@ -138,7 +139,7 @@ export function BotChatWidget({
                   })}
                 </p>
               </div>
-              {message.role === 'user' && (
+              {message.role === MessageRole.USER && (
                 <Avatar className="size-8">
                   <AvatarFallback className="bg-secondary">
                     <User className="size-4" />

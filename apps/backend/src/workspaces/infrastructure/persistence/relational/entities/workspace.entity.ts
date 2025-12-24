@@ -49,6 +49,7 @@ export class WorkspaceEntity extends EntityRelationalHelper {
 }
 
 import { RoleEntity } from '../../../../../roles/infrastructure/persistence/relational/entities/role.entity';
+import { RoleEnum } from '../../../../../roles/roles.enum';
 
 @Entity({ name: 'workspace_member' })
 @Index(['workspaceId', 'userId'], { unique: true })
@@ -59,7 +60,7 @@ export class WorkspaceMemberEntity extends EntityRelationalHelper {
   @Column({ name: 'user_id', type: 'uuid', primary: true })
   userId: string;
 
-  @Column({ name: 'role_id', type: 'int', default: 3 }) // Default to 'member' (id: 3)
+  @Column({ name: 'role_id', type: 'int', default: RoleEnum.member })
   roleId: number;
 
   @ManyToOne(() => RoleEntity)

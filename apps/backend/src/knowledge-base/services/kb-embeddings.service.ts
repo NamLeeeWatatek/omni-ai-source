@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { KBChunkEntity } from '../infrastructure/persistence/relational/entities/kb-chunk.entity';
 import { AiProvidersService } from '../../ai-providers/ai-providers.service';
 import { KBVectorService } from './kb-vector.service';
+import { KbProcessingStatus } from '../knowledge-base.enum';
 import { KnowledgeBaseEntity } from '../infrastructure/persistence/relational/entities/knowledge-base.entity';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
@@ -162,7 +163,7 @@ export class KBEmbeddingsService {
       await Promise.all(
         batch.map(async (chunk) => {
           try {
-            chunk.embeddingStatus = 'processing';
+            chunk.embeddingStatus = KbProcessingStatus.PROCESSING;
             await this.chunkRepository.save(chunk);
 
             let embedding: number[];
@@ -288,7 +289,7 @@ export class KBEmbeddingsService {
             );
 
             chunk.vectorId = vectorId;
-            chunk.embeddingStatus = 'completed';
+            chunk.embeddingStatus = KbProcessingStatus.COMPLETED;
             await this.chunkRepository.save(chunk);
 
             processedCount++;
@@ -296,7 +297,7 @@ export class KBEmbeddingsService {
               onProgress(processedCount, chunks.length);
             }
           } catch (error) {
-            chunk.embeddingStatus = 'failed';
+            chunk.embeddingStatus = KbProcessingStatus.FAILED;
             chunk.embeddingError = error.message;
             await this.chunkRepository.save(chunk);
             this.logger.error(

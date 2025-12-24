@@ -13,6 +13,11 @@ import {
   Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import {
+  ConversationStatus,
+  MessageRole,
+  MessageFeedback,
+} from '../conversations.enum';
 
 export class CreateConversationDto {
   @ApiProperty({ description: 'Bot ID' })
@@ -56,17 +61,10 @@ export class CreateConversationDto {
   @IsString()
   source?: string;
 
-  @ApiPropertyOptional({
-    description: 'Conversation type (chat, discovery, support)',
-  })
+  @ApiPropertyOptional({ enum: ConversationStatus })
   @IsOptional()
-  @IsString()
-  type?: string;
-
-  @ApiPropertyOptional({ description: 'Conversation status' })
-  @IsOptional()
-  @IsString()
-  status?: string;
+  @IsEnum(ConversationStatus)
+  status?: ConversationStatus;
 
   @ApiPropertyOptional({ type: Object })
   @IsOptional()
@@ -101,12 +99,12 @@ export class AttachmentDto {
 
 export class CreateMessageDto {
   @ApiProperty({
-    enum: ['user', 'assistant', 'system', 'tool'],
-    default: 'user',
+    enum: MessageRole,
+    default: MessageRole.USER,
   })
   @IsNotEmpty()
-  @IsEnum(['user', 'assistant', 'system', 'tool'])
-  role: 'user' | 'assistant' | 'system' | 'tool';
+  @IsEnum(MessageRole)
+  role: MessageRole;
 
   @ApiProperty({ example: 'Hello, how can I help you?' })
   @IsNotEmpty()
@@ -155,16 +153,16 @@ export class CreateMessageDto {
 }
 
 export class UpdateConversationStatusDto {
-  @ApiProperty({ enum: ['active', 'closed', 'handover', 'archived'] })
-  @IsEnum(['active', 'closed', 'handover', 'archived'])
-  status: 'active' | 'closed' | 'handover' | 'archived';
+  @ApiProperty({ enum: ConversationStatus })
+  @IsEnum(ConversationStatus)
+  status: ConversationStatus;
 }
 
 export class MessageFeedbackDto {
-  @ApiPropertyOptional({ enum: ['positive', 'negative'] })
+  @ApiPropertyOptional({ enum: MessageFeedback })
   @IsOptional()
-  @IsEnum(['positive', 'negative'])
-  feedback?: 'positive' | 'negative';
+  @IsEnum(MessageFeedback)
+  feedback?: MessageFeedback;
 
   @ApiPropertyOptional({ example: 'Very helpful response!' })
   @IsOptional()

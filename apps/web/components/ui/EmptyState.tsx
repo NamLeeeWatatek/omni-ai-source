@@ -1,6 +1,8 @@
+
 import React from 'react'
 import { Button } from './Button'
 import { Card } from './Card'
+import { cn } from '@/lib/utils'
 
 interface EmptyStateProps {
   icon?: React.ReactNode
@@ -9,51 +11,73 @@ interface EmptyStateProps {
   action?: {
     label: string
     onClick: () => void
-    variant?: 'default' | 'outline' | 'secondary'
+    variant?: 'default' | 'outline' | 'secondary' | 'ghost' | 'destructive'
   }
   className?: string
 }
 
+/**
+ * Empty state component with premium design
+ * Use for displaying no data, no results, or error states
+ */
 export function EmptyState({
   icon,
   title,
   description,
   action,
-  className = ''
+  className
 }: EmptyStateProps) {
   return (
-    <Card className={`p-8 text-center ${className}`}>
+    <Card className={cn(
+      'p-12 text-center border-dashed',
+      'bg-gradient-to-br from-card/50 to-card/30',
+      'animate-in fade-in-50 zoom-in-95 duration-500',
+      className
+    )}>
       {icon && (
-        <div className="flex justify-center mb-4">
-          <div className="text-muted-foreground opacity-60">
+        <div className="flex justify-center mb-6 animate-in fade-in-50 slide-in-from-bottom-4 duration-700 delay-150">
+          <div className={cn(
+            'text-muted-foreground/60',
+            'transition-all duration-300 hover:scale-110 hover:text-muted-foreground/80'
+          )}>
             {icon}
           </div>
         </div>
       )}
 
-      <h3 className="text-lg font-semibold mb-2 text-foreground">
+      <h3 className={cn(
+        'text-xl font-semibold mb-3 text-foreground/90',
+        'animate-in fade-in-50 slide-in-from-bottom-3 duration-700 delay-300'
+      )}>
         {title}
       </h3>
 
       {description && (
-        <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+        <p className={cn(
+          'text-sm text-muted-foreground mb-8 max-w-md mx-auto leading-relaxed',
+          'animate-in fade-in-50 slide-in-from-bottom-2 duration-700 delay-500'
+        )}>
           {description}
         </p>
       )}
 
       {action && (
-        <Button
-          onClick={action.onClick}
-          variant={action.variant || 'default'}
-        >
-          {action.label}
-        </Button>
+        <div className="animate-in fade-in-50 slide-in-from-bottom-1 duration-700 delay-700">
+          <Button
+            onClick={action.onClick}
+            variant={action.variant || 'default'}
+            className="shadow-lg hover:shadow-xl transition-shadow"
+          >
+            {action.label}
+          </Button>
+        </div>
       )}
     </Card>
   )
 }
 
 // Specialized empty states for common use cases
+
 export function NoDataEmptyState({
   title = "Không có dữ liệu",
   description = "Chưa có dữ liệu nào được tạo.",
@@ -74,7 +98,8 @@ export function NoDataEmptyState({
       description={description}
       action={onCreate ? {
         label: createLabel,
-        onClick: onCreate
+        onClick: onCreate,
+        variant: 'default'
       } : undefined}
     />
   )
@@ -133,3 +158,4 @@ export function ErrorEmptyState({
     />
   )
 }
+

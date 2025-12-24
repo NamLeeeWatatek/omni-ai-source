@@ -7,21 +7,32 @@ const AUTH_TAG_LENGTH = 16;
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 
 export class EncryptionTransformer implements ValueTransformer {
+  private encryptionKey: Buffer;
+
   constructor() {
     if (!ENCRYPTION_KEY) {
       console.error(
         'CRITICAL: ENCRYPTION_KEY is not defined in environment variables.',
       );
     }
+
+    // Ensure the key is exactly 32 bytes (256 bits) for AES-256-GCM
+    if (ENCRYPTION_KEY) {
+      // Hash the key to ensure it's exactly 32 bytes
+      this.encryptionKey = crypto
+        .createHash('sha256')
+        .update(ENCRYPTION_KEY)
+        .digest();
+    }
   }
 
   to(value: string | null): string | null {
-    if (!value || !ENCRYPTION_KEY) return value;
+    if (!value || !this.encryptionKey) return value;
 
     const iv = crypto.randomBytes(IV_LENGTH);
     const cipher = crypto.createCipheriv(
       ALGORITHM,
-      Buffer.from(ENCRYPTION_KEY, 'utf8'),
+      this.encryptionKey,
       iv,
     ) as crypto.CipherGCM;
 
@@ -34,7 +45,7 @@ export class EncryptionTransformer implements ValueTransformer {
   }
 
   from(value: string | null): string | null {
-    if (!value || !ENCRYPTION_KEY) return value;
+    if (!value || !this.encryptionKey) return value;
 
     try {
       // Handle versioning (e.g., v1:)
@@ -51,7 +62,7 @@ export class EncryptionTransformer implements ValueTransformer {
       const authTag = Buffer.from(authTagHex, 'hex');
       const decipher = crypto.createDecipheriv(
         ALGORITHM,
-        Buffer.from(ENCRYPTION_KEY, 'utf8'),
+        this.encryptionKey,
         iv,
       ) as crypto.DecipherGCM;
 

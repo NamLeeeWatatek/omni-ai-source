@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Typing Indicator Hook
  * Shows "User is typing..." like Slack, WhatsApp, Messenger
  */

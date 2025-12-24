@@ -15,13 +15,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  private casdoorSyncService: any;
-
   constructor(private readonly usersRepository: UserRepository) {}
-
-  setCasdoorSyncService(service: any) {
-    this.casdoorSyncService = service;
-  }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     let password: string | undefined = undefined;
@@ -68,12 +62,6 @@ export class UsersService {
       lastName: createUserDto.lastName,
       socialId: createUserDto.socialId,
     });
-
-    if (this.casdoorSyncService && createUserDto.provider !== 'casdoor') {
-      try {
-        await this.casdoorSyncService.syncUserToCasdoor(user);
-      } catch (error) {}
-    }
 
     return user;
   }
@@ -179,24 +167,12 @@ export class UsersService {
       socialId: updateUserDto.socialId,
     });
 
-    if (this.casdoorSyncService && updatedUser && updateUserDto.role) {
-      try {
-        await this.casdoorSyncService.syncUserToCasdoor(updatedUser);
-      } catch (error) {}
-    }
-
     return updatedUser;
   }
 
   async remove(id: User['id']): Promise<void> {
     const user = await this.usersRepository.findById(id);
     await this.usersRepository.remove(id);
-
-    if (this.casdoorSyncService && user?.email) {
-      try {
-        await this.casdoorSyncService.deleteUserFromCasdoor(user.email);
-      } catch (error) {}
-    }
   }
 
   async verifyEmail(id: User['id']): Promise<User | null> {

@@ -12,7 +12,7 @@ export class RoleSeedService {
     private roleRepository: Repository<RoleEntity>,
     @InjectRepository(PermissionEntity)
     private permissionRepository: Repository<PermissionEntity>,
-  ) { }
+  ) {}
 
   async run() {
     const allPermissions = await this.permissionRepository.find();
@@ -37,28 +37,24 @@ export class RoleSeedService {
         id: RoleEnum.admin,
         name: 'Admin',
         description: 'Administrator with full access',
-        casdoorRoleName: 'admin',
         permissions: adminPermissions,
       },
       {
         id: RoleEnum.user,
         name: 'User',
         description: 'Regular user with limited access',
-        casdoorRoleName: 'user',
         permissions: userPermissions,
       },
       {
         id: RoleEnum.member,
         name: 'Member',
         description: 'Workspace member',
-        casdoorRoleName: 'member',
         permissions: userPermissions,
       },
       {
         id: RoleEnum.owner,
         name: 'Owner',
         description: 'Workspace owner',
-        casdoorRoleName: 'owner',
         permissions: adminPermissions,
       },
     ];
@@ -74,7 +70,6 @@ export class RoleSeedService {
       } else {
         role.name = roleData.name;
         role.description = roleData.description;
-        role.casdoorRoleName = roleData.casdoorRoleName;
         role.permissions = roleData.permissions;
       }
       await this.roleRepository.save(role);

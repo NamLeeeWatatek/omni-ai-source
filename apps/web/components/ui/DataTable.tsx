@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -17,116 +18,23 @@ import { Input } from "./Input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./Select"
 import { LoadingLogo } from "./LoadingLogo"
 
-// Basic Table Components
-const Table = React.forwardRef<
-  HTMLTableElement,
-  React.HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
-    <table
-      ref={ref}
-      className={cn("w-full caption-bottom text-sm", className)}
-      {...props}
-    />
-  </div>
-))
-Table.displayName = "Table"
-
-const TableHeader = React.forwardRef<
-  HTMLTableSectionElement,
-  React.HTMLAttributes<HTMLTableSectionElement>
->(({ className, ...props }, ref) => (
-  <thead ref={ref} className={cn("[&_tr]:border-b", className)} {...props} />
-))
-TableHeader.displayName = "TableHeader"
-
-const TableBody = React.forwardRef<
-  HTMLTableSectionElement,
-  React.HTMLAttributes<HTMLTableSectionElement>
->(({ className, ...props }, ref) => (
-  <tbody
-    ref={ref}
-    className={cn("[&_tr:last-child]:border-0", className)}
-    {...props}
-  />
-))
-TableBody.displayName = "TableBody"
-
-const TableFooter = React.forwardRef<
-  HTMLTableSectionElement,
-  React.HTMLAttributes<HTMLTableSectionElement>
->(({ className, ...props }, ref) => (
-  <tfoot
-    ref={ref}
-    className={cn(
-      "border-t bg-muted/50 font-medium [&>tr]:last:border-b-0",
-      className
-    )}
-    {...props}
-  />
-))
-TableFooter.displayName = "TableFooter"
-
-const TableRow = React.forwardRef<
-  HTMLTableRowElement,
-  React.HTMLAttributes<HTMLTableRowElement>
->(({ className, ...props }, ref) => (
-  <tr
-    ref={ref}
-    className={cn(
-      "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
-      className
-    )}
-    {...props}
-  />
-))
-TableRow.displayName = "TableRow"
-
-const TableHead = React.forwardRef<
-  HTMLTableCellElement,
-  React.ThHTMLAttributes<HTMLTableCellElement>
->(({ className, ...props }, ref) => (
-  <th
-    ref={ref}
-    className={cn(
-      "h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0",
-      className
-    )}
-    {...props}
-  />
-))
-TableHead.displayName = "TableHead"
-
-const TableCell = React.forwardRef<
-  HTMLTableCellElement,
-  React.TdHTMLAttributes<HTMLTableCellElement>
->(({ className, ...props }, ref) => (
-  <td
-    ref={ref}
-    className={cn("p-4 align-middle [&:has([role=checkbox])]:pr-0", className)}
-    {...props}
-  />
-))
-TableCell.displayName = "TableCell"
-
-const TableCaption = React.forwardRef<
-  HTMLTableCaptionElement,
-  React.HTMLAttributes<HTMLTableCaptionElement>
->(({ className, ...props }, ref) => (
-  <caption
-    ref={ref}
-    className={cn("mt-4 text-sm text-muted-foreground", className)}
-    {...props}
-  />
-))
-TableCaption.displayName = "TableCaption"
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./Table"
 
 // Types for DataTable
 export type SortDirection = 'asc' | 'desc' | null
 
 export interface Column<T = any> {
   key: string
-  label: string
+  label: React.ReactNode
   sortable?: boolean
   searchable?: boolean
   render?: (value: any, row: T) => React.ReactNode
@@ -136,7 +44,7 @@ export interface Column<T = any> {
 
 
 export interface DataTableProps<T = any> {
-  // Data từ Redux
+  // Data from Redux
   data: T[]
   loading?: boolean
   error?: string | null
@@ -162,9 +70,19 @@ export interface DataTableProps<T = any> {
   onPageChange?: (page: number) => void
   onPageSizeChange?: (pageSize: number) => void
 
+  // Tree Mode
+  isTree?: boolean
+  childrenKey?: string
+  treeColumnKey?: string
+  defaultExpanded?: string[]
+  indentSize?: number
+
   // Actions
   actions?: React.ReactNode
   onRowClick?: (row: T) => void
+  onRowDragStart?: (e: React.DragEvent, row: T) => void
+  onRowDragOver?: (e: React.DragEvent, row: T) => void
+  onRowDrop?: (e: React.DragEvent, row: T) => void
 
   // Empty state
   emptyMessage?: string
@@ -183,7 +101,7 @@ export function DataTable<T = any>({
 
   columns,
   searchable = true,
-  searchPlaceholder = "Search...",
+  searchPlaceholder = "Search",
   searchValue = '',
   onSearch,
 
@@ -197,8 +115,17 @@ export function DataTable<T = any>({
   onPageChange,
   onPageSizeChange,
 
+  isTree = false,
+  childrenKey = 'children',
+  treeColumnKey,
+  defaultExpanded = [],
+  indentSize = 20,
+
   actions,
   onRowClick,
+  onRowDragStart,
+  onRowDragOver,
+  onRowDrop,
 
   emptyMessage = "No data available",
   emptyComponent,
@@ -208,6 +135,7 @@ export function DataTable<T = any>({
   compact = false
 }: DataTableProps<T>) {
   const [localSearchValue, setLocalSearchValue] = React.useState(searchValue)
+  const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set(defaultExpanded))
 
   // Sync local search with prop
   React.useEffect(() => {
@@ -217,6 +145,16 @@ export function DataTable<T = any>({
   const handleSearchChange = (value: string) => {
     setLocalSearchValue(value)
     onSearch?.(value)
+  }
+
+  const toggleExpand = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    setExpandedRows(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
 
   const handleSort = (key: string, columnSortable: boolean) => {
@@ -255,6 +193,77 @@ export function DataTable<T = any>({
     onPageSizeChange?.(pageSize)
   }
 
+  const renderRows = (nodes: T[], level = 0): React.ReactNode[] => {
+    return nodes.flatMap((row, index) => {
+      const id = (row as any).id || (row as any).key || index.toString()
+      const children = (row as any)[childrenKey]
+      const hasChildren = children && Array.isArray(children) && children.length > 0
+      const isExpanded = expandedRows.has(id)
+
+      const tableRow = (
+        <TableRow
+          key={id}
+          className={cn(onRowClick && "cursor-pointer")}
+          onClick={() => onRowClick?.(row)}
+          draggable={!!onRowDragStart}
+          onDragStart={(e) => onRowDragStart?.(e, row)}
+          onDragOver={(e) => onRowDragOver?.(e, row)}
+          onDrop={(e) => onRowDrop?.(e, row)}
+        >
+          {columns.map((column, colIdx) => {
+            const isSelection = column.key === 'selection'
+            const isTreeColumn = isTree && (column.key === treeColumnKey || (!treeColumnKey && colIdx === 0))
+
+            return (
+              <TableCell
+                key={column.key}
+                className={cn(
+                  "h-12",
+                  !isSelection && "p-4",
+                  isSelection && "p-0 w-12 text-center",
+                  column.className
+                )}
+              >
+                <div className={cn(
+                  "flex items-center h-full",
+                  isSelection && "justify-center"
+                )}>
+                  {isTreeColumn && (
+                    <>
+                      <div style={{ width: `${level * indentSize}px` }} className="flex-shrink-0" />
+                      {hasChildren ? (
+                        <button
+                          onClick={(e) => toggleExpand(e, id)}
+                          className="mr-2 h-7 w-7 rounded-md hover:bg-muted flex items-center justify-center transition-colors text-muted-foreground/60 hover:text-foreground"
+                        >
+                          {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        </button>
+                      ) : (
+                        <div className="w-9 flex-shrink-0" />
+                      )}
+                    </>
+                  )}
+                  <div className={cn(isSelection && "flex items-center justify-center w-full")}>
+                    {column.render
+                      ? column.render((row as any)[column.key], row)
+                      : (row as any)[column.key]
+                    }
+                  </div>
+                </div>
+              </TableCell>
+            )
+          })}
+        </TableRow>
+      )
+
+      if (isTree && hasChildren && isExpanded) {
+        return [tableRow, ...renderRows(children, level + 1)]
+      }
+
+      return [tableRow]
+    })
+  }
+
   return (
     <div className={cn("space-y-4", className)}>
       {/* Header with search and actions */}
@@ -276,25 +285,32 @@ export function DataTable<T = any>({
       )}
 
       {/* Table */}
-      <div className={cn("rounded-md border", tableClassName)}>
+      <div className={cn("rounded-lg border bg-card shadow-sm overflow-hidden", tableClassName)}>
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="hover:bg-transparent">
               {columns.map((column) => (
                 <TableHead
                   key={column.key}
                   className={cn(
-                    "select-none",
-                    (sortable && column.sortable !== false) && "cursor-pointer hover:text-foreground",
-                    column.width && `w-[${column.width}]`,
+                    "h-12",
+                    column.key !== 'selection' && "px-4",
+                    (sortable && column.sortable !== false) && "cursor-pointer hover:bg-muted/50 transition-colors",
+                    column.width ? `w-[${typeof column.width === 'number' ? column.width + 'px' : column.width}]` : (column.key === 'selection' ? "w-12" : ""),
                     column.className
                   )}
                   onClick={() => handleSort(column.key, column.sortable !== false)}
                 >
-                  <div className="flex items-center gap-2">
-                    {column.label}
-                    {(sortable && column.sortable !== false) && getSortIcon(column.key)}
-                  </div>
+                  {column.key === 'selection' ? (
+                    <div className="flex justify-center items-center h-full w-full">
+                      {column.label}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      {column.label}
+                      {(sortable && column.sortable !== false) && getSortIcon(column.key)}
+                    </div>
+                  )}
                 </TableHead>
               ))}
             </TableRow>
@@ -302,42 +318,24 @@ export function DataTable<T = any>({
           <TableBody>
             {loading ? (
               <TableRow>
-                <td colSpan={columns.length} className="h-24 text-center">
-                  <LoadingLogo size="sm" text="Loading data..." />
-                </td>
+                <TableCell colSpan={columns.length} className="h-48 text-center bg-transparent border-0">
+                  <LoadingLogo size="sm" text="Loading data" />
+                </TableCell>
               </TableRow>
             ) : error ? (
               <TableRow>
-                <td colSpan={columns.length} className="h-24 text-center text-destructive">
+                <TableCell colSpan={columns.length} className="h-24 text-center text-destructive">
                   {error}
-                </td>
+                </TableCell>
               </TableRow>
             ) : data.length === 0 ? (
               <TableRow>
-                <td colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
                   {emptyComponent || emptyMessage}
-                </td>
+                </TableCell>
               </TableRow>
             ) : (
-              data.map((row, index) => (
-                <TableRow
-                  key={(row as any)?.id || index}
-                  className={cn(onRowClick && "cursor-pointer")}
-                  onClick={() => onRowClick?.(row)}
-                >
-                  {columns.map((column) => (
-                    <TableCell
-                      key={column.key}
-                      className={cn(column.className)}
-                    >
-                      {column.render
-                        ? column.render((row as any)[column.key], row)
-                        : (row as any)[column.key]
-                      }
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
+              renderRows(data)
             )}
           </TableBody>
         </Table>
@@ -357,13 +355,4 @@ export function DataTable<T = any>({
   )
 }
 
-export {
-  Table,
-  TableHeader,
-  TableBody,
-  TableFooter,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableCaption,
-}
+

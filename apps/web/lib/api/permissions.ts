@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Permissions API Client
  */
 import axiosClient from '@/lib/axios-client'

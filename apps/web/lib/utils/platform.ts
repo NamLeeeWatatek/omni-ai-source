@@ -1,19 +1,19 @@
-﻿/**
+/**
  * Platform Utilities
  * Centralized utilities for platform icons and colors
  */
 import {
-  FiFacebook,
-  FiInstagram,
-  FiMessageCircle,
-  FiMail,
-  FiYoutube,
-  FiTwitter,
-  FiLinkedin,
-  FiSlack,
-  FiGlobe,
-  FiPhone
-} from 'react-icons/fi'
+  Facebook,
+  Instagram,
+  MessageCircle,
+  Mail,
+  Youtube,
+  Twitter,
+  Linkedin,
+  Slack,
+  Globe,
+  Phone
+} from 'lucide-react'
 import {
   FaWhatsapp,
   FaTelegram,
@@ -43,24 +43,24 @@ import {
  */
 export function getPlatformIcon(type: string): any {
   const iconMap: Record<string, any> = {
-    facebook: FiFacebook,
+    facebook: Facebook,
     messenger: FaFacebookMessenger,
-    instagram: FiInstagram,
+    instagram: Instagram,
     whatsapp: FaWhatsapp,
     telegram: FaTelegram,
-    email: FiMail,
-    youtube: FiYoutube,
-    twitter: FiTwitter,
-    linkedin: FiLinkedin,
+    email: Mail,
+    youtube: Youtube,
+    twitter: Twitter,
+    linkedin: Linkedin,
     tiktok: FaTiktok,
     discord: FaDiscord,
-    slack: FiSlack,
+    slack: Slack,
     zalo: SiZalo,
     line: FaLine,
     viber: FaViber,
     wechat: FaWeixin,
-    sms: FiPhone,
-    webchat: FiGlobe,
+    sms: Phone,
+    webchat: Globe,
     shopify: FaShopify,
     google: FaGoogle,
     hubspot: SiHubspot,
@@ -72,7 +72,7 @@ export function getPlatformIcon(type: string): any {
     airtable: SiAirtable
   }
 
-  return iconMap[type] || FiMessageCircle
+  return iconMap[type] || MessageCircle
 }
 
 /**
@@ -111,4 +111,5 @@ export function getPlatformColor(type: string): string {
 
   return validPlatforms.includes(type) ? `platform-${type}` : 'platform-default'
 }
-
+
+

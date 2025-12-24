@@ -9,7 +9,6 @@
   "notifications": "Notifications",
   "welcome": "Welcome",
   "hello": "Hello",
-
   "navigation": {
     "features": "Features",
     "pricing": "Pricing",
@@ -17,14 +16,12 @@
     "login": "Login",
     "start": "Start"
   },
-
   "hero": {
     "title": "Smart Multi-Channel AI Chatbot Platform",
     "description": "Connect all your communication channels - WhatsApp, Facebook, Instagram, Telegram - in one single platform. Automate customer care with AI and increase sales revenue.",
     "startForFree": "Start for free",
     "contactSales": "Contact sales"
   },
-
   "dashboard": {
     "title": "Dashboard",
     "welcomeBack": "Welcome back! Here's your overview.",
@@ -75,7 +72,6 @@
       "avgTime": "avg"
     }
   },
-
   "features": {
     "unifiedPlatform": "Unified Platform",
     "comprehensiveSolution": "Comprehensive solution for automated customer care",
@@ -99,7 +95,6 @@
       "globalInfrastructureDesc": "Deploy on global edge network to ensure fast response times."
     }
   },
-
   "ai": {
     "providers": "AI Providers",
     "models": "Models",
@@ -107,7 +102,6 @@
     "configuration": "Configuration",
     "selectModel": "Select a model"
   },
-
   "common": {
     "save": "Save",
     "cancel": "Cancel",
@@ -116,25 +110,22 @@
     "add": "Add",
     "create": "Create",
     "update": "Update",
-    "loading": "Loading...",
+    "loading": "Loading",
     "error": "Error",
     "success": "Success",
     "recommended": "Recommended",
     "notAvailable": "Not Available",
-    "loadingText": "Loading..."
+    "loadingText": "Loading"
   },
-
   "validation": {
     "required": "This field is required",
     "invalid": "Invalid value",
     "tooLong": "Too long",
     "tooShort": "Too short"
   },
-
   "buttons": {
     "switchLanguage": "Switch Language"
   },
-
   "error": {
     "general": "An error occurred",
     "notFound": "Not found",
@@ -144,13 +135,11 @@
     "providerNotSupported": "Provider not supported",
     "modelNotSupported": "Model does not support chat operations"
   },
-
   "success": {
     "saved": "Saved successfully",
     "deleted": "Deleted successfully",
     "updated": "Updated successfully"
   },
-
   "login": {
     "title": "AI-Powered Omnichannel Platform",
     "signInWithCasdoor": "Sign in with Casdoor",
@@ -159,9 +148,9 @@
     "and": "and",
     "privacyPolicy": "Privacy Policy",
     "backToHome": "Back to home",
-    "pleaseWait": "Please wait...",
-    "redirecting": "Redirecting...",
-    "loading": "Loading...",
+    "pleaseWait": "Please wait",
+    "redirecting": "Redirecting",
+    "loading": "Loading",
     "features": {
       "aiWorkflow": "AI-powered workflow automation",
       "omnichannel": "Omnichannel messaging",
@@ -178,7 +167,6 @@
       "loginInitFailed": "Failed to initialize Casdoor login. Please check the console for details."
     }
   },
-
   "globalScale": {
     "title": "Global Scale",
     "description": "WataOmi operates on a global scale, handling millions of conversations safely and reliably.",
@@ -187,7 +175,6 @@
     "integratedChannels": "Integrated channels",
     "countries": "Countries"
   },
-
   "pricing": {
     "title": "Simple, transparent pricing",
     "subtitle": "No setup fees, no hidden costs",

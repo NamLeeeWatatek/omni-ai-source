@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import { Sparkles, Loader2, Check } from 'lucide-react'
@@ -39,7 +39,7 @@ export function AutoFillInput({
       toast.error('This feature needs to be updated to use the new API')
       
     } catch {
-      toast.error('ÄÃ£ xáº£y ra lá»—i khi táº¡o gá»£i Ã½')
+      toast.error('Đã xảy ra lỗi khi tạo gợi ý')
     } finally {
       setLoading(false)
     }
@@ -48,7 +48,7 @@ export function AutoFillInput({
   const applySuggestion = () => {
     onChange(suggestion)
     setShowSuggestion(false)
-    toast.success('ÄÃ£ Ã¡p dá»¥ng gá»£i Ã½')
+    toast.success('Đã áp dụng gợi ý')
   }
 
   return (
@@ -67,7 +67,7 @@ export function AutoFillInput({
           size="icon"
           onClick={getSuggestion}
           disabled={loading}
-          title="Gá»£i Ã½ AI"
+          title="Gợi ý AI"
         >
           {loading ? (
             <Loader2 className="size-4 animate-spin" />
@@ -87,7 +87,7 @@ export function AutoFillInput({
             className="flex-shrink-0"
           >
             <Check className="size-4 mr-1" />
-            Ãp dá»¥ng
+            Áp dụng
           </Button>
         </div>
       )}

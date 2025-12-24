@@ -34,10 +34,21 @@ export class FilterTemplateDto {
   @IsString()
   workspaceId?: string;
 
-  @ApiPropertyOptional({ type: String, description: 'Filter by creator user ID' })
+  @ApiPropertyOptional({
+    type: String,
+    description: 'Filter by creator user ID',
+  })
   @IsOptional()
   @IsString()
   createdBy?: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    description: 'Filter by creation tool ID',
+  })
+  @IsOptional()
+  @IsString()
+  creationToolId?: string;
 }
 
 export class SortTemplateDto {

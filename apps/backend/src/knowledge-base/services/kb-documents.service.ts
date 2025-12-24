@@ -21,6 +21,7 @@ import {
   KbDocumentEntity,
   KnowledgeBaseDocumentEntity,
 } from '../infrastructure/persistence/relational/entities/knowledge-base.entity';
+import { KbProcessingStatus } from '../knowledge-base.enum';
 import { KBChunkEntity } from '../infrastructure/persistence/relational/entities/kb-chunk.entity';
 
 @Injectable()
@@ -36,7 +37,7 @@ export class KBDocumentsService {
     private readonly embeddingsService: KBEmbeddingsService,
     private readonly filesService: FilesService,
     private readonly processingQueue: KBProcessingQueueService,
-  ) { }
+  ) {}
 
   private async extractPdfWithPdf2json(buffer: Buffer): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -269,7 +270,10 @@ export class KBDocumentsService {
     }
   }
 
-  async create(userId: string, createDto: CreateDocumentDto): Promise<KbDocumentEntity> {
+  async create(
+    userId: string,
+    createDto: CreateDocumentDto,
+  ): Promise<KbDocumentEntity> {
     const kb = await this.kbManagementService.findOne(
       createDto.knowledgeBaseId,
       userId,
@@ -301,7 +305,7 @@ export class KBDocumentsService {
       metadata: sanitizedMetadata,
       fileType: createDto.fileType || 'text',
       fileSize: String(sanitizedContent.length),
-      processingStatus: 'pending',
+      processingStatus: KbProcessingStatus.PENDING,
       createdBy: userId,
       type: 'text',
     });
@@ -507,7 +511,7 @@ export class KBDocumentsService {
     Object.assign(document, sanitizedUpdate);
 
     if (contentChanged) {
-      document.processingStatus = 'pending';
+      document.processingStatus = KbProcessingStatus.PENDING;
       const savedDoc = await this.documentRepository.save(document);
 
       const kb = await this.kbManagementService.findOne(
@@ -589,7 +593,7 @@ export class KBDocumentsService {
     jobId?: string,
   ) {
     try {
-      document.processingStatus = 'processing';
+      document.processingStatus = KbProcessingStatus.PROCESSING;
       await this.documentRepository.save(document);
 
       const content = await this.getDocumentContent(document);
@@ -632,7 +636,7 @@ export class KBDocumentsService {
               documentName: document.metadata?.originalName || document.name,
               fileType: document.fileType,
             }),
-            embeddingStatus: 'pending',
+            embeddingStatus: KbProcessingStatus.PENDING,
           });
         });
 
@@ -654,12 +658,12 @@ export class KBDocumentsService {
           );
 
           for (const chunk of chunkEntities) {
-            chunk.embeddingStatus = 'skipped';
+            chunk.embeddingStatus = KbProcessingStatus.SKIPPED;
             chunk.embeddingError = 'Vector service unavailable';
           }
           await this.chunkRepository.save(chunkEntities);
 
-          document.processingStatus = 'completed';
+          document.processingStatus = KbProcessingStatus.COMPLETED;
           document.chunkCount = chunks.length;
           await this.documentRepository.save(document);
           this.logger.log(
@@ -687,13 +691,13 @@ export class KBDocumentsService {
         },
       );
 
-      document.processingStatus = 'completed';
+      document.processingStatus = KbProcessingStatus.COMPLETED;
       document.chunkCount = chunks.length;
       await this.documentRepository.save(document);
 
       this.logger.log(`âœ… Document ${document.id} processed successfully`);
     } catch (error) {
-      document.processingStatus = 'failed';
+      document.processingStatus = KbProcessingStatus.FAILED;
       document.processingError = error.message;
       await this.documentRepository.save(document);
       throw error;

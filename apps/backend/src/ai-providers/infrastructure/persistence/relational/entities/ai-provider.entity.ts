@@ -14,6 +14,7 @@ import { WorkspaceEntity } from '../../../../../workspaces/infrastructure/persis
 import { UserEntity } from '../../../../../users/infrastructure/persistence/relational/entities/user.entity';
 import { EncryptionTransformer } from '../../../../../utils/transformers/encryption.transformer';
 import { WorkspaceOwnedEntity } from '../../../../../utils/workspace-owned.entity';
+import { AiProviderOwnerType } from '../../../../ai-providers.enum';
 
 @Entity({ name: 'ai_providers' })
 export class AiProviderEntity extends EntityRelationalHelper {
@@ -94,10 +95,10 @@ export class AiProviderConfigEntity extends EntityRelationalHelper {
   @Column({
     name: 'owner_type',
     type: String,
-    enum: ['system', 'user', 'workspace'],
+    enum: AiProviderOwnerType,
   })
   @Index()
-  ownerType: 'system' | 'user' | 'workspace';
+  ownerType: AiProviderOwnerType;
 
   @Column({ name: 'owner_id', type: 'uuid', nullable: true })
   @Index()

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useState } from 'react';
 import {
@@ -11,34 +11,34 @@ import {
 import * as Icons from 'react-icons/fi';
 import { FiFolder } from 'react-icons/fi';
 import { Category, CategorySelectorProps } from '@/lib/types';
-import { MetadataService, useAsyncState } from '@/lib/services/api.service';
+import { metadataApi } from '@/lib/api/metadata';
 import { Skeleton } from '@/components/ui/Skeleton';
 
 export function CategorySelector({
   entityType,
   value,
   onChange,
-  placeholder = "Chọn danh mục"
+  placeholder = "Ch?n danh m?c"
 }: CategorySelectorProps) {
   const [categories, setCategories] = useState<Category[]>([]);
-  const { loading, error, execute } = useAsyncState();
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const loadCategories = async () => {
-      await execute(
-        () => MetadataService.getCategories(entityType),
-        (data: Category[]) => {
-          setCategories(data);
-        },
-        (err) => {
-          console.error('Failed to load categories:', err);
-          setCategories([]);
-        }
-      );
+      setLoading(true);
+      try {
+        const data = await metadataApi.getCategories(entityType);
+        setCategories(data);
+      } catch (err) {
+        console.error('Failed to load categories:', err);
+        setCategories([]);
+      } finally {
+        setLoading(false);
+      }
     };
 
     loadCategories();
-  }, [entityType, execute]);
+  }, [entityType]);
 
   const selectedCategory = categories.find(c => c.id === value);
 
@@ -52,7 +52,7 @@ export function CategorySelector({
       onValueChange={(val) => onChange(val ? parseInt(val) : undefined)}
     >
       <SelectTrigger>
-        <SelectValue placeholder={placeholder} aria-label={`Chọn danh mục${selectedCategory ? `: ${selectedCategory.name}` : ''}`}>
+        <SelectValue placeholder={placeholder} aria-label={`Ch?n danh m?c${selectedCategory ? `: ${selectedCategory.name}` : ''}`}>
           {selectedCategory && (
             <div className="flex items-center gap-2">
               {(() => {

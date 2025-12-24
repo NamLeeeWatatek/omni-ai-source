@@ -1,10 +1,39 @@
-﻿
+export enum ConversationStatus {
+  ACTIVE = 'active',
+  CLOSED = 'closed',
+  HANDOVER = 'handover',
+  ARCHIVED = 'archived',
+}
+
+export enum ConversationSource {
+  WEB = 'web',
+  WIDGET = 'widget',
+  PLAYGROUND = 'playground',
+  WHATSAPP = 'whatsapp',
+  FACEBOOK = 'facebook',
+  API = 'api',
+}
+
+export enum ConversationType {
+  SUPPORT = 'support',
+  AI_PLAYGROUND = 'ai-playground',
+  DISCOVERY = 'discovery',
+  AUDIT = 'audit',
+}
+
+export enum MessageRole {
+  USER = 'user',
+  ASSISTANT = 'assistant',
+  SYSTEM = 'system',
+  TOOL = 'tool',
+}
+
 export interface BotConversation {
   id: string;
   botId: string;
   channelId?: string | null;
   externalId: string;
-  status: string;
+  status: ConversationStatus;
   metadata: Record<string, any>;
   createdAt: string;
   updatedAt: string;
@@ -48,7 +77,7 @@ export interface AiConversation {
 
 export interface AiMessage {
   id?: string;
-  role: 'user' | 'assistant' | 'system';
+  role: MessageRole;
   content: string;
   timestamp: string;
   metadata?: any;
@@ -70,7 +99,7 @@ export interface UpdateAiConversationDto {
 }
 
 export interface AddAiMessageDto {
-  role: 'user' | 'assistant' | 'system';
+  role: MessageRole;
   content: string;
   timestamp: string;
   metadata?: any;

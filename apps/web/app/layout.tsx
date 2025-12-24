@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next'
+import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { Toaster } from '@/components/ui/Sonner'
 
@@ -10,6 +10,7 @@ import { SessionProvider } from 'next-auth/react'
 import { ThemeProviderWrapper } from '@/components/providers/ThemeProviderWrapper'
 import { GlobalLoadingOverlay } from '@/components/providers/GlobalLoadingOverlay'
 import { ErrorBoundary } from '@/components/providers/ErrorBoundary'
+import { SessionWatcher } from '@/components/providers/SessionWatcher'
 
 const inter = Inter({
     subsets: ['latin'],
@@ -18,7 +19,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-    title: 'WataOmi - One AI. Every Channel. Zero Code.',
+    title: 'WataOmni - One AI. Every Channel. Zero Code.',
     description: 'AI-powered omnichannel customer engagement platform with zero-code flow builder and unified inbox.',
     keywords: ['AI', 'chatbot', 'omnichannel', 'customer engagement', 'automation', 'n8n'],
 }
@@ -31,21 +32,22 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body className={`${inter.className} font-sans antialiased`}>
-                <I18nProvider>
-                    <SessionProvider>
-                        <QueryProvider>
+                <QueryProvider>
+                    <I18nProvider>
+                        <SessionProvider>
                             <ThemeProviderWrapper>
                                 <ReduxProvider>
                                     <ErrorBoundary>
+                                        <SessionWatcher />
                                         {children}
                                     </ErrorBoundary>
                                     <GlobalLoadingOverlay />
                                     <Toaster />
                                 </ReduxProvider>
                             </ThemeProviderWrapper>
-                        </QueryProvider>
-                    </SessionProvider>
-                </I18nProvider>
+                        </SessionProvider>
+                    </I18nProvider>
+                </QueryProvider>
             </body>
         </html>
     )

@@ -1,4 +1,4 @@
-﻿export interface SocketMessage {
+export interface SocketMessage {
     id: string;
     conversationId: string;
     role: 'user' | 'assistant';

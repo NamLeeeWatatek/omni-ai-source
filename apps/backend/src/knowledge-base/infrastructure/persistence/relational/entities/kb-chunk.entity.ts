@@ -9,36 +9,41 @@ import {
 } from 'typeorm';
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 
+import { KbProcessingStatus } from '../../../../knowledge-base.enum';
+
 @Entity({ name: 'kb_chunk' })
 export class KBChunkEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'knowledge_base_id', type: 'uuid' })
-  @Index()
-  knowledgeBaseId: string;
+  @Column({ type: 'text' })
+  content: string;
 
   @Column({ name: 'document_id', type: 'uuid' })
   @Index()
   documentId: string;
 
+  @Column({ name: 'knowledge_base_id', type: 'uuid' })
+  @Index()
+  knowledgeBaseId: string;
+
   @Column({ name: 'chunk_index', type: 'int' })
   chunkIndex: number;
 
-  @Column({ name: 'start_char', type: 'int', default: 0 })
-  startChar: number;
+  @Column({ name: 'start_char', type: 'int', nullable: true })
+  startChar?: number;
 
-  @Column({ name: 'end_char', type: 'int', default: 0 })
-  endChar: number;
+  @Column({ name: 'end_char', type: 'int', nullable: true })
+  endChar?: number;
 
-  @Column({ name: 'token_count', type: 'int', default: 0 })
-  tokenCount: number;
-
-  @Column({ type: 'text' })
-  content: string;
-
-  @Column({ name: 'embedding_status', type: String, default: 'pending' })
-  embeddingStatus: 'pending' | 'processing' | 'completed' | 'failed';
+  @Column({ name: 'token_count', type: 'int', nullable: true })
+  tokenCount?: number;
+  @Column({
+    name: 'embedding_status',
+    type: String,
+    default: KbProcessingStatus.PENDING,
+  })
+  embeddingStatus: KbProcessingStatus;
 
   @Column({ name: 'embedding_error', type: String, nullable: true })
   embeddingError?: string | null;

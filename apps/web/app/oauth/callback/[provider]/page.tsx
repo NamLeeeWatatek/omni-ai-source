@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { LoadingLogo } from '@/components/ui/LoadingLogo'
-import { FiCheckCircle, FiXCircle } from 'react-icons/fi'
+import { CheckCircle, XCircle } from 'lucide-react'
 
 export default function OAuthCallbackPage() {
     const searchParams = useSearchParams()
@@ -93,7 +93,7 @@ export default function OAuthCallbackPage() {
 
                 {status === 'success' && (
                     <>
-                        <FiCheckCircle className="w-16 h-16 mx-auto mb-4 text-green-500" />
+                        <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-500" />
                         <h2 className="text-2xl font-bold mb-2 text-green-500">Success!</h2>
                         <p className="text-muted-foreground">{message}</p>
                         <p className="text-sm text-muted-foreground mt-2">Closing window...</p>
@@ -102,7 +102,7 @@ export default function OAuthCallbackPage() {
 
                 {status === 'error' && (
                     <>
-                        <FiXCircle className="w-16 h-16 mx-auto mb-4 text-red-500" />
+                        <XCircle className="w-16 h-16 mx-auto mb-4 text-red-500" />
                         <h2 className="text-2xl font-bold mb-2 text-red-500">Connection Failed</h2>
                         <p className="text-muted-foreground mb-4">{message}</p>
                         <p className="text-sm text-muted-foreground mt-2">Closing window...</p>

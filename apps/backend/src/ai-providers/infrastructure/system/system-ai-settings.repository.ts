@@ -14,10 +14,8 @@ export class SystemAiSettingsRepository {
   ) {}
 
   async findSystemSettings(): Promise<SystemAiSettings> {
-    // Always return the first (and only) system settings record
-    // Create one if it doesn't exist
     let entity = await this.systemAiSettingsRepository.findOne({
-      where: {}, // No where clause to get any record
+      where: {},
     });
 
     if (!entity) {

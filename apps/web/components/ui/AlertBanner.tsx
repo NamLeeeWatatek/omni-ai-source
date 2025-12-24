@@ -1,5 +1,5 @@
-﻿import { ReactNode } from 'react'
-import { MdInfo, MdWarning, MdError, MdCheckCircle, MdLightbulb } from 'react-icons/md'
+import { ReactNode } from 'react'
+import { Info, AlertTriangle, AlertCircle, CheckCircle2, Lightbulb } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export type AlertVariant = 'info' | 'warning' | 'error' | 'success' | 'tip'
@@ -17,31 +17,31 @@ const variantStyles = {
         container: 'bg-info/10 border-info/20',
         icon: 'text-info',
         title: 'text-info',
-        IconComponent: MdInfo
+        IconComponent: Info
     },
     warning: {
         container: 'bg-warning/10 border-warning/20',
         icon: 'text-warning',
         title: 'text-warning',
-        IconComponent: MdWarning
+        IconComponent: AlertTriangle
     },
     error: {
         container: 'bg-destructive/10 border-destructive/20',
         icon: 'text-destructive',
         title: 'text-destructive',
-        IconComponent: MdError
+        IconComponent: AlertCircle
     },
     success: {
         container: 'bg-success/10 border-success/20',
         icon: 'text-success',
         title: 'text-success',
-        IconComponent: MdCheckCircle
+        IconComponent: CheckCircle2
     },
     tip: {
         container: 'bg-primary/10 border-primary/20',
         icon: 'text-primary',
         title: 'text-primary',
-        IconComponent: MdLightbulb
+        IconComponent: Lightbulb
     }
 }
 

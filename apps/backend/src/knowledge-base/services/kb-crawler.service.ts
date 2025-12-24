@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { KbDocumentEntity } from '../infrastructure/persistence/relational/entities/knowledge-base.entity';
 import { KBChunkEntity } from '../infrastructure/persistence/relational/entities/kb-chunk.entity';
+import { KbProcessingStatus } from '../knowledge-base.enum';
 import { KBProcessingQueueService } from './kb-processing-queue.service';
 import { KBManagementService } from './kb-management.service';
 import { KBEmbeddingsService } from './kb-embeddings.service';
@@ -17,6 +18,7 @@ export interface CrawlOptions {
   includePatterns?: string[];
   excludePatterns?: string[];
   respectRobotsTxt?: boolean;
+  folderId?: string | null;
 }
 
 export interface CrawlResult {
@@ -40,7 +42,7 @@ export class KBCrawlerService {
     private readonly processingQueue: KBProcessingQueueService,
     private readonly kbManagementService: KBManagementService,
     private readonly embeddingsService: KBEmbeddingsService,
-  ) { }
+  ) {}
 
   async crawlUrl(url: string): Promise<CrawlResult> {
     try {
@@ -80,7 +82,7 @@ export class KBCrawlerService {
           try {
             const absoluteUrl = new URL(href, url).href;
             links.push(absoluteUrl);
-          } catch (e) { }
+          } catch (e) {}
         }
       });
 
@@ -117,6 +119,7 @@ export class KBCrawlerService {
       followLinks = true,
       includePatterns = [],
       excludePatterns = [],
+      folderId,
     } = options;
 
     this.visitedUrls.clear();
@@ -176,6 +179,7 @@ export class KBCrawlerService {
         const document = this.documentRepository.create({
           knowledgeBaseId,
           workspaceId: kb.workspaceId,
+          folderId,
           name: result.title,
           title: result.title,
           content: result.content,
@@ -183,7 +187,7 @@ export class KBCrawlerService {
           fileType: 'webpage',
           mimeType: 'text/html',
           fileSize: String(result.content.length),
-          processingStatus: 'pending',
+          processingStatus: KbProcessingStatus.PENDING,
           createdBy: userId,
           type: 'url',
           sourceUrl: url,
@@ -242,7 +246,7 @@ export class KBCrawlerService {
     try {
       this.processingQueue.startJob(jobId);
 
-      document.processingStatus = 'processing';
+      document.processingStatus = KbProcessingStatus.PROCESSING;
       await this.documentRepository.save(document);
 
       const content = document.content;
@@ -278,7 +282,7 @@ export class KBCrawlerService {
             fileType: document.fileType,
             sourceUrl: document.sourceUrl,
           }),
-          embeddingStatus: 'pending',
+          embeddingStatus: KbProcessingStatus.PENDING,
         });
       });
 
@@ -295,14 +299,14 @@ export class KBCrawlerService {
         },
       );
 
-      document.processingStatus = 'completed';
+      document.processingStatus = KbProcessingStatus.COMPLETED;
       document.chunkCount = chunks.length;
       await this.documentRepository.save(document);
 
       this.processingQueue.completeJob(jobId);
       this.logger.log(`âœ… Document ${document.id} processed successfully`);
     } catch (error) {
-      document.processingStatus = 'failed';
+      document.processingStatus = KbProcessingStatus.FAILED;
       document.processingError = error.message;
       await this.documentRepository.save(document);
       this.processingQueue.failJob(jobId, error.message);

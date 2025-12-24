@@ -8,6 +8,7 @@ import {
   ConversationEntity,
   MessageEntity,
 } from '../../conversations/infrastructure/persistence/relational/entities/conversation.entity';
+import { MessageRole } from '../../conversations/conversations.enum';
 import { MessageBufferService } from '../services/message-buffer.service';
 import { KBRagService } from '../../knowledge-base/services/kb-rag.service';
 import { MessengerService } from '../../channels/providers/messenger.service';
@@ -145,7 +146,7 @@ export class BotExecutionEventService {
         const messageEntity = this.messageRepository.create({
           conversationId: context.conversationId,
           content: answer,
-          role: 'assistant',
+          role: MessageRole.ASSISTANT,
           metadata: {
             botId: context.botId,
             channelType: context.channelType,

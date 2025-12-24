@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { usePermissions } from '@/lib/hooks/usePermissions'
 import type { ResourceType, PermissionButtonProps } from '@/lib/types'

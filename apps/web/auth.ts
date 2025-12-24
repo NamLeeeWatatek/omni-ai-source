@@ -1,5 +1,7 @@
-﻿import NextAuth from "next-auth"
+import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
+import Google from "next-auth/providers/google"
+import Facebook from "next-auth/providers/facebook"
 
 interface AuthUser {
   id: string
@@ -54,10 +56,13 @@ async function refreshAccessToken(token: {
 
   const refreshedTokens = await response.json()
 
+  // Backend returns 'tokenExpires' as a timestamp (ms)
+  const expiresAt = refreshedTokens.tokenExpires || Date.now() + 60 * 60 * 1000
+
   return {
-    accessToken: refreshedTokens.token || refreshedTokens.accessToken,
-    refreshToken: refreshedTokens.refreshToken || token.refreshToken,
-    accessTokenExpires: Date.now() + (refreshedTokens.tokenExpires || 60 * 60 * 1000),
+    accessToken: refreshedTokens.token,
+    refreshToken: refreshedTokens.refreshToken ?? token.refreshToken, // Fallback to old refresh token if rotation isn't enforced
+    accessTokenExpires: expiresAt,
   }
 }
 
@@ -69,100 +74,38 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       id: "credentials",
       name: "Credentials",
       credentials: {
-        code: { type: "text" },
-        state: { type: "text" },
-        backendData: { type: "text" },
+        email: { type: "email" },
+        password: { type: "password" },
       },
       async authorize(credentials) {
         try {
-          console.log('[NextAuth] Authorize called with credentials:', {
-            hasBackendData: !!credentials?.backendData,
-            hasCode: !!credentials?.code
-          })
-
-          if (credentials?.backendData) {
-            const data = JSON.parse(credentials.backendData as string)
-            
-            console.log('[NextAuth] Parsed backend data:', {
-              hasToken: !!data.token,
-              hasUser: !!data.user,
-              userId: data.user?.id,
-              userEmail: data.user?.email,
-              hasWorkspace: !!data.workspace,
-              workspacesCount: data.workspaces?.length || 0
-            })
-
-            // âœ… Validate required fields
-            if (!data.token || !data.user || !data.user.id || !data.user.email) {
-              console.error('[NextAuth] Missing required fields in backend data')
-              return null
-            }
-
-            const userName = data.user.name || data.user.firstName || data.user.email
-
-            const user = {
-              id: String(data.user.id),
-              email: data.user.email,
-              name: userName,
-              accessToken: data.token,
-              refreshToken: data.refreshToken,
-              workspace: data.workspace ? {
-                id: data.workspace.id,
-                name: data.workspace.name,
-                slug: data.workspace.slug,
-                plan: data.workspace.plan,
-                avatarUrl: data.workspace.avatarUrl || null,
-              } : null,
-              workspaces: data.workspaces?.map((ws: any) => ({
-                id: ws.id,
-                name: ws.name,
-                slug: ws.slug,
-                plan: ws.plan,
-                avatarUrl: ws.avatarUrl || null,
-              })) || [],
-            }
-
-            console.log('[NextAuth] Returning user object:', {
-              id: user.id,
-              email: user.email,
-              hasAccessToken: !!user.accessToken,
-              hasWorkspace: !!user.workspace
-            })
-
-            return user
-          }
-
-          if (!credentials?.code) {
+          if (!credentials?.email || !credentials?.password) {
             return null
           }
 
           const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
-          const response = await fetch(`${apiUrl}/auth/casdoor/callback`, {
+
+          // Call backend email login
+          const response = await fetch(`${apiUrl}/auth/email/login`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              code: credentials.code,
-              state: credentials.state,
+              email: credentials.email,
+              password: credentials.password,
             }),
           })
 
           if (!response.ok) {
+            const error = await response.text()
+            console.error('[NextAuth] Login failed:', error)
             return null
           }
 
           const data = await response.json()
-          
-          console.log('[NextAuth] Fetched data from backend:', {
-            hasToken: !!data.token,
-            hasUser: !!data.user,
-            userId: data.user?.id
-          })
 
-          // âœ… Validate required fields
-          if (!data.token || !data.user || !data.user.id || !data.user.email) {
-            console.error('[NextAuth] Missing required fields in backend response')
+          if (!data.token || !data.user) {
             return null
           }
 
@@ -174,6 +117,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name: userName,
             accessToken: data.token,
             refreshToken: data.refreshToken,
+            tokenExpires: data.tokenExpires, // Capture backend expiry
             workspace: data.workspace ? {
               id: data.workspace.id,
               name: data.workspace.name,
@@ -195,24 +139,83 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
       },
     }),
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    }),
+    Facebook({
+      clientId: process.env.FACEBOOK_APP_ID,
+      clientSecret: process.env.FACEBOOK_APP_SECRET,
+    }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       // Initial sign in
       if (user) {
         const authUser = user as AuthUser
-        token.accessToken = authUser.accessToken
-        token.refreshToken = authUser.refreshToken
-        token.id = authUser.id
-        token.workspace = authUser.workspace
-        token.workspaces = authUser.workspaces
-        token.accessTokenExpires = Date.now() + 60 * 60 * 1000 // 1 hour
-        token.error = undefined // Clear any errors on fresh login
+
+        // 1. Handle Social Login Token Exchange
+        if (account && (account.provider === 'google' || account.provider === 'facebook')) {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+          let endpoint = ''
+          let body = {}
+
+          if (account.provider === 'google') {
+            endpoint = '/auth/google/login'
+            body = { idToken: account.id_token }
+          } else if (account.provider === 'facebook') {
+            endpoint = '/auth/facebook/login'
+            body = { accessToken: account.access_token }
+          }
+
+          try {
+            const response = await fetch(`${apiUrl}${endpoint}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body)
+            })
+
+            if (response.ok) {
+              const data = await response.json()
+              token.accessToken = data.token
+              token.refreshToken = data.refreshToken
+              token.id = String(data.user.id)
+              token.workspace = data.workspace
+              token.workspaces = data.workspaces
+              // Capture backend expiry if available
+              if (data.tokenExpires) {
+                token.accessTokenExpires = data.tokenExpires
+              }
+            } else {
+              console.error('[NextAuth] Social login backend exchange failed')
+            }
+          } catch (e) {
+            console.error('[NextAuth] Social login backend exchange error', e)
+          }
+        }
+        // 2. Handle Credentials Login (auth data already in user object)
+        else {
+          token.accessToken = authUser.accessToken
+          token.refreshToken = authUser.refreshToken
+          token.id = authUser.id
+          token.workspace = authUser.workspace
+          token.workspaces = authUser.workspaces
+
+          if ((authUser as any).tokenExpires) {
+            token.accessTokenExpires = (authUser as any).tokenExpires
+          }
+        }
+
+        // 3. Fallback expiry if not set (1 hour)
+        if (!token.accessTokenExpires) {
+          token.accessTokenExpires = Date.now() + 60 * 60 * 1000
+        }
+
+        token.error = undefined
       }
 
       // If there's a refresh error, don't try to refresh again
       if (token.error === "RefreshAccessTokenError") {
-        console.log('[Auth] Previous refresh failed, skipping auto-refresh')
         return token
       }
 
@@ -222,7 +225,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         Date.now() > token.accessTokenExpires - 5 * 60 * 1000
 
       if (shouldRefresh && token.refreshToken) {
-        console.log('[Auth] Token expiring soon, refreshing...')
         try {
           const refreshedTokens = await refreshAccessToken({
             accessToken: token.accessToken as string,
@@ -247,7 +249,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = token.id as string
       }
 
-      // Extend session with custom properties
       return {
         ...session,
         accessToken: token.accessToken as string,
@@ -267,5 +268,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   secret: process.env.NEXTAUTH_SECRET,
-  debug: false, // Disable debug mode to reduce log noise
+  debug: process.env.NODE_ENV === 'development',
 });

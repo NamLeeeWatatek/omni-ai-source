@@ -12,7 +12,6 @@ import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcryptjs';
 import { AuthEmailLoginDto } from './dto/auth-email-login.dto';
 import { AuthUpdateDto } from './dto/auth-update.dto';
-import { AuthProvidersEnum } from './auth-providers.enum';
 import { SocialInterface } from '../social/interfaces/social.interface';
 import { AuthRegisterLoginDto } from './dto/auth-register-login.dto';
 import { NullableType } from '../utils/types/nullable.type';
@@ -26,7 +25,6 @@ import { MailService } from '../mail/mail.service';
 import { RoleEnum } from '../roles/roles.enum';
 import { Session } from '../session/domain/session';
 import { SessionService } from '../session/session.service';
-import { StatusEnum } from '../statuses/statuses.enum';
 import { User } from '../users/domain/user';
 import { WorkspaceHelperService } from '../workspaces/workspace-helper.service';
 
@@ -39,7 +37,7 @@ export class AuthService {
     private mailService: MailService,
     private configService: ConfigService<AllConfigType>,
     private workspaceHelper: WorkspaceHelperService,
-  ) { }
+  ) {}
 
   async validateLogin(loginDto: AuthEmailLoginDto): Promise<LoginResponseDto> {
     const user = await this.usersService.findByEmail(loginDto.email);
@@ -53,15 +51,6 @@ export class AuthService {
       });
     }
 
-    if (user.provider !== AuthProvidersEnum.email) {
-      throw new UnprocessableEntityException({
-        status: HttpStatus.UNPROCESSABLE_ENTITY,
-        errors: {
-          email: `needLoginViaProvider:${user.provider}`,
-        },
-      });
-    }
-
     if (!user.password) {
       throw new UnprocessableEntityException({
         status: HttpStatus.UNPROCESSABLE_ENTITY,
@@ -70,6 +59,9 @@ export class AuthService {
         },
       });
     }
+
+    // Allow credentials login if user has a password, regardless of provider
+    // This handles cases where users were created with external providers but now have passwords
 
     const isValidPassword = await bcrypt.compare(
       loginDto.password,
@@ -119,6 +111,8 @@ export class AuthService {
     };
   }
 
+  // Handle social login authentication (Google, Facebook, etc.)
+  // Creates or links user account and returns login response
   async validateSocialLogin(
     authProvider: string,
     socialData: SocialInterface,

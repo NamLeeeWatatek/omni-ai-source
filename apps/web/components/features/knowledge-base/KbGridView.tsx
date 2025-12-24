@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
-import { FiFolder, FiFileText, FiMoreVertical, FiEye, FiDownload, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { Folder, FileText, MoreVertical, Eye, Download, Edit2, Trash2, Database } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/DropdownMenu';
 import { cn } from '@/lib/utils';
 
@@ -86,10 +86,12 @@ export function KbGridView({
 
   if (items.length === 0) {
     return (
-      <Card className="py-20 text-center flex flex-col items-center rounded-3xl border-2 border-dashed border-border/40 bg-transparent">
-        <FiFolder className="w-16 h-16 text-muted-foreground/20 mb-4" />
-        <h3 className="text-xl font-bold">No files found</h3>
-        <p className="text-muted-foreground mt-2">Try adjusting your search or filters</p>
+      <Card className="py-20 text-center flex flex-col items-center rounded-3xl border-2 border-dashed border-border/40 bg-muted/5 glass">
+        <div className="w-20 h-20 bg-primary/5 rounded-full flex items-center justify-center mb-6 ring-8 ring-primary/5">
+          <Folder className="w-10 h-10 text-primary opacity-40" />
+        </div>
+        <h3 className="text-xl font-bold">No assets identified</h3>
+        <p className="text-muted-foreground mt-2 max-w-sm">Adjust your filters or initialize new intelligence assets to populate this collection.</p>
       </Card>
     );
   }
@@ -138,10 +140,10 @@ export function KbGridView({
 
             <div className="mt-2 flex flex-col items-center text-center">
               <div className={cn(
-                "w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-lg",
+                "w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-lg border border-white/5",
                 item.type === 'folder' ? "bg-blue-500/10 text-blue-500" : "bg-muted/50 text-muted-foreground"
               )}>
-                {item.type === 'folder' ? <FiFolder className="w-8 h-8" /> : <FiFileText className="w-8 h-8" />}
+                {item.type === 'folder' ? <Folder className="w-8 h-8" /> : <FileText className="w-8 h-8" />}
               </div>
 
               <h3 className="font-bold text-sm truncate w-full px-2">{item.name}</h3>
@@ -162,10 +164,10 @@ export function KbGridView({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all rounded-full hover:bg-muted/80"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <FiMoreVertical className="w-3 h-3" />
+                      <MoreVertical className="w-3.5 h-3.5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
@@ -176,8 +178,9 @@ export function KbGridView({
                             e.stopPropagation();
                             onPreviewDocument(item.id);
                           }}
+                          className="font-bold cursor-pointer"
                         >
-                          <FiEye className="w-4 h-4 mr-2" />
+                          <Eye className="w-4 h-4 mr-2" />
                           Preview
                         </DropdownMenuItem>
                         <DropdownMenuItem
@@ -185,8 +188,9 @@ export function KbGridView({
                             e.stopPropagation();
                             onDownloadDocument?.(item.id, item.name);
                           }}
+                          className="font-bold cursor-pointer"
                         >
-                          <FiDownload className="w-4 h-4 mr-2" />
+                          <Download className="w-4 h-4 mr-2" />
                           Download
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -197,8 +201,9 @@ export function KbGridView({
                         e.stopPropagation();
                         onEditItem(item);
                       }}
+                      className="font-bold cursor-pointer"
                     >
-                      <FiEdit2 className="w-4 h-4 mr-2" />
+                      <Edit2 className="w-4 h-4 mr-2 text-primary" />
                       Edit Properties
                     </DropdownMenuItem>
                     <DropdownMenuItem
@@ -206,9 +211,9 @@ export function KbGridView({
                         e.stopPropagation();
                         onDeleteItem(item);
                       }}
-                      className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                      className="text-destructive focus:text-destructive focus:bg-destructive/10 font-bold cursor-pointer"
                     >
-                      <FiTrash2 className="w-4 h-4 mr-2" />
+                      <Trash2 className="w-4 h-4 mr-2" />
                       Delete Item
                     </DropdownMenuItem>
                   </DropdownMenuContent>

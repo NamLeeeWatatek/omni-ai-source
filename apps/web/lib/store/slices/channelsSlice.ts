@@ -38,8 +38,8 @@ export const loadChannelsData = createAsyncThunk(
 
 export const disconnectChannelAsync = createAsyncThunk(
   'channels/disconnect',
-  async (channelId: number, { dispatch, rejectWithValue }) => {
-    dispatch(setGlobalLoading({ actionId: 'disconnect-channel', isLoading: true, message: 'Disconnecting channel...' }))
+  async (channelId: string, { dispatch, rejectWithValue }) => {
+    dispatch(setGlobalLoading({ actionId: 'disconnect-channel', isLoading: true, message: 'Disconnecting channel' }))
     try {
       await disconnectChannel(channelId);
       return channelId;
@@ -54,7 +54,7 @@ export const disconnectChannelAsync = createAsyncThunk(
 export const deleteConfigAsync = createAsyncThunk(
   'channels/deleteConfig',
   async (configId: number, { dispatch, rejectWithValue }) => {
-    dispatch(setGlobalLoading({ actionId: 'delete-config', isLoading: true, message: 'Deleting configuration...' }))
+    dispatch(setGlobalLoading({ actionId: 'delete-config', isLoading: true, message: 'Deleting configuration' }))
     try {
       await deleteIntegration(configId);
       return configId;
@@ -69,7 +69,7 @@ export const deleteConfigAsync = createAsyncThunk(
 export const createConfigAsync = createAsyncThunk(
   'channels/createConfig',
   async (data: any, { dispatch, rejectWithValue }) => {
-    dispatch(setGlobalLoading({ actionId: 'create-config', isLoading: true, message: 'Creating configuration...' }))
+    dispatch(setGlobalLoading({ actionId: 'create-config', isLoading: true, message: 'Creating configuration' }))
     try {
       const config = await createIntegration(data);
       return config;
@@ -84,7 +84,7 @@ export const createConfigAsync = createAsyncThunk(
 export const updateConfigAsync = createAsyncThunk(
   'channels/updateConfig',
   async ({ id, data }: { id: number; data: any }, { dispatch, rejectWithValue }) => {
-    dispatch(setGlobalLoading({ actionId: 'update-config', isLoading: true, message: 'Updating configuration...' }))
+    dispatch(setGlobalLoading({ actionId: 'update-config', isLoading: true, message: 'Updating configuration' }))
     try {
       const config = await updateIntegration(id, data);
       return config;
@@ -100,7 +100,7 @@ export const loadBotsForFacebook = createAsyncThunk(
   'channels/loadBotsForFacebook',
   async (workspaceId: string, { rejectWithValue }) => {
     try {
-      const response = await axiosClient.get<any>(`/bots?workspaceId=${workspaceId}`);
+      const response = await axiosClient.get<any>(`/bots?workspaceId=${workspaceId}`) as unknown as any;
 
       let botsList = [];
       if (Array.isArray(response)) {
@@ -119,7 +119,7 @@ export const loadBotsForFacebook = createAsyncThunk(
 export const connectFacebookPage = createAsyncThunk(
   'channels/connectFacebookPage',
   async ({ page, botId, tempToken }: { page: any; botId: string; tempToken: string }, { dispatch, rejectWithValue }) => {
-    dispatch(setGlobalLoading({ actionId: 'connect-fb', isLoading: true, message: 'Connecting Facebook page...' }))
+    dispatch(setGlobalLoading({ actionId: 'connect-fb', isLoading: true, message: 'Connecting Facebook page' }))
     try {
       const response = await axiosClient.post('/channels/facebook/connect', {
         pageId: page.id,
@@ -157,7 +157,7 @@ interface ChannelsState {
   loadingBots: boolean;
   // UI state
   activeTab: 'connected' | 'configurations';
-  disconnectId: number | null;
+  disconnectId: string | null;
   deleteConfigId: number | null;
   assignBotDialogOpen: boolean;
   selectedChannel: any;
@@ -208,7 +208,7 @@ const channelsSlice = createSlice({
       state.channels.push(action.payload);
     },
     removeChannel: (state, action: PayloadAction<string>) => {
-      state.channels = state.channels.filter(c => c.id !== parseInt(action.payload));
+      state.channels = state.channels.filter(c => c.id !== action.payload);
     },
     updateChannel: (state, action: PayloadAction<Channel>) => {
       const index = state.channels.findIndex(c => c.id === action.payload.id);
@@ -267,7 +267,7 @@ const channelsSlice = createSlice({
     setActiveTab: (state, action: PayloadAction<'connected' | 'configurations'>) => {
       state.activeTab = action.payload;
     },
-    setDisconnectId: (state, action: PayloadAction<number | null>) => {
+    setDisconnectId: (state, action: PayloadAction<string | null>) => {
       state.disconnectId = action.payload;
     },
     setDeleteConfigId: (state, action: PayloadAction<number | null>) => {

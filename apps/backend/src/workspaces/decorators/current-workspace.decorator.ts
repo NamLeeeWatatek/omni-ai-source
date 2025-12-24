@@ -1,34 +1,37 @@
 ﻿import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
-/**
- * Decorator to extract current workspace ID from request
- * Priority: Header > Query > Body > User's default workspace
- *
- * Usage:
- * @Get()
- * findAll(@CurrentWorkspace() workspaceId: string) { ... }
- */
+const isValidWorkspaceId = (id: any): id is string => {
+  return (
+    typeof id === 'string' &&
+    id.trim() !== '' &&
+    id !== 'undefined' &&
+    id !== 'null'
+  );
+};
+
 export const CurrentWorkspace = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): string | undefined => {
     const request = ctx.switchToHttp().getRequest();
 
     // 1. Check X-Workspace-Id header (recommended for frontend)
     const headerWorkspaceId = request.headers['x-workspace-id'];
-    if (headerWorkspaceId) {
+    if (isValidWorkspaceId(headerWorkspaceId)) {
       return headerWorkspaceId;
     }
 
     // 2. Check query parameter (for API testing)
-    if (request.query?.workspaceId) {
-      return request.query.workspaceId;
+    const queryWorkspaceId = request.query?.workspaceId;
+    if (isValidWorkspaceId(queryWorkspaceId)) {
+      return queryWorkspaceId;
     }
 
     // 3. Check body (for POST/PATCH requests)
-    if (request.body?.workspaceId) {
-      return request.body.workspaceId;
+    const bodyWorkspaceId = request.body?.workspaceId;
+    if (isValidWorkspaceId(bodyWorkspaceId)) {
+      return bodyWorkspaceId;
     }
 
-    // 4. Fallback to user's default workspace (set by middleware)
-    return request.defaultWorkspaceId;
+    // 4. Fallback to user's default workspace (set by middleware or from JWT)
+    return request.defaultWorkspaceId || request.user?.workspaceId;
   },
 );

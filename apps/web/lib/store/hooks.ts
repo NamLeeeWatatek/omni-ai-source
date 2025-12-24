@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Redux Typed Hooks
  * Use these instead of plain `useDispatch` and `useSelector`
  */

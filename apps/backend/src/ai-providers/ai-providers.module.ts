@@ -4,6 +4,7 @@ import { AiProvidersController } from './ai-providers.controller';
 import { AiProvidersService } from './ai-providers.service';
 import {
   AiProviderEntity,
+  AiProviderConfigEntity,
   UserAiProviderConfigEntity,
   WorkspaceAiProviderConfigEntity,
   AiUsageLogEntity,
@@ -18,6 +19,7 @@ import { EncryptionUtil } from '../common/utils/encryption.util';
   imports: [
     TypeOrmModule.forFeature([
       AiProviderEntity,
+      AiProviderConfigEntity,
       UserAiProviderConfigEntity,
       WorkspaceAiProviderConfigEntity,
       AiUsageLogEntity,

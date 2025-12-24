@@ -12,6 +12,7 @@ import {
   ConversationEntity,
   MessageEntity,
 } from '../infrastructure/persistence/relational/entities/conversation.entity';
+import { ConversationStatus, MessageRole } from '../conversations.enum';
 
 @Injectable()
 export class ConversationEventListener {
@@ -34,7 +35,7 @@ export class ConversationEventListener {
     try {
       const message = this.messageRepository.create({
         conversationId: event.conversationId,
-        role: 'assistant',
+        role: MessageRole.ASSISTANT,
         content: event.responseContent,
         metadata: event.metadata || {},
       });
@@ -86,7 +87,7 @@ export class ConversationEventListener {
     try {
       await this.conversationRepository.update(event.conversationId, {
         lastMessageAt: new Date(),
-        status: 'active',
+        status: ConversationStatus.ACTIVE,
       });
     } catch (error) {
       this.logger.error(

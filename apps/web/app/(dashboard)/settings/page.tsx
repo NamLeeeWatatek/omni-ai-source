@@ -1,16 +1,26 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useState } from 'react';
-import { axiosClient } from '@/lib/axios-client';
+import axiosClient from '@/lib/axios-client';
 import { PageLoading } from '@/components/ui/PageLoading';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
-import { AIProvidersTab } from '@/components/settings/AIProvidersTab';
-import { AISettingsTab } from '@/components/settings/AISettingsTab';
-import { AccountTab } from '@/components/settings/AccountTab';
-import { NotificationsTab } from '@/components/settings/NotificationsTab';
-import { SharingTab } from '@/components/settings/SharingTab';
-import { BillingTab } from '@/components/settings/BillingTab';
-import { QuestionsTab } from '@/components/settings/QuestionsTab';
+import { AIProvidersTab } from '@/components/features/settings/AIProvidersTab';
+import { AISettingsTab } from '@/components/features/settings/AISettingsTab';
+import { AccountTab } from '@/components/features/settings/AccountTab';
+import { NotificationsTab } from '@/components/features/settings/NotificationsTab';
+import { SharingTab } from '@/components/features/settings/SharingTab';
+import { BillingTab } from '@/components/features/settings/BillingTab';
+import { QuestionsTab } from '@/components/features/settings/QuestionsTab';
+import { PageHeader } from '@/components/ui/PageHeader';
+import {
+  User,
+  Settings,
+  Cpu,
+  Bell,
+  Share2,
+  CreditCard,
+  HelpCircle
+} from 'lucide-react';
 
 interface AiProvider {
   id: string;
@@ -52,7 +62,7 @@ export default function AIModelsPage() {
     maxRequestsPerHour: 1000,
     maxRequestsPerUser: 100,
   });
-  const [activeTab, setActiveTab] = useState('ai-providers');
+  const [activeTab, setActiveTab] = useState('account');
 
   // Load initial data
   const loadData = async () => {
@@ -88,33 +98,37 @@ export default function AIModelsPage() {
   }, []);
 
   const tabs = [
-    { id: 'account', label: 'Account' },
-    { id: 'ai-settings', label: 'AI Settings' },
-    { id: 'ai-providers', label: 'AI Providers' },
-    { id: 'notifications', label: 'Notifications' },
-    { id: 'sharing', label: 'Sharing' },
-    { id: 'billing', label: 'Billing' },
-    { id: 'questions', label: 'Questions' },
+    { id: 'account', label: 'Account', icon: User },
+    { id: 'ai-settings', label: 'AI Settings', icon: Settings },
+    { id: 'ai-providers', label: 'AI Providers', icon: Cpu },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'sharing', label: 'Sharing', icon: Share2 },
+    { id: 'billing', label: 'Billing', icon: CreditCard },
+    { id: 'questions', label: 'Help & FAQ', icon: HelpCircle },
   ];
 
   if (loading) {
-    return <PageLoading message="Loading settings..." />;
+    return <PageLoading message="Loading settings" />;
   }
 
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-7xl mx-auto p-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Settings</h1>
-          <p className="text-muted-foreground">
-            Manage your account settings and preferences
-          </p>
-        </div>
+        <PageHeader
+          title="Settings"
+          description="Manage your agent configurations and system preferences"
+          premium
+        />
 
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)} className="w-full space-y-8">
+          <TabsList className="flex flex-wrap h-auto p-1.5 bg-card/30 backdrop-blur-md border border-border/50 gap-1 rounded-2xl shadow-sm">
             {tabs.map((tab) => (
-              <TabsTrigger value={tab.id} className="group">
+              <TabsTrigger
+                key={tab.id}
+                value={tab.id}
+                className="flex items-center gap-2 px-6 py-3 transition-all data-[state=active]:bg-background data-[state=active]:shadow-xl data-[state=active]:ring-1 data-[state=active]:ring-border/50 font-bold text-xs rounded-xl"
+              >
+                <tab.icon className="w-4 h-4" />
                 {tab.label}
               </TabsTrigger>
             ))}

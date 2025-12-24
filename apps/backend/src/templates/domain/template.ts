@@ -1,36 +1,120 @@
 import { Exclude, Expose } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+import { CreationTool } from '../../creation-tools/domain/creation-tool';
+
 export class Template {
   @ApiProperty({ type: String })
   id: string;
 
-  @ApiProperty({ type: String, example: 'Image Generation Template' })
+  // Link to parent Creation Tool
+  @ApiPropertyOptional({
+    type: String,
+    description: 'Creation Tool ID this template belongs to',
+  })
+  creationToolId?: string | null;
+
+  @ApiPropertyOptional({
+    type: () => CreationTool,
+    description: 'Creation Tool object',
+  })
+  creationTool?: CreationTool | null;
+
+  @ApiProperty({ type: String, example: 'Professional Portrait' })
   name: string;
 
   @ApiPropertyOptional({ type: String, description: 'Template description' })
   description?: string | null;
 
-  @ApiPropertyOptional({ type: String, description: 'Prompt text for AI generation' })
-  prompt?: string | null;
-
-  @ApiPropertyOptional({ type: [String], description: 'Array of file IDs for multimedia content (images, videos)' })
-  mediaFiles?: string[] | null;
-
-  @ApiPropertyOptional({ type: Object, description: 'Style/shape configuration data' })
-  styleConfig?: Record<string, any> | null;
-
   @ApiPropertyOptional({ type: String, description: 'Template category' })
   category?: string | null;
 
-  @ApiPropertyOptional({ type: Boolean, default: true })
+  // NEW: Prefilled form data
+  @ApiPropertyOptional({
+    type: Object,
+    description: 'Prefilled form data matching CreationTool.formConfig',
+  })
+  prefilledData?: Record<string, any> | null;
+
+  // NEW: Template thumbnail
+  @ApiPropertyOptional({
+    type: String,
+    description: 'Template preview image URL',
+  })
+  thumbnailUrl?: string | null;
+
+  // NEW: Optional execution overrides
+  @ApiPropertyOptional({
+    type: Object,
+    description: 'Optional overrides for execution parameters',
+  })
+  executionOverrides?: Record<string, any> | null;
+
+  // OLD FIELDS (deprecated but kept for backward compatibility)
+  @ApiPropertyOptional({
+    type: String,
+    description: 'DEPRECATED: Use prefilledData instead',
+    deprecated: true,
+  })
+  prompt?: string | null;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'DEPRECATED: Use prefilledData instead',
+    deprecated: true,
+  })
+  mediaFiles?: string[] | null;
+
+  @ApiPropertyOptional({
+    type: Object,
+    description: 'DEPRECATED: Use prefilledData instead',
+    deprecated: true,
+  })
+  styleConfig?: Record<string, any> | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    description: 'DEPRECATED: Use prefilledData instead',
+    deprecated: true,
+  })
+  promptTemplate?: string | null;
+
+  @ApiPropertyOptional({
+    type: Object,
+    description: 'DEPRECATED: Use executionOverrides instead',
+    deprecated: true,
+  })
+  executionConfig?: any | null;
+
+  @ApiPropertyOptional({
+    type: Object,
+    description: 'DEPRECATED: Moved to CreationTool.formConfig',
+    deprecated: true,
+  })
+  formSchema?: any | null;
+
+  @ApiPropertyOptional({
+    type: Array,
+    description: 'DEPRECATED: Moved to CreationTool.formConfig',
+    deprecated: true,
+  })
+  inputSchema?: any[] | null;
+
+  // Metadata
+  @ApiProperty({ type: Boolean, default: true })
   isActive: boolean;
 
-  @ApiPropertyOptional({ type: String, description: 'User ID who created the template' })
+  @ApiPropertyOptional({
+    type: String,
+    description: 'User ID who created the template',
+  })
   createdBy?: string | null;
 
   @ApiPropertyOptional({ type: String, description: 'Workspace ID' })
   workspaceId?: string | null;
+
+  @ApiPropertyOptional({ type: Number, default: 0 })
+  sortOrder?: number;
 
   @ApiProperty()
   createdAt: Date;

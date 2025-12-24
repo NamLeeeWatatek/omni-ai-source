@@ -1,4 +1,4 @@
-﻿import { createSlice } from '@reduxjs/toolkit'
+import { createSlice } from '@reduxjs/toolkit'
 
 interface UiState {
     /** Global loading state - shows overlay most of the screen */

@@ -1,5 +1,6 @@
 ﻿import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsObject, IsUUID } from 'class-validator';
+import { MessageRole } from '../../conversations/conversations.enum';
 
 /**
  * DTO for creating a public conversation (from widget)
@@ -129,8 +130,8 @@ export class MessageResponseDto {
   @ApiProperty({ description: 'Message content' })
   content: string;
 
-  @ApiProperty({ description: 'Message role', enum: ['user', 'assistant'] })
-  role: 'user' | 'assistant';
+  @ApiProperty({ description: 'Message role', enum: MessageRole })
+  role: MessageRole;
 
   @ApiProperty({ description: 'Message timestamp' })
   timestamp: Date;

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { MetadataService } from '@/lib/services/api.service'
+import { metadataApi } from '@/lib/api/metadata'
 
 // Query keys
 export const modelKeys = {
@@ -11,7 +11,7 @@ export const modelKeys = {
 export function useModels() {
   return useQuery({
     queryKey: modelKeys.list(),
-    queryFn: () => MetadataService.getModels(),
+    queryFn: () => metadataApi.getModels(),
     staleTime: 1000 * 60 * 15, // 15 minutes (models don't change often)
     gcTime: 1000 * 60 * 60, // 1 hour
   })

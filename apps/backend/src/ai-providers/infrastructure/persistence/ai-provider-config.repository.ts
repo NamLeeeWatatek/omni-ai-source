@@ -85,7 +85,7 @@ export abstract class AiProviderConfigRepository {
 
   abstract getApiKeyByProviderId(
     providerId: string,
-    scope?: 'user' | 'workspace',
+    scope?: 'user' | 'workspace' | 'system',
   ): Promise<any>;
   abstract getWorkspaceProviders(workspaceId: string): Promise<AiProvider[]>;
   abstract getUserProviders(userId: string): Promise<AiProvider[]>;

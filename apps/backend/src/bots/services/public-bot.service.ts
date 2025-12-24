@@ -13,6 +13,12 @@ import {
   MessageEntity,
 } from '../../conversations/infrastructure/persistence/relational/entities/conversation.entity';
 import {
+  ConversationStatus,
+  ConversationSource,
+  MessageRole,
+} from '../../conversations/conversations.enum';
+import { BotStatus } from '../bots.enum';
+import {
   CreatePublicConversationDto,
   AddPublicMessageDto,
   BotConfigResponseDto,
@@ -52,7 +58,7 @@ export class PublicBotService {
     versionId?: string,
   ): Promise<BotConfigResponseDto> {
     const bot = await this.botRepository.findOne({
-      where: { id: botId, status: 'active', widgetEnabled: true },
+      where: { id: botId, status: BotStatus.ACTIVE, widgetEnabled: true },
     });
 
     if (!bot) {
@@ -125,7 +131,7 @@ export class PublicBotService {
     origin?: string,
   ): Promise<CreateConversationResponseDto> {
     const bot = await this.botRepository.findOne({
-      where: { id: botId, status: 'active', widgetEnabled: true },
+      where: { id: botId, status: BotStatus.ACTIVE, widgetEnabled: true },
     });
 
     if (!bot) {
@@ -153,7 +159,7 @@ export class PublicBotService {
         ipAddress: dto.ipAddress,
         source: 'widget',
       },
-      status: 'active',
+      status: ConversationStatus.ACTIVE,
     });
 
     await this.conversationRepository.save(conversation);
@@ -184,13 +190,13 @@ export class PublicBotService {
 
     const bot = conversation.bot;
 
-    if (!bot || bot.status !== 'active' || !bot.widgetEnabled) {
+    if (!bot || bot.status !== BotStatus.ACTIVE || !bot.widgetEnabled) {
       throw new ForbiddenException('Bot is not available');
     }
 
     const userMessage = this.messageRepository.create({
       conversationId,
-      role: 'user',
+      role: MessageRole.USER,
       content: dto.message,
       metadata: dto.metadata || {},
     });
@@ -287,18 +293,18 @@ export class PublicBotService {
       bot.systemPrompt ||
       'You are a helpful AI assistant. Answer questions based on the provided context when available.';
 
-    const messages = [{ role: 'system', content: systemPrompt }];
+    const messages = [{ role: MessageRole.SYSTEM, content: systemPrompt }];
 
     if (context) {
       messages.push({
-        role: 'system',
+        role: MessageRole.SYSTEM,
         content: `Context from knowledge base:\n${context}\n\nPlease use this context to answer the user's question when relevant.`,
       });
     }
 
     messages.push(
       ...history.map((m) => ({
-        role: m.role as 'user' | 'assistant' | 'system',
+        role: m.role as MessageRole,
         content: m.content,
       })),
     );
@@ -366,7 +372,7 @@ export class PublicBotService {
 
     const botMessage = this.messageRepository.create({
       conversationId,
-      role: 'assistant',
+      role: MessageRole.ASSISTANT,
       content: aiContent,
       sources: sources.length > 0 ? sources : null,
       metadata: {
@@ -388,7 +394,7 @@ export class PublicBotService {
     return {
       messageId: botMessage.id,
       content: botMessage.content,
-      role: 'assistant',
+      role: MessageRole.ASSISTANT,
       timestamp: botMessage.sentAt,
       metadata: {
         ...botMessage.metadata,
@@ -434,7 +440,7 @@ export class PublicBotService {
       conversationId,
       messages: messages.reverse().map((m) => ({
         messageId: m.id,
-        role: m.role as 'user' | 'assistant',
+        role: m.role as MessageRole,
         content: m.content,
         timestamp: m.sentAt,
         metadata: m.metadata,

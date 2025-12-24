@@ -7,17 +7,26 @@ import { Template } from './domain/template';
 import { IPaginationOptions } from '../utils/types/pagination-options';
 import { UpdateTemplateDto } from './dto/update-template.dto';
 
+import { AiProvidersService } from '../ai-providers/ai-providers.service';
+
 @Injectable()
 export class TemplatesService {
-  constructor(private readonly templatesRepository: TemplateRepository) {}
+  constructor(
+    private readonly templatesRepository: TemplateRepository,
+    private readonly aiProvidersService: AiProvidersService,
+  ) {}
 
-  async create(createTemplateDto: CreateTemplateDto, userId?: string): Promise<Template> {
+  async create(
+    createTemplateDto: CreateTemplateDto,
+    userId?: string,
+  ): Promise<Template> {
     // Check for duplicate name within workspace (optional)
     if (createTemplateDto.workspaceId) {
-      const existingTemplate = await this.templatesRepository.findByNameAndWorkspace(
-        createTemplateDto.name,
-        createTemplateDto.workspaceId,
-      );
+      const existingTemplate =
+        await this.templatesRepository.findByNameAndWorkspace(
+          createTemplateDto.name,
+          createTemplateDto.workspaceId,
+        );
       if (existingTemplate) {
         throw new UnprocessableEntityException({
           status: 422,
@@ -29,15 +38,24 @@ export class TemplatesService {
     }
 
     return this.templatesRepository.create({
+      creationToolId: createTemplateDto.creationToolId,
       name: createTemplateDto.name,
       description: createTemplateDto.description,
+      category: createTemplateDto.category,
+      prefilledData: createTemplateDto.prefilledData,
+      thumbnailUrl: createTemplateDto.thumbnailUrl,
+      executionOverrides: createTemplateDto.executionOverrides,
       prompt: createTemplateDto.prompt,
       mediaFiles: createTemplateDto.mediaFiles,
       styleConfig: createTemplateDto.styleConfig,
-      category: createTemplateDto.category,
       isActive: createTemplateDto.isActive ?? true,
       createdBy: userId,
       workspaceId: createTemplateDto.workspaceId,
+      promptTemplate: createTemplateDto.promptTemplate,
+      executionConfig: createTemplateDto.executionConfig,
+      formSchema: createTemplateDto.formSchema,
+      inputSchema: createTemplateDto.inputSchema,
+      sortOrder: createTemplateDto.sortOrder ?? 0,
     });
   }
 
@@ -69,6 +87,10 @@ export class TemplatesService {
     return this.templatesRepository.findByWorkspace(workspaceId);
   }
 
+  findByCreationTool(creationToolId: string): Promise<Template[]> {
+    return this.templatesRepository.findByCreationTool(creationToolId);
+  }
+
   async update(
     id: Template['id'],
     updateTemplateDto: UpdateTemplateDto,
@@ -77,10 +99,11 @@ export class TemplatesService {
     if (updateTemplateDto.name) {
       const currentTemplate = await this.templatesRepository.findById(id);
       if (currentTemplate && currentTemplate.workspaceId) {
-        const existingTemplate = await this.templatesRepository.findByNameAndWorkspace(
-          updateTemplateDto.name,
-          currentTemplate.workspaceId,
-        );
+        const existingTemplate =
+          await this.templatesRepository.findByNameAndWorkspace(
+            updateTemplateDto.name,
+            currentTemplate.workspaceId,
+          );
         if (existingTemplate && existingTemplate.id !== id) {
           throw new UnprocessableEntityException({
             status: 422,
@@ -95,17 +118,37 @@ export class TemplatesService {
     return this.templatesRepository.update(id, {
       name: updateTemplateDto.name,
       description: updateTemplateDto.description,
+      creationToolId: updateTemplateDto.creationToolId,
+      prefilledData: updateTemplateDto.prefilledData,
+      thumbnailUrl: updateTemplateDto.thumbnailUrl,
+      executionOverrides: updateTemplateDto.executionOverrides,
       prompt: updateTemplateDto.prompt,
       mediaFiles: updateTemplateDto.mediaFiles,
       styleConfig: updateTemplateDto.styleConfig,
       category: updateTemplateDto.category,
       isActive: updateTemplateDto.isActive,
       workspaceId: updateTemplateDto.workspaceId,
+      promptTemplate: updateTemplateDto.promptTemplate,
+      executionConfig: updateTemplateDto.executionConfig,
+      formSchema: updateTemplateDto.formSchema,
+      inputSchema: updateTemplateDto.inputSchema,
+      sortOrder: updateTemplateDto.sortOrder,
     });
   }
 
   async remove(id: Template['id']): Promise<void> {
     await this.templatesRepository.remove(id);
+  }
+
+  async bulkUpdate(
+    ids: Template['id'][],
+    updateTemplateDto: UpdateTemplateDto,
+  ): Promise<void> {
+    return this.templatesRepository.bulkUpdate(ids, updateTemplateDto);
+  }
+
+  async bulkRemove(ids: Template['id'][]): Promise<void> {
+    return this.templatesRepository.bulkRemove(ids);
   }
 
   async deactivate(id: Template['id']): Promise<Template | null> {

@@ -162,3 +162,36 @@ export class AssignAgentDto {
   @IsOptional()
   ragSettings?: Record<string, any>;
 }
+
+export class BatchDeleteDto {
+  @ApiPropertyOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  folderIds?: string[];
+
+  @ApiPropertyOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  documentIds?: string[];
+}
+
+export class BatchMoveDto {
+  @ApiPropertyOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  folderIds?: string[];
+
+  @ApiPropertyOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  documentIds?: string[];
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  targetFolderId?: string | null;
+}

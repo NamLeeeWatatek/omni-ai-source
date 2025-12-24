@@ -35,6 +35,8 @@ import {
 } from '../utils/dto/infinity-pagination-response.dto';
 import { infinityPagination } from '../utils/infinity-pagination';
 
+import { CurrentWorkspace } from '../workspaces/decorators/current-workspace.decorator';
+
 @ApiTags('Bots')
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'))
@@ -43,14 +45,17 @@ export class BotsController {
   constructor(
     private readonly botsService: BotsService,
     private readonly botInteractionService: BotInteractionService,
-  ) { }
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create bot' })
   @ApiCreatedResponse({ type: Bot })
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createDto: CreateBotDto, @Request() req) {
-    const workspaceId = createDto.workspaceId || req.user.workspaceId;
+  async create(
+    @Body() createDto: CreateBotDto,
+    @Request() req,
+    @CurrentWorkspace() workspaceId: string,
+  ) {
     return this.botsService.create({ ...createDto, workspaceId }, req.user.id);
   }
 
@@ -61,6 +66,7 @@ export class BotsController {
   async findAll(
     @Query() query: QueryBotDto,
     @Request() req,
+    @CurrentWorkspace() workspaceId: string,
   ): Promise<InfinityPaginationResponseDto<any>> {
     const page = query?.page ?? 1;
     let limit = query?.limit ?? 10;
@@ -70,9 +76,6 @@ export class BotsController {
 
     // Extract filters
     const filters = query?.filters;
-
-    // Ensure workspaceId is provided from filters or use a default from request
-    const workspaceId = filters?.workspaceId || req?.user?.workspaceId;
 
     if (!workspaceId) {
       throw new Error('Workspace ID is required');

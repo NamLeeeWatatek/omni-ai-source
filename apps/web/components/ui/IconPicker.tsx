@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import * as React from "react"
 import { Button } from "@/components/ui/Button"
@@ -8,8 +8,8 @@ import {
     PopoverTrigger,
 } from "@/components/ui/Popover"
 import { Input } from "@/components/ui/Input"
-import { ScrollArea } from "./ScrollArea"
-import * as Icons from 'react-icons/fi'
+import { ScrollArea } from "@/components/ui/ScrollArea"
+import { icons, Search, Folder } from 'lucide-react'
 import { cn } from "@/lib/utils"
 
 interface IconPickerProps {
@@ -19,56 +19,61 @@ interface IconPickerProps {
 }
 
 const commonIcons = [
-    'FiFolder',
-    'FiFile',
-    'FiFileText',
-    'FiBook',
-    'FiBookOpen',
-    'FiDatabase',
-    'FiArchive',
-    'FiBox',
-    'FiBriefcase',
-    'FiClipboard',
-    'FiCode',
-    'FiCoffee',
-    'FiCpu',
-    'FiCreditCard',
-    'FiDollarSign',
-    'FiGlobe',
-    'FiGrid',
-    'FiHardDrive',
-    'FiHash',
-    'FiHeart',
-    'FiHome',
-    'FiImage',
-    'FiInbox',
-    'FiLayers',
-    'FiLayout',
-    'FiLifeBuoy',
-    'FiList',
-    'FiLock',
-    'FiMail',
-    'FiMap',
-    'FiMessageSquare',
-    'FiMonitor',
-    'FiMusic',
-    'FiPackage',
-    'FiPaperclip',
-    'FiPieChart',
-    'FiSettings',
-    'FiShoppingBag',
-    'FiShoppingCart',
-    'FiStar',
-    'FiTag',
-    'FiTarget',
-    'FiTool',
-    'FiTrendingUp',
-    'FiTruck',
-    'FiTv',
-    'FiUser',
-    'FiUsers',
-    'FiVideo',
-    'FiZap',
+    'Folder',
+    'File',
+    'FileText',
+    'Book',
+    'BookOpen',
+    'Database',
+    'Archive',
+    'Box',
+    'Briefcase',
+    'Clipboard',
+    'Code',
+    'Coffee',
+    'Cpu',
+    'CreditCard',
+    'DollarSign',
+    'Globe',
+    'Grid',
+    'HardDrive',
+    'Hash',
+    'Heart',
+    'Home',
+    'Image',
+    'Inbox',
+    'Layers',
+    'Layout',
+    'LifeBuoy',
+    'List',
+    'Lock',
+    'Mail',
+    'Map',
+    'MessageSquare',
+    'Monitor',
+    'Music',
+    'Package',
+    'Paperclip',
+    'PieChart',
+    'Settings',
+    'ShoppingBag',
+    'ShoppingCart',
+    'Star',
+    'Tag',
+    'Target',
+    'Tool',
+    'TrendingUp',
+    'Truck',
+    'Tv',
+    'User',
+    'Users',
+    'Video',
+    'Zap',
+    'Bot',
+    'Globe2',
+    'Library',
+    'Brain',
+    'Sparkles'
 ]
 
 export function IconPicker({ value, onChange, className }: IconPickerProps) {
@@ -79,7 +84,7 @@ export function IconPicker({ value, onChange, className }: IconPickerProps) {
         icon.toLowerCase().includes(search.toLowerCase())
     )
 
-    const SelectedIcon = value && (Icons as any)[value] ? (Icons as any)[value] : Icons.FiFolder
+    const SelectedIcon = value && (icons as any)[value] ? (icons as any)[value] : Folder
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -87,25 +92,35 @@ export function IconPicker({ value, onChange, className }: IconPickerProps) {
                 <Button
                     variant="outline"
                     role="combobox"
+                    rounded="xl"
                     aria-expanded={open}
-                    className={cn("w-full justify-start", className)}
+                    className={cn("w-full justify-start h-12 glass border-white/5 pl-4 font-bold hover:border-primary/40 focus:ring-primary/40 transition-all", className)}
                 >
-                    <SelectedIcon className="w-4 h-4 mr-2" />
-                    {value || "Select icon..."}
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary mr-3 shadow-inner">
+                        <SelectedIcon className="w-4 h-4" />
+                    </div>
+                    <span className="opacity-80">{value || "Identify with icon..."}</span>
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-0" align="start">
-                <div className="p-2 border-b">
-                    <Input
-                        placeholder="Search icons..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
+            <PopoverContent className="w-80 p-0 glass border-white/10 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200" align="start">
+                <div className="p-4 border-b border-white/5">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/40" />
+                        <Input
+                            placeholder="Search cryptograms..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            rounded="xl"
+                            className="h-10 glass border-white/5 pl-9 font-bold text-xs"
+                        />
+                    </div>
                 </div>
                 <ScrollArea className="h-72">
-                    <div className="grid grid-cols-6 gap-2 p-2">
+                    <div className="grid grid-cols-5 gap-2 p-4">
                         {filteredIcons.map((iconName) => {
-                            const IconComponent = (Icons as any)[iconName]
+                            const IconComponent = (icons as any)[iconName]
+                            if (!IconComponent) return null;
+
                             return (
                                 <button
                                     key={iconName}
@@ -114,12 +129,15 @@ export function IconPicker({ value, onChange, className }: IconPickerProps) {
                                         setOpen(false)
                                     }}
                                     className={cn(
-                                        "p-3 rounded-md hover:bg-accent transition-colors flex items-center justify-center",
-                                        value === iconName && "bg-accent"
+                                        "aspect-square rounded-xl hover:bg-primary hover:text-primary-foreground transition-all flex items-center justify-center group relative",
+                                        value === iconName ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-muted/10 glass border border-white/5"
                                     )}
                                     title={iconName}
                                 >
-                                    <IconComponent className="w-5 h-5" />
+                                    <IconComponent className="w-5 h-5 transition-transform group-hover:scale-125" />
+                                    {value === iconName && (
+                                        <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-success rounded-full border-2 border-background animate-bounce" />
+                                    )}
                                 </button>
                             )
                         })}
@@ -129,4 +147,3 @@ export function IconPicker({ value, onChange, className }: IconPickerProps) {
         </Popover>
     )
 }
-

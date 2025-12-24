@@ -1,41 +1,30 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
-  UseGuards,
-  Query,
-  HttpStatus,
+  Get,
   HttpCode,
-  SerializeOptions,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { TemplatesService } from './templates.service';
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
-import {
-  ApiBearerAuth,
-  ApiCreatedResponse,
-  ApiOkResponse,
-  ApiParam,
-  ApiTags,
-  ApiOperation,
-} from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
-import {
-  InfinityPaginationResponse,
-  InfinityPaginationResponseDto,
-} from '../utils/dto/infinity-pagination-response.dto';
-import { NullableType } from '../utils/types/nullable.type';
 import { QueryTemplateDto } from './dto/query-template.dto';
+import { Roles } from '../roles/roles.decorator';
+import { RoleEnum } from '../roles/roles.enum';
+import { NullableType } from '../utils/types/nullable.type';
 import { Template } from './domain/template';
-import { TemplatesService } from './templates.service';
+import { InfinityPaginationResponseDto } from '../utils/dto/infinity-pagination-response.dto';
 import { infinityPagination } from '../utils/infinity-pagination';
 
-@ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
 @ApiTags('Templates')
+@ApiBearerAuth()
+// @UseGuards(AuthGuard('jwt'), RolesGuard)
 @Controller({
   path: 'templates',
   version: '1',
@@ -43,17 +32,13 @@ import { infinityPagination } from '../utils/infinity-pagination';
 export class TemplatesController {
   constructor(private readonly templatesService: TemplatesService) {}
 
-  @ApiCreatedResponse({ type: Template })
-  @ApiOperation({ summary: 'Create new template' })
-  @SerializeOptions({ groups: ['admin'] })
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @Roles(RoleEnum.admin, RoleEnum.user)
   create(@Body() createTemplateDto: CreateTemplateDto): Promise<Template> {
     return this.templatesService.create(createTemplateDto);
   }
 
-  @ApiOkResponse({ type: InfinityPaginationResponse(Template) })
-  @ApiOperation({ summary: 'Get all templates with pagination' })
   @Get()
   @HttpCode(HttpStatus.OK)
   async findAll(
@@ -67,67 +52,69 @@ export class TemplatesController {
 
     return infinityPagination(
       await this.templatesService.findManyWithPagination({
-        filterOptions: query?.filters,
-        sortOptions: query?.sort,
-        paginationOptions: { page, limit },
+        paginationOptions: {
+          page,
+          limit,
+        },
+        filterOptions: query.filters,
+        sortOptions: query.sort,
       }),
       { page, limit },
     );
   }
 
-  @ApiOkResponse({ type: Template })
-  @ApiOperation({ summary: 'Get template by ID' })
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiParam({ name: 'id', type: String, required: true })
-  findOne(@Param('id') id: Template['id']): Promise<NullableType<Template>> {
+  findOne(@Param('id') id: string): Promise<NullableType<Template>> {
     return this.templatesService.findById(id);
   }
 
-  @ApiOkResponse({ type: [Template] })
-  @ApiOperation({ summary: 'Get templates by workspace ID' })
-  @Get('workspace/:workspaceId')
+  // Get all templates associated with a specific creation tool
+  @Get('by-tool/:creationToolId')
   @HttpCode(HttpStatus.OK)
-  @ApiParam({ name: 'workspaceId', type: String, required: true })
-  findByWorkspace(@Param('workspaceId') workspaceId: string): Promise<Template[]> {
-    return this.templatesService.findByWorkspace(workspaceId);
+  async findByCreationTool(
+    @Param('creationToolId') creationToolId: string,
+  ): Promise<Template[]> {
+    return this.templatesService.findByCreationTool(creationToolId);
   }
 
-  @ApiOkResponse({ type: Template })
-  @ApiOperation({ summary: 'Update template' })
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiParam({ name: 'id', type: String, required: true })
+  @Roles(RoleEnum.admin, RoleEnum.user)
   update(
-    @Param('id') id: Template['id'],
+    @Param('id') id: string,
     @Body() updateTemplateDto: UpdateTemplateDto,
   ): Promise<Template | null> {
     return this.templatesService.update(id, updateTemplateDto);
   }
 
-  @ApiOperation({ summary: 'Delete template' })
   @Delete(':id')
-  @ApiParam({ name: 'id', type: String, required: true })
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id') id: Template['id']): Promise<void> {
+  @Roles(RoleEnum.admin)
+  remove(@Param('id') id: string): Promise<void> {
     return this.templatesService.remove(id);
   }
 
-  @ApiOkResponse({ type: Template })
-  @ApiOperation({ summary: 'Deactivate template' })
-  @Post(':id/deactivate')
-  @HttpCode(HttpStatus.OK)
-  @ApiParam({ name: 'id', type: String, required: true })
-  deactivate(@Param('id') id: Template['id']): Promise<Template | null> {
-    return this.templatesService.deactivate(id);
+  @Patch('bulk/update')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Roles(RoleEnum.admin)
+  async bulkUpdate(
+    @Body()
+    bulkUpdateDto: import('./dto/bulk-operation-template.dto').BulkUpdateTemplateDto,
+  ): Promise<void> {
+    return this.templatesService.bulkUpdate(
+      bulkUpdateDto.ids,
+      bulkUpdateDto.data,
+    );
   }
 
-  @ApiOkResponse({ type: Template })
-  @ApiOperation({ summary: 'Activate template' })
-  @Post(':id/activate')
-  @HttpCode(HttpStatus.OK)
-  @ApiParam({ name: 'id', type: String, required: true })
-  activate(@Param('id') id: Template['id']): Promise<Template | null> {
-    return this.templatesService.activate(id);
+  @Post('bulk/delete')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Roles(RoleEnum.admin)
+  async bulkRemove(
+    @Body()
+    bulkDeleteDto: import('./dto/bulk-operation-template.dto').BulkDeleteTemplateDto,
+  ): Promise<void> {
+    return this.templatesService.bulkRemove(bulkDeleteDto.ids);
   }
 }

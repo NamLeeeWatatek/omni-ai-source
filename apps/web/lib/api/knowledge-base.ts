@@ -1,5 +1,5 @@
-﻿
 import axiosClient from '@/lib/axios-client'
+import { MessageRole } from '../types/conversations'
 import type {
   GetKnowledgeBasesResponse,
   GetKnowledgeBaseResponse,
@@ -32,6 +32,9 @@ import type {
   AssignAgentDto,
   AssignAgentResponse,
   UnassignAgentResponse,
+  BatchDeleteDto,
+  BatchMoveDto,
+  BatchOperationResponse,
 } from '../types/knowledge-base'
 
 /**
@@ -53,7 +56,7 @@ export async function getKnowledgeBase(id: string): Promise<GetKnowledgeBaseResp
  * Create knowledge base
  */
 export async function createKnowledgeBase(data: CreateKnowledgeBaseDto): Promise<CreateKnowledgeBaseResponse> {
-  return axiosClient.post('/knowledge-bases', data)
+  return axiosClient.post('/knowledge-bases', data, { params: { workspaceId: data.workspaceId } })
 }
 
 /**
@@ -199,7 +202,11 @@ export async function queryKnowledgeBase(data: QueryKnowledgeBaseDto): Promise<Q
 /**
  * Generate answer using RAG
  */
-export async function generateKBAnswer(data: GenerateAnswerDto): Promise<GenerateAnswerResponse> {
+export async function generateKBAnswer(data: {
+  question: string
+  knowledgeBaseId: string
+  conversationHistory?: Array<{ role: MessageRole; content: string }>
+}): Promise<GenerateAnswerResponse> {
   return axiosClient.post('/knowledge-bases/answer', data)
 }
 
@@ -211,7 +218,7 @@ export async function chatWithBotAndRAG(data: {
   message: string
   botId: string                          // Required - bot-first approach
   knowledgeBaseIds?: string[]           // Optional KB sources
-  conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
+  conversationHistory?: Array<{ role: MessageRole; content: string }>
   model?: string                        // Override model (optional)
 }): Promise<{
   success: boolean
@@ -231,7 +238,7 @@ export async function chatWithBotAndRAG(data: {
 export async function chatWithKBSimple(data: {
   message: string
   knowledgeBaseId?: string
-  conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
+  conversationHistory?: Array<{ role: MessageRole; content: string }>
   model?: string
 }): Promise<{ success: boolean; answer: string }> {
   return axiosClient.post('/knowledge-bases/chat', data)
@@ -273,4 +280,17 @@ export async function unassignAgentFromKB(kbId: string, agentId: string): Promis
  */
 export async function getKBAgentAssignments(kbId: string): Promise<GetAgentAssignmentsResponse> {
   return axiosClient.get(`/knowledge-bases/${kbId}/agents`)
+}
+/**
+ * Batch Delete Folders/Documents
+ */
+export async function deleteKBBatch(data: BatchDeleteDto): Promise<BatchOperationResponse> {
+  return axiosClient.post('/knowledge-bases/batch/delete', data)
+}
+
+/**
+ * Batch Move Folders/Documents
+ */
+export async function moveKBBatch(data: BatchMoveDto): Promise<BatchOperationResponse> {
+  return axiosClient.post('/knowledge-bases/batch/move', data)
 }

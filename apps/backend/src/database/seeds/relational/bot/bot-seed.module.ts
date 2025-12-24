@@ -10,4 +10,4 @@ import { WorkspaceEntity } from '../../../../workspaces/infrastructure/persisten
   providers: [BotSeedService],
   exports: [BotSeedService],
 })
-export class BotSeedModule { }
+export class BotSeedModule {}

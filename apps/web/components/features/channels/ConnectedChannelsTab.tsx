@@ -8,37 +8,38 @@ import { DataTable } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { Badge } from '@/components/ui/Badge';
 import {
-  FiGrid,
-  FiList,
-  FiSearch,
-  FiCheckCircle,
-  FiSettings,
-  FiTrash2,
-  FiFacebook,
-  FiMessageCircle,
-  FiInstagram,
-  FiPhone,
-  FiMail,
-  FiYoutube,
-  FiTwitter,
-  FiLinkedin,
-  FiMusic,
-  FiHash,
-  FiMessageSquare,
-  FiSmartphone,
-  FiGlobe,
-  FiShoppingCart,
-  FiTarget,
-  FiCloud,
-  FiSend,
-  FiBook,
-  FiBarChart,
-  FiZap
-} from 'react-icons/fi';
+  Grid,
+  List,
+  Search,
+  CheckCircle2,
+  Settings,
+  Trash2,
+  Facebook,
+  MessageCircle,
+  Instagram,
+  Phone,
+  Mail,
+  Youtube,
+  Twitter,
+  Linkedin,
+  Music,
+  Hash,
+  MessageSquare,
+  Smartphone,
+  Globe,
+  ShoppingCart,
+  Target,
+  Cloud,
+  Send,
+  Book,
+  BarChart,
+  Zap,
+  MoreHorizontal
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Channel {
-  id: number;
+  id: string;
   name: string;
   type: string;
   status: string;
@@ -53,15 +54,15 @@ interface ConnectedChannelsTabProps {
   currentPage: number;
   pageSize: number;
   totalCount: number;
-  selectedIds: number[];
+  selectedIds: string[];
   onSearchChange: (query: string) => void;
   onViewModeChange: (mode: 'grid' | 'list') => void;
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void;
-  onToggleSelection: (id: number) => void;
+  onToggleSelection: (id: string) => void;
   onClearSelection: () => void;
   onAssignBot: (channel: Channel) => void;
-  onDisconnect: (id: number) => void;
+  onDisconnect: (id: string) => void;
   onLoadData: () => void;
   isLoading?: boolean;
 }
@@ -87,35 +88,35 @@ export function ConnectedChannelsTab({
 }: ConnectedChannelsTabProps) {
   const getIcon = (type: string) => {
     const icons: Record<string, JSX.Element> = {
-      'facebook': <FiFacebook className="w-5 h-5" />,
-      'messenger': <FiMessageCircle className="w-5 h-5" />,
-      'instagram': <FiInstagram className="w-5 h-5" />,
-      'whatsapp': <FiPhone className="w-5 h-5" />,
-      'telegram': <FiSend className="w-5 h-5" />,
-      'email': <FiMail className="w-5 h-5" />,
-      'youtube': <FiYoutube className="w-5 h-5" />,
-      'twitter': <FiTwitter className="w-5 h-5" />,
-      'linkedin': <FiLinkedin className="w-5 h-5" />,
-      'tiktok': <FiMusic className="w-5 h-5" />,
-      'discord': <FiHash className="w-5 h-5" />,
-      'slack': <FiMessageSquare className="w-5 h-5" />,
-      'zalo': <FiMessageCircle className="w-5 h-5" />,
-      'line': <FiMessageSquare className="w-5 h-5" />,
-      'viber': <FiPhone className="w-5 h-5" />,
-      'wechat': <FiMessageCircle className="w-5 h-5" />,
-      'sms': <FiSmartphone className="w-5 h-5" />,
-      'webchat': <FiGlobe className="w-5 h-5" />,
-      'shopify': <FiShoppingCart className="w-5 h-5" />,
-      'google': <FiGlobe className="w-5 h-5" />,
-      'hubspot': <FiTarget className="w-5 h-5" />,
-      'salesforce': <FiCloud className="w-5 h-5" />,
-      'mailchimp': <FiMail className="w-5 h-5" />,
-      'intercom': <FiMessageSquare className="w-5 h-5" />,
-      'zapier': <FiZap className="w-5 h-5" />,
-      'notion': <FiBook className="w-5 h-5" />,
-      'airtable': <FiBarChart className="w-5 h-5" />,
+      'facebook': <Facebook className="w-5 h-5" />,
+      'messenger': <MessageCircle className="w-5 h-5" />,
+      'instagram': <Instagram className="w-5 h-5" />,
+      'whatsapp': <Phone className="w-5 h-5" />,
+      'telegram': <Send className="w-5 h-5" />,
+      'email': <Mail className="w-5 h-5" />,
+      'youtube': <Youtube className="w-5 h-5" />,
+      'twitter': <Twitter className="w-5 h-5" />,
+      'linkedin': <Linkedin className="w-5 h-5" />,
+      'tiktok': <Music className="w-5 h-5" />,
+      'discord': <Hash className="w-5 h-5" />,
+      'slack': <MessageSquare className="w-5 h-5" />,
+      'zalo': <MessageCircle className="w-5 h-5" />,
+      'line': <MessageSquare className="w-5 h-5" />,
+      'viber': <Phone className="w-5 h-5" />,
+      'wechat': <MessageCircle className="w-5 h-5" />,
+      'sms': <Smartphone className="w-5 h-5" />,
+      'webchat': <Globe className="w-5 h-5" />,
+      'shopify': <ShoppingCart className="w-5 h-5" />,
+      'google': <Globe className="w-5 h-5" />,
+      'hubspot': <Target className="w-5 h-5" />,
+      'salesforce': <Cloud className="w-5 h-5" />,
+      'mailchimp': <Mail className="w-5 h-5" />,
+      'intercom': <MessageSquare className="w-5 h-5" />,
+      'zapier': <Zap className="w-5 h-5" />,
+      'notion': <Book className="w-5 h-5" />,
+      'airtable': <BarChart className="w-5 h-5" />,
     };
-    return icons[type] || <FiSmartphone className="w-5 h-5" />;
+    return icons[type] || <Smartphone className="w-5 h-5" />;
   };
 
   const getColor = (type: string) => {
@@ -164,35 +165,36 @@ export function ConnectedChannelsTab({
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Controls Toolbar */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-4 border-b">
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between sticky top-0 z-10 bg-background/80 backdrop-blur-xl py-4 border-b border-border/10">
         <div className="relative flex-1 w-full max-w-sm">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
             placeholder="Search connected channels..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10 rounded-xl bg-muted/50 focus:bg-background border-muted-foreground/20"
+            rounded="xl"
+            className="pl-10 h-11 bg-muted/20 focus:bg-background/50 border-border/40 shadow-sm"
           />
         </div>
 
-        <div className="bg-muted/50 p-1 rounded-xl flex shadow-sm border border-border/50">
+        <div className="bg-muted/10 p-1 rounded-xl flex shadow-sm border border-white/5 backdrop-blur-md">
           <button
             onClick={() => onViewModeChange('grid')}
             className={cn(
-              "p-2 rounded-lg transition-all",
-              viewMode === 'grid' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              "p-2 rounded-lg transition-all duration-300",
+              viewMode === 'grid' ? 'bg-primary text-primary-foreground shadow-lg' : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
             )}
           >
-            <FiGrid className="w-4 h-4" />
+            <Grid className="w-4 h-4" />
           </button>
           <button
             onClick={() => onViewModeChange('list')}
             className={cn(
-              "p-2 rounded-lg transition-all",
-              viewMode === 'list' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              "p-2 rounded-lg transition-all duration-300",
+              viewMode === 'list' ? 'bg-primary text-primary-foreground shadow-lg' : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
             )}
           >
-            <FiList className="w-4 h-4" />
+            <List className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -215,49 +217,55 @@ export function ConnectedChannelsTab({
                 const sameTypeCount = channels.filter(c => c.type === channel.type).length;
 
                 return (
-                  <Card key={channel.id} className="group relative overflow-hidden h-full flex flex-col hover:shadow-xl transition-all duration-300 border-border/60 bg-card/50 backdrop-blur-sm hover:-translate-y-1 rounded-2xl">
-                    <div className={cn("h-1.5 w-full bg-gradient-to-r", channel.status === 'connected' ? "from-success to-success/50" : "from-destructive to-destructive/50")} />
-                    <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                      <div className={`p-3 rounded-xl shadow-inner ${getColor(channel.type)}`}>
+                  <Card key={channel.id} variant="glass" rounded="xl" className="group relative overflow-hidden h-full flex flex-col hover:shadow-2xl transition-all duration-500 border-white/5 hover:-translate-y-1">
+                    <div className={cn("h-1.5 w-full bg-gradient-to-r", channel.status === 'connected' ? "from-success/80 to-success/20" : "from-destructive/80 to-destructive/20")} />
+                    <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4 pt-6">
+                      <div className={cn("p-4 rounded-xl shadow-inner transform group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500", getColor(channel.type))}>
                         {getIcon(channel.type)}
                       </div>
-                      <div className="flex flex-col items-end gap-1.5">
-                        <Badge variant="outline" className="text-success border-success/30 bg-success/5 gap-1">
-                          <FiCheckCircle className="w-3 h-3" /> Active
+                      <div className="flex flex-col items-end gap-2">
+                        <Badge variant="outline" rounded="lg" className="text-success border-success/30 bg-success/10 gap-1 font-bold">
+                          <CheckCircle2 className="w-3 h-3" /> Active
                         </Badge>
                         {channel.metadata?.botId && (
-                          <Badge variant="secondary" className="gap-1 text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
-                            <FiSettings className="w-3 h-3" /> Bot Assigned
+                          <Badge variant="secondary" rounded="lg" className="gap-1 text-[10px] bg-primary/10 text-primary border-primary/20 font-bold">
+                            <Settings className="w-3 h-3" /> Linked
                           </Badge>
                         )}
                       </div>
                     </CardHeader>
-                    <CardContent className="flex-1">
-                      <CardTitle className="text-lg font-bold mb-1 line-clamp-1">{channel.name}</CardTitle>
-                      <CardDescription className="capitalize font-medium">
-                        {channel.type}
+                    <CardContent className="flex-1 pb-6">
+                      <CardTitle className="text-xl font-black mb-1 line-clamp-1 group-hover:text-primary transition-colors">{channel.name}</CardTitle>
+                      <CardDescription className="capitalize font-bold text-xs tracking-widest opacity-70">
+                        {channel.type} Proxy
                       </CardDescription>
                       {sameTypeCount > 1 && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Part of {sameTypeCount} connected accounts
+                        <p className="text-[10px] font-black text-muted-foreground uppercase mt-3 tracking-wider opacity-60">
+                          Account {channels.findIndex(c => c.id === channel.id) % sameTypeCount + 1} of {sameTypeCount}
                         </p>
                       )}
                     </CardContent>
-                    <CardFooter className="grid grid-cols-2 gap-3 border-t bg-muted/30 px-6 py-4 mt-auto">
-                      <button
+                    <CardFooter className="grid grid-cols-2 gap-3 border-t border-white/5 bg-muted/5 p-4 mt-auto">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        rounded="lg"
                         onClick={() => onAssignBot(channel)}
-                        className="flex items-center justify-center gap-2 text-xs font-semibold text-primary hover:text-primary/80 transition-colors py-2 rounded-lg hover:bg-primary/10 bg-background border shadow-sm"
+                        className="text-[10px] font-black uppercase tracking-widest hover:bg-primary/10 hover:text-primary border border-white/5 bg-background/50 shadow-sm"
                       >
-                        <FiSettings className="w-3.5 h-3.5" />
-                        {channel.metadata?.botId ? 'Change Bot' : 'Assign Bot'}
-                      </button>
-                      <button
+                        <Settings className="w-3.5 h-3.5 mr-2" />
+                        Configure
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        rounded="lg"
                         onClick={() => onDisconnect(channel.id)}
-                        className="flex items-center justify-center gap-2 text-xs font-semibold text-destructive hover:text-destructive/80 transition-colors py-2 rounded-lg hover:bg-destructive/10 bg-background border shadow-sm"
+                        className="text-[10px] font-black uppercase tracking-widest text-destructive hover:bg-destructive/10 hover:text-destructive border border-white/5 bg-background/50 shadow-sm"
                       >
-                        <FiTrash2 className="w-3.5 h-3.5" />
-                        Disconnect
-                      </button>
+                        <Trash2 className="w-3.5 h-3.5 mr-2" />
+                        Sever
+                      </Button>
                     </CardFooter>
                   </Card>
                 );
@@ -287,8 +295,8 @@ export function ConnectedChannelsTab({
                     key: 'status',
                     label: 'Status',
                     render: (_, row) => (
-                      <Badge variant="outline" className="text-success border-success/30 bg-success/5 gap-1">
-                        <FiCheckCircle className="w-3 h-3" /> Active
+                      <Badge variant="outline" rounded="lg" className="text-success border-success/30 bg-success/10 gap-1 font-bold">
+                        <CheckCircle2 className="w-3 h-3" /> Active
                       </Badge>
                     )
                   },
@@ -313,18 +321,21 @@ export function ConnectedChannelsTab({
                       <div className="flex justify-end gap-2">
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon"
+                          rounded="lg"
                           onClick={() => onAssignBot(row)}
+                          className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                         >
-                          <FiSettings className="w-4 h-4" />
+                          <Settings className="w-4 h-4" />
                         </Button>
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon"
+                          rounded="lg"
                           onClick={() => onDisconnect(row.id)}
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                         >
-                          <FiTrash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     )
@@ -332,6 +343,7 @@ export function ConnectedChannelsTab({
                 ]}
                 searchable={false}
                 className="border-none"
+                tableClassName="border-none shadow-none bg-transparent"
               />
             </div>
           )}

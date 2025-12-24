@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/Card'
 import { Spinner } from '@/components/ui/Spinner'
 import axiosClient from '@/lib/axios-client'
 import toast from '@/lib/toast'
-import { FiZap, FiCheck, FiX } from 'react-icons/fi'
+import { Zap, Check, X } from 'lucide-react'
 import type { AiSuggestWidgetProps } from '@/lib/types'
 
 export function AiSuggestWidget({
@@ -69,7 +69,7 @@ export function AiSuggestWidget({
                     {loading ? (
                         <Spinner className="size-4 mr-2" />
                     ) : (
-                        <FiZap className="w-4 h-4 mr-2" />
+                        <Zap className="w-4 h-4 mr-2" />
                     )}
                     AI Suggest
                 </Button>
@@ -77,14 +77,14 @@ export function AiSuggestWidget({
                 <Card className="p-4 bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800">
                     <div className="flex items-start gap-3">
                         <div className="w-8 h-8 rounded-lg bg-purple-500 flex items-center justify-center flex-shrink-0">
-                            <FiZap className="w-4 h-4 text-white" />
+                            <Zap className="w-4 h-4 text-white" />
                         </div>
                         <div className="flex-1">
                             <h4 className="font-semibold text-sm mb-2">AI Suggestion</h4>
                             <p className="text-sm text-muted-foreground mb-3">{suggestion}</p>
                             <div className="flex items-center gap-2">
                                 <Button size="sm" onClick={applySuggestion}>
-                                    <FiCheck className="w-4 h-4 mr-2" />
+                                    <Check className="w-4 h-4 mr-2" />
                                     Apply
                                 </Button>
                                 <Button
@@ -92,7 +92,7 @@ export function AiSuggestWidget({
                                     variant="outline"
                                     onClick={dismissSuggestion}
                                 >
-                                    <FiX className="w-4 h-4 mr-2" />
+                                    <X className="w-4 h-4 mr-2" />
                                     Dismiss
                                 </Button>
                             </div>

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Icon Resolver - Resolves icon names to React components
  * This avoids storing React components in Redux state (which can't be serialized)
  */

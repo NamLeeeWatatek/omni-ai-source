@@ -6,10 +6,7 @@ import { TemplateEntity } from '../../../../templates/infrastructure/persistence
 import { TemplatesModule } from '../../../../templates/templates.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([TemplateEntity]),
-    TemplatesModule,
-  ],
+  imports: [TypeOrmModule.forFeature([TemplateEntity]), TemplatesModule],
   providers: [TemplatesSeedService],
   exports: [TemplatesSeedService],
 })

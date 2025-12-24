@@ -1,5 +1,5 @@
-﻿import { useState } from 'react';
-import { fileUploadService, FileUploadOptions } from '@/lib/services/file-upload-service';
+import { useState } from 'react';
+import { fileUploadService, type FileUploadOptions } from '@/lib/api/files';
 
 interface UseFileUploadOptions extends FileUploadOptions {
   onSuccess?: (fileUrl: string, fileData: any) => void;
@@ -30,7 +30,7 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
         options.bucket || 'images'
       );
 
-      console.log('🔗 useFileUpload returning:', { fileUrl, fileData: result.file });
+      console.log('?? useFileUpload returning:', { fileUrl, fileData: result.file });
 
       options.onSuccess?.(fileUrl, result.file);
       return { fileUrl, fileData: result.file };

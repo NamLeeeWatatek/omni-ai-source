@@ -1,13 +1,14 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useBotRagChat, BotRagMessage } from '@/lib/hooks/use-bot-rag-chat';
-import { AiChatInterface } from '@/components/chat/AiChatInterface';
+import { useBotRagChat, BotRagMessage } from '@/lib/hooks/useBotRagChat';
+import { AiChatInterface } from '@/components/features/chat/AiChatInterface';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Bot, Zap, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
+import { MessageRole } from '@/lib/types/conversations';
 
 export default function BotChatPage() {
   const params = useParams();
@@ -31,7 +32,7 @@ export default function BotChatPage() {
   };
 
   const chatMessages: Array<{
-    role: 'user' | 'assistant' | 'system';
+    role: MessageRole;
     content: string;
     timestamp: string;
     metadata?: any;

@@ -9,61 +9,284 @@ export class TemplatesSeedService {
     const templates = [
       {
         name: 'Social Media Post Template',
-        description: 'A template for creating engaging social media posts with optimized prompts',
-        prompt: 'Create an engaging social media post about [topic] that includes a compelling headline, engaging copy, relevant hashtags, and a call-to-action. Make it suitable for [platform] with a [tone] tone.',
+        description:
+          'A template for creating engaging social media posts with optimized prompts',
+        prompt:
+          'Create an engaging social media post about [topic] that includes a compelling headline, engaging copy, relevant hashtags, and a call-to-action. Make it suitable for [platform] with a [tone] tone.',
         category: 'social-media',
         isActive: true,
+        inputSchema: [
+          {
+            name: 'topic',
+            label: 'Post Topic',
+            type: 'textarea',
+            placeholder: 'e.g., New product launch, Industry news...',
+            required: true,
+          },
+          {
+            name: 'platform',
+            label: 'Platform',
+            type: 'select',
+            options: [
+              { value: 'linkedin', label: 'LinkedIn' },
+              { value: 'twitter', label: 'Twitter / X' },
+              { value: 'instagram', label: 'Instagram' },
+              { value: 'facebook', label: 'Facebook' },
+            ],
+            required: true,
+          },
+          {
+            name: 'tone',
+            label: 'Tone',
+            type: 'text',
+            placeholder: 'e.g., Professional, Casual, Witty...',
+            default: 'Professional',
+          },
+        ],
       },
       {
         name: 'Image Generation Template',
-        description: 'Template for generating creative images with detailed AI prompts',
-        prompt: 'Generate a high-quality image of [subject] in [style] style, with [lighting] lighting, [colors] color scheme, and [additional details]. The image should be [resolution] resolution and suitable for [use case].',
+        description:
+          'Template for generating creative images with detailed AI prompts',
+        prompt:
+          'Generate a high-quality image of [subject] in [style] style, with [lighting] lighting, [colors] color scheme, and [additional details]. The image should be [resolution] resolution and suitable for [use case].',
         category: 'image-generation',
         isActive: true,
+        promptTemplate:
+          'Generate an image of {{subject}} in {{style}} style. Lighting: {{lighting}}. Aspect Ratio: {{aspectRatio}}.',
+        inputSchema: [
+          {
+            name: 'subject',
+            label: 'Image Subject',
+            type: 'textarea',
+            placeholder: 'e.g., A futuristic city with flying cars...',
+            required: true,
+          },
+          {
+            name: 'style',
+            label: 'Art Style',
+            type: 'select',
+            options: [
+              { value: 'photorealistic', label: 'Photorealistic' },
+              { value: 'anime', label: 'Anime/Manga' },
+              { value: 'oil-painting', label: 'Oil Painting' },
+              { value: 'cyberpunk', label: 'Cyberpunk' },
+              { value: 'minimalist', label: 'Minimalist' },
+            ],
+            required: true,
+          },
+          {
+            name: 'aspectRatio',
+            label: 'Aspect Ratio',
+            type: 'select',
+            options: [
+              { value: '1:1', label: 'Square (1:1)' },
+              { value: '16:9', label: 'Landscape (16:9)' },
+              { value: '9:16', label: 'Portrait (9:16)' },
+            ],
+            default: '1:1',
+          },
+          {
+            name: 'lighting',
+            label: 'Lighting Style',
+            type: 'text',
+            placeholder: 'e.g., Cinematic, Natural, Neon...',
+          },
+        ],
       },
       {
         name: 'Video Script Template',
         description: 'Template for creating video scripts and storyboards',
-        prompt: 'Create a video script for a [duration]-minute video about [topic]. Include scene descriptions, dialogue, voiceover narration, background music suggestions, and visual effects. The script should follow a [structure] structure and target [audience].',
         category: 'video-editing',
+        promptTemplate:
+          'Write a script for a {{duration}} minute video about {{topic}}. Target Audience: {{audience}}. Structure: {{structure}}.',
         isActive: true,
+        inputSchema: [
+          {
+            name: 'topic',
+            label: 'Video Topic',
+            type: 'text',
+            required: true,
+          },
+          {
+            name: 'duration',
+            label: 'Target Duration (minutes)',
+            type: 'number',
+            default: 5,
+            min: 1,
+            max: 60,
+          },
+          {
+            name: 'audience',
+            label: 'Target Audience',
+            type: 'text',
+            placeholder: 'e.g., Students, Professionals, Gamers...',
+          },
+          {
+            name: 'structure',
+            label: 'Script Structure',
+            type: 'select',
+            options: [
+              { value: 'educational', label: 'Educational / How-to' },
+              { value: 'storytelling', label: 'Storytelling' },
+              { value: 'promotional', label: 'Promotional / Ad' },
+            ],
+            default: 'educational',
+          },
+        ],
       },
       {
         name: 'Marketing Email Template',
         description: 'Template for crafting effective marketing emails',
-        prompt: 'Write a marketing email with subject line, compelling opening, main content about [product/service], benefits, social proof, call-to-action, and unsubscribe footer. The email should be [length] words long and use [tone] tone.',
         category: 'marketing',
+        promptTemplate:
+          'Write a marketing email for {{product}}. Goal: {{goal}}. Call to Action: {{cta}}.',
         isActive: true,
+        inputSchema: [
+          {
+            name: 'product',
+            label: 'Product / Service Name',
+            type: 'text',
+            required: true,
+          },
+          {
+            name: 'goal',
+            label: 'Campaign Goal',
+            type: 'select',
+            options: [
+              { value: 'awareness', label: 'Brand Awareness' },
+              { value: 'sales', label: 'Drive Sales' },
+              { value: 'newsletter', label: 'Newsletter Engagement' },
+            ],
+          },
+          {
+            name: 'cta',
+            label: 'Call to Action (CTA)',
+            type: 'text',
+            placeholder: 'e.g., Sign up now, Learn more...',
+            required: true,
+          },
+        ],
       },
       {
         name: 'Blog Post Template',
         description: 'Template for writing SEO-optimized blog posts',
-        prompt: 'Write a comprehensive blog post about [topic] that includes an engaging introduction, [number] main sections with subheadings, practical examples, conclusion with call-to-action, and SEO-optimized meta description. Target keyword: [keyword].',
         category: 'marketing',
+        promptTemplate:
+          'Write a comprehensive blog post about {{topic}}. Target keyword: {{keyword}}. Include {{sections}} main sections.',
         isActive: true,
+        inputSchema: [
+          {
+            name: 'topic',
+            label: 'Blog Post Topic',
+            type: 'text',
+            required: true,
+          },
+          {
+            name: 'keyword',
+            label: 'Target SEO Keyword',
+            type: 'text',
+            placeholder: 'e.g., AI in healthcare, sustainable living...',
+          },
+          {
+            name: 'sections',
+            label: 'Number of Main Sections',
+            type: 'number',
+            default: 3,
+            min: 1,
+            max: 10,
+          },
+        ],
       },
       {
         name: 'Product Description Template',
         description: 'Template for writing compelling product descriptions',
-        prompt: 'Create a product description for [product name] that highlights key features, benefits, specifications, use cases, and includes a strong call-to-action. Write in [tone] tone and keep it [length] words long.',
         category: 'marketing',
+        promptTemplate:
+          'Create a product description for {{productName}}. Tone: {{tone}}. Length: {{length}} words.',
         isActive: true,
+        inputSchema: [
+          {
+            name: 'productName',
+            label: 'Product Name',
+            type: 'text',
+            required: true,
+          },
+          {
+            name: 'tone',
+            label: 'Tone of Voice',
+            type: 'select',
+            options: [
+              { value: 'persuasive', label: 'Persuasive' },
+              { value: 'informative', label: 'Informative' },
+              { value: 'luxury', label: 'Luxury' },
+            ],
+            default: 'persuasive',
+          },
+          {
+            name: 'length',
+            label: 'Desired Length (words)',
+            type: 'number',
+            default: 100,
+            min: 50,
+            max: 500,
+          },
+        ],
       },
       {
         name: 'Text-to-Speech Script Template',
-        description: 'Template for creating scripts optimized for text-to-speech conversion',
-        prompt: 'Write a script for text-to-speech conversion about [topic]. Use natural language, include pauses for emphasis, vary sentence length, and ensure the content flows well when spoken. The script should be [duration] minutes long when spoken at normal pace.',
+        description:
+          'Template for creating scripts optimized for text-to-speech conversion',
         category: 'text-to-speech',
         isActive: true,
+        promptTemplate:
+          'Write a script for text-to-speech conversion about {{topic}}. Script length: {{duration}} minutes.',
+        inputSchema: [
+          {
+            name: 'topic',
+            label: 'Script Topic',
+            type: 'text',
+            required: true,
+          },
+          {
+            name: 'duration',
+            label: 'Target Duration (minutes)',
+            type: 'number',
+            default: 1,
+            min: 0.5,
+            max: 10,
+          },
+        ],
       },
     ];
 
-    for (const templateData of templates) {
-      try {
-        await this.templatesService.create(templateData);
-        console.log(`Created template: ${templateData.name}`);
-      } catch (error) {
-        console.error(`Failed to create template ${templateData.name}:`, error);
+    for (const template of templates) {
+      const existingTemplates =
+        await this.templatesService.findManyWithPagination({
+          filterOptions: {
+            name: template.name,
+          },
+          paginationOptions: {
+            page: 1,
+            limit: 1,
+          },
+        });
+
+      // Check if any template matches the name exactly (since repository uses Like)
+      const exactMatch = existingTemplates.find(
+        (t) => t.name === template.name,
+      );
+
+      if (!exactMatch) {
+        await this.templatesService.create({
+          name: template.name,
+          description: template.description,
+          category: template.category,
+          isActive: template.isActive,
+          prompt: template.prompt,
+          promptTemplate: template.promptTemplate,
+          inputSchema: template.inputSchema,
+        });
       }
     }
   }

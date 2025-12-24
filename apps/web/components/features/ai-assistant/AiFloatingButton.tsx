@@ -1,13 +1,14 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { FiMessageCircle, FiX, FiSend, FiLoader } from 'react-icons/fi'
+import { MessageCircle, X, Send, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { axiosClient } from '@/lib/axios-client'
+import axiosClient from '@/lib/axios-client'
 import toast from '@/lib/toast'
 import type { Message } from '@/lib/types'
-import { useAIModels } from '@/lib/hooks/use-ai-models'
+import { MessageRole } from '@/lib/types/conversations'
+import { useAIModels } from '@/lib/hooks/useAIModels'
 
 export function AIFloatingButton() {
     const [isOpen, setIsOpen] = useState(false)
@@ -25,7 +26,7 @@ export function AIFloatingButton() {
     }, [modelsLoading, getDefaultModel, model])
 
     const handleOpenFullChat = () => {
-        router.push('/ai-assistant')
+        router.push('/ai-assistant' as any)
         setIsOpen(false)
     }
 
@@ -36,7 +37,7 @@ export function AIFloatingButton() {
         setMessage('')
         setMessages(prev => [...prev, {
             id: Date.now().toString(),
-            role: 'user',
+            role: MessageRole.USER,
             content: userMessage,
             timestamp: new Date().toISOString()
         }])
@@ -47,7 +48,7 @@ export function AIFloatingButton() {
 
             setMessages(prev => [...prev, {
                 id: (Date.now() + 1).toString(),
-                role: 'assistant',
+                role: MessageRole.ASSISTANT,
                 content: response.response,
                 timestamp: new Date().toISOString()
             }])
@@ -67,7 +68,7 @@ export function AIFloatingButton() {
                         onClick={() => setIsOpen(true)}
                         className="w-14 h-14 rounded-full bg-slate-700 hover:bg-slate-700 shadow-lg hover:shadow-xl transition-all hover:scale-110 flex items-center justify-center text-white group"
                     >
-                        <FiMessageCircle className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                        <MessageCircle className="w-6 h-6 group-hover:scale-110 transition-transform" />
                         <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background animate-pulse" />
                     </button>
                 ) : (
@@ -76,7 +77,7 @@ export function AIFloatingButton() {
                         <div className="bg-slate-700 p-4 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                                    <FiMessageCircle className="w-5 h-5 text-white" />
+                                    <MessageCircle className="w-5 h-5 text-white" />
                                 </div>
                                 <div className="text-white">
                                     <div className="font-semibold">AI Assistant</div>
@@ -87,7 +88,7 @@ export function AIFloatingButton() {
                                 onClick={() => setIsOpen(false)}
                                 className="text-white/80 hover:text-white transition-colors"
                             >
-                                <FiX className="w-5 h-5" />
+                                <X className="w-5 h-5" />
                             </button>
                         </div>
 
@@ -125,7 +126,7 @@ export function AIFloatingButton() {
                                             className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                         >
                                             <div
-                                                className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${msg.role === 'user'
+                                                className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${msg.role === MessageRole.USER
                                                     ? 'bg-primary text-white'
                                                     : 'glass border border-border/40'
                                                     }`}
@@ -137,7 +138,7 @@ export function AIFloatingButton() {
                                     {loading && (
                                         <div className="flex gap-2">
                                             <div className="glass border border-border/40 rounded-lg px-3 py-2">
-                                                <FiLoader className="w-4 h-4 animate-spin" />
+                                                <Loader2 className="w-4 h-4 animate-spin" />
                                             </div>
                                         </div>
                                     )}
@@ -162,7 +163,7 @@ export function AIFloatingButton() {
                                     disabled={!message.trim() || loading}
                                     className="p-2 rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
-                                    {loading ? <FiLoader className="w-4 h-4 animate-spin" /> : <FiSend className="w-4 h-4" />}
+                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                                 </button>
                             </div>
                             <Button
@@ -180,4 +181,3 @@ export function AIFloatingButton() {
         </>
     )
 }
-

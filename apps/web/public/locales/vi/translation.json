@@ -9,7 +9,6 @@
   "notifications": "Thông báo",
   "welcome": "Chào mừng",
   "hello": "Xin chào",
-
   "navigation": {
     "features": "Tính năng",
     "pricing": "Giá cả",
@@ -17,14 +16,12 @@
     "login": "Đăng nhập",
     "start": "Bắt đầu"
   },
-
   "hero": {
     "title": "Nền tảng chatbot AI đa kênh thông minh",
     "description": "Kết nối tất cả kênh liên lạc của bạn - WhatsApp, Facebook, Instagram, Telegram - trên một nền tảng duy nhất. Tự động hóa chăm sóc khách hàng với AI và tăng doanh thu bán hàng.",
     "startForFree": "Bắt đầu miễn phí",
     "contactSales": "Liên hệ bán hàng"
   },
-
   "dashboard": {
     "title": "Bảng điều khiển",
     "welcomeBack": "Chào mừng trở lại! Đây là tổng quan của bạn.",
@@ -75,7 +72,6 @@
       "avgTime": "tb"
     }
   },
-
   "features": {
     "unifiedPlatform": "Nền tảng thống nhất",
     "comprehensiveSolution": "Giải pháp toàn diện cho chăm sóc khách hàng tự động",
@@ -99,7 +95,6 @@
       "globalInfrastructureDesc": "Triển khai trên mạng edge toàn cầu để đảm bảo thời gian phản hồi nhanh."
     }
   },
-
   "ai": {
     "providers": "Nhà cung cấp AI",
     "models": "Mô hình",
@@ -107,7 +102,6 @@
     "configuration": "Cấu hình",
     "selectModel": "Chọn mô hình AI"
   },
-
   "common": {
     "save": "Lưu",
     "cancel": "Hủy",
@@ -116,25 +110,22 @@
     "add": "Thêm",
     "create": "Tạo",
     "update": "Cập nhật",
-    "loading": "Đang tải...",
+    "loading": "Đang tải",
     "error": "Lỗi",
     "success": "Thành công",
     "recommended": "Khuyến nghị",
     "notAvailable": "Không khả dụng",
-    "loadingText": "Đang tải..."
+    "loadingText": "Đang tải"
   },
-
   "validation": {
     "required": "Trường này là bắt buộc",
     "invalid": "Giá trị không hợp lệ",
     "tooLong": "Quá dài",
     "tooShort": "Quá ngắn"
   },
-
   "buttons": {
     "switchLanguage": "Chuyển ngôn ngữ"
   },
-
   "error": {
     "general": "Đã xảy ra lỗi",
     "notFound": "Không tìm thấy",
@@ -144,13 +135,11 @@
     "providerNotSupported": "Nhà cung cấp không được hỗ trợ",
     "modelNotSupported": "Mô hình không hỗ trợ hoạt động trò chuyện"
   },
-
   "success": {
     "saved": "Đã lưu thành công",
     "deleted": "Đã xóa thành công",
     "updated": "Đã cập nhật thành công"
   },
-
   "login": {
     "title": "Nền tảng đa kênh được hỗ trợ bởi AI",
     "signInWithCasdoor": "Đăng nhập với Casdoor",
@@ -159,9 +148,9 @@
     "and": "và",
     "privacyPolicy": "Chính sách bảo mật",
     "backToHome": "Quay lại trang chủ",
-    "pleaseWait": "Vui lòng đợi...",
-    "redirecting": "Đang chuyển hướng...",
-    "loading": "Đang tải...",
+    "pleaseWait": "Vui lòng đợi",
+    "redirecting": "Đang chuyển hướng",
+    "loading": "Đang tải",
     "features": {
       "aiWorkflow": "Tự động hóa workflow được hỗ trợ bởi AI",
       "omnichannel": "Nhắn đa kênh",
@@ -178,7 +167,6 @@
       "loginInitFailed": "Không thể khởi tạo đăng nhập Casdoor. Vui lòng kiểm tra console để biết chi tiết."
     }
   },
-
   "globalScale": {
     "title": "Quy mô toàn cầu",
     "description": "WataOmi vận hành trên quy mô toàn cầu, xử lý hàng triệu cuộc hội thoại một cách an toàn và đáng tin cậy.",
@@ -187,7 +175,6 @@
     "integratedChannels": "Kênh tích hợp",
     "countries": "Quốc gia"
   },
-
   "pricing": {
     "title": "Giá cả đơn giản, minh bạch",
     "subtitle": "Không phí thiết lập, không chi phí ẩn",

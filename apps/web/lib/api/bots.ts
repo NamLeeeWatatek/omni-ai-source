@@ -1,4 +1,5 @@
-﻿import axiosClient from '../axios-client'
+import axiosClient from '../axios-client'
+import { MessageRole } from '../types/conversations'
 
 export interface Bot {
   id: string
@@ -67,6 +68,7 @@ export const botsApi = {
 
     return await axiosClient.get('/bots', {
       params: {
+        workspaceId, // Pass explicitly for @CurrentWorkspace decorator
         filters: JSON.stringify(filters)
       }
     })
@@ -77,7 +79,9 @@ export const botsApi = {
   },
 
   async create(data: CreateBotDto): Promise<Bot> {
-    return await axiosClient.post('/bots', data)
+    return await axiosClient.post('/bots', data, {
+      params: { workspaceId: data.workspaceId }
+    })
   },
 
   async update(id: string, data: UpdateBotDto): Promise<Bot> {
@@ -145,7 +149,7 @@ export const botsApi = {
     botId: string,
     functionName: string,
     input: Record<string, any>,
-    conversationHistory?: Array<{ role: string; content: string }>
+    conversationHistory?: Array<{ role: MessageRole; content: string }>
   ): Promise<any> {
     return await axiosClient.post(`/bots/${botId}/execute/${functionName}`, {
       input,
@@ -156,7 +160,7 @@ export const botsApi = {
   async chat(
     botId: string,
     message: string,
-    conversationHistory?: Array<{ role: string; content: string }>,
+    conversationHistory?: Array<{ role: MessageRole; content: string }>,
     knowledgeBaseIds?: string[]
   ): Promise<{ response: string; sources?: any[] }> {
     console.log('[Bot Chat]', {
@@ -171,7 +175,7 @@ export const botsApi = {
       botId,
       knowledgeBaseIds: knowledgeBaseIds && knowledgeBaseIds.length > 0 ? knowledgeBaseIds : undefined,
       conversationHistory: conversationHistory?.map(m => ({
-        role: m.role as 'user' | 'assistant',
+        role: m.role,
         content: m.content
       })),
     });

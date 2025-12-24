@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Channels API
  * API calls for managing channels and integrations
  */
@@ -22,29 +22,32 @@ export async function getChannelCategories(): Promise<string[]> {
 /**
  * Get all connected channels
  */
-export async function getChannels(): Promise<Channel[]> {
-  return axiosClient.get('/channels/')
+export async function getChannels(workspaceId?: string): Promise<Channel[]> {
+  return axiosClient.get('/channels/', { params: { workspaceId } })
 }
 
 /**
  * Disconnect a channel
  */
-export async function disconnectChannel(id: number): Promise<void> {
+export async function disconnectChannel(id: string): Promise<void> {
   await axiosClient.delete(`/channels/${id}`)
 }
 
 /**
  * Get all integration configurations
  */
-export async function getIntegrations(): Promise<IntegrationConfig[]> {
-  return axiosClient.get('/integrations/')
+export async function getIntegrations(workspaceId?: string): Promise<IntegrationConfig[]> {
+  return axiosClient.get('/integrations/', { params: { workspaceId } })
 }
 
 /**
  * Create integration configuration
  */
-export async function createIntegration(data: CreateIntegrationDto): Promise<IntegrationConfig> {
-  return axiosClient.post('/integrations/', data)
+export async function createIntegration(
+  data: CreateIntegrationDto,
+  workspaceId?: string
+): Promise<IntegrationConfig> {
+  return axiosClient.post('/integrations/', data, { params: { workspaceId } })
 }
 
 /**
@@ -64,7 +67,14 @@ export async function deleteIntegration(id: number): Promise<void> {
 /**
  * Get OAuth login URL
  */
-export async function getOAuthUrl(provider: string, configId?: number): Promise<{ url: string }> {
-  const configParam = configId ? `?configId=${configId}` : ''
-  return axiosClient.get(`/oauth/login/${provider}${configParam}`)
+export async function getOAuthUrl(
+  provider: string,
+  configId?: number,
+  workspaceId?: string
+): Promise<{ url: string }> {
+  const params: any = {}
+  if (configId) params.configId = configId
+  if (workspaceId) params.workspaceId = workspaceId
+
+  return axiosClient.get(`/oauth/login/${provider}`, { params })
 }

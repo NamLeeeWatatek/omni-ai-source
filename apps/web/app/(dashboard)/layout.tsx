@@ -1,16 +1,19 @@
-﻿'use client'
+'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { LoadingLogo } from '@/components/ui/LoadingLogo'
 import { DashboardSidebar } from '@/components/layout/DashboardSidebar'
 import { DashboardHeader } from '@/components/layout/DashboardHeader'
+import { Sheet, SheetContent } from '@/components/ui/Sheet'
 import { ProgressOverlay } from '@/components/ui/ProgressOverlay'
 import toast from '@/lib/toast'
-import { AlertDialogConfirm } from '@/components/ui/AlertDialogConfirm'
+
 import { useTranslation } from 'react-i18next'
 import { ErrorBoundary } from '@/components/providers/ErrorBoundary'
+import { CreationJobsProvider } from '@/components/providers/CreationJobsProvider'
+import { ActiveJobsWidget } from '@/components/features/creation-tools/ActiveJobsWidget'
 
 export default function DashboardLayout({
     children,
@@ -18,36 +21,43 @@ export default function DashboardLayout({
     children: React.ReactNode
 }) {
     // Redux-managed layout state
-    const [expandedSections, setExpandedSections] = useState<string[]>(['workflows'])
+    const [expandedSections, setExpandedSections] = useState<string[]>([])
     const [sidebarOpen, setSidebarOpen] = useState(false)
-    const [showLogoutDialog, setShowLogoutDialog] = useState(false)
     const [showNotifications, setShowNotifications] = useState(false)
 
     // Auth hooks
-    const { isAuthenticated, isLoading, signOut, accessToken } = useAuth()
+    const { isAuthenticated, isLoading, signOut, accessToken, error } = useAuth()
     const pathname = usePathname()
     const router = useRouter()
     const { t } = useTranslation()
 
+    // Handle session errors and redirects
+    useEffect(() => {
+        if (isLoading) return
+
+        if (error === 'RefreshAccessTokenError') {
+            toast.error('Session expired. Please log in again.')
+            signOut()
+            return
+        }
+
+        if (!isAuthenticated || !accessToken) {
+            router.push('/login')
+        }
+    }, [isLoading, isAuthenticated, accessToken, error, router, signOut])
+
     if (isLoading) {
         return (
             <div className="h-screen flex items-center justify-center bg-background">
-                <LoadingLogo size="lg" text="Loading dashboard..." />
+                <LoadingLogo size="lg" text={t('common.loading')} />
             </div>
         )
     }
 
     // Handle authentication errors - redirect to login if not authenticated
+    // Middleware handles most of this, but if client-side check fails, just redirect silently
     if (!isAuthenticated || !accessToken) {
-        // Small delay to prevent flicker and ensure UI stability
-        setTimeout(() => {
-            router.push('/login?error=unauthorized');
-        }, 100);
-        return (
-            <div className="h-screen flex items-center justify-center bg-background">
-                <LoadingLogo size="lg" text="Redirecting to login..." />
-            </div>
-        )
+        return null
     }
 
     // Layout action handlers
@@ -71,7 +81,7 @@ export default function DashboardLayout({
         toast.promise(
             signOut(),
             {
-                loading: 'Signing out...',
+                loading: 'Signing out',
                 success: 'Signed out successfully',
                 error: 'Failed to sign out'
             }
@@ -82,31 +92,40 @@ export default function DashboardLayout({
     // Write mode only: full width, no page-container
     const isEditMode = pathname.includes('mode=edit')
     // Other flow/ugc pages: no page-container but need padding
-    const isFlowPage = pathname === '/flows' || pathname.startsWith('/flows/') || pathname.startsWith('/ugc-factory/')
+    const isFlowPage = pathname.startsWith('/ugc-factory/')
 
     const isSpecialPage = isEditMode
 
     return (
         <div className="h-screen flex bg-background overflow-hidden">
-            {/* Mobile overlay */}
-            {sidebarOpen && (
-                <div
-                    className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-                    onClick={() => setSidebarOpen(false)}
-                />
-            )}
+            {/* Mobile Sheet Navigation */}
+            <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+                <SheetContent side="left" className="p-0 w-72 border-r border-border/40 bg-background/95 backdrop-blur-xl">
+                    <DashboardSidebar
+                        expandedSections={expandedSections}
+                        onToggleSection={toggleSection}
+                        onSignOutConfirm={() => {
+                            setSidebarOpen(false);
+                            handleSignOut();
+                        }}
+                        sidebarOpen={true}
+                        onCloseSidebar={() => setSidebarOpen(false)}
+                    />
+                </SheetContent>
+            </Sheet>
 
-            {/* Sidebar with optimized state management */}
-            <DashboardSidebar
-                expandedSections={expandedSections}
-                onToggleSection={toggleSection}
-                onSignOutConfirm={() => setShowLogoutDialog(true)}
-                sidebarOpen={sidebarOpen}
-                onCloseSidebar={() => setSidebarOpen(false)}
-            />
+            {/* Desktop Sidebar (hidden on mobile) */}
+            <div className="hidden lg:flex w-64 flex-col fixed inset-y-0 z-50">
+                <DashboardSidebar
+                    expandedSections={expandedSections}
+                    onToggleSection={toggleSection}
+                    onSignOutConfirm={handleSignOut}
+                    sidebarOpen={true}
+                />
+            </div>
 
             {/* Main content area */}
-            <main className="flex-1 flex flex-col overflow-hidden min-w-0">
+            <main className="flex-1 flex flex-col lg:pl-64 overflow-hidden min-w-0 transition-all duration-300">
                 {/* Header with Redux-managed features */}
                 <DashboardHeader
                     showNotifications={showNotifications}
@@ -118,7 +137,10 @@ export default function DashboardLayout({
                 <div className="flex-1 overflow-hidden relative min-h-0">
                     <div className={`h-full ${isSpecialPage ? '' : isFlowPage ? 'page-container-full overflow-auto' : 'page-container overflow-auto'}`}>
                         <ErrorBoundary>
-                            {children}
+                            <CreationJobsProvider>
+                                {children}
+                                <ActiveJobsWidget />
+                            </CreationJobsProvider>
                         </ErrorBoundary>
                     </div>
                 </div>
@@ -126,18 +148,6 @@ export default function DashboardLayout({
 
             {/* Progress Overlay for async operations */}
             <ProgressOverlay />
-
-            {/* Logout confirmation dialog */}
-            <AlertDialogConfirm
-                open={showLogoutDialog}
-                onOpenChange={setShowLogoutDialog}
-                title={t('dashboard.signOut')}
-                description={t('dashboard.confirm.signOut')}
-                confirmText={t('dashboard.signOut')}
-                cancelText={t('common.cancel')}
-                onConfirm={handleSignOut}
-                variant="destructive"
-            />
         </div>
     )
 }

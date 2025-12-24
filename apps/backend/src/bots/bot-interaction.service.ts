@@ -3,6 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BotEntity } from './infrastructure/persistence/relational/entities/bot.entity';
 import { ConversationEntity } from '../conversations/infrastructure/persistence/relational/entities/conversation.entity';
+import {
+  ConversationStatus,
+  MessageRole,
+} from '../conversations/conversations.enum';
+import { BotStatus } from './bots.enum';
 
 @Injectable()
 export class BotInteractionService {
@@ -15,17 +20,20 @@ export class BotInteractionService {
 
   async getBotForInteraction(botId: string) {
     const bot = await this.botRepository.findOne({
-      where: { id: botId, status: 'active' },
-      relations: ['workspace', 'flowVersions', 'knowledgeBases'],
+      where: { id: botId, status: BotStatus.ACTIVE },
+      relations: ['workspace', 'knowledgeBases'],
     });
 
     if (!bot) {
       throw new NotFoundException('Active bot not found');
     }
 
+    const publishedFlow = null;
+    /*
     const publishedFlow = bot.flowVersions?.find(
       (v) => v.status === 'published',
     );
+    */
 
     const activeKBs = bot.knowledgeBases?.filter((kb) => kb.isActive) || [];
 
@@ -69,13 +77,7 @@ export class BotInteractionService {
         metadata: conversation.metadata,
         messageHistory: conversation.messages?.slice(-10) || [],
       },
-      flow: publishedFlow
-        ? {
-            id: publishedFlow.id,
-            version: publishedFlow.version,
-            flow: publishedFlow.flow,
-          }
-        : null,
+      flow: null,
       knowledgeBases: knowledgeBases.map((kb) => ({
         id: kb.knowledgeBaseId,
         priority: kb.priority,
@@ -131,7 +133,7 @@ export class BotInteractionService {
       return false;
     }
 
-    if (bot.status !== 'active') {
+    if (bot.status !== BotStatus.ACTIVE) {
       return false;
     }
 

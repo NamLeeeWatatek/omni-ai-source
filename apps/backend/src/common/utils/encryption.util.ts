@@ -27,8 +27,7 @@ export class EncryptionUtil {
 
     if (!envKey) {
       const errorMsg =
-        'âŒ ENCRYPTION_KEY is required in environment variables!\n' +
-        "   Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"";
+        "Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"";
 
       this.logger.error(errorMsg);
       throw new Error(errorMsg);
@@ -37,7 +36,7 @@ export class EncryptionUtil {
     // Hash the key to ensure it's exactly 32 bytes
     this.encryptionKey = crypto.createHash('sha256').update(envKey).digest();
 
-    this.logger.log('âœ… Encryption service initialized with AES-256-GCM');
+    this.logger.log('Encryption service initialized with AES-256-GCM');
   }
 
   /**

@@ -19,10 +19,6 @@ import {
   MessageEntity,
 } from '../conversations/infrastructure/persistence/relational/entities/conversation.entity';
 import {
-  FlowEntity,
-  FlowExecutionEntity,
-} from '../flows/infrastructure/persistence/relational/entities';
-import {
   WorkspaceEntity,
   WorkspaceMemberEntity,
 } from '../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
@@ -38,10 +34,10 @@ export class StatsService {
     private readonly conversationRepository: Repository<ConversationEntity>,
     @InjectRepository(MessageEntity)
     private readonly messageRepository: Repository<MessageEntity>,
-    @InjectRepository(FlowEntity)
-    private readonly flowRepository: Repository<FlowEntity>,
-    @InjectRepository(FlowExecutionEntity)
-    private readonly flowExecutionRepository: Repository<FlowExecutionEntity>,
+    // @InjectRepository(FlowEntity)
+    // private readonly flowRepository: Repository<FlowEntity>,
+    // @InjectRepository(FlowExecutionEntity)
+    // private readonly flowExecutionRepository: Repository<FlowExecutionEntity>,
     @InjectRepository(WorkspaceEntity)
     private readonly workspaceRepository: Repository<WorkspaceEntity>,
   ) {}
@@ -55,19 +51,19 @@ export class StatsService {
       users,
       bots,
       conversations,
-      flows,
+      // flows,
       workspaces,
       topBots,
-      topFlows,
+      // topFlows,
       activityTrend,
     ] = await Promise.all([
       this.getUserStats(query, startDate, endDate, workspaceId),
       this.getBotStats(query, startDate, endDate, workspaceId),
       this.getConversationStats(query, startDate, endDate, workspaceId),
-      this.getFlowStats(query, startDate, endDate, workspaceId),
+      // this.getFlowStats(query, startDate, endDate, workspaceId),
       this.getWorkspaceStats(query, startDate, endDate, workspaceId),
       this.getTopBots(query, startDate, endDate, workspaceId),
-      this.getTopFlows(query, startDate, endDate, workspaceId),
+      // this.getTopFlows(query, startDate, endDate, workspaceId),
       query.includeTrend !== false
         ? this.getActivityTrend(query, startDate, endDate, workspaceId)
         : Promise.resolve([]),
@@ -77,10 +73,20 @@ export class StatsService {
       users,
       bots,
       conversations,
-      flows,
+      flows: {
+        total: 0,
+        current: 0,
+        previous: 0,
+        growthRate: 0,
+        totalExecutions: 0,
+        successfulExecutions: 0,
+        failedExecutions: 0,
+        successRate: 0,
+        avgExecutionTime: 0,
+      },
       workspaces,
       topBots,
-      topFlows,
+      topFlows: [],
       activityTrend,
       generatedAt: new Date(),
     };
@@ -275,92 +281,94 @@ export class StatsService {
     };
   }
 
-  private async getFlowStats(
-    query: StatsQueryDto,
-    startDate: Date,
-    endDate: Date,
-    workspaceId?: string,
-  ): Promise<FlowStatsDto> {
-    const periodDuration = endDate.getTime() - startDate.getTime();
-    const previousStartDate = new Date(startDate.getTime() - periodDuration);
-    const previousEndDate = new Date(startDate);
-
-    const buildQuery = () => {
-      const query = this.flowExecutionRepository
-        .createQueryBuilder('execution')
-        .leftJoin(FlowEntity, 'flow', 'flow.id = execution.flowId');
-
-      if (workspaceId) {
-        query.where('execution.workspaceId = :workspaceId', { workspaceId });
-      }
-
-      return query;
-    };
-
-    const totalExecutions = await buildQuery().getCount();
-
-    const current = await buildQuery()
-      .andWhere('execution.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      })
-      .getCount();
-
-    const previous = await buildQuery()
-      .andWhere(
-        'execution.createdAt BETWEEN :previousStartDate AND :previousEndDate',
-        {
-          previousStartDate,
-          previousEndDate,
-        },
-      )
-      .getCount();
-
-    const successfulExecutions = await buildQuery()
-      .andWhere('execution.status = :status', { status: 'completed' })
-      .getCount();
-
-    const failedExecutions = await buildQuery()
-      .andWhere('execution.status = :status', { status: 'failed' })
-      .getCount();
-
-    const successRate =
-      totalExecutions > 0 ? (successfulExecutions / totalExecutions) * 100 : 0;
-
-    const executions = await buildQuery()
-      .andWhere('execution.endTime >= :minTime', { minTime: 0 })
-      .select(['execution.startTime', 'execution.endTime'])
-      .getMany();
-
-    let avgExecutionTime = 0;
-    if (executions.length > 0) {
-      const totalTime = executions.reduce((sum, exec) => {
-        if (exec.endTime && exec.startTime) {
-          return sum + (Number(exec.endTime) - Number(exec.startTime));
+  /*
+    private async getFlowStats(
+      query: StatsQueryDto,
+      startDate: Date,
+      endDate: Date,
+      workspaceId?: string,
+    ): Promise<FlowStatsDto> {
+      const periodDuration = endDate.getTime() - startDate.getTime();
+      const previousStartDate = new Date(startDate.getTime() - periodDuration);
+      const previousEndDate = new Date(startDate);
+  
+      const buildQuery = () => {
+        const query = this.flowExecutionRepository
+          .createQueryBuilder('execution')
+          .leftJoin(FlowEntity, 'flow', 'flow.id = execution.flowId');
+  
+        if (workspaceId) {
+          query.where('execution.workspaceId = :workspaceId', { workspaceId });
         }
-        return sum;
-      }, 0);
-      avgExecutionTime = Number(
-        (totalTime / executions.length / 1000).toFixed(2),
-      );
+  
+        return query;
+      };
+  
+      const totalExecutions = await buildQuery().getCount();
+  
+      const current = await buildQuery()
+        .andWhere('execution.createdAt BETWEEN :startDate AND :endDate', {
+          startDate,
+          endDate,
+        })
+        .getCount();
+  
+      const previous = await buildQuery()
+        .andWhere(
+          'execution.createdAt BETWEEN :previousStartDate AND :previousEndDate',
+          {
+            previousStartDate,
+            previousEndDate,
+          },
+        )
+        .getCount();
+  
+      const successfulExecutions = await buildQuery()
+        .andWhere('execution.status = :status', { status: 'completed' })
+        .getCount();
+  
+      const failedExecutions = await buildQuery()
+        .andWhere('execution.status = :status', { status: 'failed' })
+        .getCount();
+  
+      const successRate =
+        totalExecutions > 0 ? (successfulExecutions / totalExecutions) * 100 : 0;
+  
+      const executions = await buildQuery()
+        .andWhere('execution.endTime >= :minTime', { minTime: 0 })
+        .select(['execution.startTime', 'execution.endTime'])
+        .getMany();
+  
+      let avgExecutionTime = 0;
+      if (executions.length > 0) {
+        const totalTime = executions.reduce((sum, exec) => {
+          if (exec.endTime && exec.startTime) {
+            return sum + (Number(exec.endTime) - Number(exec.startTime));
+          }
+          return sum;
+        }, 0);
+        avgExecutionTime = Number(
+          (totalTime / executions.length / 1000).toFixed(2),
+        );
+      }
+  
+      return {
+        total: totalExecutions,
+        current,
+        previous,
+        growthRate: this.calculateGrowthRate(current, previous),
+        totalExecutions,
+        successfulExecutions,
+        failedExecutions,
+        successRate: Number(successRate.toFixed(2)),
+        avgExecutionTime,
+        trend:
+          query.includeTrend !== false
+            ? await this.getFlowTrend(startDate, endDate, workspaceId)
+            : undefined,
+      };
     }
-
-    return {
-      total: totalExecutions,
-      current,
-      previous,
-      growthRate: this.calculateGrowthRate(current, previous),
-      totalExecutions,
-      successfulExecutions,
-      failedExecutions,
-      successRate: Number(successRate.toFixed(2)),
-      avgExecutionTime,
-      trend:
-        query.includeTrend !== false
-          ? await this.getFlowTrend(startDate, endDate, workspaceId)
-          : undefined,
-    };
-  }
+    */
 
   private async getWorkspaceStats(
     query: StatsQueryDto,
@@ -445,6 +453,7 @@ export class StatsService {
     }));
   }
 
+  /*
   private async getTopFlows(
     query: StatsQueryDto,
     startDate: Date,
@@ -484,6 +493,7 @@ export class StatsService {
       metric: parseFloat(flow.metric) || 0,
     }));
   }
+  */
 
   private async getActivityTrend(
     query: StatsQueryDto,
@@ -650,31 +660,33 @@ export class StatsService {
     return this.fillMissingDates(trend, startDate, endDate);
   }
 
-  private async getFlowTrend(
-    startDate: Date,
-    endDate: Date,
-    workspaceId?: string,
-  ): Promise<TimeSeriesDataPoint[]> {
-    const query = this.flowExecutionRepository
-      .createQueryBuilder('execution')
-      .select("TO_CHAR(execution.createdAt, 'YYYY-MM-DD')", 'date')
-      .addSelect('COUNT(execution.id)', 'value')
-      .where('execution.createdAt BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate,
-      });
-
-    if (workspaceId) {
-      query.andWhere('execution.workspaceId = :workspaceId', { workspaceId });
+  /*
+    private async getFlowTrend(
+      startDate: Date,
+      endDate: Date,
+      workspaceId?: string,
+    ): Promise<TimeSeriesDataPoint[]> {
+      const query = this.flowExecutionRepository
+        .createQueryBuilder('execution')
+        .select("TO_CHAR(execution.createdAt, 'YYYY-MM-DD')", 'date')
+        .addSelect('COUNT(execution.id)', 'value')
+        .where('execution.createdAt BETWEEN :startDate AND :endDate', {
+          startDate,
+          endDate,
+        });
+  
+      if (workspaceId) {
+        query.andWhere('execution.workspaceId = :workspaceId', { workspaceId });
+      }
+  
+      const trend = await query
+        .groupBy("TO_CHAR(execution.createdAt, 'YYYY-MM-DD')")
+        .orderBy("TO_CHAR(execution.createdAt, 'YYYY-MM-DD')", 'ASC')
+        .getRawMany();
+  
+      return this.fillMissingDates(trend, startDate, endDate);
     }
-
-    const trend = await query
-      .groupBy("TO_CHAR(execution.createdAt, 'YYYY-MM-DD')")
-      .orderBy("TO_CHAR(execution.createdAt, 'YYYY-MM-DD')", 'ASC')
-      .getRawMany();
-
-    return this.fillMissingDates(trend, startDate, endDate);
-  }
+    */
 
   private async getWorkspaceTrend(
     startDate: Date,

@@ -5,10 +5,12 @@ import { DataTable } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Badge } from '@/components/ui/Badge';
-import { FiFolder, FiFileText, FiEdit2, FiTrash2, FiEye, FiDownload, FiMoreVertical } from 'react-icons/fi';
+import { Folder, FileText, Edit2, Trash2, Eye, Download, MoreVertical, ArrowLeft } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/DropdownMenu';
 import { cn } from '@/lib/utils';
 import type { SortDirection } from '@/components/ui/DataTable';
+
+import type { PaginationInfo } from '@/components/ui/Pagination';
 
 interface KbItem {
   id: string;
@@ -23,6 +25,7 @@ interface KbItem {
 
 interface KbTableViewProps {
   items: KbItem[];
+  pagination?: PaginationInfo;
   selectedIds: string[];
   sortColumn: string;
   sortDirection: SortDirection;
@@ -30,14 +33,21 @@ interface KbTableViewProps {
   onItemClick: (item: KbItem) => void;
   onToggleSelection: (id: string) => void;
   onSort: (column: string, direction: SortDirection) => void;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
   onEditItem: (item: KbItem) => void;
   onDeleteItem: (item: KbItem) => void;
   onPreviewDocument?: (documentId: string) => void;
   onDownloadDocument?: (documentId: string, filename: string) => void;
+  onDragStart?: (item: KbItem) => void;
+  onDragOver?: (folderId: string) => void;
+  onDrop?: (targetFolderId: string) => void;
+  onToggleSelectAll?: (checked: boolean) => void;
 }
 
 export function KbTableView({
   items,
+  pagination,
   selectedIds,
   sortColumn,
   sortDirection,
@@ -45,10 +55,16 @@ export function KbTableView({
   onItemClick,
   onToggleSelection,
   onSort,
+  onPageChange,
+  onPageSizeChange,
   onEditItem,
   onDeleteItem,
   onPreviewDocument,
-  onDownloadDocument
+  onDownloadDocument,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onToggleSelectAll
 }: KbTableViewProps) {
   const formatSize = (bytes: string | number) => {
     const size = typeof bytes === 'string' ? parseInt(bytes) : bytes;
@@ -75,13 +91,21 @@ export function KbTableView({
   const columns = [
     {
       key: 'selection',
-      label: '',
-      width: 50,
+      label: (
+        <Checkbox
+          checked={items.length > 0 && items.every(item => selectedIds.includes(item.id))}
+          onChange={(e) => onToggleSelectAll?.(e.target.checked)}
+          aria-label="Select all"
+        />
+      ),
+      width: 40,
+      sortable: false,
       render: (_: any, row: KbItem) => (
-        <div className="flex justify-center">
+        <div className="flex justify-center" onClick={e => e.stopPropagation()}>
           <Checkbox
             checked={selectedIds.includes(row.id)}
             onChange={() => onToggleSelection(row.id)}
+            aria-label="Select row"
           />
         </div>
       )
@@ -99,7 +123,7 @@ export function KbTableView({
             "w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
             row.type === 'folder' ? "bg-blue-500/10 text-blue-500" : "bg-muted/50 text-muted-foreground"
           )}>
-            {row.type === 'folder' ? <FiFolder className="w-5 h-5" /> : <FiFileText className="w-5 h-5" />}
+            {row.type === 'folder' ? <Folder className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
           </div>
           <div>
             <div className="font-bold text-sm leading-tight group-hover:text-primary transition-colors">{value}</div>
@@ -148,12 +172,13 @@ export function KbTableView({
       key: 'actions',
       label: '',
       width: 60,
+      sortable: false,
       render: (_: any, row: KbItem) => (
         <div className="flex justify-end">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-muted font-bold">
-                <FiMoreVertical className="w-4 h-4" />
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-muted font-bold">
+                <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl shadow-premium border-border/50 bg-card/90 backdrop-blur-xl">
@@ -163,13 +188,13 @@ export function KbTableView({
                     className="rounded-xl flex items-center gap-2 font-bold cursor-pointer p-3"
                     onClick={() => onPreviewDocument(row.id)}
                   >
-                    <FiEye className="w-4 h-4" /> Preview
+                    <Eye className="w-4 h-4" /> Preview
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="rounded-xl flex items-center gap-2 font-bold cursor-pointer p-3"
                     onClick={() => onDownloadDocument?.(row.id, row.name)}
                   >
-                    <FiDownload className="w-4 h-4" /> Download
+                    <Download className="w-4 h-4" /> Download
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-border/50 my-1" />
                 </>
@@ -178,13 +203,13 @@ export function KbTableView({
                 className="rounded-xl flex items-center gap-2 font-bold cursor-pointer p-3"
                 onClick={() => onEditItem(row)}
               >
-                <FiEdit2 className="w-4 h-4 text-primary" /> Edit Properties
+                <Edit2 className="w-4 h-4 text-primary" /> Edit Properties
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="rounded-xl flex items-center gap-2 font-bold cursor-pointer p-3 text-destructive focus:text-destructive focus:bg-destructive/10"
                 onClick={() => onDeleteItem(row)}
               >
-                <FiTrash2 className="w-4 h-4" /> Delete Item
+                <Trash2 className="w-4 h-4" /> Delete Item
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -203,8 +228,29 @@ export function KbTableView({
         sortColumn={sortColumn}
         sortDirection={sortDirection}
         onSort={onSort}
+        pagination={pagination}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
         emptyMessage="No files found"
-        className="p-4 border border-border/50 rounded-2xl bg-card/30 backdrop-blur-sm shadow-sm"
+        isTree={true}
+        treeColumnKey="name"
+        className="w-full"
+        tableClassName="border-border/50 bg-card/50 backdrop-blur-sm"
+        onRowDragStart={(e, row) => {
+          if (onDragStart) onDragStart(row);
+        }}
+        onRowDragOver={(e, row) => {
+          e.preventDefault();
+          if (row.type === 'folder' && onDragOver) {
+            onDragOver(row.id);
+          }
+        }}
+        onRowDrop={(e, row) => {
+          e.preventDefault();
+          if (row.type === 'folder' && onDrop) {
+            onDrop(row.id);
+          }
+        }}
       />
     </div>
   );

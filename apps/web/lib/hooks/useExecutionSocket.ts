@@ -1,4 +1,4 @@
-﻿// DEPRECATED: Use useExecution instead
+// DEPRECATED: Use useExecution instead
 // This hook has been consolidated into the unified useExecution hook.
 //
 // Migration: Replace useExecutionSocket with useExecution(setNodes, { transport: 'websocket' })

@@ -22,6 +22,7 @@ export class SessionRelationalRepository implements SessionRepository {
       where: {
         id,
       },
+      relations: ['user'],
     });
 
     return entity ? SessionMapper.toDomain(entity) : null;
@@ -43,6 +44,7 @@ export class SessionRelationalRepository implements SessionRepository {
   ): Promise<Session | null> {
     const entity = await this.sessionRepository.findOne({
       where: { id },
+      relations: ['user'],
     });
 
     if (!entity) {

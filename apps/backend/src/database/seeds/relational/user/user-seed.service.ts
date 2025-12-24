@@ -5,7 +5,10 @@ import bcrypt from 'bcryptjs';
 import { UserEntity } from '../../../../users/infrastructure/persistence/relational/entities/user.entity';
 import { RoleEntity } from '../../../../roles/infrastructure/persistence/relational/entities/role.entity';
 import { RoleEnum } from '../../../../roles/roles.enum';
-import { WorkspaceEntity, WorkspaceMemberEntity } from '../../../../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
+import {
+  WorkspaceEntity,
+  WorkspaceMemberEntity,
+} from '../../../../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
 
 @Injectable()
 export class UserSeedService {
@@ -18,7 +21,7 @@ export class UserSeedService {
     private workspaceRepository: Repository<WorkspaceEntity>,
     @InjectRepository(WorkspaceMemberEntity)
     private workspaceMemberRepository: Repository<WorkspaceMemberEntity>,
-  ) { }
+  ) {}
 
   async run() {
     const users = [
@@ -170,14 +173,24 @@ export class UserSeedService {
     for (let i = 0; i < users.length; i++) {
       const userData = users[i];
 
-      const existingUser = await this.repository.findOne({ where: { email: userData.email } });
+      const existingUser = await this.repository.findOne({
+        where: { email: userData.email },
+      });
       if (existingUser) {
         // If user exists, ensure they have a workspace
-        const hasWorkspace = await this.workspaceRepository.findOne({ where: { ownerId: existingUser.id } });
+        const hasWorkspace = await this.workspaceRepository.findOne({
+          where: { ownerId: existingUser.id },
+        });
         if (!hasWorkspace) {
           const workspace = this.workspaceRepository.create({
             name: `${userData.name}'s Workspace`,
-            slug: userData.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + existingUser.id.substring(0, 4),
+            slug:
+              userData.email
+                .split('@')[0]
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, '-') +
+              '-' +
+              existingUser.id.substring(0, 4),
             ownerId: existingUser.id,
           });
           const savedWorkspace = await this.workspaceRepository.save(workspace);
@@ -187,6 +200,12 @@ export class UserSeedService {
             roleId: RoleEnum.owner,
           });
         }
+
+        // Update password to ensure it matches default
+        existingUser.password = password;
+        existingUser.provider = 'email';
+        await this.repository.save(existingUser);
+
         continue;
       }
 
@@ -211,6 +230,7 @@ export class UserSeedService {
         isActive: userData.isActive,
         password,
         role: role,
+        provider: 'email',
         createdAt,
         updatedAt: new Date(),
       });
@@ -220,7 +240,10 @@ export class UserSeedService {
       // Create a default workspace for each user
       const workspace = this.workspaceRepository.create({
         name: `${userData.name}'s Workspace`,
-        slug: userData.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-'),
+        slug: userData.email
+          .split('@')[0]
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '-'),
         ownerId: savedUser.id,
         createdAt: createdAt,
         updatedAt: new Date(),

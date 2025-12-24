@@ -3,8 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BotEntity } from './infrastructure/persistence/relational/entities/bot.entity';
 import { ConversationEntity } from '../conversations/infrastructure/persistence/relational/entities/conversation.entity';
-import { FlowsService } from '../flows/flows.service';
-import { ExecutionService } from '../flows/execution.service';
+// import { FlowsService } from '../flows/flows.service';
+// import { ExecutionService } from '../flows/execution.service';
 import { MessengerService } from '../channels/providers/messenger.service';
 import { InstagramService } from '../channels/providers/instagram.service';
 import { TelegramService } from '../channels/providers/telegram.service';
@@ -27,8 +27,8 @@ export class BotExecutionService {
     private botRepository: Repository<BotEntity>,
     @InjectRepository(ConversationEntity)
     private conversationRepository: Repository<ConversationEntity>,
-    private flowsService: FlowsService,
-    private executionService: ExecutionService,
+    // private flowsService: FlowsService,
+    // private executionService: ExecutionService,
     private messengerService: MessengerService,
     private instagramService: InstagramService,
     private telegramService: TelegramService,
@@ -50,11 +50,11 @@ export class BotExecutionService {
         return;
       }
 
-      if (bot.flowId && bot.flowId !== null) {
-        await this.executeBotFlow(bot, incomingMessage);
-      } else {
-        await this.answerWithKnowledgeBase(bot, incomingMessage);
-      }
+      // if (bot.flowId && bot.flowId !== null) {
+      //   await this.executeBotFlow(bot, incomingMessage);
+      // } else {
+      await this.answerWithKnowledgeBase(bot, incomingMessage);
+      // }
     } catch (error) {
       this.logger.error(
         `Error processing message: ${error.message}`,
@@ -72,6 +72,7 @@ export class BotExecutionService {
     });
   }
 
+  /*
   private async executeBotFlow(
     bot: BotEntity,
     incomingMessage: IncomingMessage,
@@ -122,6 +123,7 @@ export class BotExecutionService {
       );
     }
   }
+  */
 
   async sendResponse(
     channel: string,

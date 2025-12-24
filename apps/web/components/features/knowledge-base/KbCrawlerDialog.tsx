@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/Input'
 import { Switch } from '@/components/ui/Switch'
 import { FiGlobe, FiAlertCircle } from 'react-icons/fi'
 import { toast } from 'sonner'
-import { axiosClient } from '@/lib/axios-client'
+import axiosClient from '@/lib/axios-client'
 
 const websiteFormSchema = z.object({
     url: z.string().url('Please enter a valid URL'),
@@ -30,6 +30,7 @@ interface CrawlerDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     knowledgeBaseId: string
+    folderId?: string | null
     onSuccess?: () => void
 }
 
@@ -37,6 +38,7 @@ export function KBCrawlerDialog({
     open,
     onOpenChange,
     knowledgeBaseId,
+    folderId,
     onSuccess
 }: CrawlerDialogProps) {
     const [loading, setLoading] = useState(false)
@@ -63,6 +65,7 @@ export function KBCrawlerDialog({
             const result: any = await axiosClient.post('/knowledge-bases/crawl/website', {
                 ...values,
                 knowledgeBaseId,
+                folderId,
             })
 
             const successCount = result.documentsCreated - (result.errors?.length || 0)

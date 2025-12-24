@@ -1,13 +1,11 @@
-﻿/**
+/**
  * Redux Store Configuration
  */
 import { configureStore } from '@reduxjs/toolkit'
-import flowsReducer from './slices/flowsSlice'
-import nodeTypesReducer from './slices/nodeTypesSlice'
-import workflowEditorReducer from './slices/workflowEditorSlice'
 import uiReducer from './slices/uiSlice'
 import knowledgeBaseReducer from './slices/knowledgeBaseSlice'
 import ugcFactoryReducer from './slices/ugcFactorySlice'
+import messagesReducer from './slices/messagesSlice'
 import { listenerMiddleware } from './middleware/listenerMiddleware'
 
 import workspaceReducer from './slices/workspaceSlice'
@@ -16,12 +14,10 @@ import channelsReducer from './slices/channelsSlice'
 
 export const store = configureStore({
   reducer: {
-    flows: flowsReducer,
-    nodeTypes: nodeTypesReducer,
-    workflowEditor: workflowEditorReducer,
     ui: uiReducer,
     knowledgeBase: knowledgeBaseReducer,
     ugcFactory: ugcFactoryReducer,
+    messages: messagesReducer,
     workspace: workspaceReducer,
     notifications: notificationsReducer,
     channels: channelsReducer,
@@ -30,15 +26,11 @@ export const store = configureStore({
     getDefaultMiddleware({
       serializableCheck: {
         ignoredActions: [
-          'workflowEditor/setNodes',
-          'workflowEditor/setEdges',
           'knowledgeBase/toggleSelection',
           'knowledgeBase/toggleSelectAll',
         ],
-        ignoredActionPaths: ['payload.icon', 'payload.selectedIds'],
+        ignoredActionPaths: ['payload.selectedIds'],
         ignoredPaths: [
-          'nodeTypes.items',
-          'workflowEditor.nodes',
           'knowledgeBase.selectedIds',
         ],
       },

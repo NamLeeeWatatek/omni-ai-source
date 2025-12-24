@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Enterprise Notification System
  * Inspired by: Slack, Intercom, Microsoft Teams
  */

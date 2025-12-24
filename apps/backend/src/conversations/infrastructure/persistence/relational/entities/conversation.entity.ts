@@ -15,6 +15,13 @@ import { WorkspaceOwnedEntity } from '../../../../../utils/workspace-owned.entit
 import { BotEntity } from '../../../../../bots/infrastructure/persistence/relational/entities/bot.entity';
 import { WorkspaceEntity } from '../../../../../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
 import { ContactEntity } from './contact.entity';
+import {
+  ConversationStatus,
+  ConversationSource,
+  ConversationType,
+  MessageRole,
+  MessageFeedback,
+} from '../../../../conversations.enum';
 
 @Entity({ name: 'conversation' })
 export class ConversationEntity extends WorkspaceOwnedEntity {
@@ -40,12 +47,13 @@ export class ConversationEntity extends WorkspaceOwnedEntity {
   @JoinColumn({ name: 'contact_id' })
   contact?: ContactEntity;
 
+  @Index()
   @Column({ type: 'jsonb', default: {} })
   metadata: Record<string, any>;
 
-  @Column({ type: String, default: 'active' })
+  @Column({ type: String, default: ConversationStatus.ACTIVE })
   @Index()
-  status: 'active' | 'closed' | 'handover' | 'archived';
+  status: ConversationStatus;
 
   @Column({ name: 'last_message_at', type: 'timestamp', nullable: true })
   @Index()
@@ -58,13 +66,13 @@ export class ConversationEntity extends WorkspaceOwnedEntity {
   @Index()
   externalId?: string | null;
 
-  @Column({ name: 'source', type: String, default: 'web' })
+  @Column({ name: 'source', type: String, default: ConversationSource.WEB })
   @Index()
-  source: 'web' | 'widget' | 'playground' | 'whatsapp' | 'facebook' | 'api';
+  source: ConversationSource;
 
-  @Column({ name: 'type', type: String, default: 'support' })
+  @Column({ name: 'type', type: String, default: ConversationType.SUPPORT })
   @Index()
-  type: 'support' | 'ai-playground' | 'discovery' | 'audit';
+  type: ConversationType;
 
   @ManyToOne(() => BotEntity, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'bot_id' })
@@ -92,8 +100,8 @@ export class MessageEntity extends WorkspaceOwnedEntity {
   @Index()
   conversationId: string;
 
-  @Column({ type: String, default: 'user' })
-  role: 'user' | 'assistant' | 'system' | 'tool';
+  @Column({ type: String, default: MessageRole.USER })
+  role: MessageRole;
 
   @Column({ type: 'text' })
   content: string;
@@ -106,6 +114,7 @@ export class MessageEntity extends WorkspaceOwnedEntity {
     size?: number;
   }> | null;
 
+  @Index()
   @Column({ type: 'jsonb', default: {} })
   metadata: Record<string, any>;
 
@@ -126,7 +135,7 @@ export class MessageEntity extends WorkspaceOwnedEntity {
   }> | null;
 
   @Column({ type: String, nullable: true })
-  feedback?: 'positive' | 'negative' | null;
+  feedback?: MessageFeedback | null;
 
   @Column({ name: 'feedback_comment', type: 'text', nullable: true })
   feedbackComment?: string | null;

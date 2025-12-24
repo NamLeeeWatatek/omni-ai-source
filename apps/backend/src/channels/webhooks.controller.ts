@@ -20,6 +20,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MessageReceivedEvent } from '../shared/events';
 import { ConversationsService } from '../conversations/conversations.service';
 import { ConversationsGateway } from '../conversations/conversations.gateway';
+import { MessageRole } from '../conversations/conversations.enum';
 import { WebhookLoggerInterceptor } from './interceptors/webhook-logger.interceptor';
 import { WebhookVerifierFactory } from './webhooks/webhook-verifier.base';
 import { FacebookWebhookProcessor } from './webhooks/facebook-webhook.processor';
@@ -454,7 +455,7 @@ export class WebhooksController {
           await this.conversationsService.addMessageFromWebhook({
             conversationId: conversation.id,
             content: message.text,
-            role: 'user',
+            role: MessageRole.USER,
             metadata: {
               externalId: message.mid,
               senderId,
@@ -543,7 +544,7 @@ export class WebhooksController {
           await this.conversationsService.addMessageFromWebhook({
             conversationId: conversation.id,
             content: message.text,
-            role: 'user',
+            role: MessageRole.USER,
             metadata: {
               externalId: message.mid,
               senderId,
@@ -632,7 +633,7 @@ export class WebhooksController {
           await this.conversationsService.addMessageFromWebhook({
             conversationId: conversation.id,
             content: text,
-            role: 'user',
+            role: MessageRole.USER,
             metadata: {
               userId: message.from.id,
               messageId: message.message_id,

@@ -1,4 +1,4 @@
-﻿
+
 export interface UploadResponse {
   file: {
     id: string

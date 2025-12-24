@@ -7,6 +7,7 @@ export interface UseSocketConnectionConfig {
   enabled?: boolean;
   autoConnect?: boolean;
   auth?: Record<string, any>;
+  query?: Record<string, any>;
   customUrl?: string;
   transport?: 'websocket' | 'polling';
 }
@@ -33,6 +34,7 @@ export function useSocketConnection({
   enabled = true,
   autoConnect = true,
   auth,
+  query,
   customUrl,
   transport = 'websocket'
 }: UseSocketConnectionConfig): UseSocketConnectionReturn {
@@ -60,7 +62,8 @@ export function useSocketConnection({
     reconnectionDelayMax: 5000,
     reconnectionAttempts: 5,
     auth: auth || (session?.accessToken ? { token: session.accessToken } : undefined),
-  }), [transport, auth, session?.accessToken]);
+    query: query,
+  }), [transport, auth, query, session?.accessToken]);
 
   const connect = useCallback(() => {
     if (!enabled || isConnected || isConnecting) return;
@@ -166,7 +169,7 @@ export function useSocketConnection({
     }
 
     // Return no-op if no socket
-    return () => {};
+    return () => { };
   }, []);
 
   const off = useCallback((event: string, handler?: (...args: any[]) => void) => {

@@ -1,10 +1,10 @@
-﻿'use client'
+'use client'
 
 import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/Button'
 import toast from '@/lib/toast'
 import { FiUpload, FiX, FiImage, FiFile, FiCheck } from 'react-icons/fi'
-import { MediaService, useAsyncState } from '@/lib/services/api.service'
+import { mediaApi } from '@/lib/api/media'
 
 interface MediaUploaderProps {
     onUploadComplete: (url: string, publicId: string) => void
@@ -91,9 +91,9 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
             }, 200)
 
             const result = await (type === 'image'
-                ? MediaService.uploadImage(file)
-                : MediaService.uploadFile(file)
-            ) as UploadResponse
+                ? mediaApi.uploadImage(file)
+                : mediaApi.uploadFile(file)
+            ) as unknown as UploadResponse
 
             clearInterval(progressInterval)
             setProgress(100)
@@ -112,7 +112,7 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-zinc-900 rounded-2xl border border-zinc-800 w-full max-w-lg">
-                {}
+                { }
                 <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
                     <div>
                         <h2 className="text-xl font-bold">Upload {type === 'image' ? 'Image' : 'File'}</h2>
@@ -128,7 +128,7 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
                     </button>
                 </div>
 
-                {}
+                { }
                 <div className="p-6">
                     {!file ? (
                         <div
@@ -147,8 +147,8 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
                             role="button"
                             aria-label={`Upload ${type === 'image' ? 'image' : 'file'}. Drop here or click to browse`}
                             className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${dragActive
-                                    ? 'border-purple-500 bg-purple-500/10'
-                                    : 'border-slate-600/30 hover:border-zinc-600'
+                                ? 'border-purple-500 bg-purple-500/10'
+                                : 'border-slate-600/30 hover:border-zinc-600'
                                 }`}
                         >
                             <div className="flex flex-col items-center gap-4">
@@ -176,7 +176,7 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {}
+                            { }
                             {preview ? (
                                 <div className="relative rounded-lg overflow-hidden bg-slate-700">
                                     <img
@@ -197,7 +197,7 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
                                 </div>
                             )}
 
-                            {}
+                            { }
                             {uploading && (
                                 <div>
                                     <div className="flex justify-between text-sm mb-2">
@@ -213,7 +213,7 @@ export function MediaUploader({ onUploadComplete, onClose, type = 'image' }: Med
                                 </div>
                             )}
 
-                            {}
+                            { }
                             <div className="flex gap-3">
                                 <Button
                                     onClick={() => {

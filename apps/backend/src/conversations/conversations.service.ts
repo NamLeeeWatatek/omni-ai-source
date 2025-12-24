@@ -13,6 +13,7 @@ import {
   MessageEntity,
   MessageFeedbackEntity,
 } from './infrastructure/persistence/relational/entities/conversation.entity';
+import { ConversationStatus, MessageRole } from './conversations.enum';
 import { ContactEntity } from './infrastructure/persistence/relational/entities/contact.entity';
 import { KBRagService } from '../knowledge-base/services/kb-rag.service';
 import {
@@ -87,7 +88,7 @@ export class ConversationsService {
       channelType: createDto.channelType ?? 'web',
       source: createDto.source ?? 'web',
       type: createDto.type ?? 'support',
-      status: 'active',
+      status: ConversationStatus.ACTIVE,
       contactId,
       metadata: createDto.metadata || {},
     });
@@ -292,11 +293,11 @@ export class ConversationsService {
   }
 
   async close(id: string) {
-    return this.updateStatus(id, { status: 'closed' });
+    return this.updateStatus(id, { status: ConversationStatus.CLOSED });
   }
 
   async archive(id: string) {
-    return this.updateStatus(id, { status: 'archived' });
+    return this.updateStatus(id, { status: ConversationStatus.ARCHIVED });
   }
 
   /**
@@ -383,7 +384,7 @@ export class ConversationsService {
       ...createDto,
       conversationId,
       workspaceId,
-      sender: createDto.sender ?? createDto.role,
+      sender: (createDto.sender as any) ?? createDto.role,
       metadata: createDto.metadata || {},
     });
 
@@ -573,7 +574,7 @@ export class ConversationsService {
 
         // 5. Add assistant message with sources
         await this.addMessage(conversation.id, {
-          role: 'assistant',
+          role: MessageRole.ASSISTANT,
           content: responseContent,
           sources: results.map((r) => ({
             documentId: r.documentId!,
@@ -710,7 +711,7 @@ Message: ${currentMessage}`;
   ) {
     const message = await this.getMessage(conversationId, messageId);
 
-    if (dto.feedback !== undefined) message.feedback = dto.feedback;
+    if (dto.feedback !== undefined) message.feedback = dto.feedback || null;
     if (dto.feedbackComment !== undefined)
       message.feedbackComment = dto.feedbackComment;
 
@@ -763,7 +764,7 @@ Message: ${currentMessage}`;
         this.conversationRepository.count({
           where: {
             botId,
-            status: 'active',
+            status: ConversationStatus.ACTIVE,
           },
         }),
         this.messageRepository
@@ -840,7 +841,7 @@ Message: ${currentMessage}`;
         channelType: params.channelType,
         externalId: params.externalId,
         workspaceId: params.workspaceId,
-        status: 'active',
+        status: ConversationStatus.ACTIVE,
         metadata: {
           ...params.metadata,
           name: params.contactName,
@@ -854,7 +855,7 @@ Message: ${currentMessage}`;
     } else {
       // Update existing conversation
       conversation.lastMessageAt = new Date();
-      conversation.status = 'active';
+      conversation.status = ConversationStatus.ACTIVE;
 
       // Update channelId if it changed
       if (conversation.channelId !== params.channelId) {
@@ -876,14 +877,14 @@ Message: ${currentMessage}`;
   async addMessageFromWebhook(params: {
     conversationId: string;
     content: string;
-    role: 'user' | 'assistant';
+    role: MessageRole;
     metadata?: Record<string, any>;
   }): Promise<MessageEntity> {
     return this.addMessage(params.conversationId, {
       role: params.role,
       content: params.content,
       metadata: params.metadata,
-      sender: params.role === 'user' ? 'customer' : 'assistant',
+      sender: params.role === MessageRole.USER ? 'customer' : 'assistant',
     });
   }
 }

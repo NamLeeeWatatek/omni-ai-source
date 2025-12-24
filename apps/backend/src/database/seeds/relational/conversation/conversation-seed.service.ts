@@ -6,6 +6,11 @@ import {
   MessageEntity,
 } from '../../../../conversations/infrastructure/persistence/relational/entities/conversation.entity';
 import { BotEntity } from '../../../../bots/infrastructure/persistence/relational/entities/bot.entity';
+import {
+  ConversationStatus,
+  MessageRole,
+  ConversationSource,
+} from '../../../../conversations/conversations.enum';
 
 @Injectable()
 export class ConversationSeedService {
@@ -16,7 +21,7 @@ export class ConversationSeedService {
     private messageRepository: Repository<MessageEntity>,
     @InjectRepository(BotEntity)
     private botRepository: Repository<BotEntity>,
-  ) { }
+  ) {}
 
   async run() {
     const count = await this.conversationRepository.count();
@@ -129,22 +134,25 @@ export class ConversationSeedService {
       const bot = bots[Math.floor(Math.random() * bots.length)];
       const contactName =
         contactNames[Math.floor(Math.random() * contactNames.length)];
-      const status = Math.random() > 0.3 ? 'closed' : 'active';
+      const status =
+        Math.random() > 0.3
+          ? ConversationStatus.CLOSED
+          : ConversationStatus.ACTIVE;
 
       const lastMessageAt =
         status === 'closed'
           ? new Date(createdAt.getTime() + Math.random() * 24 * 60 * 60 * 1000) // within 24 hours
           : new Date(
-            createdAt.getTime() + Math.random() * 7 * 24 * 60 * 60 * 1000,
-          ); // within 7 days
+              createdAt.getTime() + Math.random() * 7 * 24 * 60 * 60 * 1000,
+            ); // within 7 days
 
       const conversation = this.conversationRepository.create({
         botId: bot.id,
         workspaceId: bot.workspaceId,
-        channelType: 'web',
+        channelType: ConversationSource.WEB,
         status,
         metadata: {
-          source: 'web',
+          source: ConversationSource.WEB,
           contactName,
           userAgent:
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -183,7 +191,7 @@ export class ConversationSeedService {
         const message = this.messageRepository.create({
           conversationId: conversationId,
           workspaceId: bot.workspaceId,
-          role: isUserMessage ? 'user' : 'assistant',
+          role: isUserMessage ? MessageRole.USER : MessageRole.ASSISTANT,
           content,
           metadata: {
             timestamp: currentTime.toISOString(),

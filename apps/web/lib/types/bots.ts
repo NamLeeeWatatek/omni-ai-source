@@ -1,9 +1,14 @@
-﻿
+
+export type BotStatus = 'draft' | 'active' | 'paused' | 'archived'
+export type BotWidgetPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+export type BotWidgetButtonSize = 'small' | 'medium' | 'large'
+
 export interface Bot {
   id: string
   workspaceId: string
   name: string
   description?: string | null
+  status: BotStatus
   icon?: string
   isActive: boolean
   flowId?: string | null
@@ -14,6 +19,8 @@ export interface Bot {
   aiConfig?: Record<string, any>
   knowledgeBaseIds?: string[]
   enableAutoLearn?: boolean
+  widgetPosition: BotWidgetPosition
+  widgetButtonSize: BotWidgetButtonSize
   createdAt: string
   updatedAt: string
 }

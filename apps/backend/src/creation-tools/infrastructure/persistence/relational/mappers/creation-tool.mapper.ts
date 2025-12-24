@@ -1,0 +1,48 @@
+import { CreationTool } from '../../../../domain/creation-tool';
+import { CreationToolEntity } from '../entities/creation-tool.entity';
+
+export class CreationToolMapper {
+  static toDomain(raw: CreationToolEntity): CreationTool {
+    const domainEntity = new CreationTool();
+    domainEntity.id = raw.id;
+    domainEntity.name = raw.name;
+    domainEntity.slug = raw.slug;
+    domainEntity.description = raw.description;
+    domainEntity.icon = raw.icon;
+    domainEntity.coverImage = raw.coverImage;
+    domainEntity.category = raw.category;
+    domainEntity.formConfig = raw.formConfig;
+    domainEntity.executionFlow = raw.executionFlow;
+    domainEntity.isActive = raw.isActive;
+    domainEntity.workspaceId = raw.workspaceId;
+    domainEntity.sortOrder = raw.sortOrder;
+    domainEntity.createdAt = raw.createdAt;
+    domainEntity.updatedAt = raw.updatedAt;
+    domainEntity.deletedAt = raw.deletedAt;
+
+    return domainEntity;
+  }
+
+  static toPersistence(domainEntity: CreationTool): CreationToolEntity {
+    const persistenceEntity = new CreationToolEntity();
+    if (domainEntity.id) {
+      persistenceEntity.id = domainEntity.id;
+    }
+    persistenceEntity.name = domainEntity.name;
+    persistenceEntity.slug = domainEntity.slug;
+    persistenceEntity.description = domainEntity.description;
+    persistenceEntity.icon = domainEntity.icon;
+    persistenceEntity.coverImage = domainEntity.coverImage;
+    persistenceEntity.category = domainEntity.category;
+    persistenceEntity.formConfig = domainEntity.formConfig;
+    persistenceEntity.executionFlow = domainEntity.executionFlow;
+    persistenceEntity.isActive = domainEntity.isActive;
+    persistenceEntity.workspaceId = domainEntity.workspaceId;
+    persistenceEntity.sortOrder = domainEntity.sortOrder;
+    persistenceEntity.createdAt = domainEntity.createdAt;
+    persistenceEntity.updatedAt = domainEntity.updatedAt;
+    persistenceEntity.deletedAt = domainEntity.deletedAt;
+
+    return persistenceEntity;
+  }
+}

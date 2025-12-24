@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Workspace Redux Slice
  */
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';

@@ -2,29 +2,58 @@
 
 import React from 'react'
 import { LoadingLogo } from './LoadingLogo'
+import { cn } from '@/lib/utils'
 
 interface LoadingOverlayProps {
     /** Loading message to display */
     message?: string | null
     /** Allow click through overlay */
     allowInteraction?: boolean
+    /** Custom className for the container */
+    className?: string
 }
 
 /**
  * Global loading overlay that covers entire screen
  * Used for system-wide loading states like uploading, saving, etc.
+ * Features glassmorphism design and smooth animations
  */
-export function LoadingOverlay({ message, allowInteraction = false }: LoadingOverlayProps) {
+export function LoadingOverlay({
+    message,
+    allowInteraction = false,
+    className
+}: LoadingOverlayProps) {
     return (
         <div
-            className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm ${
-                allowInteraction ? 'pointer-events-none' : 'pointer-events-auto'
-            }`}
+            className={cn(
+                'fixed inset-0 z-50 flex items-center justify-center',
+                'bg-gradient-to-br from-background/95 via-background/90 to-background/95',
+                'backdrop-blur-md',
+                'animate-in fade-in duration-300',
+                allowInteraction ? 'pointer-events-none' : 'pointer-events-auto',
+                className
+            )}
+            role="status"
+            aria-live="polite"
+            aria-label={message || 'Loading'}
         >
-            <div className="flex flex-col items-center space-y-4 p-8 bg-background rounded-lg shadow-lg border">
-                <LoadingLogo size="lg" />
+            {/* Content Card with glassmorphism */}
+            <div className={cn(
+                'relative flex flex-col items-center gap-6 p-8',
+                'bg-card/50 backdrop-blur-xl',
+                'border border-border/50 rounded-2xl shadow-2xl',
+                'animate-in zoom-in-95 duration-500'
+            )}>
+                {/* Gradient glow background */}
+                <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 rounded-2xl blur-xl opacity-50" />
+
+                {/* Content */}
+                <div className="relative z-10">
+                    <LoadingLogo size="lg" showGlow />
+                </div>
+
                 {message && (
-                    <p className="text-sm text-muted-foreground font-medium text-center">
+                    <p className="relative z-10 text-sm text-foreground/80 font-medium text-center max-w-xs">
                         {message}
                     </p>
                 )}
@@ -33,18 +62,20 @@ export function LoadingOverlay({ message, allowInteraction = false }: LoadingOve
     )
 }
 
-// Alternative: Full screen overlay without background
+/**
+ * Full screen overlay without glassmorphism
+ * Used for initial page loads or app bootstrapping
+ */
 export function LoadingFullscreen({ message }: { message?: string | null }) {
     return (
-        <div className="fixed inset-0 z-50 bg-background flex items-center justify-center">
-            <div className="flex flex-col items-center space-y-4">
-                <LoadingLogo size="lg" />
-                {message && (
-                    <p className="text-sm text-muted-foreground font-medium text-center">
-                        {message}
-                    </p>
-                )}
+        <div className={cn(
+            'fixed inset-0 z-50 bg-background flex items-center justify-center',
+            'animate-in fade-in duration-500'
+        )}>
+            <div className="flex flex-col items-center gap-6">
+                <LoadingLogo size="xl" text={message || 'Loading'} />
             </div>
         </div>
     )
 }
+

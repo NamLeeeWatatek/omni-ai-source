@@ -13,6 +13,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { ChannelsService } from './channels.service';
 import { CreateConnectionDto } from '../integrations/dto/create-connection.dto';
+import { CurrentWorkspace } from '../workspaces/decorators/current-workspace.decorator';
 
 @ApiTags('Channels')
 @ApiBearerAuth()
@@ -23,9 +24,8 @@ export class ChannelsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all channel connections' })
-  async findAll(@Request() req) {
-    const userId = req.user.id;
-    const connections = await this.channelsService.findAll(userId);
+  async findAll(@Request() req, @CurrentWorkspace() workspaceId: string) {
+    const connections = await this.channelsService.findAll(workspaceId);
 
     return connections.map((conn) => ({
       id: conn.id,
@@ -39,9 +39,12 @@ export class ChannelsController {
 
   @Post()
   @ApiOperation({ summary: 'Create channel connection' })
-  async create(@Body() dto: CreateConnectionDto, @Request() req) {
-    const userId = req.user.id;
-    const connection = await this.channelsService.create(dto, userId);
+  async create(
+    @Body() dto: CreateConnectionDto,
+    @Request() req,
+    @CurrentWorkspace() workspaceId: string,
+  ) {
+    const connection = await this.channelsService.create(dto, workspaceId);
 
     return {
       id: connection.id,
@@ -58,16 +61,16 @@ export class ChannelsController {
     @Param('id') id: string,
     @Body() dto: { botId?: string | null; name?: string; metadata?: any },
     @Request() req,
+    @CurrentWorkspace() workspaceId: string,
   ) {
-    const userId = req.user.id;
-    const connection = await this.channelsService.update(id, dto, userId);
+    const connection = await this.channelsService.update(id, dto, workspaceId);
 
     return {
       id: connection.id,
       name: connection.name,
       type: connection.type,
       status: connection.status,
-      botId: connection.botId,
+      // botId: connection.botId,
       connected_at: connection.connectedAt,
       metadata: connection.metadata,
     };
@@ -75,9 +78,12 @@ export class ChannelsController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete channel connection' })
-  async delete(@Param('id') id: string, @Request() req) {
-    const userId = req.user.id;
-    await this.channelsService.delete(id, userId);
+  async delete(
+    @Param('id') id: string,
+    @Request() req,
+    @CurrentWorkspace() workspaceId: string,
+  ) {
+    await this.channelsService.delete(id, workspaceId);
     return { success: true };
   }
 }

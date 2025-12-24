@@ -1,4 +1,4 @@
-﻿import { Module } from '@nestjs/common';
+﻿import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
 import { UsersModule } from './users/users.module';
@@ -18,7 +18,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthAppleModule } from './auth-apple/auth-apple.module';
 import { AuthFacebookModule } from './auth-facebook/auth-facebook.module';
 import { AuthGoogleModule } from './auth-google/auth-google.module';
-import { AuthCasdoorModule } from './auth-casdoor/auth-casdoor.module';
+
 import { HeaderResolver, I18nModule } from 'nestjs-i18n';
 import { TypeOrmConfigService } from './database/typeorm-config.service';
 import { MailModule } from './mail/mail.module';
@@ -33,8 +33,6 @@ import { DatabaseConfig } from './database/config/database-config.type';
 import { WorkspacesModule } from './workspaces/workspaces.module';
 import { AiProvidersModule } from './ai-providers/ai-providers.module';
 import { BotsModule } from './bots/bots.module';
-import { FlowsModule } from './flows/flows.module';
-import { NodeTypesModule } from './node-types/node-types.module';
 import { ConversationsModule } from './conversations/conversations.module';
 import { ChannelsModule } from './channels/channels.module';
 import { KnowledgeBaseModule } from './knowledge-base/knowledge-base.module';
@@ -47,7 +45,17 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { SharedModule } from './shared/shared.module';
 import { TemplatesModule } from './templates/templates.module';
+import { GenerationJobsModule } from './generation-jobs/generation-jobs.module';
+import { CharactersModule } from './characters/characters.module';
+import { StylePresetsModule } from './style-presets/style-presets.module';
+import { ProjectsModule } from './projects/projects.module';
+import { CreationToolsModule } from './creation-tools/creation-tools.module';
+import { WorkspaceContextMiddleware } from './workspaces/middleware/workspace-context.middleware';
 
+/**
+ * Dynamically selects the database module based on configuration.
+ * Uses MongoDB (Mongoose) for document database or SQL (TypeORM) for relational database.
+ */
 const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
   .isDocumentDatabase
   ? MongooseModule.forRootAsync({
@@ -60,8 +68,11 @@ const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
       },
     });
 
+import { CreationJobsModule } from './creation-jobs/creation-jobs.module';
+
 @Module({
   imports: [
+    CreationJobsModule,
     ConfigModule.forRoot({
       isGlobal: true,
       load: [
@@ -116,22 +127,24 @@ const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
     FilesModule,
     WorkspacesModule,
     TemplatesModule,
+    CreationToolsModule,
     AiProvidersModule,
+    GenerationJobsModule,
+    CharactersModule,
+    StylePresetsModule,
+    ProjectsModule,
 
     AuthModule,
     AuthFacebookModule,
     AuthGoogleModule,
     AuthAppleModule,
-    AuthCasdoorModule,
+
     SessionModule,
 
     MailModule,
     MailerModule,
 
     BotsModule,
-    FlowsModule,
-    NodeTypesModule,
-
     ConversationsModule,
     ChannelsModule,
     KnowledgeBaseModule,
@@ -148,4 +161,8 @@ const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
     PermissionsModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(WorkspaceContextMiddleware).forRoutes('*');
+  }
+}

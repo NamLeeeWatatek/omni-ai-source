@@ -1,4 +1,4 @@
-﻿
+
 export interface ChannelType {
   id: string
   name: string
@@ -12,27 +12,43 @@ export interface ChannelType {
   updatedAt?: string
 }
 
+export enum ChannelPlatform {
+  FACEBOOK = 'facebook',
+  INSTAGRAM = 'instagram',
+  GOOGLE = 'google',
+  OMI = 'omi',
+  TELEGRAM = 'telegram',
+  WHATSAPP = 'whatsapp',
+}
+
+export enum ChannelConnectionStatus {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  ERROR = 'error',
+  DISCONNECTED = 'disconnected',
+}
+
 export interface Channel {
-  id: number
+  id: string
   name: string
-  type: string
+  type: ChannelPlatform | string
   icon?: string
-  status: string
+  status: ChannelConnectionStatus | string
   connected_at: string
   accessToken?: string
   refreshToken?: string
   expiresAt?: string
-  metadata?: Record<string, any> // âœ… For storing botId and other data
+  metadata?: Record<string, any> // ✅ For storing botId and other data
 }
 
 export interface IntegrationConfig {
   id: number
   name?: string
-  provider: string
+  provider: ChannelPlatform | string
   client_id: string
   client_secret: string
   scopes?: string
-  verify_token?: string // âœ… For Facebook webhook verification
+  verify_token?: string // ✅ For Facebook webhook verification
   is_active: boolean
   createdAt?: string
   updatedAt?: string

@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 import { motion } from "framer-motion";
 import { useTranslation } from 'react-i18next'
 import { Button } from "@/components/ui/Button";
-import { FiCheck } from "react-icons/fi";
+import { Check } from "lucide-react";
 
 interface PricingPlan {
   name: string;
@@ -100,11 +100,10 @@ export default function PricingSection() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
               viewport={{ once: true }}
-              className={`rounded-2xl p-8 border ${
-                plan.featured
+              className={`rounded-2xl p-8 border ${plan.featured
                   ? "border-indigo-600 shadow-2xl scale-105 z-10 bg-white"
                   : "border-slate-200 bg-slate-50"
-              }`}
+                }`}
             >
               {plan.featured && (
                 <div className="inline-block px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold uppercase tracking-wide mb-4" suppressHydrationWarning>
@@ -122,18 +121,17 @@ export default function PricingSection() {
               </div>
               <p className="text-slate-600 mb-8">{plan.description}</p>
               <Button
-                className={`w-full mb-8 h-12 rounded-full font-semibold ${
-                  plan.featured
+                className={`w-full mb-8 h-12 rounded-full font-semibold ${plan.featured
                     ? "bg-indigo-600 hover:bg-indigo-700"
                     : "bg-slate-900 hover:bg-slate-800"
-                }`}
+                  }`}
               >
                 {plan.cta}
               </Button>
               <ul className="space-y-4">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start">
-                    <FiCheck className="w-5 h-5 text-indigo-600 mr-3 flex-shrink-0 mt-0.5" />
+                    <Check className="w-5 h-5 text-indigo-600 mr-3 flex-shrink-0 mt-0.5" />
                     <span className="text-sm text-slate-600">{feature}</span>
                   </li>
                 ))}

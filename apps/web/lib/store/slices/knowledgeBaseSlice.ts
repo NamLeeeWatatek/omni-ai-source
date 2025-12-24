@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Knowledge Base Redux Slice
  * Manages KB state, folders, documents, and operations
  */
@@ -23,6 +23,8 @@ import {
   moveKBFolder,
   moveKBDocument,
   uploadKBDocument,
+  deleteKBBatch,
+  moveKBBatch,
 } from '@/lib/api/knowledge-base'
 import { setGlobalLoading } from './uiSlice'
 
@@ -34,6 +36,7 @@ interface KnowledgeBaseState {
   breadcrumbs: Array<{ id: string | null; name: string }>
 
   folders: KBFolder[]
+  allFolders: KBFolder[]
   documents: KBDocument[]
 
   loading: boolean
@@ -60,6 +63,7 @@ const initialState: KnowledgeBaseState = {
   currentFolderId: null,
   breadcrumbs: [],
   folders: [],
+  allFolders: [],
   documents: [],
   loading: false,
   autoRefreshing: false,
@@ -82,7 +86,13 @@ export const loadKnowledgeBase = createAsyncThunk(
       getKnowledgeBase(kbId),
       getKnowledgeBaseStats(kbId),
       getKBFolders(kbId),
-      getKBDocuments(kbId, { ...params, filters: { ...params?.filters, folderId: folderId ?? 'null' } }),
+      getKBDocuments(kbId, {
+        ...params,
+        filters: JSON.stringify({
+          ...(typeof params?.filters === 'string' ? JSON.parse(params.filters) : params?.filters),
+          folderId: folderId ?? 'null'
+        })
+      }),
     ])
 
     const kb = (kbRes as any)?.data || kbRes
@@ -103,7 +113,13 @@ export const refreshData = createAsyncThunk(
     const [statsRes, foldersRes, documentsRes] = await Promise.all([
       getKnowledgeBaseStats(kbId),
       getKBFolders(kbId),
-      getKBDocuments(kbId, { ...params, filters: { ...params?.filters, folderId: folderId ?? 'null' } }),
+      getKBDocuments(kbId, {
+        ...params,
+        filters: JSON.stringify({
+          ...(typeof params?.filters === 'string' ? JSON.parse(params.filters) : params?.filters),
+          folderId: folderId ?? 'null'
+        })
+      }),
     ])
 
     const stats = (statsRes as any)?.data || statsRes
@@ -123,7 +139,7 @@ export const createFolder = createAsyncThunk(
     description?: string
     parentFolderId?: string | null
   }, { dispatch }) => {
-    dispatch(setGlobalLoading({ actionId: 'create-folder', isLoading: true, message: 'Creating folder...' }))
+    dispatch(setGlobalLoading({ actionId: 'create-folder', isLoading: true, message: 'Creating folder' }))
     try {
       const folder = await createKBFolder(data)
       return folder
@@ -141,7 +157,7 @@ export const createDocument = createAsyncThunk(
     content: string
     folderId?: string | null
   }, { dispatch }) => {
-    dispatch(setGlobalLoading({ actionId: 'create-document', isLoading: true, message: 'Creating document...' }))
+    dispatch(setGlobalLoading({ actionId: 'create-document', isLoading: true, message: 'Creating document' }))
     try {
       const document = await createKBDocument(data)
       return document
@@ -154,7 +170,7 @@ export const createDocument = createAsyncThunk(
 export const uploadDocument = createAsyncThunk(
   'knowledgeBase/uploadDocument',
   async (data: { file: File; kbId: string; folderId?: string | null }, { dispatch }) => {
-    dispatch(setGlobalLoading({ actionId: `upload-${data.file.name}`, isLoading: true, message: `Uploading ${data.file.name}...` }))
+    dispatch(setGlobalLoading({ actionId: `upload-${data.file.name}`, isLoading: true, message: `Uploading ${data.file.name}` }))
     try {
       const result = await uploadKBDocument(data.file, data.kbId, data.folderId);
       return result;
@@ -167,7 +183,7 @@ export const uploadDocument = createAsyncThunk(
 export const updateFolder = createAsyncThunk(
   'knowledgeBase/updateFolder',
   async (data: { id: string; updates: { name?: string; description?: string; icon?: string } }, { dispatch }) => {
-    dispatch(setGlobalLoading({ actionId: 'update-folder', isLoading: true, message: 'Updating folder...' }))
+    dispatch(setGlobalLoading({ actionId: 'update-folder', isLoading: true, message: 'Updating folder' }))
     try {
       const folder = await updateKBFolder(data.id, data.updates)
       return folder
@@ -180,7 +196,7 @@ export const updateFolder = createAsyncThunk(
 export const updateDocument = createAsyncThunk(
   'knowledgeBase/updateDocument',
   async (data: { id: string; updates: { name?: string; description?: string; icon?: string } }, { dispatch }) => {
-    dispatch(setGlobalLoading({ actionId: 'update-document', isLoading: true, message: 'Updating document...' }))
+    dispatch(setGlobalLoading({ actionId: 'update-document', isLoading: true, message: 'Updating document' }))
     try {
       const document = await updateKBDocument(data.id, data.updates)
       return document
@@ -193,7 +209,7 @@ export const updateDocument = createAsyncThunk(
 export const removeFolder = createAsyncThunk(
   'knowledgeBase/removeFolder',
   async (id: string, { dispatch }) => {
-    dispatch(setGlobalLoading({ actionId: 'remove-folder', isLoading: true, message: 'Removing folder...' }))
+    dispatch(setGlobalLoading({ actionId: 'remove-folder', isLoading: true, message: 'Removing folder' }))
     try {
       await deleteKBFolder(id)
       return id
@@ -206,7 +222,7 @@ export const removeFolder = createAsyncThunk(
 export const removeDocument = createAsyncThunk(
   'knowledgeBase/removeDocument',
   async (id: string, { dispatch }) => {
-    dispatch(setGlobalLoading({ actionId: 'remove-document', isLoading: true, message: 'Removing document...' }))
+    dispatch(setGlobalLoading({ actionId: 'remove-document', isLoading: true, message: 'Removing document' }))
     try {
       await deleteKBDocument(id)
       return id
@@ -219,7 +235,7 @@ export const removeDocument = createAsyncThunk(
 export const moveFolderToFolder = createAsyncThunk(
   'knowledgeBase/moveFolder',
   async (data: { folderId: string; targetFolderId: string | null }, { dispatch }) => {
-    dispatch(setGlobalLoading({ actionId: 'move-folder', isLoading: true, message: 'Moving folder...' }))
+    dispatch(setGlobalLoading({ actionId: 'move-folder', isLoading: true, message: 'Moving folder' }))
     try {
       await moveKBFolder(data.folderId, data.targetFolderId)
       return data
@@ -232,12 +248,38 @@ export const moveFolderToFolder = createAsyncThunk(
 export const moveDocumentToFolder = createAsyncThunk(
   'knowledgeBase/moveDocument',
   async (data: { documentId: string; targetFolderId: string | null }, { dispatch }) => {
-    dispatch(setGlobalLoading({ actionId: 'move-document', isLoading: true, message: 'Moving document...' }))
+    dispatch(setGlobalLoading({ actionId: 'move-document', isLoading: true, message: 'Moving document' }))
     try {
       await moveKBDocument(data.documentId, data.targetFolderId)
       return data
     } finally {
       dispatch(setGlobalLoading({ actionId: 'move-document', isLoading: false }))
+    }
+  }
+)
+
+export const removeBatchItems = createAsyncThunk(
+  'knowledgeBase/removeBatchItems',
+  async (data: { folderIds: string[]; documentIds: string[] }, { dispatch }) => {
+    dispatch(setGlobalLoading({ actionId: 'remove-batch', isLoading: true, message: 'Deleting items' }))
+    try {
+      await deleteKBBatch(data)
+      return data
+    } finally {
+      dispatch(setGlobalLoading({ actionId: 'remove-batch', isLoading: false }))
+    }
+  }
+)
+
+export const moveBatchItems = createAsyncThunk(
+  'knowledgeBase/moveBatchItems',
+  async (data: { folderIds: string[]; documentIds: string[]; targetFolderId: string | null }, { dispatch }) => {
+    dispatch(setGlobalLoading({ actionId: 'move-batch', isLoading: true, message: 'Moving items' }))
+    try {
+      await moveKBBatch(data)
+      return data
+    } finally {
+      dispatch(setGlobalLoading({ actionId: 'move-batch', isLoading: false }))
     }
   }
 )
@@ -284,12 +326,19 @@ const knowledgeBaseSlice = createSlice({
       }
     },
 
-    toggleSelectAll: (state) => {
+    toggleSelectAll: (state, action: PayloadAction<boolean | undefined>) => {
       const allIds = [...state.folders.map(f => f.id), ...state.documents.map(d => d.id)]
-      if (state.selectedIds.length === allIds.length) {
+      if (action.payload === true) {
+        state.selectedIds = allIds
+      } else if (action.payload === false) {
         state.selectedIds = []
       } else {
-        state.selectedIds = allIds
+        // Toggle behavior if no payload
+        if (state.selectedIds.length === allIds.length) {
+          state.selectedIds = []
+        } else {
+          state.selectedIds = allIds
+        }
       }
     },
 
@@ -334,6 +383,7 @@ const knowledgeBaseSlice = createSlice({
         state.currentFolderId = action.payload.folderId
 
         const folders = Array.isArray(action.payload.folders) ? action.payload.folders : []
+        state.allFolders = folders
 
         if (action.payload.folderId === null) {
           state.folders = folders.filter(f => !f.parentId && !f.parentFolderId)
@@ -356,6 +406,7 @@ const knowledgeBaseSlice = createSlice({
         state.stats = action.payload.stats
 
         const folders = Array.isArray(action.payload.folders) ? action.payload.folders : []
+        state.allFolders = folders
 
         if (state.currentFolderId === null) {
           state.folders = folders.filter(f => !f.parentId && !f.parentFolderId)
@@ -426,6 +477,39 @@ const knowledgeBaseSlice = createSlice({
       .addCase(removeDocument.rejected, (state, action) => {
         state.error = action.error.message || 'Failed to delete document'
       })
+
+    builder
+      .addCase(removeBatchItems.fulfilled, (state, action) => {
+        const { folderIds, documentIds } = action.payload
+        if (folderIds?.length) {
+          state.folders = state.folders.filter(f => !folderIds.includes(f.id))
+          state.selectedIds = state.selectedIds.filter(id => !folderIds.includes(id))
+        }
+        if (documentIds?.length) {
+          state.documents = state.documents.filter(d => !documentIds.includes(d.id))
+          state.selectedIds = state.selectedIds.filter(id => !documentIds.includes(id))
+        }
+      })
+      .addCase(removeBatchItems.rejected, (state, action) => {
+        state.error = action.error.message || 'Failed to batch delete items'
+      })
+
+    builder
+      .addCase(moveBatchItems.fulfilled, (state, action) => {
+        const { folderIds, documentIds, targetFolderId } = action.payload
+        if (targetFolderId !== state.currentFolderId) {
+          if (folderIds?.length) {
+            state.folders = state.folders.filter(f => !folderIds.includes(f.id))
+          }
+          if (documentIds?.length) {
+            state.documents = state.documents.filter(d => !documentIds.includes(d.id))
+          }
+          state.selectedIds = []
+        }
+      })
+      .addCase(moveBatchItems.rejected, (state, action) => {
+        state.error = action.error.message || 'Failed to batch move items'
+      })
   },
 })
 
@@ -449,6 +533,7 @@ export const {
 export const selectCurrentKB = (state: { knowledgeBase: KnowledgeBaseState }) => state.knowledgeBase.currentKB
 export const selectStats = (state: { knowledgeBase: KnowledgeBaseState }) => state.knowledgeBase.stats
 export const selectFolders = (state: { knowledgeBase: KnowledgeBaseState }) => state.knowledgeBase.folders
+export const selectAllFolders = (state: { knowledgeBase: KnowledgeBaseState }) => state.knowledgeBase.allFolders
 export const selectDocuments = (state: { knowledgeBase: KnowledgeBaseState }) => state.knowledgeBase.documents
 export const selectLoading = (state: { knowledgeBase: KnowledgeBaseState }) => state.knowledgeBase.loading
 export const selectAutoRefreshing = (state: { knowledgeBase: KnowledgeBaseState }) => state.knowledgeBase.autoRefreshing

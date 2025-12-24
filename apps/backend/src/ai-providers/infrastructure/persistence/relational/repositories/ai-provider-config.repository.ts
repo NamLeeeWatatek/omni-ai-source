@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { AiProviderOwnerType } from '../../../../ai-providers.enum';
 import {
   AiProviderEntity,
+  AiProviderConfigEntity,
   UserAiProviderConfigEntity,
   WorkspaceAiProviderConfigEntity,
   AiUsageLogEntity,
@@ -25,6 +27,8 @@ export class AiProviderConfigRelationalRepository
   constructor(
     @InjectRepository(AiProviderEntity)
     private readonly aiProviderRepository: Repository<AiProviderEntity>,
+    @InjectRepository(AiProviderConfigEntity)
+    private readonly configRepository: Repository<AiProviderConfigEntity>,
     @InjectRepository(UserAiProviderConfigEntity)
     private readonly userConfigRepository: Repository<UserAiProviderConfigEntity>,
     @InjectRepository(WorkspaceAiProviderConfigEntity)
@@ -297,10 +301,44 @@ export class AiProviderConfigRelationalRepository
 
   async getApiKeyByProviderId(
     providerId: string,
-    scope?: 'user' | 'workspace',
+    scope?: 'user' | 'workspace' | 'system',
   ): Promise<any> {
-    // TODO: Implement actual API key retrieval logic
-    return null;
+    if (scope === 'system') {
+      const config = await this.configRepository.findOne({
+        where: {
+          providerId,
+          ownerType: AiProviderOwnerType.SYSTEM,
+          isActive: true,
+        },
+      });
+      return config?.apiKey || null;
+    }
+
+    // For user/workspace, we might need to look into their respective entities
+    // since they store configs in JSONB.
+    if (scope === 'user') {
+      const config = await this.userConfigRepository.findOne({
+        where: { providerId, isActive: true },
+      });
+      return config?.config?.apiKey || null;
+    }
+
+    if (scope === 'workspace') {
+      const config = await this.workspaceConfigRepository.findOne({
+        where: { providerId, isActive: true },
+      });
+      return config?.config?.apiKey || null;
+    }
+
+    // Default: try system first
+    const systemConfig = await this.configRepository.findOne({
+      where: {
+        providerId,
+        ownerType: AiProviderOwnerType.SYSTEM,
+        isActive: true,
+      },
+    });
+    return systemConfig?.apiKey || null;
   }
 
   async getWorkspaceProviders(workspaceId: string): Promise<AiProvider[]> {

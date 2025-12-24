@@ -15,9 +15,6 @@ export class RoleEntity extends EntityRelationalHelper {
   @Column({ nullable: true })
   description?: string;
 
-  @Column({ nullable: true, name: 'casdoor_role_name' })
-  casdoorRoleName?: string;
-
   @ManyToMany(() => PermissionEntity, (permission) => permission.roles)
   @JoinTable({
     name: 'role_permission',

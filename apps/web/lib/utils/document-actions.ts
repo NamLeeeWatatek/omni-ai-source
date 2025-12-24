@@ -1,4 +1,4 @@
-﻿
+
 import { getKBDocumentDownloadUrl } from '../api/knowledge-base'
 import toast from '../toast'
 

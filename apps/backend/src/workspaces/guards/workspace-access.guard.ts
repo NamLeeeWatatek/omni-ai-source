@@ -23,7 +23,9 @@ export class WorkspaceAccessGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
+    const headerWorkspaceId = request.headers?.['x-workspace-id'];
     const workspaceId =
+      headerWorkspaceId ||
       request.params?.workspaceId ||
       request.query?.workspaceId ||
       request.body?.workspaceId;

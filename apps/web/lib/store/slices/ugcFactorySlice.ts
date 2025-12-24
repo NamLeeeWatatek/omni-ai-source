@@ -2,7 +2,7 @@
  * UGC Factory Redux Slice
  */
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit'
-import { UGCFactoryService } from '@/lib/services/api.service'
+import { ugcApi } from '@/lib/api/ugc'
 import { setGlobalLoading } from './uiSlice'
 import type { Execution } from '@/lib/types'
 
@@ -38,11 +38,11 @@ const initialState: UGCFactoryState = {
 export const deleteArtifact = createAsyncThunk<string, string>(
     'ugcFactory/deleteArtifact',
     async (artifactId: string, { dispatch }) => {
-        dispatch(setGlobalLoading({ actionId: 'delete-artifact', isLoading: true, message: 'Deleting artifact...' }))
+        dispatch(setGlobalLoading({ actionId: 'delete-artifact', isLoading: true, message: 'Deleting artifact' }))
         try {
             // Note: This assumes the UGCFactoryService has a deleteArtifact method
             // If not, we'll need to add it or use direct axios call temporarily
-            await UGCFactoryService.deleteArtifact?.(artifactId)
+            await ugcApi.deleteArtifact(artifactId)
             return artifactId
         } finally {
             dispatch(setGlobalLoading({ actionId: 'delete-artifact', isLoading: false }))
@@ -53,21 +53,21 @@ export const deleteArtifact = createAsyncThunk<string, string>(
 export const fetchExecutionArtifacts = createAsyncThunk<UGCArtifact[], string>(
     'ugcFactory/fetchExecutionArtifacts',
     async (executionId: string) => {
-        return await UGCFactoryService.getExecutionArtifacts(executionId)
+        return await ugcApi.getExecutionArtifacts(executionId)
     }
 )
 
 export const fetchExecutions = createAsyncThunk<Execution[], { flowId: string; limit?: number }>(
     'ugcFactory/fetchExecutions',
     async ({ flowId, limit = 50 }) => {
-        return await UGCFactoryService.getExecutions(flowId, limit)
+        return await ugcApi.getExecutions(flowId, limit)
     }
 )
 
 export const fetchExecutionsByFlowId = createAsyncThunk<Execution[], { flowId: string; limit?: number }>(
     'ugcFactory/fetchExecutionsByFlowId',
     async ({ flowId, limit = 100 }) => {
-        return await UGCFactoryService.getExecutions(flowId, limit)
+        return await ugcApi.getExecutions(flowId, limit)
     }
 )
 

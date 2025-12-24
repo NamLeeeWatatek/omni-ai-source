@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Server-side Axios Configuration with NextAuth v5
  * Use this in server components and API routes
  */

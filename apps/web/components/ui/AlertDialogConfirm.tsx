@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { ReactNode } from 'react'
 import { AlertDialogHeader, AlertDialogFooter, AlertDialogDescription, AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogTitle } from './AlertDialog'

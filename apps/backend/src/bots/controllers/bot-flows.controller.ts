@@ -1,3 +1,4 @@
+/*
 import {
   Controller,
   Get,
@@ -5,91 +6,89 @@ import {
   Body,
   Patch,
   Param,
+  Delete,
   UseGuards,
-  Request,
-  HttpCode,
-  HttpStatus,
+  Query,
+  DefaultValuePipe,
+  ParseIntPipe,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiBearerAuth,
-  ApiOperation,
-  ApiParam,
-  ApiCreatedResponse,
-  ApiOkResponse,
-} from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
 import { BotsService } from '../bots.service';
-import { CreateFlowVersionDto } from '../dto/update-bot.dto';
-import { FlowVersion } from '../domain/bot';
+import { CreateFlowVersionDto } from '../dto/create-flow-version.dto';
+import { UpdateFlowVersionDto } from '../dto/update-flow-version.dto';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard } from '../../roles/roles.guard';
+import { Roles } from '../../roles/roles.decorator';
+import { RoleEnum } from '../../roles/roles.enum';
 
 @ApiTags('Bot Flows')
+@Controller({
+  path: 'bots',
+  version: '1',
+})
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
-@Controller({ path: 'bots/:id/flows', version: '1' })
+@Roles(RoleEnum.admin, RoleEnum.user)
 export class BotFlowsController {
   constructor(private readonly botsService: BotsService) {}
 
-  @Post('versions')
-  @ApiOperation({ summary: 'Create flow version' })
-  @ApiCreatedResponse({ type: FlowVersion })
-  @ApiParam({ name: 'id', type: String, description: 'Bot ID' })
-  @HttpCode(HttpStatus.CREATED)
-  createVersion(
+  @Post(':id/flow/versions')
+  @ApiOperation({ summary: 'Create a new flow version' })
+  @ApiParam({ name: 'id', type: String })
+  create(
     @Param('id') id: string,
     @Body() dto: CreateFlowVersionDto,
-    @Request() req,
+    @Param('request') req: any,
   ) {
     return this.botsService.createFlowVersion(id, dto, req.user.id);
   }
 
-  @Get('versions')
+  @Get(':id/flow/versions')
   @ApiOperation({ summary: 'Get all flow versions' })
-  @ApiOkResponse({ type: [FlowVersion] })
-  @ApiParam({ name: 'id', type: String, description: 'Bot ID' })
-  getVersions(@Param('id') id: string) {
+  @ApiParam({ name: 'id', type: String })
+  findAll(@Param('id') id: string) {
     return this.botsService.getFlowVersions(id);
   }
 
-  @Get('versions/published')
+  @Get(':id/published-flow')
   @ApiOperation({ summary: 'Get published flow version' })
-  @ApiOkResponse({ type: FlowVersion })
-  @ApiParam({ name: 'id', type: String, description: 'Bot ID' })
-  getPublishedVersion(@Param('id') id: string) {
+  @ApiParam({ name: 'id', type: String })
+  getPublished(@Param('id') id: string) {
     return this.botsService.getPublishedVersion(id);
   }
 
-  @Get('versions/:versionId')
-  @ApiOperation({ summary: 'Get flow version by ID' })
-  @ApiOkResponse({ type: FlowVersion })
-  @ApiParam({ name: 'id', type: String, description: 'Bot ID' })
-  @ApiParam({ name: 'versionId', type: String, description: 'Version ID' })
-  getVersion(@Param('id') id: string, @Param('versionId') versionId: string) {
+  @Get(':id/flow/versions/:versionId')
+  @ApiOperation({ summary: 'Get specific flow version' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiParam({ name: 'versionId', type: String })
+  findOne(
+    @Param('id') id: string,
+    @Param('versionId') versionId: string,
+  ) {
     return this.botsService.getFlowVersion(id, versionId);
   }
 
-  @Patch('versions/:versionId')
+  @Patch(':id/flow/versions/:versionId')
   @ApiOperation({ summary: 'Update flow version' })
-  @ApiOkResponse({ type: FlowVersion })
-  @ApiParam({ name: 'id', type: String, description: 'Bot ID' })
-  @ApiParam({ name: 'versionId', type: String, description: 'Version ID' })
-  updateVersion(
+  @ApiParam({ name: 'id', type: String })
+  @ApiParam({ name: 'versionId', type: String })
+  update(
     @Param('id') id: string,
     @Param('versionId') versionId: string,
-    @Body() dto: CreateFlowVersionDto,
+    @Body() dto: UpdateFlowVersionDto,
   ) {
     return this.botsService.updateFlowVersion(id, versionId, dto);
   }
 
-  @Post('versions/:versionId/publish')
+  @Post(':id/flow/versions/:versionId/publish')
   @ApiOperation({ summary: 'Publish flow version' })
-  @ApiOkResponse({ type: FlowVersion })
-  @ApiParam({ name: 'id', type: String, description: 'Bot ID' })
-  @ApiParam({ name: 'versionId', type: String, description: 'Version ID' })
-  publishVersion(
+  @ApiParam({ name: 'id', type: String })
+  @ApiParam({ name: 'versionId', type: String })
+  publish(
     @Param('id') id: string,
     @Param('versionId') versionId: string,
   ) {
     return this.botsService.publishFlowVersion(id, versionId);
   }
 }
+*/

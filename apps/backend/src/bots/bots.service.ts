@@ -12,7 +12,9 @@ import {
   BotEntity,
   BotKnowledgeBaseEntity,
 } from './infrastructure/persistence/relational/entities/bot.entity';
-import { FlowVersionEntity } from '../flows/infrastructure/persistence/relational/entities/flow-version.entity';
+import { BotStatus } from './bots.enum';
+// import { FlowStatus } from '../flows/flows.enum';
+// import { FlowVersionEntity } from '../flows/infrastructure/persistence/relational/entities/flow-version.entity';
 import { WorkspaceMemberEntity } from '../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
 import { WorkspaceHelperService } from '../workspaces/workspace-helper.service';
 import { WidgetVersionService } from './services/widget-version.service';
@@ -29,8 +31,8 @@ export class BotsService {
   constructor(
     @InjectRepository(BotEntity)
     private botRepository: Repository<BotEntity>,
-    @InjectRepository(FlowVersionEntity)
-    private flowVersionRepository: Repository<FlowVersionEntity>,
+    // @InjectRepository(FlowVersionEntity)
+    // private flowVersionRepository: Repository<FlowVersionEntity>,
     @InjectRepository(BotKnowledgeBaseEntity)
     private botKbRepository: Repository<BotKnowledgeBaseEntity>,
     @InjectRepository(WorkspaceMemberEntity)
@@ -57,7 +59,7 @@ export class BotsService {
     const bot = this.botRepository.create({
       ...createDto,
       createdBy: userId,
-      status: createDto.status ?? 'draft',
+      status: createDto.status ?? BotStatus.DRAFT,
       defaultLanguage: createDto.defaultLanguage ?? 'en',
       timezone: createDto.timezone ?? 'UTC',
     });
@@ -191,7 +193,7 @@ export class BotsService {
   async findOne(id: string) {
     const bot = await this.botRepository.findOne({
       where: { id },
-      relations: ['workspace', 'flowVersions', 'knowledgeBases'],
+      relations: ['workspace', 'knowledgeBases'],
     });
 
     if (!bot) {
@@ -225,17 +227,18 @@ export class BotsService {
   }
 
   async activate(id: string) {
-    return this.update(id, { status: 'active' });
+    return this.update(id, { status: BotStatus.ACTIVE });
   }
 
   async pause(id: string) {
-    return this.update(id, { status: 'paused' });
+    return this.update(id, { status: BotStatus.PAUSED });
   }
 
   async archive(id: string) {
-    return this.update(id, { status: 'archived' });
+    return this.update(id, { status: BotStatus.ARCHIVED });
   }
 
+  /*
   async createFlowVersion(
     botId: string,
     dto: CreateFlowVersionDto,
@@ -289,7 +292,7 @@ export class BotsService {
   ) {
     const version = await this.getFlowVersion(botId, versionId);
 
-    if (version.status === 'published') {
+    if (version.status === FlowStatus.PUBLISHED) {
       throw new ForbiddenException('Cannot update published version');
     }
 
@@ -304,11 +307,11 @@ export class BotsService {
     const version = await this.getFlowVersion(botId, versionId);
 
     await this.flowVersionRepository.update(
-      { botId, status: 'published' },
-      { status: 'archived', isPublished: false },
+      { botId, status: FlowStatus.PUBLISHED },
+      { status: FlowStatus.ARCHIVED, isPublished: false },
     );
 
-    version.status = 'published';
+    version.status = FlowStatus.PUBLISHED;
     version.isPublished = true;
     version.publishedAt = new Date();
 
@@ -317,9 +320,10 @@ export class BotsService {
 
   async getPublishedVersion(botId: string) {
     return this.flowVersionRepository.findOne({
-      where: { botId, status: 'published' },
+      where: { botId, status: FlowStatus.PUBLISHED },
     });
   }
+  */
 
   async linkKnowledgeBase(botId: string, dto: LinkKnowledgeBaseDto) {
     await this.findOne(botId);
@@ -452,7 +456,7 @@ export class BotsService {
       ...bot,
       id: undefined,
       name: newName ?? `${bot.name} (Copy)`,
-      status: 'draft',
+      status: BotStatus.DRAFT,
       createdBy: userId,
       createdAt: undefined,
       updatedAt: undefined,

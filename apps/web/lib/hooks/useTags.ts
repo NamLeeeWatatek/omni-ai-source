@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { MetadataService } from '@/lib/services/api.service'
+import { metadataApi } from '@/lib/api/metadata'
 import { Tag } from '@/lib/types'
 import { CACHE_TIMES } from '@/lib/constants/app'
 
@@ -13,7 +13,7 @@ export const tagKeys = {
 export function useTags() {
   return useQuery({
     queryKey: tagKeys.list(),
-    queryFn: () => MetadataService.getTags(),
+    queryFn: () => metadataApi.getTags(),
     staleTime: CACHE_TIMES.MEDIUM,
     gcTime: CACHE_TIMES.LONG,
   })

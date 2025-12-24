@@ -1,7 +1,6 @@
-﻿import { redirect } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
-import { getDashboardStats, FALLBACK_DASHBOARD_STATS } from '@/lib/server/dashboard.server'
-import { DashboardClient } from '../DashboardClient'
+import { DashboardClient } from '@/components/features/dashboard/DashboardClient'
 
 export default async function DashboardPage() {
     // Check authentication on server
@@ -10,13 +9,12 @@ export default async function DashboardPage() {
         redirect('/login')
     }
 
-    // Fetch dashboard stats on server for SEO
-    const serverStats = await getDashboardStats()
-
+    // Let client fetch data directly from backend API via React Query
     return (
         <DashboardClient
-            initialStats={serverStats}
+            initialStats={null}
             user={session.user}
         />
     )
 }
+

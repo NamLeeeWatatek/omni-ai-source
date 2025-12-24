@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import React, { useMemo } from 'react'
 import Link from 'next/link'
@@ -12,22 +12,21 @@ import {
     BreadcrumbSeparator,
 } from '@/components/ui/Breadcrumb'
 import {
-    FiLayout,
-    FiGitMerge,
-    FiGrid,
-    FiRadio,
-    FiSettings,
-    FiDatabase,
-    FiHome,
-} from 'react-icons/fi'
-import { RiRobot2Line } from "react-icons/ri"
-import { TiMessages } from "react-icons/ti"
-import { IconType } from 'react-icons'
+    Layout,
+    GitMerge,
+    Grid,
+    Radio,
+    Settings,
+    Database,
+    Home,
+    Bot,
+    MessageSquare,
+} from 'lucide-react'
 
 interface NavigationItem {
     name: string
     href?: string
-    icon: IconType
+    icon: any
     children?: Array<{
         name: string
         href: string
@@ -35,22 +34,22 @@ interface NavigationItem {
 }
 
 const navigation: NavigationItem[] = [
-    { name: 'Dashboard', href: '/dashboard', icon: FiLayout },
-    { name: 'UGC Factory', href: '/ugc-factory', icon: FiGrid },
-    { name: 'Conversations', href: '/conversations', icon: FiGrid },
+    { name: 'Dashboard', href: '/dashboard', icon: Layout },
+    { name: 'UGC Factory', href: '/ugc-factory', icon: Grid },
+    { name: 'Conversations', href: '/conversations', icon: Grid },
     {
         name: 'Workflows',
-        icon: FiGitMerge,
+        icon: GitMerge,
         children: [
             { name: 'All Workflows', href: '/flows' },
             { name: 'Create New', href: '/flows/new?mode=edit' }
         ]
     },
-    { name: 'Channels', href: '/channels', icon: FiRadio },
-    { name: 'Knowledge Base', href: '/knowledge-base/collections', icon: FiDatabase },
-    { name: 'Bots', href: '/bots', icon: RiRobot2Line },
-    { name: 'Chat AI', href: '/chat', icon: TiMessages },
-    { name: 'Settings', href: '/settings', icon: FiSettings },
+    { name: 'Channels', href: '/channels', icon: Radio },
+    { name: 'Knowledge Base', href: '/knowledge-base/collections', icon: Database },
+    { name: 'Bots', href: '/bots', icon: Bot },
+    { name: 'Chat AI', href: '/chat', icon: MessageSquare },
+    { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
 export const DashboardBreadcrumb = React.memo(() => {
@@ -123,7 +122,7 @@ export const DashboardBreadcrumb = React.memo(() => {
                         <BreadcrumbSeparator />
                         <BreadcrumbItem>
                             <BreadcrumbLink asChild>
-                                <Link href={basePage.href || `/${baseSegment}`} className="flex items-center gap-2">
+                                <Link href="#" className="flex items-center gap-2">
                                     <basePage.icon className="w-4 h-4" />
                                     <span>{basePage.name}</span>
                                 </Link>
@@ -159,7 +158,7 @@ export const DashboardBreadcrumb = React.memo(() => {
                 <BreadcrumbItem>
                     <BreadcrumbLink asChild>
                         <Link href="/dashboard" className="flex items-center gap-2">
-                            <FiHome className="w-4 h-4" />
+                            <Home className="w-4 h-4" />
                             <span>Home</span>
                         </Link>
                     </BreadcrumbLink>

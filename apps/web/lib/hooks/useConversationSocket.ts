@@ -1,4 +1,4 @@
-﻿// DEPRECATED: Use useConversationsSocket instead
+// DEPRECATED: Use useConversationsSocket instead
 // This hook is replaced by the unified useConversationsSocket which uses the base socket connection hook
 // for better maintainability and consistency.
 //

@@ -1,4 +1,5 @@
 ﻿import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { AiProviderOwnerType } from '../ai-providers.enum';
 
 /**
  * AiProvider domain entity
@@ -78,8 +79,8 @@ export class AiProviderConfig {
   // @ApiProperty({ type: 'object', description: 'Provider-specific extra fields' })
   // extra: Record<string, any>;
 
-  @ApiProperty({ enum: ['system', 'user', 'workspace'] })
-  ownerType: 'system' | 'user' | 'workspace';
+  @ApiProperty({ enum: AiProviderOwnerType })
+  ownerType: AiProviderOwnerType;
 
   @ApiProperty({ type: String })
   ownerId?: string;

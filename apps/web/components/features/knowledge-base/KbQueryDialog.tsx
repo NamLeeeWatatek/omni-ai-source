@@ -1,10 +1,10 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
-import { FiSearch, FiMessageSquare } from 'react-icons/fi'
+import { Search, MessageSquare } from 'lucide-react'
 import type { QueryResult } from '@/lib/types/knowledge-base'
 
 interface KBQueryDialogProps {
@@ -45,7 +45,7 @@ export function KBQueryDialog({ open, onOpenChange, onQuery }: KBQueryDialogProp
                             onKeyDown={(e) => e.key === 'Enter' && handleQuery()}
                         />
                         <Button onClick={handleQuery} loading={searching}>
-                            <FiSearch className="w-4 h-4" />
+                            <Search className="w-4 h-4" />
                         </Button>
                     </div>
 
@@ -72,7 +72,7 @@ export function KBQueryDialog({ open, onOpenChange, onQuery }: KBQueryDialogProp
 
                     {query && !searching && results.length === 0 && (
                         <div className="text-center py-8 text-muted-foreground">
-                            <FiMessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                            <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
                             <p>No results found. Try a different query.</p>
                         </div>
                     )}

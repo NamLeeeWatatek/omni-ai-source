@@ -14,6 +14,7 @@ import { AllConfigType } from './config/config.type';
 import { ResolvePromisesInterceptor } from './utils/serializer.interceptor';
 import helmet from 'helmet';
 import * as bodyParser from 'body-parser';
+import { WorkspaceContextMiddleware } from './workspaces/middleware/workspace-context.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -50,6 +51,7 @@ async function bootstrap() {
     next();
   });
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
+
   const configService = app.get(ConfigService<AllConfigType>);
 
   app.enableShutdownHooks();

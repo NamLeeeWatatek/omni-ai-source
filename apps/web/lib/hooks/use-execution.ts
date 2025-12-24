@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import type { Node } from 'reactflow';
 import { useSocketConnection } from './use-socket-connection';
+import axiosClient from '@/lib/axios-client';
 
 export type ExecutionTransport = 'websocket' | 'sse';
 
@@ -100,15 +101,8 @@ export function useExecution(
       const execId = executionId || `exec-${Date.now()}`;
 
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
-        const response = fetch(`${API_URL}/flows/${flowId}/execute`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify(inputData || {}),
-        });
+        // Start execution via standardized axios client (auth/workspace handled in interceptors)
+        const responsePromise = axiosClient.post(`/flows/${flowId}/execute`, inputData || {});
 
         // Set up WebSocket event handlers
         const unsubscribeProgress = onWs('execution:progress', (data) => {
@@ -183,14 +177,16 @@ export function useExecution(
           reject(new Error(data.error));
         });
 
-        // Check API response
-        response.then(async (res) => {
-          if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(`HTTP error! status: ${res.status} - ${errorText}`);
+        // Check API response (axiosClient returns data or throws)
+        responsePromise.catch((err: any) => {
+          if (err?.code === 'UNAUTHORIZED') {
+            const e: any = new Error('UNAUTHORIZED');
+            e.code = 'UNAUTHORIZED';
+            setError('Unauthorized');
+            reject(e);
+            return;
           }
-        }).catch((err) => {
-          setError(err.message);
+          setError(err.message || 'Failed to start execution');
           reject(err);
         });
 
@@ -220,6 +216,11 @@ export function useExecution(
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          const e: any = new Error('UNAUTHORIZED');
+          e.code = 'UNAUTHORIZED';
+          throw e;
+        }
         const errorText = await response.text();
         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }

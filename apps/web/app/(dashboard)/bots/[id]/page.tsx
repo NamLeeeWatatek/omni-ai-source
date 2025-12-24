@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { PageLoading } from '@/components/ui/PageLoading';
 import { Badge } from '@/components/ui/Badge';
@@ -23,21 +23,18 @@ import { botsApi } from '@/lib/api/bots';
 import axiosClient from '@/lib/axios-client';
 
 import {
-    BotOverviewTab,
-    BotAnalyticsTab
-} from '@/components/features/bots/BotOverviewTab';
-import {
-    BotConfigurationTab,
-    BotSystemPromptTab
+    BotConfigurationTab
 } from '@/components/features/bots/BotConfigurationTab';
 import { BotKnowledgeBaseSection } from '@/components/features/bots/BotKnowledgeBaseSection';
 import { BotChannelsSection } from '@/components/features/bots/BotChannelsSection';
 import { BotSettingsTab } from '@/components/features/bots/BotSettingsTab';
-import { WidgetAppearanceSettings } from '@/components/widget/WidgetAppearanceSettings';
-import { WidgetDeploymentHistory } from '@/components/widget/WidgetDeploymentHistory';
-import { WidgetEmbedCode } from '@/components/widget/WidgetEmbedCode';
-import { WidgetVersionsList } from '@/components/widget/WidgetVersionsList';
+import { WidgetAppearanceSettings } from '@/components/features/widget/WidgetAppearanceSettings';
+import { WidgetDeploymentHistory } from '@/components/features/widget/WidgetDeploymentHistory';
+import { WidgetEmbedCode } from '@/components/features/widget/WidgetEmbedCode';
+import { WidgetVersionsList } from '@/components/features/widget/WidgetVersionsList';
 import { useWidgetVersions, useWidgetDeployments } from '@/lib/hooks/use-widget-versions';
+
+import { PageHeader } from '@/components/ui/PageHeader';
 
 export default function BotDetailPage() {
     const params = useParams();
@@ -59,8 +56,9 @@ export default function BotDetailPage() {
     const [saving, setSaving] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
     const [bot, setBot] = useState<any>(null);
+    const [botChannels, setBotChannels] = useState<any[]>([]);
     const [botSettings, setBotSettings] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState('overview');
+    const [activeTab, setActiveTab] = useState('configuration');
 
     const { versions, isLoading: versionsLoading, mutate: mutateVersions } = useWidgetVersions(botId);
     const { deployments, isLoading: deploymentsLoading } = useWidgetDeployments(botId);
@@ -89,8 +87,14 @@ export default function BotDetailPage() {
     const loadBot = async () => {
         try {
             setLoading(true);
-            const data = await botsApi.getOne(botId);
+            const [data, channels] = await Promise.all([
+                botsApi.getOne(botId),
+                botsApi.getChannels(botId)
+            ]);
+
             setBot(data);
+            setBotChannels(channels);
+
             setFormData({
                 name: data.name,
                 description: data.description || '',
@@ -113,6 +117,7 @@ export default function BotDetailPage() {
             const response = await axiosClient.get(`/bots/${botId}/widget/appearance`);
             setBotSettings(response);
         } catch {
+            // Ignore if settings don't exist yet
         }
     };
 
@@ -149,35 +154,30 @@ export default function BotDetailPage() {
         }
     };
 
-    const handleToggleActive = async (active: boolean) => {
+    const handleSaveAppearance = async (settings: any) => {
         try {
-            await botsApi.update(botId, { isActive: active });
-            toast.success(active ? 'Bot is now public' : 'Bot is now private');
-            loadBot();
+            await axiosClient.patch(`/bots/${botId}/widget/appearance`, {
+                primaryColor: settings.primaryColor,
+                backgroundColor: settings.backgroundColor,
+                botMessageColor: settings.botMessageColor,
+                botMessageTextColor: settings.botMessageTextColor,
+                fontFamily: settings.fontFamily,
+                position: settings.widgetPosition,
+                buttonSize: settings.widgetButtonSize,
+                welcomeMessage: settings.welcomeMessage,
+                placeholderText: settings.placeholderText,
+                showAvatar: settings.showAvatar,
+                showTimestamp: settings.showTimestamp,
+            });
+            await loadAppearanceSettings();
+            toast.success('Appearance updated');
         } catch {
-            toast.error('Failed to update bot status');
+            toast.error('Failed to update appearance');
         }
     };
 
-    const handleSaveAppearance = async (settings: any) => {
-        await axiosClient.patch(`/bots/${botId}/widget/appearance`, {
-            primaryColor: settings.primaryColor,
-            backgroundColor: settings.backgroundColor,
-            botMessageColor: settings.botMessageColor,
-            botMessageTextColor: settings.botMessageTextColor,
-            fontFamily: settings.fontFamily,
-            position: settings.widgetPosition,
-            buttonSize: settings.widgetButtonSize,
-            welcomeMessage: settings.welcomeMessage,
-            placeholderText: settings.placeholderText,
-            showAvatar: settings.showAvatar,
-            showTimestamp: settings.showTimestamp,
-        });
-        await loadAppearanceSettings();
-    };
-
     if (loading) {
-        return <PageLoading message="Loading bot..." />;
+        return <PageLoading message="Loading bot" />;
     }
 
     if (!bot) {
@@ -190,95 +190,69 @@ export default function BotDetailPage() {
     }
 
     return (
-        <div className="h-full p-8">
-            <div className="max-w-6xl mx-auto">
-                <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-primary/10 rounded-lg">
-                            <BotIcon className="w-8 h-8 text-primary" />
-                        </div>
-                        <div>
-                            <h1 className="text-3xl font-bold">{bot.name}</h1>
-                            <p className="text-muted-foreground">
-                                Configure and manage your chatbot settings
-                            </p>
-                        </div>
-                    </div>
+        <div className="h-full overflow-y-auto">
+            <div className="max-w-7xl mx-auto p-8">
+                <PageHeader
+                    title={bot.name}
+                    description="Configure and manage your chatbot settings"
+                    premium
+                >
                     <div className="flex items-center gap-3">
-                        <Badge variant={bot.isActive ? "default" : "secondary"}>
-                            {bot.isActive ? <Eye className="w-3 h-3 mr-1" /> : <EyeOff className="w-3 h-3 mr-1" />}
+                        <Badge
+                            variant={bot.isActive ? "default" : "secondary"}
+                            className={bot.isActive ? "bg-green-500 hover:bg-green-600 px-3 py-1 font-bold" : ""}
+                        >
+                            {bot.isActive ? <Eye className="w-3.5 h-3.5 mr-1.5" /> : <EyeOff className="w-3.5 h-3.5 mr-1.5" />}
                             {bot.isActive ? 'Active' : 'Inactive'}
                         </Badge>
-                        <Button onClick={handleSave} disabled={!hasChanges} loading={saving}>
+                        <Button
+                            onClick={handleSave}
+                            disabled={!hasChanges}
+                            loading={saving}
+                            className="rounded-xl shadow-lg shadow-primary/20 h-10 px-6 font-bold"
+                        >
                             <Save className="w-4 h-4 mr-2" />
                             Save Changes
                         </Button>
                     </div>
-                </div>
+                </PageHeader>
 
                 {hasChanges && (
-                    <Card className="mb-6 border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
-                        <CardContent className="pt-6">
-                            <div className="flex items-center gap-2 text-amber-900 dark:text-amber-100">
-                                <AlertCircle className="w-4 h-4" />
-                                <p className="text-sm font-medium">
-                                    You have unsaved changes. Don't forget to save!
+                    <Card className="mb-8 border-amber-500/20 bg-amber-500/5 backdrop-blur-md rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500 group">
+                        <div className="h-1 w-full bg-amber-500 animate-pulse" />
+                        <CardContent className="py-4">
+                            <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
+                                <AlertCircle className="w-5 h-5 shrink-0" />
+                                <p className="text-sm font-bold tracking-tight">
+                                    You have unsaved changes. Don't forget to push your updates!
                                 </p>
                             </div>
                         </CardContent>
                     </Card>
                 )}
 
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-7">
-                        <TabsTrigger value="overview">Overview</TabsTrigger>
-                        <TabsTrigger value="configuration">Configuration</TabsTrigger>
-                        <TabsTrigger value="knowledge-base">Knowledge Base</TabsTrigger>
-                        <TabsTrigger value="channels">Channels</TabsTrigger>
-                        <TabsTrigger value="widget">Widget</TabsTrigger>
-                        <TabsTrigger value="analytics">Analytics</TabsTrigger>
-                        <TabsTrigger value="settings">Settings</TabsTrigger>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-8">
+                    <TabsList className="flex flex-wrap h-auto p-1.5 bg-card/30 backdrop-blur-md border border-border/50 gap-1 rounded-2xl shadow-sm">
+                        {[
+                            { value: 'configuration', label: 'Configuration', icon: BotIcon },
+                            { value: 'knowledge-base', label: 'Knowledge Base', icon: Code },
+                            { value: 'channels', label: 'Channels', icon: Palette },
+                            { value: 'widget', label: 'Widget', icon: History },
+                            { value: 'settings', label: 'Settings', icon: Clock }
+                        ].map((tab) => (
+                            <TabsTrigger
+                                key={tab.value}
+                                value={tab.value}
+                                className="flex items-center gap-2 px-6 py-3 transition-all data-[state=active]:bg-background data-[state=active]:shadow-xl data-[state=active]:ring-1 data-[state=active]:ring-border/50 font-bold text-xs rounded-xl"
+                            >
+                                <tab.icon className="w-4 h-4" />
+                                {tab.label}
+                            </TabsTrigger>
+                        ))}
                     </TabsList>
-
-                    <TabsContent value="overview" className="mt-6">
-                        <BotOverviewTab bot={bot} />
-
-                        <Card className="mt-6">
-                            <CardHeader>
-                                <CardTitle>Recent Activity</CardTitle>
-                                <CardDescription>Latest conversations and interactions</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                        <div className="flex-1">
-                                            <p className="text-sm font-medium">New conversation started</p>
-                                            <p className="text-xs text-muted-foreground">2 minutes ago</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                        <div className="flex-1">
-                                            <p className="text-sm font-medium">Knowledge base updated</p>
-                                            <p className="text-xs text-muted-foreground">1 hour ago</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                                        <div className="flex-1">
-                                            <p className="text-sm font-medium">Widget deployed</p>
-                                            <p className="text-xs text-muted-foreground">3 hours ago</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
 
                     <TabsContent value="configuration" className="mt-6">
                         <BotConfigurationTab formData={formData} onChange={handleChange} />
-                        <BotSystemPromptTab systemPrompt={formData.systemPrompt} onChange={(systemPrompt) => handleChange({ systemPrompt })} />
                     </TabsContent>
 
                     <TabsContent value="knowledge-base" className="mt-6">
@@ -292,7 +266,7 @@ export default function BotDetailPage() {
                     <TabsContent value="channels" className="mt-6">
                         <BotChannelsSection
                             botId={botId}
-                            botChannels={[]}
+                            botChannels={botChannels}
                             onRefresh={loadBot}
                         />
                     </TabsContent>
@@ -352,7 +326,7 @@ export default function BotDetailPage() {
                                             <History className="w-5 h-5 text-primary" />
                                             Versions
                                         </h3>
-                                        <WidgetVersionsList botId={botId} versions={[]} isLoading={false} onRefresh={() => {}} />
+                                        <WidgetVersionsList botId={botId} versions={versions || []} isLoading={versionsLoading} onRefresh={mutateVersions} />
                                     </div>
 
                                     <div>
@@ -360,15 +334,11 @@ export default function BotDetailPage() {
                                             <Clock className="w-5 h-5 text-primary" />
                                             Deployments
                                         </h3>
-                                        <WidgetDeploymentHistory deployments={[]} isLoading={false} />
+                                        <WidgetDeploymentHistory deployments={deployments || []} isLoading={deploymentsLoading} />
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </TabsContent>
-
-                    <TabsContent value="analytics" className="mt-6">
-                        <BotAnalyticsTab bot={bot} />
                     </TabsContent>
 
                     <TabsContent value="settings" className="mt-6">
@@ -376,7 +346,7 @@ export default function BotDetailPage() {
                             enableAutoLearn={formData.enableAutoLearn}
                             onChange={(enableAutoLearn) => handleChange({ enableAutoLearn })}
                             onDelete={() => {
-                                console.log('Delete bot');
+                                router.push('/bots');
                             }}
                         />
                     </TabsContent>

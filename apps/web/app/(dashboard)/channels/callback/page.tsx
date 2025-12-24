@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -14,9 +14,10 @@ export default function ChannelCallbackPage() {
 
   useEffect(() => {
     if (processed) return;
-    
+
     const code = searchParams.get('code');
     const error = searchParams.get('error');
+    const state = searchParams.get('state') || '';
     const provider = searchParams.get('provider') || 'facebook';
 
     if (error) {
@@ -36,16 +37,14 @@ export default function ChannelCallbackPage() {
     }
 
     setProcessed(true);
-    handleCallback(code, provider);
+    handleCallback(code, provider, state);
   }, [searchParams, processed]);
 
-  const handleCallback = async (code: string, provider: string) => {
+  const handleCallback = async (code: string, provider: string, state: string) => {
     try {
-      const wsId = (session as any)?.user?.workspaceId || (session as any)?.user?.id;
-
       if (provider === 'facebook') {
         const res: any = await axiosClient.get(
-          `/channels/facebook/oauth/callback?code=${code}&workspace_id=${wsId}`
+          `/channels/facebook/oauth/callback?code=${code}&state=${state}`
         );
         const response = res.data || res;
 
@@ -59,10 +58,11 @@ export default function ChannelCallbackPage() {
 
           setStatus('success');
           setMessage(`Found ${response.pages.length} page(s)`);
-          
+
           notifyParent('success', 'facebook', {
             pages: response.pages,
             tempToken: response.tempToken,
+            workspaceId: response.workspaceId,
           });
         } else {
           setStatus('error');
@@ -76,19 +76,19 @@ export default function ChannelCallbackPage() {
       }
     } catch (error: any) {
       setStatus('error');
-      
+
       let errorMessage = 'Failed to process callback';
-      
+
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       if (errorMessage.includes('already been used')) {
         errorMessage = 'Authorization code expired. Please close this window and try connecting again.';
       }
-      
+
       setMessage(errorMessage);
       notifyParent('error', errorMessage);
     }
@@ -139,4 +139,3 @@ export default function ChannelCallbackPage() {
     </div>
   );
 }
-

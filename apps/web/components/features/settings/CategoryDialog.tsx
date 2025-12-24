@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect } from 'react';
 import axiosClient from '@/lib/axios-client';
@@ -13,8 +13,10 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Textarea } from '@/components/ui/Textarea';
-import { IconPicker } from './IconPicker';
+import { IconPicker } from '@/components/ui/IconPicker';
 import { CategoryDialogProps } from '@/lib/types';
+import { Layout, Palette, Type, Hash, AlignLeft, Layers, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const PRESET_COLORS = [
   '#ef4444', '#f59e0b', '#10b981', '#3b82f6',
@@ -40,14 +42,14 @@ export function CategoryDialog({
     if (category) {
       setName(category.name);
       setSlug(category.slug);
-      setIcon(category.icon || 'FiFolder');
+      setIcon(category.icon || 'Folder');
       setColor(category.color);
       setDescription(category.description || '');
       setOrder(category.order);
     } else {
       setName('');
       setSlug('');
-      setIcon('FiFolder');
+      setIcon('Folder');
       setColor('#6366f1');
       setDescription('');
       setOrder(0);
@@ -93,97 +95,125 @@ export function CategoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{category ? 'Edit Category' : 'Create Category'}</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-2xl p-0 overflow-hidden border-white/5 bg-background shadow-2xl rounded-2xl">
+        <div className="bg-gradient-to-br from-primary/10 via-background to-background p-8 border-b border-white/5">
+          <DialogHeader>
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-2xl bg-primary/10 text-primary shadow-inner transform -rotate-3">
+                <Layout className="w-8 h-8" />
+              </div>
+              <div>
+                <DialogTitle className="text-2xl font-black tracking-tight">{category ? 'Modify Category' : 'Create Category'}</DialogTitle>
+                <p className="text-sm font-medium opacity-70">Define organizational metadata for your workspace</p>
+              </div>
+            </div>
+          </DialogHeader>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">Name</Label>
+        <form onSubmit={handleSubmit} className="p-8 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Identity Label</Label>
               <Input
                 id="name"
+                rounded="xl"
+                className="h-12 glass border-white/5 font-bold pl-4"
                 value={name}
                 onChange={(e) => handleNameChange(e.target.value)}
-                placeholder="e.g., Customer Service"
+                placeholder="e.g. Core Protocols"
                 required
               />
             </div>
 
-            <div>
-              <Label htmlFor="slug">Slug</Label>
+            <div className="space-y-2">
+              <Label htmlFor="slug" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Cryptic Slug</Label>
               <Input
                 id="slug"
+                rounded="xl"
+                className="h-12 glass border-white/5 font-mono font-bold text-sm pl-4"
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
-                placeholder="e.g., customer-service"
+                placeholder="e.g. core-protocols"
                 required
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Icon</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Aesthetic Icon</Label>
               <IconPicker value={icon} onChange={setIcon} />
             </div>
 
-            <div>
-              <Label>Color</Label>
-              <div className="flex gap-2 mt-2">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Visual Signature</Label>
+              <div className="flex flex-wrap gap-2.5 p-3 glass rounded-xl border border-white/5">
                 {PRESET_COLORS.map((presetColor) => (
                   <button
                     key={presetColor}
                     type="button"
                     onClick={() => setColor(presetColor)}
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${color === presetColor ? 'border-white scale-110' : 'border-transparent'
-                      }`}
+                    className={cn(
+                      "w-6 h-6 rounded-lg transition-all duration-300 ring-offset-2 ring-offset-background",
+                      color === presetColor ? "ring-2 ring-primary scale-110 shadow-lg" : "hover:scale-110 opacity-80"
+                    )}
                     style={{ backgroundColor: presetColor }}
                   />
                 ))}
+                <div className="w-px h-6 bg-white/5 mx-1" />
                 <input
                   type="color"
                   value={color}
                   onChange={(e) => setColor(e.target.value)}
-                  className="w-8 h-8 rounded-full cursor-pointer"
+                  className="w-6 h-6 rounded-lg cursor-pointer bg-transparent border-0 p-0"
                 />
               </div>
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="description">Description (Optional)</Label>
+          <div className="space-y-2">
+            <Label htmlFor="description" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Contextual Description</Label>
             <Textarea
               id="description"
+              rounded="xl"
+              className="glass border-white/5 font-bold"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of this category"
+              placeholder="Provide architectural context for this group..."
               rows={3}
             />
           </div>
 
-          <div>
-            <Label htmlFor="order">Display Order</Label>
+          <div className="space-y-2">
+            <Label htmlFor="order" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Sequence Priority</Label>
             <Input
               id="order"
               type="number"
+              rounded="xl"
+              className="h-12 glass border-white/5 font-bold pl-4"
               value={order}
               onChange={(e) => setOrder(parseInt(e.target.value))}
               min={0}
             />
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="pt-6 flex gap-3">
             <Button
               type="button"
               variant="outline"
+              rounded="xl"
+              className="h-12 flex-1 font-black uppercase tracking-widest text-xs glass border-white/10"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              Discard
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : 'Save'}
+            <Button
+              type="submit"
+              rounded="xl"
+              className="h-12 flex-[2] font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20"
+              disabled={loading}
+            >
+              {loading ? 'Processing...' : 'Secure Settings'}
             </Button>
           </DialogFooter>
         </form>

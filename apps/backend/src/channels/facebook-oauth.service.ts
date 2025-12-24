@@ -200,13 +200,37 @@ export class FacebookOAuthService extends BaseOAuthService {
     return this.getConnectedAccounts(workspaceId);
   }
 
+  async getCredential(
+    workspaceId: string,
+    fallbackId?: string,
+  ): Promise<ChannelCredentialEntity | null> {
+    const searchWorkspaces = [workspaceId];
+    if (fallbackId && fallbackId !== workspaceId) {
+      searchWorkspaces.push(fallbackId);
+    }
+
+    // Try finding by workspaceId first, then by fallbackId (e.g. userId for legacy support)
+    for (const id of searchWorkspaces) {
+      const cred = await this.credentialRepository.findOne({
+        where: [
+          { provider: 'facebook', workspaceId: id, isActive: true },
+          { provider: 'messenger', workspaceId: id, isActive: true },
+          { provider: 'instagram', workspaceId: id, isActive: true },
+        ],
+      });
+      if (cred) return cred;
+    }
+
+    return null;
+  }
+
   async getOrCreateCredential(
     workspaceId: string,
     appId?: string,
     appSecret?: string,
     verifyToken?: string,
   ): Promise<ChannelCredentialEntity> {
-    let credential = await this.getCredential(workspaceId);
+    let credential = await this.getCredential(workspaceId, workspaceId); // Fallback to same if not specified
 
     if (!credential && appId && appSecret) {
       credential = await this.updateCredential(
@@ -219,7 +243,7 @@ export class FacebookOAuthService extends BaseOAuthService {
 
     if (!credential) {
       throw new HttpException(
-        'Facebook App not configured. Please setup your Facebook App first.',
+        'Facebook App not configured. Please setup your Facebook App in Integrations settings first.',
         HttpStatus.NOT_FOUND,
       );
     }
@@ -235,7 +259,6 @@ export class FacebookOAuthService extends BaseOAuthService {
   ): Promise<ChannelCredentialEntity> {
     const verifyToken = metadata?.verifyToken as string | undefined;
 
-    // âœ… FIX: Require verify token, no hardcode fallback
     if (!verifyToken) {
       throw new HttpException(
         'Verify token is required for Facebook webhook setup',

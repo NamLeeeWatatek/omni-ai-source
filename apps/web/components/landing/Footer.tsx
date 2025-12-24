@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { MdAutoAwesome } from "react-icons/md";
 
@@ -80,7 +80,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="pt-8 border-t border-slate-200 text-center text-sm text-slate-500">
-          Â© 2024 WataOmi. All rights reserved.
+          © 2024 WataOmi. All rights reserved.
         </div>
       </div>
     </footer>

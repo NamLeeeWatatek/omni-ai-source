@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react'
-import { CardSkeleton, TableSkeleton } from './LoadingSkeleton'
+import { CardSkeleton } from './Skeleton'
 
 interface LazyWrapperProps {
   children: React.ReactNode
@@ -39,15 +39,12 @@ export function lazyLoad(importFunc: () => Promise<any>, fallback?: React.ReactN
 }
 
 // Pre-configured lazy components for heavy features
-export const LazyFlowBuilder = lazyLoad(
-  () => import('@/components/features/flow-builder/CustomNodes')
-)
 
 export const LazyChatInterface = lazyLoad(
-  () => import('@/components/chat/ChatInterface')
+  () => import('@/components/features/chat/ChatInterface')
 )
 
 export const LazyTableSkeleton = lazyLoad(
-  () => Promise.resolve({ default: TableSkeleton }),
-  <TableSkeleton />
+  () => Promise.resolve({ default: CardSkeleton }),
+  <CardSkeleton />
 )

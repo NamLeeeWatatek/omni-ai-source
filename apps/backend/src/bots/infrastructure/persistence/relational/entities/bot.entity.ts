@@ -13,7 +13,12 @@
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 import { WorkspaceEntity } from '../../../../../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
 import { WorkspaceOwnedEntity } from '../../../../../utils/workspace-owned.entity';
-import { FlowVersionEntity } from '../../../../../flows/infrastructure/persistence/relational/entities/flow-version.entity';
+// import { FlowVersionEntity } from '../../../../../flows/infrastructure/persistence/relational/entities/flow-version.entity';
+import {
+  BotStatus,
+  BotWidgetPosition,
+  BotWidgetButtonSize,
+} from '../../../../bots.enum';
 
 @Entity({ name: 'bot' })
 export class BotEntity extends WorkspaceOwnedEntity {
@@ -35,8 +40,8 @@ export class BotEntity extends WorkspaceOwnedEntity {
   @Column({ type: String, default: 'UTC' })
   timezone: string;
 
-  @Column({ type: String, default: 'draft' })
-  status: 'draft' | 'active' | 'paused' | 'archived';
+  @Column({ type: String, default: BotStatus.DRAFT })
+  status: BotStatus;
 
   @Column({ type: String, default: 'FiMessageSquare', nullable: true })
   icon?: string;
@@ -80,11 +85,19 @@ export class BotEntity extends WorkspaceOwnedEntity {
   @Column({ name: 'primary_color', type: String, nullable: true })
   primaryColor?: string | null;
 
-  @Column({ name: 'widget_position', type: String, default: 'bottom-right' })
-  widgetPosition: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+  @Column({
+    name: 'widget_position',
+    type: String,
+    default: BotWidgetPosition.BOTTOM_RIGHT,
+  })
+  widgetPosition: BotWidgetPosition;
 
-  @Column({ name: 'widget_button_size', type: String, default: 'medium' })
-  widgetButtonSize: 'small' | 'medium' | 'large';
+  @Column({
+    name: 'widget_button_size',
+    type: String,
+    default: BotWidgetButtonSize.MEDIUM,
+  })
+  widgetButtonSize: BotWidgetButtonSize;
 
   @Column({ name: 'show_avatar', type: Boolean, default: true })
   showAvatar: boolean;
@@ -98,12 +111,12 @@ export class BotEntity extends WorkspaceOwnedEntity {
   @Column({ name: 'active_version_id', type: 'uuid', nullable: true })
   activeVersionId?: string | null;
 
-  @ManyToOne(() => FlowVersionEntity, { nullable: true })
-  @JoinColumn({ name: 'active_version_id' })
-  activeVersion?: FlowVersionEntity;
+  // @ManyToOne(() => FlowVersionEntity, { nullable: true })
+  // @JoinColumn({ name: 'active_version_id' })
+  // activeVersion?: FlowVersionEntity;
 
-  @OneToMany(() => FlowVersionEntity, (version) => version.bot)
-  flowVersions?: FlowVersionEntity[];
+  // @OneToMany(() => FlowVersionEntity, (version) => version.bot)
+  // flowVersions?: FlowVersionEntity[];
 
   @OneToMany(() => BotKnowledgeBaseEntity, (bkb) => bkb.bot)
   knowledgeBases?: BotKnowledgeBaseEntity[];

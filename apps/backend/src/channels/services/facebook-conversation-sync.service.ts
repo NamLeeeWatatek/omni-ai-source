@@ -2,6 +2,7 @@
 import { FacebookSyncService } from './facebook-sync.service';
 import { FacebookOAuthService } from '../facebook-oauth.service';
 import { ConversationsService } from '../../conversations/conversations.service';
+import { MessageRole } from '../../conversations/conversations.enum';
 import { ChannelsService } from '../channels.service';
 
 /**
@@ -167,7 +168,7 @@ export class FacebookConversationSyncService {
 
           // Determine role (user or assistant)
           const isFromUser = fbMsg.from.id === participant.id;
-          const role = isFromUser ? 'user' : 'assistant';
+          const role = isFromUser ? MessageRole.USER : MessageRole.ASSISTANT;
 
           // Save message
           await this.conversationsService.addMessageFromWebhook({

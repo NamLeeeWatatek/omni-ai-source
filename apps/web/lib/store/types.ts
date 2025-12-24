@@ -1,4 +1,4 @@
-﻿
+
 export type PayloadAction<T = any> = {
   payload: T
   type: string

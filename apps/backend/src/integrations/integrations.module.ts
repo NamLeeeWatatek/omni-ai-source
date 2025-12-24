@@ -9,12 +9,14 @@ import {
   ChannelConnectionEntity,
 } from './infrastructure/persistence/relational/entities';
 import { ChannelsModule } from '../channels/channels.module';
+import { WorkspaceEntity } from '../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       ChannelCredentialEntity,
       ChannelConnectionEntity,
+      WorkspaceEntity,
     ]),
     ChannelsModule,
   ],

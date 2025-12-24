@@ -56,8 +56,6 @@ export class User {
   externalId?: string | null;
 
   @ApiPropertyOptional({ type: String, description: 'Casdoor user ID' })
-  casdoorId?: string | null;
-
   @ApiPropertyOptional({ type: Object, description: 'Custom permissions' })
   permissions?: Record<string, any>;
 

@@ -1,16 +1,16 @@
-﻿'use client'
+'use client'
 
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { FiEdit2, FiTrash2, FiFileText, FiEdit, FiZap, FiCode } from 'react-icons/fi'
+import { Edit2, Trash2, FileText, Edit, Zap, Code } from 'lucide-react'
 import type { BotFunction, BotFunctionCardProps } from '@/lib/types'
 import { Card } from '@/components/ui/Card'
 
 const FUNCTION_ICONS: Record<string, any> = {
-    document_access: FiFileText,
-    auto_fill: FiEdit,
-    ai_suggest: FiZap,
-    custom: FiCode,
+    document_access: FileText,
+    auto_fill: Edit,
+    ai_suggest: Zap,
+    custom: Code,
 }
 
 const FUNCTION_COLORS: Record<string, string> = {
@@ -21,7 +21,7 @@ const FUNCTION_COLORS: Record<string, string> = {
 }
 
 export function BotFunctionCard({ botFunction, onEdit, onDelete }: BotFunctionCardProps) {
-    const Icon = FUNCTION_ICONS[botFunction.functionType] || FiCode
+    const Icon = FUNCTION_ICONS[botFunction.functionType] || Code
     const colorClass = FUNCTION_COLORS[botFunction.functionType] || 'bg-gray-500'
 
     return (
@@ -46,7 +46,7 @@ export function BotFunctionCard({ botFunction, onEdit, onDelete }: BotFunctionCa
 
             <div className="flex items-center gap-2 pt-3 border-t border-border/40">
                 <Button variant="outline" size="sm" className="flex-1" onClick={onEdit}>
-                    <FiEdit2 className="w-4 h-4 mr-2" />
+                    <Edit2 className="w-4 h-4 mr-2" />
                     Edit
                 </Button>
                 <Button
@@ -55,7 +55,7 @@ export function BotFunctionCard({ botFunction, onEdit, onDelete }: BotFunctionCa
                     onClick={onDelete}
                     className="text-destructive hover:bg-destructive/10"
                 >
-                    <FiTrash2 className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4" />
                 </Button>
             </div>
         </Card>

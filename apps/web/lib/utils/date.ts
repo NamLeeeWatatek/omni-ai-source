@@ -1,4 +1,4 @@
-﻿import {
+import {
     formatDistanceToNow as formatDistanceToNowFn,
     format,
     isToday as isTodayFn,

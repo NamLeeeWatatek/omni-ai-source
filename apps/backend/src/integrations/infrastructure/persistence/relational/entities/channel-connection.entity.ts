@@ -9,6 +9,10 @@
 import { WorkspaceOwnedEntity } from '../../../../../utils/workspace-owned.entity';
 import { ChannelCredentialEntity } from './channel-credential.entity';
 import { EncryptionTransformer } from '../../../../../utils/transformers/encryption.transformer';
+import {
+  ChannelType,
+  ChannelConnectionStatus,
+} from '../../../../integrations.enum';
 
 @Entity({ name: 'channel_connection' })
 export class ChannelConnectionEntity extends WorkspaceOwnedEntity {
@@ -19,46 +23,28 @@ export class ChannelConnectionEntity extends WorkspaceOwnedEntity {
   name: string;
 
   @Index()
-  @Column({ type: String })
-  type: string;
+  @Column({ type: String, enum: ChannelType })
+  type: ChannelType;
 
-  @Index()
   @Column({ name: 'credential_id', type: 'uuid', nullable: true })
   credentialId?: string | null;
 
-  @ManyToOne(() => ChannelCredentialEntity, {
-    nullable: true,
-    onDelete: 'SET NULL',
-  })
+  @ManyToOne(() => ChannelCredentialEntity, { nullable: true })
   @JoinColumn({ name: 'credential_id' })
-  credential?: ChannelCredentialEntity | null;
+  credential?: ChannelCredentialEntity;
 
-  @Index()
-  @Column({ type: 'uuid', nullable: true, name: 'bot_id' })
-  botId?: string | null;
-
-  @Column({
-    type: String,
-    nullable: true,
-    transformer: new EncryptionTransformer(),
-  })
+  @Column({ name: 'access_token', type: String, nullable: true })
   accessToken?: string | null;
 
+  @Column({ type: 'jsonb', nullable: true })
+  metadata?: Record<string, any> | null;
+
   @Column({
     type: String,
-    nullable: true,
-    transformer: new EncryptionTransformer(),
+    default: ChannelConnectionStatus.ACTIVE,
+    enum: ChannelConnectionStatus,
   })
-  refreshToken?: string | null;
-
-  @Column({ type: 'timestamp', nullable: true })
-  expiresAt?: Date | null;
-
-  @Column({ type: 'jsonb', nullable: true, default: {} })
-  metadata?: Record<string, any>;
-
-  @Column({ type: String, default: 'active' })
-  status: string;
+  status: ChannelConnectionStatus;
 
   @Column({
     type: 'timestamp',

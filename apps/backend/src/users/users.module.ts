@@ -12,31 +12,9 @@ const infrastructurePersistenceModule = (databaseConfig() as DatabaseConfig)
   : RelationalUserPersistenceModule;
 
 @Module({
-  imports: [
-    infrastructurePersistenceModule,
-    forwardRef(() =>
-      import('../auth-casdoor/auth-casdoor.module').then(
-        (m) => m.AuthCasdoorModule,
-      ),
-    ),
-  ],
+  imports: [infrastructurePersistenceModule],
   controllers: [UsersController],
   providers: [UsersService],
   exports: [UsersService, infrastructurePersistenceModule],
 })
-export class UsersModule implements OnModuleInit {
-  constructor(private moduleRef: ModuleRef) {}
-
-  async onModuleInit() {
-    try {
-      const { CasdoorSyncService } = await import(
-        '../auth-casdoor/casdoor-sync.service'
-      );
-      const casdoorSyncService = this.moduleRef.get(CasdoorSyncService, {
-        strict: false,
-      });
-      const usersService = this.moduleRef.get(UsersService);
-      usersService.setCasdoorSyncService(casdoorSyncService);
-    } catch {}
-  }
-}
+export class UsersModule {}

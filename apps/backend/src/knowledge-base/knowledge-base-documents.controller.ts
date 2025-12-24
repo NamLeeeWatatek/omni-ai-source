@@ -119,7 +119,7 @@ export class KnowledgeBaseDocumentsController {
   constructor(
     private readonly documentsService: KBDocumentsService,
     private readonly crawlerService: KBCrawlerService,
-  ) { }
+  ) {}
 
   @Post('documents')
   @ApiOperation({ summary: 'Create document' })
@@ -162,11 +162,11 @@ export class KnowledgeBaseDocumentsController {
       title: doc.title ? decodeFilename(doc.title) : doc.title,
       metadata: doc.metadata
         ? {
-          ...doc.metadata,
-          originalName: doc.metadata.originalName
-            ? decodeFilename(doc.metadata.originalName)
-            : doc.metadata.originalName,
-        }
+            ...doc.metadata,
+            originalName: doc.metadata.originalName
+              ? decodeFilename(doc.metadata.originalName)
+              : doc.metadata.originalName,
+          }
         : doc.metadata,
     }));
 
@@ -374,11 +374,11 @@ export class KnowledgeBaseDocumentsController {
         : createdDoc.title,
       metadata: createdDoc.metadata
         ? {
-          ...createdDoc.metadata,
-          originalName: createdDoc.metadata.originalName
-            ? decodeFilename(createdDoc.metadata.originalName)
-            : createdDoc.metadata.originalName,
-        }
+            ...createdDoc.metadata,
+            originalName: createdDoc.metadata.originalName
+              ? decodeFilename(createdDoc.metadata.originalName)
+              : createdDoc.metadata.originalName,
+          }
         : createdDoc.metadata,
     };
   }
@@ -397,6 +397,7 @@ export class KnowledgeBaseDocumentsController {
         followLinks: crawlDto.followLinks,
         includePatterns: crawlDto.includePatterns,
         excludePatterns: crawlDto.excludePatterns,
+        folderId: crawlDto.folderId,
       },
     );
 

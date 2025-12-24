@@ -1,4 +1,5 @@
-﻿
+import { MessageRole } from './conversations'
+
 export interface ModelConfig {
   id: string
   name: string
@@ -15,7 +16,7 @@ export interface ProviderModels {
 
 export interface Message {
   id?: string | number
-  role: 'user' | 'assistant' | 'system'
+  role: MessageRole
   content: string
   timestamp?: string | Date
   conversation_id?: number

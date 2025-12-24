@@ -4,7 +4,6 @@ import {
   BotEntity,
   BotKnowledgeBaseEntity,
 } from './infrastructure/persistence/relational/entities/bot.entity';
-import { FlowVersionEntity } from '../flows/infrastructure/persistence/relational/entities/flow-version.entity';
 import { WidgetVersionEntity } from './infrastructure/persistence/relational/entities/widget-version.entity';
 import { WidgetDeploymentEntity } from './infrastructure/persistence/relational/entities/widget-deployment.entity';
 import { WorkspaceMemberEntity } from '../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
@@ -19,7 +18,6 @@ import { PublicBotController } from './controllers/public-bot.controller';
 import { PublicWidgetController } from './controllers/public-widget.controller';
 import { WidgetVersionController } from './controllers/widget-version.controller';
 import { WidgetDeploymentController } from './controllers/widget-deployment.controller';
-import { BotFlowsController } from './controllers/bot-flows.controller';
 import { BotChannelsController } from './controllers/bot-channels.controller';
 import { BotKnowledgeBasesController } from './controllers/bot-knowledge-bases.controller';
 import { BotFunctionsController } from './controllers/bot-functions.controller';
@@ -28,7 +26,6 @@ import { WidgetVersionService } from './services/widget-version.service';
 import { BotExecutionService } from './bot-execution.service';
 import { BotFunctionsService } from './bot-functions.service';
 import { BotInteractionService } from './bot-interaction.service';
-import { FlowsModule } from '../flows/flows.module';
 import { AiProvidersModule } from '../ai-providers/ai-providers.module';
 import { KnowledgeBaseModule } from '../knowledge-base/knowledge-base.module';
 import { MessagingModule } from '../channels/messaging.module';
@@ -38,11 +35,13 @@ import { BotEventListener } from './listeners/bot-event.listener';
 import { BotExecutionEventService } from './listeners/bot-execution-event.service';
 import { MessageBufferService } from './services/message-buffer.service';
 
+import { WidgetAppearanceController } from './controllers/widget-appearance.controller';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       BotEntity,
-      FlowVersionEntity,
+      // FlowVersionEntity,
       BotKnowledgeBaseEntity,
       WidgetVersionEntity,
       WidgetDeploymentEntity,
@@ -52,7 +51,6 @@ import { MessageBufferService } from './services/message-buffer.service';
       ChannelEntity,
     ]),
     WorkspacesModule,
-    forwardRef(() => FlowsModule),
     forwardRef(() => AiProvidersModule),
     forwardRef(() => KnowledgeBaseModule),
     forwardRef(() => ConversationsModule),
@@ -64,7 +62,7 @@ import { MessageBufferService } from './services/message-buffer.service';
     PublicWidgetController,
     WidgetVersionController,
     WidgetDeploymentController,
-    BotFlowsController,
+    WidgetAppearanceController,
     BotChannelsController,
     BotKnowledgeBasesController,
     BotFunctionsController,

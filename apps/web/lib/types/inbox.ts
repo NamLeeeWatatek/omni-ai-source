@@ -1,4 +1,4 @@
-﻿
+
 export interface InboxMessage {
   id: string
   conversation_id: string

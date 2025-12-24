@@ -1,4 +1,4 @@
-﻿/**
+/**
  * NOTIFICATIONS SELECTORS
  * Efficient selectors for notification state
  */

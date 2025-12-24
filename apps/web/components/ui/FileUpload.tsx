@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import React, { useRef, useState } from 'react';
 import { Upload, X, File, Image as ImageIcon } from 'lucide-react';
-import { fileUploadService, FileUploadOptions } from '@/lib/services/file-upload-service';
+import { fileUploadService, type FileUploadOptions } from '@/lib/api/files';
 import { Button } from './Button';
 import { Progress } from './Progress';
 

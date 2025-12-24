@@ -8,10 +8,10 @@ import {
   ConversationEntity,
   MessageEntity,
 } from '../conversations/infrastructure/persistence/relational/entities/conversation.entity';
-import {
-  FlowEntity,
-  FlowExecutionEntity,
-} from '../flows/infrastructure/persistence/relational/entities';
+// import {
+//   FlowEntity,
+//   FlowExecutionEntity,
+// } from '../flows/infrastructure/persistence/relational/entities';
 import { WorkspaceEntity } from '../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
 
 @Module({
@@ -21,8 +21,8 @@ import { WorkspaceEntity } from '../workspaces/infrastructure/persistence/relati
       BotEntity,
       ConversationEntity,
       MessageEntity,
-      FlowEntity,
-      FlowExecutionEntity,
+      // FlowEntity,
+      // FlowExecutionEntity,
       WorkspaceEntity,
     ]),
   ],

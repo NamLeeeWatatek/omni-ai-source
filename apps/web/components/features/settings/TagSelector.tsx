@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/Badge';
@@ -11,30 +11,30 @@ import {
 import { Input } from '@/components/ui/Input';
 import { FiTag, FiSearch, FiX } from 'react-icons/fi';
 import { Tag, TagSelectorProps } from '@/lib/types';
-import { MetadataService, useAsyncState } from '@/lib/services/api.service';
+import { metadataApi } from '@/lib/api/metadata';
 
 export function TagSelector({ selectedTags, onChange, maxTags = 5 }: TagSelectorProps) {
   const [tags, setTags] = useState<Tag[]>([]);
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
-  const { loading, error, execute } = useAsyncState();
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const loadTags = async () => {
-      await execute(
-        () => MetadataService.getTags(),
-        (data: Tag[]) => {
-          setTags(data);
-        },
-        (err) => {
-          console.error('Failed to load tags:', err);
-          setTags([]);
-        }
-      );
+      setLoading(true);
+      try {
+        const data = await metadataApi.getTags();
+        setTags(data);
+      } catch (err) {
+        console.error('Failed to load tags:', err);
+        setTags([]);
+      } finally {
+        setLoading(false);
+      }
     };
 
     loadTags();
-  }, [execute]);
+  }, []);
 
   const selectedTagObjects = tags.filter(t => selectedTags.includes(t.id));
   const availableTags = tags.filter(t => !selectedTags.includes(t.id));
@@ -85,7 +85,7 @@ export function TagSelector({ selectedTags, onChange, maxTags = 5 }: TagSelector
                 variant="outline"
                 size="sm"
                 className="h-6"
-                aria-label={`Thêm tag (${maxTags - selectedTags.length} tag còn lại)`}
+                aria-label={`Th�m tag (${maxTags - selectedTags.length} tag c�n l?i)`}
               >
                 <FiTag className="size-3 mr-1" aria-hidden="true" />
                 Add Tag

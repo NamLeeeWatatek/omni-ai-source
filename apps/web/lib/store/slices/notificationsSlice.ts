@@ -1,4 +1,4 @@
-﻿/**
+/**
  * NOTIFICATIONS SLICE
  * Manages notification state globally to prevent layout lag
  */

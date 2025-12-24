@@ -1,101 +1,134 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Button } from '@/components/ui/Button'
-import { PageLoading } from '@/components/ui/PageLoading'
-import { Plus } from 'lucide-react'
-import { TemplateDialog } from '@/components/features/templates/TemplateDialog'
-import { toast } from '@/lib/toast'
-import type { Template, CreateTemplateDto, UpdateTemplateDto } from '@/lib/types/template'
-import { TemplatesGrid } from '@/components/features/templates/TemplatesGrid'
+import { useRouter } from 'next/navigation'
 import { useTemplates } from '@/lib/hooks/useTemplates'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
+import { Edit, Trash2 } from 'lucide-react'
+import { PageLoading } from '@/components/ui/PageLoading'
+import toast from '@/lib/toast'
+import { TemplateDialog } from '@/components/features/creation-tools/TemplateDialog'
+import { Template } from '@/lib/types/template'
+import { templatesApi } from '@/lib/api/templates'
+import { Pagination } from '@/components/ui/Pagination'
 
+// ...
 export default function TemplatesPage() {
-    const [dialogOpen, setDialogOpen] = useState(false)
-    const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
-    const { templates, loading, createTemplate, updateTemplate, deleteTemplate, refreshTemplates } = useTemplates()
+    const router = useRouter()
+    const { templates, loading, refreshTemplates, deleteTemplate } = useTemplates()
+    const [templateDialogOpen, setTemplateDialogOpen] = useState(false)
+    const [editingTemplate, setEditingTemplate] = useState<Template | null>(null)
 
     useEffect(() => {
         refreshTemplates()
     }, [refreshTemplates])
 
-    const handleCreateTemplate = async (data: Partial<Template>) => {
-        try {
-            await createTemplate(data as CreateTemplateDto)
-            toast.success('Template created successfully')
-            refreshTemplates()
-        } catch (error) {
-            throw error
+    const handleDelete = async (id: string) => {
+        if (confirm('Are you sure you want to delete this template?')) {
+            try {
+                await templatesApi.delete(id);
+                toast.success('Template deleted');
+                await refreshTemplates();
+            } catch (err: any) {
+                toast.error(err.message || 'Failed to delete template');
+            }
         }
     }
 
-    const handleUpdateTemplate = async (data: Partial<Template>) => {
-        if (!selectedTemplate) return
-
+    const handleSaveTemplate = async (data: Partial<Template>) => {
         try {
-            await updateTemplate(selectedTemplate.id, data as UpdateTemplateDto)
-            toast.success('Template updated successfully')
-            setSelectedTemplate(null)
-            refreshTemplates()
-        } catch (error) {
-            throw error
+            if (data.id) {
+                await templatesApi.update(data.id, data);
+            } else {
+                await templatesApi.create(data);
+            }
+            toast.success(data.id ? 'Template updated' : 'Template created');
+            await refreshTemplates();
+        } catch (err: any) {
+            toast.error(err.message || 'Failed to save template');
         }
     }
 
-    const handleDeleteTemplate = async (templateId: string) => {
-        try {
-            await deleteTemplate(templateId)
-            toast.success('Template deleted successfully')
-            refreshTemplates()
-        } catch (error) {
-            toast.error('Failed to delete template')
-        }
-    }
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(9);
 
-    const handleEditTemplate = (template: Template) => {
-        setSelectedTemplate(template)
-        setDialogOpen(true)
-    }
+    const paginatedTemplates = templates.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-    const handleDialogClose = () => {
-        setDialogOpen(false)
-        setSelectedTemplate(null)
-    }
-
-    if (loading && templates.length === 0) {
-        return <PageLoading message="Loading templates..." />
-    }
+    if (loading) return <PageLoading />
 
     return (
-        <div className="h-full p-8">
-            <div className="max-w-6xl mx-auto">
-                <div className="flex items-center justify-between mb-8">
-                    <div>
-                        <h1 className="text-3xl font-bold mb-2">Templates</h1>
-                        <p className="text-muted-foreground">
-                            Manage templates for standardized UGC content creation
-                        </p>
-                    </div>
-                    <Button onClick={() => setDialogOpen(true)}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Create Template
-                    </Button>
-                </div>
-
-                <TemplatesGrid
-                    templates={templates}
-                    onEdit={handleEditTemplate}
-                    onDelete={handleDeleteTemplate}
-                    loading={loading}
-                />
-
-                <TemplateDialog
-                    open={dialogOpen}
-                    onOpenChange={handleDialogClose}
-                    template={selectedTemplate}
-                    onSubmit={selectedTemplate ? handleUpdateTemplate : handleCreateTemplate}
-                />
+        <div className="container mx-auto p-6 space-y-6">
+            {/* Header */}
+            <div className="flex justify-between items-center">
+                {/* ... */}
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {paginatedTemplates.map(template => (
+                    // ... Card Render
+                    <Card key={template.id} className="p-6 space-y-4 hover:shadow-lg transition-shadow">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h3 className="font-bold text-lg">{template.name}</h3>
+                                <p className="text-sm text-muted-foreground line-clamp-2">{template.description}</p>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2 justify-end pt-4 border-t">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                    setEditingTemplate(template);
+                                    setTemplateDialogOpen(true);
+                                }}
+                            >
+                                <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(template.id)}>
+                                <Trash2 className="w-4 h-4" />
+                            </Button>
+                        </div>
+                    </Card>
+                ))}
+            </div>
+
+            {templates.length > 0 && (
+                <div className="py-4">
+                    <Pagination
+                        pagination={{
+                            page: currentPage,
+                            limit: pageSize,
+                            total: templates.length,
+                            totalPages: Math.ceil(templates.length / pageSize),
+                            hasNextPage: currentPage < Math.ceil(templates.length / pageSize)
+                        }}
+                        onPageChange={setCurrentPage}
+                        onPageSizeChange={setPageSize}
+                        pageSizeOptions={[9, 18, 27, 36]}
+                    />
+                </div>
+            )}
+
+            {templates.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                    No templates found. Templates are created through Creation Tools.
+                </div>
+            )}
+
+            {/* Template Dialog */}
+            <TemplateDialog
+                open={templateDialogOpen}
+                onOpenChange={(open) => {
+                    setTemplateDialogOpen(open);
+                    if (!open) setEditingTemplate(null);
+                }}
+                template={editingTemplate}
+                creationToolId={editingTemplate?.creationToolId || ''}
+                onSave={handleSaveTemplate}
+            />
         </div>
     )
 }

@@ -1,10 +1,10 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { FiRefreshCw, FiAlertTriangle, FiCheckCircle } from 'react-icons/fi'
 import { toast } from 'sonner'
-import { axiosClient } from '@/lib/axios-client'
+import axiosClient from '@/lib/axios-client'
 
 interface SyncPanelProps {
     knowledgeBaseId: string
@@ -25,7 +25,7 @@ export function KBSyncPanel({ knowledgeBaseId }: SyncPanelProps) {
     const handleVerify = async () => {
         setVerifying(true)
         try {
-            const result = await axiosClient.get<VerifyResult>(`/knowledge-bases/${knowledgeBaseId}/verify-collection`)
+            const result = await axiosClient.get<VerifyResult>(`/knowledge-bases/${knowledgeBaseId}/verify-collection`) as unknown as VerifyResult
             setVerifyResult(result)
 
             if (result.missingVectors === 0 && result.failedEmbeddings === 0) {
@@ -44,7 +44,7 @@ export function KBSyncPanel({ knowledgeBaseId }: SyncPanelProps) {
     const handleSyncMissing = async () => {
         setSyncing(true)
         try {
-            const result = await axiosClient.post<{ synced: number; errors: number }>(`/knowledge-bases/${knowledgeBaseId}/sync-missing`)
+            const result = await axiosClient.post<{ synced: number; errors: number }>(`/knowledge-bases/${knowledgeBaseId}/sync-missing`) as unknown as { synced: number; errors: number }
 
             toast.success(`Synced ${result.synced} vectors (${result.errors} errors)`)
 
@@ -64,7 +64,7 @@ export function KBSyncPanel({ knowledgeBaseId }: SyncPanelProps) {
 
         setRebuilding(true)
         try {
-            const result = await axiosClient.post<{ chunksProcessed: number; errors: number }>(`/knowledge-bases/${knowledgeBaseId}/rebuild-collection`)
+            const result = await axiosClient.post<{ chunksProcessed: number; errors: number }>(`/knowledge-bases/${knowledgeBaseId}/rebuild-collection`) as unknown as { chunksProcessed: number; errors: number }
 
             toast.success(`Rebuilt ${result.chunksProcessed} chunks (${result.errors} errors)`)
 

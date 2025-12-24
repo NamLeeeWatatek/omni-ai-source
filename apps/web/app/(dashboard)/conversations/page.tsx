@@ -1,14 +1,13 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useConversationsSocket } from '@/lib/hooks/useConversationsSocket';
 import { useNotifications } from '@/lib/hooks/useNotifications';
-import { useNotificationPreferences } from '@/components/notifications/NotificationSettings';
+import { useNotificationPreferences } from '@/components/features/notifications/NotificationSettings';
 import {
   MessageSquare,
   Search,
-  Filter,
   Clock,
   CheckCircle2,
   Circle,
@@ -24,14 +23,14 @@ import {
   Bell,
   Settings,
   Bot,
-  UserPlus
+  UserPlus,
+  Mail,
+  Instagram,
+  Facebook,
+  MessageCircle,
+  Send,
+  Phone
 } from 'lucide-react';
-import {
-  FiFacebook,
-  FiInstagram,
-  FiMail,
-  FiMessageCircle
-} from 'react-icons/fi';
 import { FaWhatsapp, FaTelegram, FaFacebookMessenger } from 'react-icons/fa';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -45,15 +44,16 @@ import {
 } from '@/components/ui/DropdownMenu';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import { LoadingLogo } from '@/components/ui/LoadingLogo';
-import { ChatInterface } from '@/components/chat/ChatInterface';
-import { NotificationSettings } from '@/components/notifications/NotificationSettings';
+import { ChatInterface } from '@/components/features/chat/ChatInterface';
+import { NotificationSettings } from '@/components/features/notifications/NotificationSettings';
 import axiosClient from '@/lib/axios-client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { ChannelConversation } from '@/components/conversations/ChannelConversationList';
+import { ChannelConversation } from '@/components/features/conversations/ChannelConversationList';
 import { Badge } from '@/components/ui/Badge';
+import { MessageRole } from '@/lib/types/conversations';
+import { PageHeader } from '@/components/ui/PageHeader';
 
-// âœ… Use ChannelConversation type from component
 type Conversation = ChannelConversation;
 
 interface Channel {
@@ -65,7 +65,6 @@ interface Channel {
   unreadCount: number;
 }
 
-// âœ… FIX: Safe date formatting helper
 const formatRelativeTime = (dateString: string): string => {
   try {
     const date = new Date(dateString);
@@ -108,7 +107,7 @@ export default function ConversationsPage() {
   const [syncing, setSyncing] = useState(false);
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
 
-  // âœ… FIX: Use local state instead of URL params for selected conversation
+  // ✅ FIX: Use local state instead of URL params for selected conversation
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
 
   // Enterprise features
@@ -140,7 +139,7 @@ export default function ConversationsPage() {
       }
     });
 
-    // ðŸ¢ ENTERPRISE NOTIFICATIONS - Slack/Teams/Intercom style
+    // 🏢 ENTERPRISE NOTIFICATIONS - Slack/Teams/Intercom style
     const isCurrentlyViewing = selectedId === updatedConversation.id;
     const isWindowFocused = typeof document !== 'undefined' && document.hasFocus();
 
@@ -168,7 +167,7 @@ export default function ConversationsPage() {
         // Desktop notification (if enabled and granted)
         if (notificationPrefs.desktop && permission === 'granted') {
           showNotification({
-            title: `ðŸ’¬ ${customerName}`,
+            title: `💬 ${customerName}`,
             body: messagePreview,
             icon: newMessage.customerAvatar || '/logo.png',
             tag: `conversation-${newMessage.id}`,
@@ -176,7 +175,7 @@ export default function ConversationsPage() {
           });
         } else {
           // Fallback to toast notification
-          toast(`ðŸ’¬ ${customerName}`, {
+          toast(`💬 ${customerName}`, {
             description: messagePreview,
             duration: 4000,
           });
@@ -348,7 +347,7 @@ export default function ConversationsPage() {
   };
 
   const mapConversation = (conv: any): Conversation => {
-    // âœ… Try multiple sources for last message
+    // ✅ Try multiple sources for last message
     let lastMessage = 'No messages yet';
 
     if (conv.lastMessage) {
@@ -363,7 +362,7 @@ export default function ConversationsPage() {
     }
 
 
-    // âœ… FIX: Ensure valid date
+    // ✅ FIX: Ensure valid date
     let lastMessageAt = new Date().toISOString();
     const rawDate = conv.lastMessageAt || conv.last_message_at || conv.updatedAt || conv.updated_at || conv.createdAt || conv.created_at;
     if (rawDate) {
@@ -396,13 +395,13 @@ export default function ConversationsPage() {
 
   const getChannelIcon = (type: string) => {
     const icons: Record<string, JSX.Element> = {
-      facebook: <FiFacebook className="w-4 h-4" />,
+      facebook: <Facebook className="w-4 h-4" />,
       messenger: <FaFacebookMessenger className="w-4 h-4" />,
-      instagram: <FiInstagram className="w-4 h-4" />,
+      instagram: <Instagram className="w-4 h-4" />,
       whatsapp: <FaWhatsapp className="w-4 h-4" />,
       telegram: <FaTelegram className="w-4 h-4" />,
-      email: <FiMail className="w-4 h-4" />,
-      webchat: <FiMessageCircle className="w-4 h-4" />,
+      email: <Mail className="w-4 h-4" />,
+      webchat: <MessageCircle className="w-4 h-4" />,
     };
     return icons[type] || <MessageSquare className="w-4 h-4" />;
   };
@@ -427,7 +426,7 @@ export default function ConversationsPage() {
     )
     : [];
 
-  // âœ… FIX: Select conversation without navigation
+  // ✅ FIX: Select conversation without navigation
   const handleSelectConversation = (id: string) => {
     setSelectedConversationId(id);
   };
@@ -459,25 +458,25 @@ export default function ConversationsPage() {
             <button
               onClick={() => setSelectedChannel('all')}
               className={cn(
-                'w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200',
+                'w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all duration-300 group',
                 selectedChannel === 'all'
-                  ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
-                  : 'hover:bg-muted/60 text-foreground'
+                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 ring-1 ring-primary/50'
+                  : 'hover:bg-muted/80 text-foreground/80 hover:text-foreground'
               )}
             >
               <div className="flex items-center gap-3">
                 <div className={cn(
-                  'p-2 rounded-lg',
-                  selectedChannel === 'all' ? 'bg-primary-foreground/20' : 'bg-primary/10'
+                  'p-2.5 rounded-xl transition-colors',
+                  selectedChannel === 'all' ? 'bg-primary-foreground/20' : 'bg-primary/10 group-hover:bg-primary/20'
                 )}>
-                  <Inbox className="w-4 h-4" />
+                  <Inbox className="w-4.5 h-4.5" />
                 </div>
-                <span className="font-medium text-sm">All Messages</span>
+                <span className="font-bold text-sm tracking-tight">All Messages</span>
               </div>
               {totalUnread > 0 && (
                 <Badge
                   variant={selectedChannel === 'all' ? 'secondary' : 'default'}
-                  className="h-6 min-w-[24px] px-2 rounded-full"
+                  className="h-6 min-w-[24px] px-2 rounded-full font-bold shadow-sm"
                 >
                   {totalUnread}
                 </Badge>
@@ -506,29 +505,32 @@ export default function ConversationsPage() {
                   key={channel.id}
                   onClick={() => setSelectedChannel(channel.id)}
                   className={cn(
-                    'w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group',
+                    'w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-all duration-300 group',
                     selectedChannel === channel.id
-                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
-                      : 'hover:bg-muted/60 text-foreground'
+                      ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 ring-1 ring-primary/50'
+                      : 'hover:bg-muted/60 text-foreground/80 hover:text-foreground'
                   )}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className={cn(
-                      'p-2 rounded-lg shrink-0',
+                      'p-2.5 rounded-xl transition-colors shrink-0',
                       selectedChannel === channel.id
                         ? 'bg-primary-foreground/20'
-                        : 'bg-muted'
+                        : 'bg-card border border-border/50 group-hover:bg-muted group-hover:border-border transition-all'
                     )}>
-                      <div className={selectedChannel === channel.id ? 'text-primary-foreground' : channel.color}>
+                      <div className={cn(
+                        "transition-transform group-hover:scale-110 duration-300",
+                        selectedChannel === channel.id ? 'text-primary-foreground' : channel.color
+                      )}>
                         {channel.icon}
                       </div>
                     </div>
-                    <span className="font-medium text-sm truncate">{channel.name}</span>
+                    <span className="font-bold text-sm truncate tracking-tight">{channel.name}</span>
                   </div>
                   {channel.unreadCount > 0 && (
                     <Badge
                       variant={selectedChannel === channel.id ? 'secondary' : 'default'}
-                      className="h-6 min-w-[24px] px-2 rounded-full shrink-0 ml-2"
+                      className="h-6 min-w-[24px] px-2 rounded-full shrink-0 ml-2 font-bold shadow-sm"
                     >
                       {channel.unreadCount}
                     </Badge>
@@ -560,21 +562,21 @@ export default function ConversationsPage() {
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-3">
-                <h1 className="text-lg font-semibold text-foreground">
+                <h1 className="text-xl font-black bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent tracking-tight">
                   {selectedChannel === 'all'
-                    ? 'All Messages'
+                    ? 'Inbox'
                     : channels.find(c => c.id === selectedChannel)?.name || 'Messages'}
                 </h1>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 ml-1">
                   <div
                     className={cn(
-                      'w-2 h-2 rounded-full',
-                      isConnected ? 'bg-green-500' : 'bg-gray-400'
+                      'w-2 h-2 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.4)]',
+                      isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
                     )}
                     title={isConnected ? 'Connected (Real-time)' : 'Disconnected'}
                   />
                   {isConnected && (
-                    <span className="text-[10px] font-medium text-green-600 dark:text-green-400 uppercase tracking-wide">
+                    <span className="text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-widest opacity-80">
                       Live
                     </span>
                   )}
@@ -582,17 +584,16 @@ export default function ConversationsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {/* Notification Settings Button */}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowNotificationSettings(true)}
-                className="h-9 w-9 relative"
+                className="h-9 w-9 rounded-xl hover:bg-muted/80 relative"
                 title="Notification settings"
               >
                 <Bell className="w-4 h-4" />
                 {permission !== 'granted' && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-500 rounded-full" />
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-amber-500 rounded-full border border-background" />
                 )}
               </Button>
 
@@ -601,42 +602,40 @@ export default function ConversationsPage() {
                   variant="outline"
                   size="sm"
                   onClick={handleSync}
-                  className="h-9 gap-2"
+                  className="h-9 gap-2 rounded-xl border-border/60 hover:bg-muted/80"
                   loading={syncing}
                 >
                   <RefreshCw className="w-4 h-4" />
-                  <span className="text-xs">Sync</span>
+                  <span className="text-xs font-bold">Sync</span>
                 </Button>
               )}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => loadConversations(false)}
-                className="h-9 w-9"
+                className="h-9 w-9 rounded-xl hover:bg-muted/80"
                 loading={refreshing}
               >
-                <Filter className="w-4 h-4" />
+                <RefreshCw className={cn("w-4 h-4", refreshing && "animate-spin")} />
               </Button>
             </div>
           </div>
 
-
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <div className="relative group">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-10 bg-muted/50 border-border/50"
+              className="pl-10 h-11 bg-muted/30 border-border/40 rounded-xl focus:bg-background transition-all"
             />
           </div>
 
-
           <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
-            <TabsList className="w-full grid grid-cols-3 h-9 bg-muted/50">
-              <TabsTrigger value="active" className="text-xs">Active</TabsTrigger>
-              <TabsTrigger value="closed" className="text-xs">Closed</TabsTrigger>
-              <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
+            <TabsList className="w-full grid grid-cols-3 h-10 bg-muted/30 border border-border/40 rounded-xl p-1">
+              <TabsTrigger value="active" className="text-xs font-bold rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">Active</TabsTrigger>
+              <TabsTrigger value="closed" className="text-xs font-bold rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">Closed</TabsTrigger>
+              <TabsTrigger value="all" className="text-xs font-bold rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">All</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -653,123 +652,123 @@ export default function ConversationsPage() {
             <div
               className="flex flex-col items-center justify-center py-20 px-6 text-center"
             >
-              <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
-                  <MessageSquare className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <h3 className="font-semibold text-base mb-2">No conversations yet</h3>
-                <p className="text-sm text-muted-foreground max-w-xs leading-relaxed mb-4">
-                  {selectedChannel === 'all'
-                    ? 'Conversations from your channels will appear here'
-                    : `No conversations from ${channels.find(c => c.id === selectedChannel)?.name || 'this channel'} yet`}
-                </p>
-                {selectedChannel !== 'all' && (
-                  <button
-                    onClick={handleSync}
-                    disabled={syncing}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                    {syncing ? 'Syncing...' : 'Sync Now'}
-                  </button>
-                )}
+              <div className="w-16 h-16 rounded-lg bg-muted/50 flex items-center justify-center mb-4">
+                <MessageSquare className="w-8 h-8 text-muted-foreground" />
               </div>
-            ) : (
-              <div
-                className="divide-y divide-border/50"
-              >
-                {filteredConversations.map((conv, index) => (
-                  <button
-                    key={conv.id}
-                    onClick={() => handleSelectConversation(conv.id)}
-                    className={cn(
-                      'w-full px-4 py-3 text-left transition-all duration-200 relative group',
-                      'hover:bg-muted/60',
-                      selectedId === conv.id && 'bg-primary/5 border-l-2 border-primary'
-                    )}
-                  >
-                    <div className="flex gap-3 items-start">
-                      {/* Avatar with channel badge - Compact */}
-                      <div className="relative shrink-0">
-                        <Avatar className="h-11 w-11 ring-1 ring-border">
-                          <AvatarImage src={conv.customerAvatar} />
-                          <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 text-sm font-semibold">
-                            {(conv.customerName || 'User').charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        {/* Channel icon badge - Smaller */}
-                        <div className={cn(
-                          'absolute -bottom-0.5 -right-0.5 p-1 rounded-full bg-background border border-background shadow-sm',
-                          getChannelColor(conv.channelType)
-                        )}>
-                          <div className="w-3 h-3 flex items-center justify-center">
-                            {getChannelIcon(conv.channelType)}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Content - Cleaner layout */}
-                      <div className="flex-1 min-w-0">
-                        {/* Header row */}
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                          <h3 className={cn(
-                            "font-semibold text-[15px] truncate",
-                            conv.unreadCount > 0 ? 'text-foreground' : 'text-foreground/90'
-                          )}>
-                            {conv.customerName}
-                          </h3>
-                          <span className="text-xs text-muted-foreground shrink-0">
-                            {formatRelativeTime(conv.lastMessageAt)}
-                          </span>
-                        </div>
-
-                        {/* Badge row - Like image */}
-                        <div className="flex items-center gap-2 mb-1.5">
-                          {conv.metadata?.tags?.includes('VIP') && (
-                            <Badge variant="secondary" className="h-5 px-2 text-[10px] font-medium bg-amber-500/10 text-amber-700 border-amber-500/20">
-                              ðŸ”’ VIP Lead
-                            </Badge>
-                          )}
-                          {conv.metadata?.tags?.includes('Hot') && (
-                            <Badge variant="secondary" className="h-5 px-2 text-[10px] font-medium bg-red-500/10 text-red-700 border-red-500/20">
-                              ðŸ”¥ Hot Lead
-                            </Badge>
-                          )}
-                          {conv.metadata?.tags?.includes('Payment') && (
-                            <Badge variant="secondary" className="h-5 px-2 text-[10px] font-medium bg-green-500/10 text-green-700 border-green-500/20">
-                              ðŸ’³ Payments
-                            </Badge>
-                          )}
-                          {!conv.metadata?.tags?.length && (
-                            <Badge variant="secondary" className="h-5 px-2 text-[10px] font-medium">
-                              {conv.channelName}
-                            </Badge>
-                          )}
-                        </div>
-
-                        {/* Message preview */}
-                        <div className="flex items-center justify-between gap-2">
-                          <p className={cn(
-                            "text-[13px] truncate leading-tight",
-                            conv.unreadCount > 0
-                              ? 'text-foreground/80 font-medium'
-                              : 'text-muted-foreground'
-                          )}>
-                            {conv.lastMessage}
-                          </p>
-
-                          {/* Unread badge - Compact */}
-                          {conv.unreadCount > 0 && (
-                            <Badge className="h-5 min-w-[20px] px-1.5 rounded-full bg-primary text-[11px] font-semibold shrink-0">
-                              {conv.unreadCount}
-                            </Badge>
-                          )}
+              <h3 className="font-semibold text-base mb-2">No conversations yet</h3>
+              <p className="text-sm text-muted-foreground max-w-xs leading-relaxed mb-4">
+                {selectedChannel === 'all'
+                  ? 'Conversations from your channels will appear here'
+                  : `No conversations from ${channels.find(c => c.id === selectedChannel)?.name || 'this channel'} yet`}
+              </p>
+              {selectedChannel !== 'all' && (
+                <button
+                  onClick={handleSync}
+                  disabled={syncing}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                  {syncing ? 'Syncing...' : 'Sync Now'}
+                </button>
+              )}
+            </div>
+          ) : (
+            <div
+              className="divide-y divide-border/50"
+            >
+              {filteredConversations.map((conv, index) => (
+                <button
+                  key={conv.id}
+                  onClick={() => handleSelectConversation(conv.id)}
+                  className={cn(
+                    'w-full px-4 py-3 text-left transition-all duration-200 relative group',
+                    'hover:bg-muted/60',
+                    selectedId === conv.id && 'bg-primary/5 border-l-2 border-primary'
+                  )}
+                >
+                  <div className="flex gap-3 items-start">
+                    {/* Avatar with channel badge - Compact */}
+                    <div className="relative shrink-0">
+                      <Avatar className="h-11 w-11 ring-1 ring-border">
+                        <AvatarImage src={conv.customerAvatar} />
+                        <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 text-sm font-semibold">
+                          {(conv.customerName || 'User').charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {/* Channel icon badge - Smaller */}
+                      <div className={cn(
+                        'absolute -bottom-0.5 -right-0.5 p-1 rounded-full bg-background border border-background shadow-sm',
+                        getChannelColor(conv.channelType)
+                      )}>
+                        <div className="w-3 h-3 flex items-center justify-center">
+                          {getChannelIcon(conv.channelType)}
                         </div>
                       </div>
                     </div>
-                  </button>
-                ))}
-              </div>
-            )}
+
+                    {/* Content - Cleaner layout */}
+                    <div className="flex-1 min-w-0">
+                      {/* Header row */}
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <h3 className={cn(
+                          "font-semibold text-[15px] truncate",
+                          conv.unreadCount > 0 ? 'text-foreground' : 'text-foreground/90'
+                        )}>
+                          {conv.customerName}
+                        </h3>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {formatRelativeTime(conv.lastMessageAt)}
+                        </span>
+                      </div>
+
+                      {/* Badge row - Like image */}
+                      <div className="flex items-center gap-2 mb-1.5">
+                        {conv.metadata?.tags?.includes('VIP') && (
+                          <Badge variant="secondary" className="h-5 px-2 text-[10px] font-medium bg-amber-500/10 text-amber-700 border-amber-500/20">
+                            🔒 VIP Lead
+                          </Badge>
+                        )}
+                        {conv.metadata?.tags?.includes('Hot') && (
+                          <Badge variant="secondary" className="h-5 px-2 text-[10px] font-medium bg-red-500/10 text-red-700 border-red-500/20">
+                            🔥 Hot Lead
+                          </Badge>
+                        )}
+                        {conv.metadata?.tags?.includes('Payment') && (
+                          <Badge variant="secondary" className="h-5 px-2 text-[10px] font-medium bg-green-500/10 text-green-700 border-green-500/20">
+                            💳 Payments
+                          </Badge>
+                        )}
+                        {!conv.metadata?.tags?.length && (
+                          <Badge variant="secondary" className="h-5 px-2 text-[10px] font-medium">
+                            {conv.channelName}
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Message preview */}
+                      <div className="flex items-center justify-between gap-2">
+                        <p className={cn(
+                          "text-[13px] truncate leading-tight",
+                          conv.unreadCount > 0
+                            ? 'text-foreground/80 font-medium'
+                            : 'text-muted-foreground'
+                        )}>
+                          {conv.lastMessage}
+                        </p>
+
+                        {/* Unread badge - Compact */}
+                        {conv.unreadCount > 0 && (
+                          <Badge className="h-5 min-w-[20px] px-1.5 rounded-full bg-primary text-[11px] font-semibold shrink-0">
+                            {conv.unreadCount}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </ScrollArea>
       </div>
 
@@ -891,10 +890,10 @@ function ConversationChat({
 
   const handleSendMessage = async (content: string) => {
     try {
-      // âœ… FIX: Backend requires 'role' not 'sender'
+      // ✅ FIX: Backend requires 'role' not 'sender'
       await axiosClient.post(`/conversations/${conversationId}/messages`, {
         content,
-        role: 'assistant' // Agent/Bot message
+        role: MessageRole.ASSISTANT // Agent/Bot message
       });
     } catch (err) {
       toast.error('Failed to send message');
@@ -902,7 +901,7 @@ function ConversationChat({
     }
   };
 
-  // ðŸ¤– â†’ ðŸ‘¤ Human Handoff: Agent takes over
+  // 🤖 → 👤 Human Handoff: Agent takes over
   const handleTakeover = async () => {
     try {
       await axiosClient.post(`/conversations/${conversationId}/takeover`);
@@ -913,7 +912,7 @@ function ConversationChat({
     }
   };
 
-  // ðŸ‘¤ â†’ ðŸ¤– Hand Back: Return to bot
+  // 👤 → 🤖 Hand Back: Return to bot
   const handleHandBack = async () => {
     try {
       await axiosClient.post(`/conversations/${conversationId}/handback`);
@@ -926,13 +925,13 @@ function ConversationChat({
 
   const getChannelIcon = (type: string) => {
     const icons: Record<string, JSX.Element> = {
-      facebook: <FiFacebook className="w-5 h-5" />,
+      facebook: <Facebook className="w-5 h-5" />,
       messenger: <FaFacebookMessenger className="w-5 h-5" />,
-      instagram: <FiInstagram className="w-5 h-5" />,
+      instagram: <Instagram className="w-5 h-5" />,
       whatsapp: <FaWhatsapp className="w-5 h-5" />,
       telegram: <FaTelegram className="w-5 h-5" />,
-      email: <FiMail className="w-5 h-5" />,
-      webchat: <FiMessageCircle className="w-5 h-5" />,
+      email: <Mail className="w-5 h-5" />,
+      webchat: <MessageCircle className="w-5 h-5" />,
     };
     return icons[type] || <MessageSquare className="w-5 h-5" />;
   };
@@ -995,7 +994,7 @@ function ConversationChat({
           <div className="flex items-center gap-2">
             <StatusBadge status={conversation.status} />
 
-            {/* ðŸ¤–/ðŸ‘¤ Human Handoff Indicator */}
+            {/* 🤖/👤 Human Handoff Indicator */}
             {conversation.metadata?.humanTakeover ? (
               <Badge variant="default" className="gap-1.5 bg-gradient-to-r from-green-500 to-emerald-500 h-6 px-2.5">
                 <User className="w-3 h-3" />
@@ -1064,7 +1063,7 @@ function ConversationChat({
           customerName={conversation.customerName}
           isChannelConversation={true}
           onSendMessage={handleSendMessage}
-          senderRole="assistant" // âœ… Agent/Bot sending to customer
+          senderRole={MessageRole.ASSISTANT} // ✅ Agent/Bot sending to customer
         />
       </div>
     </>

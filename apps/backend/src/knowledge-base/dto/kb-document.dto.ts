@@ -140,6 +140,11 @@ export class CrawlWebsiteDto {
   @IsUUID()
   knowledgeBaseId: string;
 
+  @ApiPropertyOptional()
+  @IsUUID()
+  @IsOptional()
+  folderId?: string | null;
+
   @ApiPropertyOptional({ description: 'Maximum pages to crawl', default: 50 })
   @IsOptional()
   maxPages?: number;

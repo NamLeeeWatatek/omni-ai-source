@@ -5,9 +5,9 @@ import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { useWorkspace } from '@/lib/hooks/useWorkspace';
-import { axiosClient } from '@/lib/axios-client';
+import axiosClient from '@/lib/axios-client';
 import toast from '@/lib/toast';
-import { loadChannelsData, disconnectChannelAsync, deleteConfigAsync, createConfigAsync, updateConfigAsync, loadBotsForFacebook, connectFacebookPage } from '@/lib/store/slices/channelsSlice';
+import { loadChannelsData, disconnectChannelAsync, deleteConfigAsync, createConfigAsync, updateConfigAsync, loadBotsForFacebook } from '@/lib/store/slices/channelsSlice';
 import {
     setConnecting,
     setFacebookPages,
@@ -22,13 +22,27 @@ import {
     clearFacebookState
 } from '@/lib/store/slices/channelsSlice';
 import { useAppDispatch, useAppSelector } from '@/lib/store/hooks';
-import { FiRefreshCw, FiX, FiFacebook } from 'react-icons/fi';
+import {
+    RefreshCw,
+    X,
+    Facebook,
+    LayoutGrid,
+    List,
+    Search,
+    Settings,
+    UserPlus,
+    Activity
+} from 'lucide-react';
 import { AlertBanner } from '@/components/ui/AlertBanner';
 import { AlertDialogConfirm } from '@/components/ui/AlertDialogConfirm';
-import { AssignBotDialog } from '@/components/channels/AssignBotDialog';
+import { AssignBotDialog } from '@/components/features/channels/AssignBotDialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { ConnectedChannelsTab, ChannelConfigurationsTab } from '@/components/features/channels';
-import type { Channel, IntegrationConfig } from '@/lib/types/channel';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { ScrollArea } from '@/components/ui/ScrollArea';
+import { FiFacebook } from 'react-icons/fi';
+import { cn } from '@/lib/utils';
 
 export default function ChannelsPageRefactored() {
     const { data: session } = useSession();
@@ -56,7 +70,7 @@ export default function ChannelsPageRefactored() {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(9);
-    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     useEffect(() => {
         dispatch(loadChannelsData());
@@ -122,7 +136,11 @@ export default function ChannelsPageRefactored() {
                         dispatch(setFacebookTempToken(event.data.tempToken));
                         toast.success(`Found ${event.data.pages.length} Facebook page(s)`);
 
-                        dispatch(loadBotsForFacebook(currentWorkspace!.id));
+                        const wsId = currentWorkspace?.id || event.data.workspaceId || (session as any)?.user?.workspaceId;
+                        if (wsId) {
+                            dispatch(loadBotsForFacebook(wsId));
+                        }
+
                         popup?.close();
                         window.removeEventListener('message', messageHandler);
                         dispatch(setConnecting(null));
@@ -166,7 +184,7 @@ export default function ChannelsPageRefactored() {
         }
     };
 
-    const handleDisconnect = (id: number) => {
+    const handleDisconnect = (id: string) => {
         dispatch(setDisconnectId(id));
     };
 
@@ -188,22 +206,21 @@ export default function ChannelsPageRefactored() {
             return;
         }
 
-        setConnectingPage(true);
+        dispatch(setConnectingPage(true));
 
         try {
-            const response = await axiosClient.post('/channels/facebook/connect', {
+            await axiosClient.post('/channels/facebook/connect', {
                 pageId: page.id,
                 pageName: page.name,
                 userAccessToken: facebookTempToken,
                 category: page.category,
                 botId: selectedBotId
-            }).then(r => (r as any).data);
+            });
 
             const selectedBot = bots.find(b => b.id === selectedBotId);
             toast.success(`Connected ${page.name} to bot "${selectedBot?.name}"`);
 
             dispatch(setFacebookPages(facebookPages.filter(p => p.id !== page.id)));
-
             dispatch(loadChannelsData());
         } catch (error: any) {
             const errorMessage = error.response?.data?.message || error.message || 'Failed to connect page';
@@ -214,7 +231,7 @@ export default function ChannelsPageRefactored() {
                 toast.info('Please reconnect Facebook to continue');
             }
         } finally {
-            setConnectingPage(false);
+            dispatch(setConnectingPage(false));
         }
     };
 
@@ -240,27 +257,43 @@ export default function ChannelsPageRefactored() {
     };
 
     const handleAssignBot = (channel: any) => {
-        setSelectedChannel(channel);
-        setAssignBotDialogOpen(true);
+        dispatch(setSelectedChannel(channel));
+        dispatch(setAssignBotDialogOpen(true));
     };
 
     return (
-        <div className="h-full space-y-8">
-            <div className="page-header flex items-center justify-between">
+        <div className="h-full space-y-8 animate-in fade-in duration-700">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold">Channels & Integrations</h1>
-                    <p className="text-muted-foreground mt-1">Connect your communication channels to start automating</p>
+                    <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                        Channels & Integrations
+                    </h1>
+                    <p className="text-sm font-medium text-muted-foreground mt-1 max-w-lg">
+                        Connect and orchestrate your communication channels with centralized AI control.
+                    </p>
                 </div>
-                <Button variant="outline" onClick={loadData} loading={isLoading} className="rounded-xl">
-                    <FiRefreshCw className="w-4 h-4 mr-2" />
-                    Refresh
-                </Button>
+                <div className="flex items-center gap-3">
+                    <Button
+                        variant="outline"
+                        rounded="xl"
+                        onClick={loadData}
+                        loading={isLoading}
+                        className="glass shadow-lg border-white/5"
+                    >
+                        <RefreshCw className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")} />
+                        Refresh
+                    </Button>
+                </div>
             </div>
 
             <Tabs value={activeTab} onValueChange={(value) => dispatch(setActiveTab(value as 'connected' | 'configurations'))} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="connected">Connections ({channels.length})</TabsTrigger>
-                    <TabsTrigger value="configurations">Configurations ({configs.length})</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 p-1 bg-muted/20 backdrop-blur-md rounded-xl border border-white/5 mb-8">
+                    <TabsTrigger value="connected" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-300">
+                        Connections ({channels.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="configurations" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-300">
+                        Configurations ({configs.length})
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="connected" className="mt-6">
@@ -301,102 +334,117 @@ export default function ChannelsPageRefactored() {
             </Tabs>
 
             {facebookPages.length > 0 && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
-                    <div className="bg-card border border-border rounded-xl p-6 w-full max-w-2xl shadow-2xl relative overflow-hidden max-h-[80vh] overflow-y-auto">
-                        <div className="flex items-center justify-between mb-6">
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-xl z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in zoom-in duration-300">
+                    <Card variant="premium" className="w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl border-white/10 ring-1 ring-white/5 rounded-2xl overflow-hidden">
+                        <div className="p-6 border-b border-white/5 flex items-center justify-between bg-muted/5">
                             <div>
-                                <h3 className="text-xl font-bold">Connect Facebook Pages</h3>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    Select a bot and choose which pages to connect
+                                <h3 className="text-2xl font-black tracking-tight">Connect Facebook Pages</h3>
+                                <p className="text-sm text-muted-foreground mt-1 font-medium">
+                                    Select a target bot and link your available pages
                                 </p>
                             </div>
-                            <button
+                            <Button
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => dispatch(clearFacebookState())}
-                                className="p-2 rounded-full hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors"
+                                className="rounded-full hover:bg-destructive/10 hover:text-destructive transition-colors"
                             >
-                                <FiX className="w-5 h-5" />
-                            </button>
+                                <X className="w-6 h-6" />
+                            </Button>
                         </div>
 
-                        <AlertBanner variant="info" title="Select Bot" className="mb-6">
-                            {loadingBots ? (
-                                <div className="flex items-center gap-2">
-                                    <Spinner className="w-4 h-4" />
-                                    <span>Loading bots...</span>
-                                </div>
-                            ) : bots.length === 0 ? (
-                                <div>
-                                    <p className="mb-2">No bots found. Please create a bot first.</p>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => window.open('/bots', '_blank')}
-                                    >
-                                        Create Bot
-                                    </Button>
-                                </div>
-                            ) : (
-                                <>
-                                    <select
-                                        value={selectedBotId}
-                                        onChange={(e) => setSelectedBotId(e.target.value)}
-                                        className="w-full bg-input rounded-lg px-4 py-3 border border-border focus:outline-none focus:ring-2 focus:ring-ring mb-2"
-                                    >
-                                        {bots.map((bot) => (
-                                            <option key={bot.id} value={bot.id} className="bg-card">
-                                                {bot.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <p className="text-xs">
-                                        Messages from these pages will be handled by the selected bot
-                                    </p>
-                                </>
-                            )}
-                        </AlertBanner>
+                        <ScrollArea className="flex-1 overflow-y-auto p-6">
+                            <div className="space-y-8">
+                                <AlertBanner variant="info" title="Select Bot Gateway" className="rounded-xl border-primary/20 bg-primary/5">
+                                    {loadingBots ? (
+                                        <div className="flex items-center gap-3 py-2 font-bold text-primary">
+                                            <RefreshCw className="w-4 h-4 animate-spin" />
+                                            <span>Synchronizing bots...</span>
+                                        </div>
+                                    ) : bots.length === 0 ? (
+                                        <div className="flex flex-col items-center gap-4 py-8">
+                                            <p className="font-bold opacity-80">No active AI agents found in this workspace.</p>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                rounded="xl"
+                                                onClick={() => window.open('/bots', '_blank')}
+                                                className="bg-background"
+                                            >
+                                                <UserPlus className="w-4 h-4 mr-2" />
+                                                Create Your First Bot
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div className="p-1">
+                                            <select
+                                                value={selectedBotId}
+                                                onChange={(e) => dispatch(setSelectedBotId(e.target.value))}
+                                                className="w-full bg-background/50 rounded-xl px-4 py-3 border border-border/40 focus:outline-none focus:ring-2 focus:ring-primary/50 mb-3 font-bold transition-all"
+                                            >
+                                                {bots.map((bot) => (
+                                                    <option key={bot.id} value={bot.id} className="bg-card">
+                                                        {bot.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <p className="text-xs font-semibold text-muted-foreground opacity-80">
+                                                All incoming messages from linked pages will be processed by this agent.
+                                            </p>
+                                        </div>
+                                    )}
+                                </AlertBanner>
 
-                        <div className="space-y-3">
-                            <h4 className="text-sm font-medium text-muted-foreground">Available Pages ({facebookPages.length})</h4>
-                            {facebookPages.map((page) => (
-                                <div
-                                    key={page.id}
-                                    className="flex items-center justify-between p-4 bg-muted rounded-lg hover:bg-muted/80 transition-colors"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2.5 rounded-lg bg-primary/10">
-                                            <FiFacebook className="w-5 h-5 text-primary" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-semibold">{page.name}</h4>
-                                            <p className="text-xs text-muted-foreground">{page.category}</p>
-                                            {page.tasks && page.tasks.length > 0 && (
-                                                <div className="flex gap-1 mt-1">
-                                                    {page.tasks.slice(0, 3).map((task: string) => (
-                                                        <span key={task} className="text-[10px] px-1.5 py-0.5 bg-muted rounded">
-                                                            {task}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Available Direct Connections ({facebookPages.length})</h4>
                                     </div>
-                                    <Button
-                                        size="sm"
-                                        onClick={() => handleConnectFacebookPage(page)}
-                                        disabled={connectingPage || !selectedBotId || bots.length === 0}
-                                    >
-                                        {connectingPage ? 'Connecting...' : 'Connect'}
-                                    </Button>
+                                    <div className="grid gap-4">
+                                        {facebookPages.map((page) => (
+                                            <div
+                                                key={page.id}
+                                                className="flex items-center justify-between p-4 bg-muted/5 border border-white/5 rounded-2xl hover:bg-muted/10 transition-all duration-300 group ring-1 ring-transparent hover:ring-primary/20 shadow-sm"
+                                            >
+                                                <div className="flex items-center gap-5">
+                                                    <div className="p-4 rounded-xl bg-blue-500/10 text-blue-500 shadow-inner group-hover:rotate-6 transition-transform duration-500">
+                                                        <Facebook className="w-6 h-6" />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-lg tracking-tight">{page.name}</h4>
+                                                        <p className="text-xs font-semibold text-muted-foreground opacity-70">{page.category}</p>
+                                                        {page.tasks && page.tasks.length > 0 && (
+                                                            <div className="flex flex-wrap gap-1.5 mt-2.5">
+                                                                {page.tasks.slice(0, 3).map((task: string) => (
+                                                                    <Badge key={task} variant="outline" rounded="lg" className="text-[9px] uppercase font-bold tracking-wider py-0 px-2 opacity-60">
+                                                                        {task}
+                                                                    </Badge>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    size="lg"
+                                                    rounded="xl"
+                                                    onClick={() => handleConnectFacebookPage(page)}
+                                                    disabled={connectingPage || !selectedBotId || bots.length === 0}
+                                                    className="px-8 font-black shadow-lg hover:shadow-primary/20 active:scale-95 transition-all"
+                                                >
+                                                    {connectingPage ? 'Connecting...' : 'Link Page'}
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            ))}
-                        </div>
-                    </div>
+                            </div>
+                        </ScrollArea>
+                    </Card>
                 </div>
             )}
 
             <AlertDialogConfirm
                 open={disconnectId !== null}
-                onOpenChange={(open) => !open && setDisconnectId(null)}
+                onOpenChange={(open) => !open && dispatch(setDisconnectId(null))}
                 title="Disconnect Channel"
                 description="Are you sure you want to disconnect this channel? This action cannot be undone."
                 confirmText="Disconnect"
@@ -407,7 +455,7 @@ export default function ChannelsPageRefactored() {
 
             <AlertDialogConfirm
                 open={deleteConfigId !== null}
-                onOpenChange={(open) => !open && setDeleteConfigId(null)}
+                onOpenChange={(open) => !open && dispatch(setDeleteConfigId(null))}
                 title="Delete Configuration"
                 description="Are you sure you want to delete this configuration? All connected channels using this config will be disconnected."
                 confirmText="Delete"
@@ -419,7 +467,7 @@ export default function ChannelsPageRefactored() {
             {currentWorkspace && (
                 <AssignBotDialog
                     open={assignBotDialogOpen}
-                    onOpenChange={setAssignBotDialogOpen}
+                    onOpenChange={(open) => dispatch(setAssignBotDialogOpen(open))}
                     channel={selectedChannel}
                     workspaceId={currentWorkspace.id}
                     onSuccess={loadData}

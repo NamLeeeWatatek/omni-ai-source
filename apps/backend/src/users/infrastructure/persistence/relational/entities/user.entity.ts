@@ -43,7 +43,7 @@ export class UserEntity extends EntityRelationalHelper {
   @Column({ name: 'is_active', type: Boolean, default: true })
   isActive: boolean;
 
-  @ManyToOne(() => RoleEntity, { eager: true })
+  @ManyToOne(() => RoleEntity, { eager: false })
   @JoinColumn({ name: 'role_id' })
   role: RoleEntity;
 
@@ -61,9 +61,6 @@ export class UserEntity extends EntityRelationalHelper {
 
   @Column({ name: 'external_id', type: String, unique: true, nullable: true })
   externalId?: string | null;
-
-  @Column({ name: 'casdoor_id', type: String, unique: true, nullable: true })
-  casdoorId?: string | null;
 
   @Column({ type: 'jsonb', nullable: true })
   permissions?: Record<string, any>;

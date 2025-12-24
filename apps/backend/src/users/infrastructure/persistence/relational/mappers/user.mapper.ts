@@ -13,14 +13,15 @@ export class UserMapper {
     domainEntity.providerId = raw.providerId;
     domainEntity.emailVerifiedAt = raw.emailVerifiedAt;
     domainEntity.isActive = raw.isActive;
-    domainEntity.role = (raw.role?.name?.toLowerCase() as 'admin' | 'user') || 'user';
+    domainEntity.role =
+      (raw.role?.name?.toLowerCase() as 'admin' | 'user') || 'user';
 
     domainEntity.firstName = raw.firstName;
     domainEntity.lastName = raw.lastName;
     domainEntity.socialId = raw.socialId;
 
     domainEntity.externalId = raw.externalId;
-    domainEntity.casdoorId = raw.casdoorId;
+
     domainEntity.permissions = raw.permissions;
     domainEntity.lastLogin = raw.lastLogin;
     domainEntity.failedLoginAttempts = raw.failedLoginAttempts;
@@ -57,7 +58,7 @@ export class UserMapper {
     persistenceEntity.socialId = domainEntity.socialId;
 
     persistenceEntity.externalId = domainEntity.externalId;
-    persistenceEntity.casdoorId = domainEntity.casdoorId;
+
     persistenceEntity.permissions = domainEntity.permissions;
     persistenceEntity.lastLogin = domainEntity.lastLogin;
     persistenceEntity.failedLoginAttempts =

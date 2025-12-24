@@ -2,8 +2,8 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { ArrowLeft, MoreVertical, Phone, Video, Archive, Trash2 } from 'lucide-react';
-import { ChatInterface } from '@/components/chat/ChatInterface';
+import { ArrowLeft, MoreVertical, Archive, Trash2, Clock, User, ChevronLeft } from 'lucide-react';
+import { ChatInterface } from '@/components/features/chat/ChatInterface';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/Avatar';
 
 import axiosClient from '@/lib/axios-client';
@@ -11,8 +11,10 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { PageLoading } from '@/components/ui/PageLoading';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/DropdownMenu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/DropdownMenu';
 import { Badge } from '@/components/ui/Badge';
+import { MessageRole } from '@/lib/types/conversations';
+import { AlertDialogConfirm } from '@/components/ui/AlertDialogConfirm';
 
 interface ConversationDetails {
     id: string;
@@ -31,6 +33,9 @@ export default function ConversationPage() {
 
     const [conversation, setConversation] = useState<ConversationDetails | null>(null);
     const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [showArchiveDialog, setShowArchiveDialog] = useState(false);
 
     useEffect(() => {
         loadConversation();
@@ -52,7 +57,7 @@ export default function ConversationPage() {
         try {
             await axiosClient.post(`/conversations/${conversationId}/messages`, {
                 content,
-                role: 'assistant'
+                role: MessageRole.ASSISTANT
             });
         } catch (err) {
             toast.error('Failed to send message');
@@ -63,25 +68,30 @@ export default function ConversationPage() {
 
 
     const handleArchive = async () => {
+        setActionLoading(true);
         try {
             await axiosClient.post(`/conversations/${conversationId}/archive`);
             toast.success('Conversation archived');
             router.push('/conversations');
         } catch (error) {
             toast.error('Failed to archive conversation');
+        } finally {
+            setActionLoading(false);
+            setShowArchiveDialog(false);
         }
     };
 
     const handleDelete = async () => {
-        if (!confirm('Are you sure you want to delete this conversation?')) {
-            return;
-        }
+        setActionLoading(true);
         try {
             await axiosClient.delete(`/conversations/${conversationId}`);
             toast.success('Conversation deleted');
             router.push('/conversations');
         } catch (error) {
             toast.error('Failed to delete conversation');
+        } finally {
+            setActionLoading(false);
+            setShowDeleteDialog(false);
         }
     };
 
@@ -98,72 +108,103 @@ export default function ConversationPage() {
     }
 
     return (
-        <div style={{ height: 'calc(100vh - 64px)' }} className="flex flex-col">
-
-            <div className="border-b px-3 py-2 flex items-center justify-between bg-background shrink-0">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className="flex flex-col h-full bg-background overflow-hidden">
+            {/* Header */}
+            <div className="h-16 border-b border-border/40 bg-card/30 backdrop-blur-md px-4 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 shrink-0"
+                        className="rounded-full h-9 w-9 shrink-0"
                         onClick={() => router.push('/conversations')}
                     >
-                        <ArrowLeft className="w-4 h-4" />
+                        <ChevronLeft className="w-5 h-5" />
                     </Button>
 
-                    <Avatar className="h-8 w-8 shrink-0">
-                        <AvatarImage src={conversation.contactAvatar} />
-                        <AvatarFallback className="text-xs">
-                            {(conversation.contactName || 'User').charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                    </Avatar>
+                    <div className="flex items-center gap-3 min-w-0">
+                        <Avatar className="h-9 w-9 shrink-0 border border-border/50 shadow-sm">
+                            <AvatarImage src={conversation.contactAvatar} />
+                            <AvatarFallback className="bg-primary/5 text-primary">
+                                <User className="w-5 h-5" />
+                            </AvatarFallback>
+                        </Avatar>
 
-                    <div className="min-w-0 flex-1">
-                        <h2 className="font-semibold text-sm truncate">{conversation.contactName || 'Unknown User'}</h2>
+                        <div className="min-w-0">
+                            <h2 className="text-sm font-semibold leading-none mb-1 truncate">
+                                {conversation.contactName || 'Unknown Customer'}
+                            </h2>
+                            <div className="flex items-center gap-2">
+                                <Badge
+                                    variant={conversation.status === 'open' ? 'success' : 'secondary'}
+                                    className="h-5 px-1.5 text-[10px] uppercase tracking-wider font-bold"
+                                >
+                                    {conversation.status}
+                                </Badge>
+                                <span className="text-[11px] text-muted-foreground hidden sm:flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    Active
+                                </span>
+                            </div>
+                        </div>
                     </div>
-
-                    <Badge variant="outline" className={cn(
-                        'text-xs h-5 shrink-0',
-                        conversation.status === 'open' && 'bg-green-500/10 text-green-500 border-green-500/20',
-                        conversation.status === 'pending' && 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
-                        conversation.status === 'closed' && 'bg-gray-500/10 text-gray-500 border-gray-500/20'
-                    )}>
-                        {conversation.status}
-                    </Badge>
                 </div>
 
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreVertical className="w-4 h-4" />
+                            <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
+                                <MoreVertical className="w-5 h-5 text-muted-foreground" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={handleArchive}>
-                                <Archive className="w-4 h-4 mr-2" />
-                                Archive
+                        <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuItem onClick={() => setShowArchiveDialog(true)} className="gap-2 cursor-pointer">
+                                <Archive className="w-4 h-4" />
+                                Archive Conversation
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Delete
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                onClick={() => setShowDeleteDialog(true)}
+                                className="text-destructive focus:text-destructive gap-2 cursor-pointer"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                Delete Permanently
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
             </div>
 
+            {/* Chat Area */}
+            <div className="flex-1 overflow-hidden">
+                {conversationId && (
+                    <ChatInterface
+                        conversationId={conversationId}
+                        customerName={conversation.contactName}
+                        isChannelConversation={!!conversation.channelType}
+                        onSendMessage={handleSendMessage}
+                        senderRole={MessageRole.ASSISTANT}
+                        className="h-full"
+                    />
+                )}
+            </div>
 
-            {conversationId && (
-                <ChatInterface
-                    conversationId={conversationId}
-                    customerName={conversation.contactName}
-                    isChannelConversation={!!conversation.channelType}
-                    onSendMessage={handleSendMessage}
-                    senderRole="assistant"
-                    className="flex-1"
-                />
-            )}
+            {/* Dialogs */}
+            <AlertDialogConfirm
+                open={showArchiveDialog}
+                onOpenChange={setShowArchiveDialog}
+                title="Archive Conversation?"
+                description="This will move the conversation to the archive. You can still access it later."
+                onConfirm={handleArchive}
+            />
+
+            <AlertDialogConfirm
+                open={showDeleteDialog}
+                onOpenChange={setShowDeleteDialog}
+                title="Delete Permanently?"
+                description="This action cannot be undone. All messages and data associated with this conversation will be lost."
+                onConfirm={handleDelete}
+                variant="destructive"
+            />
         </div>
     );
 }

@@ -1,12 +1,12 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import axiosClient from '@/lib/axios-client'
 import toast from '@/lib/toast'
-import { FiSave, FiX, FiLoader } from 'react-icons/fi'
-import { useAIModels } from '@/lib/hooks/use-ai-models'
+import { Save, X, Loader2 } from 'lucide-react'
+import { useAIModels } from '@/lib/hooks/useAIModels'
 
 interface AgentConfig {
     id?: number
@@ -110,7 +110,7 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-zinc-900 rounded-2xl border border-zinc-800 w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-                {}
+                { }
                 <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
                     <div>
                         <h2 className="text-2xl font-bold">Agent Configuration</h2>
@@ -120,13 +120,13 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
                         onClick={onClose}
                         className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
                     >
-                        <FiX className="w-5 h-5" />
+                        <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                {}
+                { }
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                    {}
+                    { }
                     <div>
                         <label className="block text-sm font-medium mb-2">Agent Name</label>
                         <input
@@ -138,7 +138,7 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
                         />
                     </div>
 
-                    {}
+                    { }
                     <div>
                         <label className="block text-sm font-medium mb-2">Personality</label>
                         <div className="grid grid-cols-3 gap-3">
@@ -158,7 +158,7 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
                         </div>
                     </div>
 
-                    {}
+                    { }
                     <div>
                         <label className="block text-sm font-medium mb-2">Tone</label>
                         <div className="flex gap-3">
@@ -177,7 +177,7 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
                         </div>
                     </div>
 
-                    {}
+                    { }
                     <div>
                         <label className="block text-sm font-medium mb-2">System Prompt</label>
                         <textarea
@@ -189,7 +189,7 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
                         />
                     </div>
 
-                    {}
+                    { }
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium mb-2">Model</label>
@@ -256,7 +256,7 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
                     </div>
                 </div>
 
-                {}
+                { }
                 <div className="p-6 border-t border-zinc-800 flex justify-end gap-3">
                     <Button
                         onClick={onClose}
@@ -270,9 +270,9 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
                         className="bg-slate-700 hover:bg-slate-600"
                     >
                         {saving ? (
-                            <FiLoader className="w-4 h-4 mr-2 animate-spin" />
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         ) : (
-                            <FiSave className="w-4 h-4 mr-2" />
+                            <Save className="w-4 h-4 mr-2" />
                         )}
                         Save Configuration
                     </Button>
@@ -281,4 +281,3 @@ export function AgentConfigPanel({ flowId, onClose, onSave }: AgentConfigPanelPr
         </div>
     )
 }
-

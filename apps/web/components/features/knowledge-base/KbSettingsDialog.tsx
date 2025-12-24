@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -16,7 +16,7 @@ import {
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
-import { axiosClient } from '@/lib/axios-client'
+import axiosClient from '@/lib/axios-client'
 import type { KnowledgeBase } from '@/lib/types/knowledge-base'
 import { handleFormError } from '@/lib/utils/form-errors'
 
@@ -223,13 +223,14 @@ export function KBSettingsDialog({ open, onOpenChange, knowledgeBase, onSave }: 
                                         <FormItem>
                                             <div className="flex items-center justify-between">
                                                 <FormLabel>RAG Model</FormLabel>
-                                                <button
+                                                <Button
                                                     type="button"
+                                                    variant="link"
                                                     onClick={() => setUseCustomRagModel(!useCustomRagModel)}
-                                                    className="text-xs text-primary hover:text-primary/80 underline"
+                                                    className="p-0 h-auto text-xs text-primary underline"
                                                 >
                                                     {useCustomRagModel ? 'Use recommended models' : 'Enter custom model'}
-                                                </button>
+                                                </Button>
                                             </div>
                                             <FormControl>
                                                 {useCustomRagModel ? (

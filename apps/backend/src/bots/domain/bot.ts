@@ -1,12 +1,6 @@
 ﻿import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Workspace } from '../../workspaces/domain/workspace';
 
-/**
- * Bot domain entity - theo schema má»›i
- * Table: bots
- * Fields: id, workspace_id, name, description, avatar_url, default_language,
- *         timezone, status, created_by, deleted_at, created_at, updated_at
- */
 export class Bot {
   @ApiProperty({ type: String })
   id: string;

@@ -1,4 +1,4 @@
-﻿import { useState, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import type { Node } from 'reactflow'
 import { useSession } from 'next-auth/react'
 import { wsService } from '@/lib/services/websocket-service'
