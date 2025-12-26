@@ -51,6 +51,7 @@
     },
     "stats": {
       "totalUsers": "Total Users",
+      "members": "Members",
       "totalBots": "Total Bots",
       "conversations": "Conversations",
       "flowExecutions": "Flow Executions",
@@ -70,6 +71,12 @@
       "executions": "executions",
       "avgMsgs": "avg msgs",
       "avgTime": "avg"
+    },
+    "admin": {
+      "stats": {
+        "creationTools": "Creation Tools",
+        "generationJobs": "Generation Jobs"
+      }
     }
   },
   "features": {
@@ -141,6 +148,16 @@
     "updated": "Updated successfully"
   },
   "login": {
+    "welcomeBack": "Welcome Back",
+    "subtitle": "Enter your credentials to access your account",
+    "signIn": "Sign In",
+    "email": "Email",
+    "emailPlaceholder": "name@example.com",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "signUp": "Sign up",
+    "or": "OR",
     "title": "AI-Powered Omnichannel Platform",
     "signInWithCasdoor": "Sign in with Casdoor",
     "termsAgreement": "By signing in, you agree to our",
@@ -164,7 +181,32 @@
       "backendConnection": "Cannot connect to backend at {url}. Please check if backend is running.",
       "backendError": "Backend returned error {status}: {message}",
       "casdoorConfig": "Casdoor is not properly configured. Please check your environment variables.",
-      "loginInitFailed": "Failed to initialize Casdoor login. Please check the console for details."
+      "loginInitFailed": "Failed to initialize Casdoor login. Please check the console for details.",
+      "invalidCredentials": "Invalid email or password",
+      "accountNotLinked": "Email not linked to any account",
+      "generic": "An error occurred. Please try again."
+    }
+  },
+  "register": {
+    "title": "Create Account",
+    "subtitle": "Join our community and start building amazing things today.",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email Address",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "signUp": "Get Started Free",
+    "alreadyHaveAccount": "Already have an account?",
+    "signIn": "Sign in",
+    "backToHome": "Return to Homepage",
+    "preparing": "Preparing setup...",
+    "success": {
+      "title": "Verification Sent",
+      "description": "We've sent a verification link to your email address. Please check your inbox and confirm your account to get started.",
+      "returnToLogin": "Return to Login"
+    },
+    "errors": {
+      "generic": "Registration failed. Email might already be in use."
     }
   },
   "globalScale": {
@@ -222,6 +264,58 @@
           "On-premise deployment"
         ]
       }
+    }
+  },
+  "forgotPassword": {
+    "title": "Reset Password",
+    "subtitle": "Enter your email and we'll send you a link to get back into your account.",
+    "email": "Email Address",
+    "emailPlaceholder": "name@example.com",
+    "sendLink": "Send Reset Link",
+    "backToLogin": "Back to Sign In",
+    "securing": "Secure link...",
+    "success": {
+      "title": "Check Your Email",
+      "description": "Instructions to reset your password have been sent to your email address if it exists in our system.",
+      "backToLogin": "Back to Login"
+    },
+    "errors": {
+      "generic": "Something went wrong. Please try again."
+    }
+  },
+  "resetPassword": {
+    "title": "New Password",
+    "subtitle": "Complete your security update by choosing a strong new password.",
+    "newPassword": "New Password",
+    "confirmNewPassword": "Confirm New Password",
+    "updatePassword": "Update Password",
+    "backToLogin": "Return to Login",
+    "securing": "Securing access...",
+    "success": {
+      "title": "Password Updated",
+      "description": "Your password has been successfully reset. You can now use your new password to sign in to your account.",
+      "returnToLogin": "Return to Sign In"
+    },
+    "errors": {
+      "generic": "Invalid or expired reset link.",
+      "passwordsDontMatch": "Passwords don't match"
+    }
+  },
+  "confirmEmail": {
+    "verifying": "Verifying Account",
+    "pleaseWait": "Please wait while we secure your profile...",
+    "authenticating": "Authenticating...",
+    "success": {
+      "title": "Verified!",
+      "description": "Your email has been successfully verified. Welcome to our community!",
+      "continueToLogin": "Continue to Login"
+    },
+    "error": {
+      "title": "Verification Failed",
+      "missingToken": "Missing verification token.",
+      "generic": "Verification failed. Link may be expired.",
+      "createNewAccount": "Create New Account",
+      "returnHome": "Return to Home"
     }
   }
 }

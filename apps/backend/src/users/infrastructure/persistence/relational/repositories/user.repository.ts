@@ -14,7 +14,7 @@ export class UsersRelationalRepository implements UserRepository {
   constructor(
     @InjectRepository(UserEntity)
     private readonly usersRepository: Repository<UserEntity>,
-  ) {}
+  ) { }
 
   async create(data: User): Promise<User> {
     const persistenceModel = UserMapper.toPersistence(data);
@@ -69,6 +69,7 @@ export class UsersRelationalRepository implements UserRepository {
   async findById(id: User['id']): Promise<NullableType<User>> {
     const entity = await this.usersRepository.findOne({
       where: { id },
+      relations: ['role'],
     });
     return entity ? UserMapper.toDomain(entity) : null;
   }
@@ -85,6 +86,7 @@ export class UsersRelationalRepository implements UserRepository {
 
     const entity = await this.usersRepository.findOne({
       where: { email },
+      relations: ['role'],
     });
     return entity ? UserMapper.toDomain(entity) : null;
   }
@@ -100,11 +102,13 @@ export class UsersRelationalRepository implements UserRepository {
 
     let entity = await this.usersRepository.findOne({
       where: { providerId: socialId, provider },
+      relations: ['role'],
     });
 
     if (!entity) {
       entity = await this.usersRepository.findOne({
         where: { socialId, provider },
+        relations: ['role'],
       });
     }
 
@@ -114,6 +118,7 @@ export class UsersRelationalRepository implements UserRepository {
   async update(id: User['id'], payload: Partial<User>): Promise<User> {
     const entity = await this.usersRepository.findOne({
       where: { id },
+      relations: ['role'],
     });
 
     if (!entity) {

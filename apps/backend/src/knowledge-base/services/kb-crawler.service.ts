@@ -10,6 +10,7 @@ import { KBEmbeddingsService } from './kb-embeddings.service';
 import { sanitizeText, sanitizeMetadata } from '../utils/text-sanitizer';
 import * as cheerio from 'cheerio';
 import axios from 'axios';
+import { AuditService } from '../../audit/audit.service';
 
 export interface CrawlOptions {
   maxPages?: number;
@@ -42,7 +43,8 @@ export class KBCrawlerService {
     private readonly processingQueue: KBProcessingQueueService,
     private readonly kbManagementService: KBManagementService,
     private readonly embeddingsService: KBEmbeddingsService,
-  ) {}
+    private readonly auditService: AuditService,
+  ) { }
 
   async crawlUrl(url: string): Promise<CrawlResult> {
     try {
@@ -82,7 +84,7 @@ export class KBCrawlerService {
           try {
             const absoluteUrl = new URL(href, url).href;
             links.push(absoluteUrl);
-          } catch (e) {}
+          } catch (e) { }
         }
       });
 
@@ -128,6 +130,16 @@ export class KBCrawlerService {
     let processingStarted = 0;
 
     const kb = await this.kbManagementService.findOne(knowledgeBaseId, userId);
+
+    // Activity Log - Crawl Started
+    await this.auditService.log({
+      userId,
+      workspaceId: kb.workspaceId,
+      action: 'CRAWL_STARTED',
+      resourceType: 'knowledge-base',
+      resourceId: knowledgeBaseId,
+      details: { startUrl, maxPages },
+    });
 
     const urlsToCrawl: Array<{ url: string; depth: number }> = [
       { url: startUrl, depth: 0 },
@@ -235,6 +247,17 @@ export class KBCrawlerService {
     this.logger.log(
       `Crawling completed: ${documentsCreated} documents created, ${processingStarted} processing started, ${errors.length} errors`,
     );
+
+    // Activity Log - Crawl Completed
+    await this.auditService.log({
+      userId,
+      workspaceId: kb.workspaceId,
+      action: 'CRAWL_COMPLETED',
+      resourceType: 'knowledge-base',
+      resourceId: knowledgeBaseId,
+      details: { documentsCreated, errorCount: errors.length },
+    });
+
     return { documentsCreated, errors, processingStarted };
   }
 
@@ -245,6 +268,18 @@ export class KBCrawlerService {
   ) {
     try {
       this.processingQueue.startJob(jobId);
+
+      // Activity Log - Document Processing Started
+      if (document.createdBy) {
+        await this.auditService.log({
+          userId: document.createdBy,
+          workspaceId: document.workspaceId,
+          action: 'DOCUMENT_PROCESSING',
+          resourceType: 'knowledge-base-document',
+          resourceId: document.id,
+          details: { name: document.name },
+        });
+      }
 
       document.processingStatus = KbProcessingStatus.PROCESSING;
       await this.documentRepository.save(document);

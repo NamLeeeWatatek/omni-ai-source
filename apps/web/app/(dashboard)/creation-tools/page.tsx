@@ -59,7 +59,6 @@ export default function CreationToolsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {Array.isArray(paginatedTools) && paginatedTools.map((tool) => (
-                    // ... Card Render
                     <Card
                         key={tool.id}
                         className="group hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary/50"

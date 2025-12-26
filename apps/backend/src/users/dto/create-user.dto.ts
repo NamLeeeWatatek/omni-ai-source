@@ -10,6 +10,7 @@ import {
   IsString,
 } from 'class-validator';
 import { lowerCaseTransformer } from '../../utils/transformers/lower-case.transformer';
+import { Role } from '../../roles/domain/role';
 
 export class CreateUserDto {
   @ApiProperty({ example: 'test1@example.com', type: String })
@@ -50,8 +51,11 @@ export class CreateUserDto {
 
   @ApiPropertyOptional({ enum: ['admin', 'user'], default: 'user' })
   @IsOptional()
-  @IsEnum(['admin', 'user'])
-  role?: 'admin' | 'user';
+  role?: 'admin' | 'user' | Role | null;
+
+  @ApiPropertyOptional({ type: Number })
+  @IsOptional()
+  roleId?: number;
 
   @ApiPropertyOptional({ example: 'John', deprecated: true })
   @IsOptional()

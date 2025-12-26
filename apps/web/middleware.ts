@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 
 export default auth((req) => {
   const { pathname } = req.nextUrl
-  const isAuthenticated = !!req.auth
+  const isAuthenticated = !!req.auth && !!(req.auth as any).accessToken
 
   const protectedRoutes = [
     '/dashboard',

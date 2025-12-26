@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 
 /**
@@ -9,6 +10,7 @@ import { useAuth } from '@/lib/hooks/useAuth';
  */
 export function SessionWatcher() {
     const { error, signOut } = useAuth();
+    const pathname = usePathname();
 
     useEffect(() => {
         if (error === 'RefreshAccessTokenError') {
@@ -17,10 +19,13 @@ export function SessionWatcher() {
             // Prevent multiple sign-outs
             if (typeof window !== 'undefined' && !(window as any)._isSigningOut) {
                 (window as any)._isSigningOut = true;
-                signOut();
+                signOut({
+                    redirect: true,
+                    callbackUrl: `/login?callbackUrl=${encodeURIComponent(pathname)}`
+                });
             }
         }
-    }, [error, signOut]);
+    }, [error, signOut, pathname]);
 
     return null;
 }

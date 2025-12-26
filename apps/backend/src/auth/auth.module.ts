@@ -12,6 +12,8 @@ import { SessionModule } from '../session/session.module';
 import { UsersModule } from '../users/users.module';
 import { WorkspacesModule } from '../workspaces/workspaces.module';
 
+import { AuthEventListener } from './listeners/auth.listener';
+
 @Module({
   imports: [
     UsersModule,
@@ -28,7 +30,8 @@ import { WorkspacesModule } from '../workspaces/workspaces.module';
     JwtStrategy,
     JwtRefreshStrategy,
     AnonymousStrategy,
+    AuthEventListener,
   ],
   exports: [AuthService, TokenRefreshService],
 })
-export class AuthModule {}
+export class AuthModule { }

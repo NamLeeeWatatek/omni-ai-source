@@ -206,9 +206,9 @@ export function FormBuilder({ config, onChange }: FormBuilderProps) {
                                 <Checkbox
                                     id="req"
                                     checked={editingField.validation?.required || false}
-                                    onChange={(e) => setEditingField({
+                                    onCheckedChange={(checked) => setEditingField({
                                         ...editingField,
-                                        validation: { ...editingField.validation, required: e.target.checked }
+                                        validation: { ...editingField.validation, required: !!checked }
                                     })}
                                 />
                                 <Label htmlFor="req">Required Field</Label>

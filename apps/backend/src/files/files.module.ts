@@ -1,4 +1,5 @@
 ﻿import { Module, OnModuleInit, forwardRef } from '@nestjs/common';
+import { AuditModule } from '../audit/audit.module';
 
 import { DocumentFilePersistenceModule } from './infrastructure/persistence/document/document-persistence.module';
 import { RelationalFilePersistenceModule } from './infrastructure/persistence/relational/relational-persistence.module';
@@ -23,6 +24,7 @@ const infrastructurePersistenceModule = (databaseConfig() as DatabaseConfig)
     // Keep the others for forward compatibility
     forwardRef(() => FilesLocalModule),
     forwardRef(() => FilesS3Module),
+    AuditModule,
   ],
   providers: [FilesService],
   exports: [FilesService, infrastructurePersistenceModule],
@@ -32,7 +34,7 @@ export class FilesModule implements OnModuleInit {
     private readonly filesService: FilesService,
     // Only inject the active MinIO service
     private readonly minioService: FilesMinioService,
-  ) {}
+  ) { }
 
   onModuleInit() {
     // Set MinIO service as the active upload service (FILE_DRIVER=minio)

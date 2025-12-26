@@ -4,6 +4,7 @@
   Post,
   Query,
   Param,
+  Request,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -25,21 +26,15 @@ import { RolesGuard } from '../roles/roles.guard';
 @ApiTags('Audit')
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'), RolesGuard)
-@Roles('admin')
 @Controller({ path: 'audit', version: '1' })
 export class AuditController {
-  constructor(private readonly auditService: AuditService) {}
+  constructor(private readonly auditService: AuditService) { }
 
   @Get('logs/:workspaceId')
-  @ApiOperation({ summary: 'Get audit logs for workspace' })
+  @Roles('admin')
+  @ApiOperation({ summary: 'Get audit logs for workspace (Admin)' })
   @ApiParam({ name: 'workspaceId', type: String })
-  @ApiQuery({ name: 'userId', required: false })
-  @ApiQuery({ name: 'action', required: false })
-  @ApiQuery({ name: 'resourceType', required: false })
-  @ApiQuery({ name: 'startDate', required: false, type: String })
-  @ApiQuery({ name: 'endDate', required: false, type: String })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
+  // ... existing queries
   getAuditLogs(
     @Param('workspaceId') workspaceId: string,
     @Query('userId') userId?: string,
@@ -62,8 +57,30 @@ export class AuditController {
     });
   }
 
+  @Get('my-activity/:workspaceId')
+  @ApiOperation({ summary: 'Get current user activity logs' })
+  @ApiParam({ name: 'workspaceId', type: String })
+  getMyActivity(
+    @Param('workspaceId') workspaceId: string,
+    @Request() req,
+    @Query('action') action?: string,
+    @Query('resourceType') resourceType?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.auditService.getAuditLogs({
+      workspaceId,
+      userId: req.user.id,
+      action,
+      resourceType,
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
+  }
+
   @Get('data-access/:workspaceId')
-  @ApiOperation({ summary: 'Get data access logs for workspace' })
+  @Roles('admin')
+  @ApiOperation({ summary: 'Get data access logs for workspace (Admin)' })
   @ApiParam({ name: 'workspaceId', type: String })
   @ApiQuery({ name: 'userId', required: false })
   @ApiQuery({ name: 'tableName', required: false })
@@ -99,6 +116,7 @@ export class AuditController {
   }
 
   @Post('cleanup')
+  @Roles('admin')
   @ApiOperation({ summary: 'Cleanup old audit logs' })
   @ApiQuery({ name: 'daysOld', required: false, type: Number })
   @HttpCode(HttpStatus.OK)

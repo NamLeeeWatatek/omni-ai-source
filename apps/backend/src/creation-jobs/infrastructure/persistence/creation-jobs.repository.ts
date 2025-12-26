@@ -10,18 +10,26 @@ export abstract class CreationJobsRepository {
 
   abstract findAllWithPagination({
     paginationOptions,
+    filterOptions,
   }: {
     paginationOptions: IPaginationOptions;
-  }): Promise<CreationJob[]>;
+    filterOptions: { workspaceId: string };
+  }): Promise<{ data: CreationJob[]; count: number }>;
 
-  abstract findById(id: CreationJob['id']): Promise<NullableType<CreationJob>>;
+  abstract findById(
+    id: CreationJob['id'],
+    workspaceId: string,
+  ): Promise<NullableType<CreationJob>>;
 
   abstract findByIds(ids: CreationJob['id'][]): Promise<CreationJob[]>;
 
   abstract update(
     id: CreationJob['id'],
+    workspaceId: string,
     payload: DeepPartial<CreationJob>,
   ): Promise<CreationJob | null>;
 
-  abstract remove(id: CreationJob['id']): Promise<void>;
+  abstract remove(id: CreationJob['id'], workspaceId: string): Promise<void>;
+
+  abstract removeMany(ids: CreationJob['id'][], workspaceId: string): Promise<void>;
 }

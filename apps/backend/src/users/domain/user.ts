@@ -1,5 +1,6 @@
 ﻿import { Exclude, Expose } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Role } from '../../roles/domain/role';
 
 export class User {
   @ApiProperty({ type: String })
@@ -36,12 +37,10 @@ export class User {
   isActive: boolean;
 
   @ApiProperty({
-    type: String,
-    enum: ['admin', 'user'],
-    default: 'user',
+    type: () => Role,
     description: 'User role',
   })
-  role: 'admin' | 'user';
+  role: Role | null;
 
   @ApiPropertyOptional({ type: String, deprecated: true })
   firstName?: string | null;
@@ -56,7 +55,11 @@ export class User {
   externalId?: string | null;
 
   @ApiPropertyOptional({ type: String, description: 'Casdoor user ID' })
+  @ApiPropertyOptional({ type: Number })
+  roleId?: number;
+
   @ApiPropertyOptional({ type: Object, description: 'Custom permissions' })
+  @Expose({ groups: ['me', 'admin'] })
   permissions?: Record<string, any>;
 
   @ApiPropertyOptional({ type: Date, description: 'Last login timestamp' })

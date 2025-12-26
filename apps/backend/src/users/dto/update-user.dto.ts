@@ -12,6 +12,7 @@ import {
 } from 'class-validator';
 import { lowerCaseTransformer } from '../../utils/transformers/lower-case.transformer';
 import { Type } from 'class-transformer';
+import { Role } from '../../roles/domain/role';
 
 export class UpdateUserDto extends PartialType(CreateUserDto) {
   @ApiPropertyOptional({ example: 'test1@example.com', type: String })
@@ -52,8 +53,7 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
 
   @ApiPropertyOptional({ enum: ['admin', 'user'] })
   @IsOptional()
-  @IsEnum(['admin', 'user'])
-  role?: 'admin' | 'user';
+  role?: 'admin' | 'user' | Role | null;
 
   @ApiPropertyOptional({ type: Date })
   @IsOptional()
@@ -75,4 +75,12 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsOptional()
   @IsString()
   socialId?: string | null;
+
+  @ApiPropertyOptional({ type: Number })
+  @IsOptional()
+  roleId?: number;
+
+  @ApiPropertyOptional({ type: Object })
+  @IsOptional()
+  permissions?: Record<string, any>;
 }

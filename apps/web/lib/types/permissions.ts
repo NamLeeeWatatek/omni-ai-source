@@ -5,7 +5,23 @@ export type Role =
   | 'manager'
   | 'editor'
   | 'viewer'
+  | 'viewer'
   | 'user'
+
+export interface PermissionEntity {
+  id: string
+  name: string
+  description?: string
+  resource: string
+  action: string
+}
+
+export interface RoleEntity {
+  id: number
+  name: string
+  description?: string
+  permissions: PermissionEntity[]
+}
 
 export type ResourceType =
   | 'user'

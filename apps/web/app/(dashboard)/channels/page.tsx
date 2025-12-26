@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { useWorkspace } from '@/lib/hooks/useWorkspace';
@@ -45,7 +46,8 @@ import { FiFacebook } from 'react-icons/fi';
 import { cn } from '@/lib/utils';
 
 export default function ChannelsPageRefactored() {
-    const { data: session } = useSession();
+    const { user, accessToken } = useAuth();
+    const session = { user: { id: user?.id, ...user }, accessToken };
     const { currentWorkspace } = useWorkspace();
     const dispatch = useAppDispatch();
 

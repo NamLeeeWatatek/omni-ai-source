@@ -3,20 +3,16 @@
 import * as React from 'react'
 import {
   ChevronDown,
-  ChevronLeft,
   ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   Search,
   SortAsc,
   SortDesc
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Button } from "./Button"
 import { Pagination, type PaginationInfo } from "./Pagination"
 import { Input } from "./Input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./Select"
 import { LoadingLogo } from "./LoadingLogo"
+import { Checkbox } from "./Checkbox"
 
 import {
   Table,
@@ -88,6 +84,10 @@ export interface DataTableProps<T = any> {
   emptyMessage?: string
   emptyComponent?: React.ReactNode
 
+  // Selection
+  selectedIds?: string[]
+  onSelectionChange?: (ids: string[]) => void
+
   // Styling
   className?: string
   tableClassName?: string
@@ -130,12 +130,35 @@ export function DataTable<T = any>({
   emptyMessage = "No data available",
   emptyComponent,
 
+  selectedIds = [],
+  onSelectionChange,
+
   className,
   tableClassName,
   compact = false
 }: DataTableProps<T>) {
   const [localSearchValue, setLocalSearchValue] = React.useState(searchValue)
   const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set(defaultExpanded))
+
+  const handleSelectAll = (checked: boolean) => {
+    if (!onSelectionChange) return
+    if (checked) {
+      const allIds = data.map((row: any) => row.id).filter(Boolean) as string[]
+      onSelectionChange(allIds)
+    } else {
+      onSelectionChange([])
+    }
+  }
+
+  const handleSelectRow = (id: string) => {
+    if (!onSelectionChange) return
+
+    if (selectedIds.includes(id)) {
+      onSelectionChange(selectedIds.filter(idx => idx !== id))
+    } else {
+      onSelectionChange([...selectedIds, id])
+    }
+  }
 
   // Sync local search with prop
   React.useEffect(() => {
@@ -244,7 +267,13 @@ export function DataTable<T = any>({
                     </>
                   )}
                   <div className={cn(isSelection && "flex items-center justify-center w-full")}>
-                    {column.render
+                    {isSelection ? (
+                      <Checkbox
+                        checked={selectedIds.includes(id)}
+                        onCheckedChange={() => handleSelectRow(id)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : column.render
                       ? column.render((row as any)[column.key], row)
                       : (row as any)[column.key]
                     }
@@ -303,7 +332,10 @@ export function DataTable<T = any>({
                 >
                   {column.key === 'selection' ? (
                     <div className="flex justify-center items-center h-full w-full">
-                      {column.label}
+                      <Checkbox
+                        checked={data.length > 0 && selectedIds.length === data.length}
+                        onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                      />
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
@@ -328,7 +360,7 @@ export function DataTable<T = any>({
                   {error}
                 </TableCell>
               </TableRow>
-            ) : data.length === 0 ? (
+            ) : (!data || data.length === 0) ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
                   {emptyComponent || emptyMessage}

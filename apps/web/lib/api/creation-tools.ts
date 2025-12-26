@@ -47,14 +47,33 @@ export interface FormField {
     };
 }
 
-export interface ExecutionFlow {
-    type: 'ai-generation' | 'bot-execution' | 'workflow';
-    provider?: string;
-    model?: string;
-    endpoint?: string;
-    parameters?: Record<string, any>;
-    outputType?: 'image' | 'video' | 'audio' | 'text' | 'json';
+// Polymorphic Execution Types
+export type ExecutionType = 'ai-generation' | 'http-webhook' | 'workflow-chain';
+
+export interface BaseExecutionConfig {
+    type: ExecutionType;
 }
+
+export interface AiExecutionConfig extends BaseExecutionConfig {
+    type: 'ai-generation';
+    provider: 'openai' | 'anthropic' | 'gemini';
+    model: string;
+    parameters?: Record<string, any>;
+    promptTemplate: string;
+}
+
+export interface HttpExecutionConfig extends BaseExecutionConfig {
+    type: 'http-webhook';
+    urlTemplate: string;
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+    headers?: Record<string, string>;
+    bodyTemplate?: string;
+    timeoutMs?: number;
+    retryCount?: number;
+    successCondition?: string;
+}
+
+export type ExecutionFlow = AiExecutionConfig | HttpExecutionConfig;
 
 export const creationToolsApi = {
     getActive: async (): Promise<CreationTool[]> => {

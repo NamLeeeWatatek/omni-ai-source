@@ -12,6 +12,7 @@ import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcryptjs';
 import { AuthEmailLoginDto } from './dto/auth-email-login.dto';
 import { AuthUpdateDto } from './dto/auth-update.dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SocialInterface } from '../social/interfaces/social.interface';
 import { AuthRegisterLoginDto } from './dto/auth-register-login.dto';
 import { NullableType } from '../utils/types/nullable.type';
@@ -37,7 +38,8 @@ export class AuthService {
     private mailService: MailService,
     private configService: ConfigService<AllConfigType>,
     private workspaceHelper: WorkspaceHelperService,
-  ) {}
+    private eventEmitter: EventEmitter2,
+  ) { }
 
   async validateLogin(loginDto: AuthEmailLoginDto): Promise<LoginResponseDto> {
     const user = await this.usersService.findByEmail(loginDto.email);
@@ -73,6 +75,15 @@ export class AuthService {
         status: HttpStatus.UNPROCESSABLE_ENTITY,
         errors: {
           password: 'incorrectPassword',
+        },
+      });
+    }
+
+    if (!user.isActive) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {
+          email: 'unverified',
         },
       });
     }
@@ -224,11 +235,10 @@ export class AuthService {
       },
     );
 
-    await this.mailService.userSignUp({
-      to: dto.email,
-      data: {
-        hash,
-      },
+    console.log(`[AuthService] User registered, emitting event for email verification: ${dto.email}`);
+    this.eventEmitter.emit('user.registered', {
+      email: dto.email,
+      hash,
     });
   }
 
@@ -256,11 +266,15 @@ export class AuthService {
 
     const user = await this.usersService.findById(userId);
 
-    if (!user || user.isActive) {
+    if (!user) {
       throw new NotFoundException({
         status: HttpStatus.NOT_FOUND,
         error: `notFound`,
       });
+    }
+
+    if (user.isActive) {
+      return;
     }
 
     await this.usersService.update(user.id, { isActive: true });
@@ -338,12 +352,11 @@ export class AuthService {
       },
     );
 
-    await this.mailService.forgotPassword({
-      to: email,
-      data: {
-        hash,
-        tokenExpires,
-      },
+    console.log(`[AuthService] Password recovery requested, emitting event: ${email}`);
+    this.eventEmitter.emit('user.forgotPassword', {
+      email,
+      hash,
+      tokenExpires,
     });
   }
 
@@ -518,11 +531,19 @@ export class AuthService {
       hash,
     });
 
+    // Ensure we have a valid workspace for the token
+    // This fixes the issue where refreshing token lost the workspace context
+    const workspace = await this.workspaceHelper.ensureUserHasWorkspace(
+      user.id,
+      user.name || undefined,
+    );
+
     const { token, refreshToken, tokenExpires } = await this.getTokensData({
       id: session.user.id,
       role: user.role,
       sessionId: session.id,
       hash,
+      workspaceId: workspace?.id,
     });
 
     return {

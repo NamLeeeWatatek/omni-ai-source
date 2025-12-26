@@ -19,7 +19,8 @@ import {
     Bot,
     Sparkles,
     Package,
-    GalleryVerticalEnd
+    GalleryVerticalEnd,
+    History
 } from 'lucide-react'
 import { WorkspaceSwitcher } from '@/components/features/workspace/WorkspaceSwitcher'
 import { cn } from '@/lib/utils'
@@ -47,7 +48,7 @@ const getTranslatedNavigation = (t: any): NavigationItem[] => [
     { name: 'Creation Tools', href: '/creation-tools', icon: Sparkles },
     // Jobs page removed in favor of global widget
     { name: 'My Products', href: '/my-products', icon: Package },
-    { name: 'Admin', href: '/admin', icon: Settings },
+    // Admin was moved to Header
     { name: t('dashboard.bots'), href: '/bots', icon: Bot },
     { name: t('dashboard.chatAI'), href: '/chat', icon: MessageSquare },
     { name: t('dashboard.channels'), href: '/channels', icon: Radio },
@@ -195,6 +196,11 @@ export const DashboardSidebar = React.memo<DashboardSidebarProps>(({
                                 <p className="text-sm font-medium truncate text-foreground">
                                     {getUserName()}
                                 </p>
+                                {capabilities?.role && (
+                                    <span className="inline-flex items-center rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary ring-1 ring-inset ring-primary/20 capitalize">
+                                        {capabilities.role}
+                                    </span>
+                                )}
                             </div>
                             <p className="text-[11px] text-muted-foreground truncate">
                                 {getUserEmail()}

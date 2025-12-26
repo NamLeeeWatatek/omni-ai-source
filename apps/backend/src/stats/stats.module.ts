@@ -8,11 +8,10 @@ import {
   ConversationEntity,
   MessageEntity,
 } from '../conversations/infrastructure/persistence/relational/entities/conversation.entity';
-// import {
-//   FlowEntity,
-//   FlowExecutionEntity,
-// } from '../flows/infrastructure/persistence/relational/entities';
 import { WorkspaceEntity } from '../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
+import { CreationToolEntity } from '../creation-tools/infrastructure/persistence/relational/entities/creation-tool.entity';
+import { TemplateEntity } from '../templates/infrastructure/persistence/relational/entities/template.entity';
+import { GenerationJobEntity } from '../generation-jobs/infrastructure/persistence/relational/entities/generation-job.entity';
 
 @Module({
   imports: [
@@ -24,10 +23,13 @@ import { WorkspaceEntity } from '../workspaces/infrastructure/persistence/relati
       // FlowEntity,
       // FlowExecutionEntity,
       WorkspaceEntity,
+      CreationToolEntity,
+      TemplateEntity,
+      GenerationJobEntity,
     ]),
   ],
   controllers: [StatsController],
   providers: [StatsService],
   exports: [StatsService],
 })
-export class StatsModule {}
+export class StatsModule { }

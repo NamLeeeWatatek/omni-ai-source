@@ -16,6 +16,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { StatsService } from './stats.service';
 import { DashboardStatsDto } from './dto/dashboard-stats.dto';
+import { SystemStatsDto } from './dto/system-stats.dto';
 import { StatsQueryDto } from './dto/stats-query.dto';
 
 @ApiTags('Stats')
@@ -23,7 +24,23 @@ import { StatsQueryDto } from './dto/stats-query.dto';
 @UseGuards(AuthGuard('jwt'))
 @Controller({ path: 'stats', version: '1' })
 export class StatsController {
-  constructor(private readonly statsService: StatsService) {}
+  constructor(private readonly statsService: StatsService) { }
+
+  @Get('system')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get system-wide statistics',
+    description: 'Retrieve comprehensive statistics for the system-wide admin dashboard',
+  })
+  @ApiOkResponse({
+    type: SystemStatsDto,
+    description: 'System statistics retrieved successfully',
+  })
+  async getSystemStats(
+    @Query() query: StatsQueryDto,
+  ): Promise<SystemStatsDto> {
+    return this.statsService.getSystemStats(query);
+  }
 
   @Get('dashboard')
   @HttpCode(HttpStatus.OK)

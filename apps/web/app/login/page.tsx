@@ -15,30 +15,34 @@ import { FaGoogle, FaFacebook } from 'react-icons/fa6'
 import { LoadingLogo } from '@/components/ui/LoadingLogo'
 import Link from 'next/link'
 
-const loginSchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(1, "Password is required"),
+const loginSchema = (t: any) => z.object({
+    email: z.string().email(t('validation.invalid')),
+    password: z.string().min(1, t('validation.required')),
 })
 
-type LoginFormValues = z.infer<typeof loginSchema>
+type LoginFormValues = z.infer<ReturnType<typeof loginSchema>>
 
 function LoginPageContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const { t } = useTranslation()
-    const { status } = useSession()
+    const { data: session, status } = useSession()
     const [loginError, setLoginError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
 
     const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
-        resolver: zodResolver(loginSchema)
+        resolver: zodResolver(loginSchema(t))
     })
 
     useEffect(() => {
-        if (status === 'authenticated') {
-            router.push('/dashboard')
+        // Only redirect if fully authenticated with a token
+        if (status === 'authenticated' && session?.accessToken) {
+            const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
+            // Ensure callbackUrl is a relative path to prevent open redirect vulnerabilities
+            const safeRedirect = callbackUrl.startsWith('/') ? callbackUrl : '/dashboard'
+            router.push(safeRedirect as any)
         }
-    }, [status, router])
+    }, [status, session, router, searchParams])
 
     useEffect(() => {
         const error = searchParams.get('error')
@@ -76,7 +80,13 @@ function LoginPageContent() {
             if (result?.error) {
                 setLoginError(t('login.errors.invalidCredentials'))
             } else {
-                router.push('/dashboard')
+                // Refresh the server-side session state before navigating
+                router.refresh()
+                const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
+                const safeRedirect = callbackUrl.startsWith('/') ? callbackUrl : '/dashboard'
+
+                // Use a soft navigation to prevent "white screen" during full reload
+                router.push(safeRedirect as any)
             }
         } catch (error) {
             setLoginError(t('login.errors.generic'))
@@ -109,7 +119,7 @@ function LoginPageContent() {
                             <Sparkles className="w-8 h-8 text-primary drop-shadow-[0_0_10px_rgba(var(--primary),0.5)]" />
                         </div>
                         <h1 className="text-3xl font-black mb-2 tracking-tighter">
-                            <span className="bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">Welcome Back</span>
+                            <span className="bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">{t('login.welcomeBack')}</span>
                         </h1>
                         <p className="text-muted-foreground text-sm" suppressHydrationWarning>
                             {t('login.subtitle')}
@@ -144,7 +154,7 @@ function LoginPageContent() {
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
                             <span className="bg-card px-2 text-muted-foreground rounded-full border border-border/50">
-                                OR
+                                {t('login.or')}
                             </span>
                         </div>
                     </div>
@@ -152,11 +162,11 @@ function LoginPageContent() {
                     {/* Email Form */}
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="email">{t('login.email')}</Label>
                             <Input
                                 id="email"
                                 type="email"
-                                placeholder="name@example.com"
+                                placeholder={t('login.emailPlaceholder')}
                                 className="h-12 bg-background/50 border-border/50"
                                 {...register('email')}
                                 disabled={isLoading}
@@ -165,12 +175,12 @@ function LoginPageContent() {
                         </div>
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="password">Password</Label>
+                                <Label htmlFor="password">{t('login.password')}</Label>
                                 <Link
                                     href={"/forgot-password" as any}
                                     className="text-xs text-primary hover:underline"
                                 >
-                                    Forgot password?
+                                    {t('login.forgotPassword')}
                                 </Link>
                             </div>
                             <Input
@@ -208,9 +218,9 @@ function LoginPageContent() {
 
                     {/* Footer */}
                     <div className="mt-8 text-center text-sm text-muted-foreground">
-                        Don&apos;t have an account?{' '}
+                        {t('login.noAccount')}{' '}
                         <Link href={"/register" as any} className="font-bold text-primary hover:underline">
-                            Sign up
+                            {t('login.signUp')}
                         </Link>
                     </div>
 

@@ -1,5 +1,6 @@
 ﻿import { User } from '../../../../domain/user';
 import { UserEntity } from '../entities/user.entity';
+import { RoleMapper } from '../../../../../roles/infrastructure/persistence/relational/mappers/role.mapper';
 
 export class UserMapper {
   static toDomain(raw: UserEntity): User {
@@ -13,8 +14,9 @@ export class UserMapper {
     domainEntity.providerId = raw.providerId;
     domainEntity.emailVerifiedAt = raw.emailVerifiedAt;
     domainEntity.isActive = raw.isActive;
-    domainEntity.role =
-      (raw.role?.name?.toLowerCase() as 'admin' | 'user') || 'user';
+    domainEntity.role = raw.role ? RoleMapper.toDomain(raw.role) : null;
+
+    domainEntity.roleId = raw.role?.id;
 
     domainEntity.firstName = raw.firstName;
     domainEntity.lastName = raw.lastName;
@@ -49,9 +51,17 @@ export class UserMapper {
     persistenceEntity.providerId = domainEntity.providerId;
     persistenceEntity.emailVerifiedAt = domainEntity.emailVerifiedAt;
     persistenceEntity.isActive = domainEntity.isActive ?? true;
-    persistenceEntity.role = {
-      id: domainEntity.role === 'admin' ? 1 : 2,
-    } as any;
+
+    // Prefer roleId if available, fallback to legacy string check, default to User (2)
+    if (domainEntity.role) {
+      persistenceEntity.role = RoleMapper.toPersistence(domainEntity.role);
+    } else if (domainEntity.roleId) {
+      persistenceEntity.role = { id: domainEntity.roleId } as any;
+    } else {
+      persistenceEntity.role = {
+        id: 2, // Default to user if no role provided
+      } as any;
+    }
 
     persistenceEntity.firstName = domainEntity.firstName;
     persistenceEntity.lastName = domainEntity.lastName;

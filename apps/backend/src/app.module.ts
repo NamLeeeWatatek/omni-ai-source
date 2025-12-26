@@ -1,6 +1,7 @@
-﻿import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+﻿import { Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
+import { BullModule } from '@nestjs/bullmq';
 import { UsersModule } from './users/users.module';
 import { FilesModule } from './files/files.module';
 import { AuthModule } from './auth/auth.module';
@@ -11,7 +12,9 @@ import mailConfig from './mail/config/mail.config';
 import fileConfig from './files/config/file.config';
 import facebookConfig from './auth-facebook/config/facebook.config';
 import googleConfig from './auth-google/config/google.config';
+
 import appleConfig from './auth-apple/config/apple.config';
+import queueConfig from './execution/config/queue.config';
 import path from 'path';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -47,10 +50,12 @@ import { SharedModule } from './shared/shared.module';
 import { TemplatesModule } from './templates/templates.module';
 import { GenerationJobsModule } from './generation-jobs/generation-jobs.module';
 import { CharactersModule } from './characters/characters.module';
+import { RolesModule } from './roles/roles.module';
 import { StylePresetsModule } from './style-presets/style-presets.module';
+import { ExecutionModule } from './execution/execution.module';
 import { ProjectsModule } from './projects/projects.module';
 import { CreationToolsModule } from './creation-tools/creation-tools.module';
-import { WorkspaceContextMiddleware } from './workspaces/middleware/workspace-context.middleware';
+
 
 /**
  * Dynamically selects the database module based on configuration.
@@ -59,14 +64,14 @@ import { WorkspaceContextMiddleware } from './workspaces/middleware/workspace-co
 const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
   .isDocumentDatabase
   ? MongooseModule.forRootAsync({
-      useClass: MongooseConfigService,
-    })
+    useClass: MongooseConfigService,
+  })
   : TypeOrmModule.forRootAsync({
-      useClass: TypeOrmConfigService,
-      dataSourceFactory: async (options: DataSourceOptions) => {
-        return new DataSource(options).initialize();
-      },
-    });
+    useClass: TypeOrmConfigService,
+    dataSourceFactory: async (options: DataSourceOptions) => {
+      return new DataSource(options).initialize();
+    },
+  });
 
 import { CreationJobsModule } from './creation-jobs/creation-jobs.module';
 
@@ -84,6 +89,7 @@ import { CreationJobsModule } from './creation-jobs/creation-jobs.module';
         facebookConfig,
         googleConfig,
         appleConfig,
+        queueConfig,
       ],
       envFilePath: ['.env'],
     }),
@@ -93,6 +99,17 @@ import { CreationJobsModule } from './creation-jobs/creation-jobs.module';
       ttl: 300,
     }),
     infrastructureDatabaseModule,
+    BullModule.forRootAsync({
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          host: configService.get('queue.host'),
+          port: configService.get('queue.port'),
+          password: configService.get('queue.password'),
+          url: configService.get('queue.url'), // Support parsed URL if present
+        },
+      }),
+      inject: [ConfigService],
+    }),
     I18nModule.forRootAsync({
       useFactory: (configService: ConfigService<AllConfigType>) => ({
         fallbackLanguage: configService.getOrThrow('app.fallbackLanguage', {
@@ -159,10 +176,8 @@ import { CreationJobsModule } from './creation-jobs/creation-jobs.module';
     NotificationsModule,
 
     PermissionsModule,
+    RolesModule,
+    ExecutionModule,
   ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(WorkspaceContextMiddleware).forRoutes('*');
-  }
-}
+export class AppModule { }

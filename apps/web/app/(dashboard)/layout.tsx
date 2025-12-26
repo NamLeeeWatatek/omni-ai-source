@@ -13,6 +13,7 @@ import toast from '@/lib/toast'
 import { useTranslation } from 'react-i18next'
 import { ErrorBoundary } from '@/components/providers/ErrorBoundary'
 import { CreationJobsProvider } from '@/components/providers/CreationJobsProvider'
+import { QueryProvider } from '@/components/providers/QueryProvider'
 import { ActiveJobsWidget } from '@/components/features/creation-tools/ActiveJobsWidget'
 
 export default function DashboardLayout({
@@ -26,6 +27,7 @@ export default function DashboardLayout({
     const [showNotifications, setShowNotifications] = useState(false)
 
     // Auth hooks
+    const [isLoggingOut, setIsLoggingOut] = useState(false)
     const { isAuthenticated, isLoading, signOut, accessToken, error } = useAuth()
     const pathname = usePathname()
     const router = useRouter()
@@ -35,29 +37,29 @@ export default function DashboardLayout({
     useEffect(() => {
         if (isLoading) return
 
-        if (error === 'RefreshAccessTokenError') {
-            toast.error('Session expired. Please log in again.')
-            signOut()
-            return
-        }
-
         if (!isAuthenticated || !accessToken) {
-            router.push('/login')
+            const currentPath = window.location.pathname + window.location.search
+            router.push(`/login?callbackUrl=${encodeURIComponent(currentPath)}` as any)
         }
-    }, [isLoading, isAuthenticated, accessToken, error, router, signOut])
+    }, [isLoading, isAuthenticated, accessToken, router])
 
-    if (isLoading) {
+    // While loading session OR performing logout, show global loading screen
+    if (isLoading || isLoggingOut) {
         return (
             <div className="h-screen flex items-center justify-center bg-background">
-                <LoadingLogo size="lg" text={t('common.loading')} />
+                <LoadingLogo size="lg" text={isLoggingOut ? t('dashboard.confirm.signingOut') : t('common.loading')} />
             </div>
         )
     }
 
-    // Handle authentication errors - redirect to login if not authenticated
-    // Middleware handles most of this, but if client-side check fails, just redirect silently
+    // Rely on middleware for protection. 
+    // If we reach here and not authenticated, we redirect.
     if (!isAuthenticated || !accessToken) {
-        return null
+        return (
+            <div className="h-screen flex items-center justify-center bg-background">
+                <LoadingLogo size="lg" text={t('login.redirecting')} />
+            </div>
+        )
     }
 
     // Layout action handlers
@@ -77,15 +79,17 @@ export default function DashboardLayout({
         setShowNotifications(!showNotifications)
     }
 
+
     const handleSignOut = async () => {
-        toast.promise(
-            signOut(),
-            {
-                loading: 'Signing out',
-                success: 'Signed out successfully',
-                error: 'Failed to sign out'
-            }
-        )
+        setIsLoggingOut(true);
+        try {
+            // Clean logout with redirect to login
+            await signOut({ redirect: true, callbackUrl: '/login' });
+        } catch (err) {
+            console.error('Logout failed:', err);
+            setIsLoggingOut(false);
+            if (typeof window !== 'undefined') (window as any)._isSigningOut = false;
+        }
     }
 
     // Responsive page container logic
@@ -126,28 +130,30 @@ export default function DashboardLayout({
 
             {/* Main content area */}
             <main className="flex-1 flex flex-col lg:pl-64 overflow-hidden min-w-0 transition-all duration-300">
-                {/* Header with Redux-managed features */}
-                <DashboardHeader
-                    showNotifications={showNotifications}
-                    onToggleNotifications={handleToggleNotifications}
-                    onToggleSidebar={handleToggleSidebar}
-                />
+                <QueryProvider>
+                    <CreationJobsProvider>
+                        {/* Header with Redux-managed features */}
+                        <DashboardHeader
+                            showNotifications={showNotifications}
+                            onToggleNotifications={handleToggleNotifications}
+                            onToggleSidebar={handleToggleSidebar}
+                        />
 
-                {/* Content area with conditional container classes */}
-                <div className="flex-1 overflow-hidden relative min-h-0">
-                    <div className={`h-full ${isSpecialPage ? '' : isFlowPage ? 'page-container-full overflow-auto' : 'page-container overflow-auto'}`}>
-                        <ErrorBoundary>
-                            <CreationJobsProvider>
-                                {children}
-                                <ActiveJobsWidget />
-                            </CreationJobsProvider>
-                        </ErrorBoundary>
-                    </div>
-                </div>
-            </main>
+                        {/* Content area with conditional container classes */}
+                        <div className="flex-1 overflow-hidden relative min-h-0">
+                            <div className={`h-full ${isSpecialPage ? '' : isFlowPage ? 'page-container-full overflow-auto' : 'page-container overflow-auto'}`}>
+                                <ErrorBoundary>
+                                    {children}
+                                </ErrorBoundary>
+                            </div>
+                        </div>
+                        <ActiveJobsWidget />
+                    </CreationJobsProvider>
+                </QueryProvider>
+            </main >
 
             {/* Progress Overlay for async operations */}
-            <ProgressOverlay />
-        </div>
+            < ProgressOverlay />
+        </div >
     )
 }

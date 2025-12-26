@@ -37,6 +37,7 @@ import {
   MoreHorizontal
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatDate } from '@/lib/utils/date';
 
 interface Channel {
   id: string;
@@ -312,7 +313,7 @@ export function ConnectedChannelsTab({
                   {
                     key: 'createdAt',
                     label: 'Connected',
-                    render: (value) => <span className="text-xs font-medium text-muted-foreground">{new Date(value).toLocaleDateString()}</span>
+                    render: (value) => <span className="text-xs font-medium text-muted-foreground">{formatDate(value)}</span>
                   },
                   {
                     key: 'actions',

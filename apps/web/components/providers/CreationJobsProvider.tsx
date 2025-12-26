@@ -11,6 +11,7 @@ interface CreationJobsContextType {
     activeJobs: CreationJob[];
     addJob: (job: CreationJob) => void;
     removeJob: (jobId: string) => void;
+    refreshJobs: () => Promise<void>;
     isLoading: boolean;
 }
 
@@ -31,28 +32,31 @@ export function CreationJobsProvider({ children }: { children: React.ReactNode }
     // But to be truly persistent across refreshes, we should fetch from API.
     // Let's assume we can fetch active jobs.
 
-    useEffect(() => {
-        if (session?.user?.id) {
-            fetchActiveJobs();
-        }
-    }, [session?.user?.id]);
-
-    const fetchActiveJobs = async () => {
+    const fetchActiveJobs = useCallback(async () => {
         try {
             // Fetch pending and processing jobs to resume tracking
             const response = await creationJobsApi.findAll({
-                status: ['PENDING', 'PROCESSING'],
-                limit: 20,
-                sort: 'createdAt:desc'
+                status: ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'], // Fetch recently changed if needed, or just standard
+                limit: 10,
+                sort: 'updatedAt:desc'
             });
 
-            if (response.data && response.data.length > 0) {
-                setActiveJobs(response.data);
+            if (response.data) {
+                setActiveJobs(prev => {
+                    // Merge logic or replace? For simplicity, we replace but keep existing completions that might be newer
+                    return response.data;
+                });
             }
         } catch (error) {
             console.error("Failed to fetch active jobs", error);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        if (session?.user?.id) {
+            fetchActiveJobs();
+        }
+    }, [session?.user?.id, fetchActiveJobs]);
 
     const addJob = useCallback((job: CreationJob) => {
         setActiveJobs(prev => {
@@ -61,9 +65,19 @@ export function CreationJobsProvider({ children }: { children: React.ReactNode }
         });
     }, []);
 
-    const removeJob = useCallback((jobId: string) => {
-        setActiveJobs(prev => prev.filter(job => job.id !== jobId));
-    }, []);
+    const removeJob = useCallback(async (jobId: string) => {
+        try {
+            await creationJobsApi.remove(jobId);
+            setActiveJobs(prev => prev.filter(job => job.id !== jobId));
+        } catch (error) {
+            console.error("Failed to delete job", error);
+            toast({
+                title: "Error",
+                description: "Failed to remove job from history",
+                variant: "destructive"
+            });
+        }
+    }, [toast]);
 
     useEffect(() => {
         if (!session?.user?.id || !(session as any)?.accessToken) return;
@@ -76,15 +90,9 @@ export function CreationJobsProvider({ children }: { children: React.ReactNode }
         const unsubscribe = wsService.on('notifications', 'new_notification', (notification: any) => {
             if (notification.type === 'job_progress') {
                 setActiveJobs(prev => {
-                    // Check if job exists in our tracked list. If not, should we add it?
-                    // Maybe only if it's processing.
-
                     const existingJobIndex = prev.findIndex(j => j.id === notification.data.jobId);
 
                     if (existingJobIndex === -1) {
-                        // Optional: if we receive progress for a job we don't know about (e.g. from another tab/device), 
-                        // we could fetch it and add it. For now, ignore or handling is complex without full job data.
-                        // But if we want truly global sync, we might need to fetch the job details.
                         return prev;
                     }
 
@@ -95,7 +103,6 @@ export function CreationJobsProvider({ children }: { children: React.ReactNode }
                         ...currentJob,
                         progress: notification.data.progress ?? currentJob.progress,
                         status: notification.data.status ?? currentJob.status,
-                        // Update other fields if provided
                         outputData: notification.data.outputData ?? currentJob.outputData,
                         error: notification.data.error ?? currentJob.error,
                         updatedAt: new Date().toISOString()
@@ -103,25 +110,33 @@ export function CreationJobsProvider({ children }: { children: React.ReactNode }
 
                     updatedJobs[existingJobIndex] = updatedJob;
 
-                    // Handle completion notifications
+                    const getDisplayName = (job: CreationJob) => {
+                        const toolName = job.creationTool?.name || 'Product';
+                        const input = job.inputData as any;
+                        const subject = input?.prompt || input?.title || input?.name || input?.concept || input?.subject || input?.text;
+
+                        if (subject && typeof subject === 'string') {
+                            return subject.length > 50 ? subject.substring(0, 47) + '...' : subject;
+                        }
+
+                        return toolName;
+                    };
+
                     if ((updatedJob.status === 'COMPLETED' || updatedJob.status === 'FAILED') &&
                         currentJob.status !== updatedJob.status) {
 
                         if (!processedcompletions.current.has(updatedJob.id)) {
                             processedcompletions.current.add(updatedJob.id);
 
+                            const displayName = getDisplayName(updatedJob);
+
                             toast({
-                                title: updatedJob.status === 'COMPLETED' ? 'Job Completed' : 'Job Failed',
+                                title: updatedJob.status === 'COMPLETED' ? 'Generation Successful' : 'Generation Failed',
                                 description: updatedJob.status === 'COMPLETED'
-                                    ? `Creation job specifically for ${updatedJob.creationToolId} finished successfully.`
-                                    : `Creation job failed. check details for more info.`,
+                                    ? `"${displayName}" is ready for you.`
+                                    : `Failed to generate "${displayName}". Please try again.`,
                                 variant: updatedJob.status === 'COMPLETED' ? 'default' : 'destructive',
                             });
-
-                            // Auto-remove after delay? Users wanted a management page, so let's KEEP them until dismissed manually
-                            // OR move them to "history" tab in widget? 
-                            // Current requirement: "coi nó đang tới đâu" (see where it is). 
-                            // Let's keep them in the list.
                         }
                     }
 
@@ -136,7 +151,7 @@ export function CreationJobsProvider({ children }: { children: React.ReactNode }
     }, [session?.user?.id, toast]);
 
     return (
-        <CreationJobsContext.Provider value={{ activeJobs, addJob, removeJob, isLoading }}>
+        <CreationJobsContext.Provider value={{ activeJobs, addJob, removeJob, refreshJobs: fetchActiveJobs, isLoading }}>
             {children}
         </CreationJobsContext.Provider>
     );

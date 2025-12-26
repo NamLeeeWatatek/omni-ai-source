@@ -25,7 +25,7 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/AlertDialog';
 
-export default function CreationToolsManagePage() {
+export default function CreationToolsPage() {
     const router = useRouter();
     const [tools, setTools] = useState<CreationTool[]>([]);
     const [loading, setLoading] = useState(true);
@@ -176,7 +176,6 @@ export default function CreationToolsManagePage() {
                     <>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-2">
                             {paginatedTools.map((tool) => (
-                                // ... Card Render
                                 <Card
                                     key={tool.id}
                                     className="group hover:shadow-xl transition-all duration-300 border-border/60 hover:border-primary/20 hover:-translate-y-1 overflow-hidden flex flex-col h-full bg-card"
@@ -226,7 +225,7 @@ export default function CreationToolsManagePage() {
                                                 variant="outline"
                                                 size="sm"
                                                 className="h-8 w-8 px-0"
-                                                onClick={() => router.push(`/admin/templates/manage?toolId=${tool.id}`)}
+                                                onClick={() => router.push(`/system/templates?toolId=${tool.id}`)}
                                                 title="View Templates"
                                             >
                                                 <LayoutTemplate className="w-3.5 h-3.5" />

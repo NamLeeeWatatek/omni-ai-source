@@ -5,16 +5,26 @@ import { IPaginationOptions } from '../utils/types/pagination-options';
 import { NullableType } from '../utils/types/nullable.type';
 import { DeepPartial } from '../utils/types/deep-partial.type';
 
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { JOB_QUEUE } from '../execution/queue/execution-queue.module';
+
 @Injectable()
 export class GenerationJobsService {
   constructor(
     private readonly generationJobRepository: GenerationJobRepository,
-  ) {}
+    @InjectQueue(JOB_QUEUE) private readonly jobQueue: Queue,
+  ) { }
 
   async create(
     data: Omit<GenerationJob, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>,
   ): Promise<GenerationJob> {
-    return this.generationJobRepository.create(data);
+    const job = await this.generationJobRepository.create(data);
+
+    // Push to Queue (Fire and forget, or await if critical)
+    await this.jobQueue.add('process-job', { generationJob: job });
+
+    return job;
   }
 
   async findManyWithPagination({

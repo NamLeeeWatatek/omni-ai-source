@@ -12,10 +12,12 @@ import bcrypt from 'bcryptjs';
 import { AuthProvidersEnum } from '../auth/auth-providers.enum';
 import { IPaginationOptions } from '../utils/types/pagination-options';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { RoleEnum } from '../roles/roles.enum';
+import { Role } from '../roles/domain/role';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly usersRepository: UserRepository) {}
+  constructor(private readonly usersRepository: UserRepository) { }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     let password: string | undefined = undefined;
@@ -57,7 +59,15 @@ export class UsersService {
       provider: createUserDto.provider ?? AuthProvidersEnum.email,
       providerId: createUserDto.providerId ?? createUserDto.socialId,
       isActive: createUserDto.isActive ?? true,
-      role: createUserDto.role ?? 'user',
+      role: createUserDto.role
+        ? ({
+          id: RoleEnum[createUserDto.role as keyof typeof RoleEnum],
+          name: createUserDto.role,
+        } as Role)
+        : ({
+          id: RoleEnum.user,
+          name: 'user',
+        } as Role),
       firstName: createUserDto.firstName,
       lastName: createUserDto.lastName,
       socialId: createUserDto.socialId,
@@ -160,7 +170,17 @@ export class UsersService {
       provider: updateUserDto.provider,
       providerId: updateUserDto.providerId ?? updateUserDto.socialId,
       isActive: updateUserDto.isActive,
-      role: updateUserDto.role,
+      role:
+        updateUserDto.role !== undefined
+          ? typeof updateUserDto.role === 'string'
+            ? ({
+              id: RoleEnum[updateUserDto.role as keyof typeof RoleEnum],
+              name: updateUserDto.role,
+            } as Role)
+            : (updateUserDto.role as Role | null)
+          : undefined,
+      roleId: updateUserDto.roleId,
+      permissions: updateUserDto.permissions,
       emailVerifiedAt: updateUserDto.emailVerifiedAt,
       firstName: updateUserDto.firstName,
       lastName: updateUserDto.lastName,

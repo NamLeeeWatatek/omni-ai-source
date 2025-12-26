@@ -9,8 +9,11 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard } from '../roles/roles.guard';
 import { TemplatesService } from './templates.service';
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
@@ -24,13 +27,13 @@ import { infinityPagination } from '../utils/infinity-pagination';
 
 @ApiTags('Templates')
 @ApiBearerAuth()
-// @UseGuards(AuthGuard('jwt'), RolesGuard)
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 @Controller({
   path: 'templates',
   version: '1',
 })
 export class TemplatesController {
-  constructor(private readonly templatesService: TemplatesService) {}
+  constructor(private readonly templatesService: TemplatesService) { }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)

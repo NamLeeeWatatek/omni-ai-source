@@ -77,81 +77,101 @@ export function ActiveJobsWidget() {
                                 {/* Content */}
                                 <ScrollArea className="max-h-[60vh] min-h-[100px] overflow-hidden">
                                     <div className="divide-y divide-border/30">
-                                        {activeJobs.map(job => (
-                                            <div
-                                                key={job.id}
-                                                className={cn(
-                                                    "p-4 transition-colors group relative cursor-pointer",
-                                                    job.status === CreationJobStatus.COMPLETED ? "hover:bg-green-500/5 cursor-pointer" : "hover:bg-muted/30"
-                                                )}
-                                                onClick={() => {
-                                                    if (job.status === CreationJobStatus.COMPLETED) {
-                                                        setSelectedJob(job);
-                                                    }
-                                                }}
-                                            >
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div>
-                                                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
-                                                            {job.creationToolId || 'Creation Job'}
-                                                        </p>
-                                                        <p className="text-xs font-mono text-muted-foreground/70 truncate w-32">
-                                                            #{job.id.substring(0, 8)}
-                                                        </p>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <Badge variant={
-                                                            job.status === CreationJobStatus.COMPLETED ? 'default' :
-                                                                job.status === CreationJobStatus.FAILED ? 'destructive' : 'outline'
-                                                        } className={cn("text-[10px] px-2 h-5 capitalize shadow-none font-bold tracking-wide",
-                                                            job.status === CreationJobStatus.COMPLETED && "bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/20",
-                                                            job.status === CreationJobStatus.FAILED && "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20",
-                                                            (job.status === CreationJobStatus.PENDING || job.status === CreationJobStatus.PROCESSING) && "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20 animate-pulse"
-                                                        )}>
-                                                            {job.status.toLowerCase()}
-                                                        </Badge>
+                                        {activeJobs.map(job => {
+                                            const getDisplayName = () => {
+                                                const toolName = job.creationTool?.name || 'Product';
+                                                const input = job.inputData as any;
+                                                const subject = input?.prompt || input?.title || input?.name || input?.concept || input?.subject || input?.text;
 
-                                                        {/* Allow removing completed/failed jobs */}
-                                                        {(job.status === CreationJobStatus.COMPLETED || job.status === CreationJobStatus.FAILED) && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity -mr-1"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    removeJob(job.id);
-                                                                }}
-                                                            >
-                                                                <X className="w-3 h-3 text-muted-foreground" />
-                                                            </Button>
-                                                        )}
+                                                if (subject && typeof subject === 'string') {
+                                                    return subject.length > 40 ? subject.substring(0, 37) + '...' : subject;
+                                                }
+
+                                                return toolName;
+                                            };
+
+                                            const displayName = getDisplayName();
+
+                                            return (
+                                                <div
+                                                    key={job.id}
+                                                    className={cn(
+                                                        "p-4 transition-colors group relative cursor-pointer",
+                                                        job.status === CreationJobStatus.COMPLETED ? "hover:bg-green-500/5 cursor-pointer" : "hover:bg-muted/30"
+                                                    )}
+                                                    onClick={() => {
+                                                        if (job.status === CreationJobStatus.COMPLETED) {
+                                                            setSelectedJob(job);
+                                                        }
+                                                    }}
+                                                >
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div className="min-w-0 pr-2">
+                                                            <p className="text-[11px] font-bold uppercase tracking-wider text-primary mb-0.5 truncate">
+                                                                {displayName}
+                                                            </p>
+                                                            <p className="text-[10px] font-mono text-muted-foreground/60">
+                                                                ID: {job.id.substring(0, 8)}
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 shrink-0">
+                                                            <Badge variant={
+                                                                job.status === CreationJobStatus.COMPLETED ? 'default' :
+                                                                    job.status === CreationJobStatus.FAILED ? 'destructive' : 'outline'
+                                                            } className={cn("text-[10px] px-2 h-5 capitalize shadow-none font-bold tracking-wide",
+                                                                job.status === CreationJobStatus.COMPLETED && "bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/20",
+                                                                job.status === CreationJobStatus.FAILED && "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20",
+                                                                (job.status === CreationJobStatus.PENDING || job.status === CreationJobStatus.PROCESSING) && "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20 animate-pulse"
+                                                            )}>
+                                                                {job.status.toLowerCase()}
+                                                            </Badge>
+
+                                                            {/* Allow removing completed/failed jobs */}
+                                                            {(job.status === CreationJobStatus.COMPLETED || job.status === CreationJobStatus.FAILED) && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity -mr-1"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        removeJob(job.id);
+                                                                    }}
+                                                                >
+                                                                    <X className="w-3 h-3 text-muted-foreground" />
+                                                                </Button>
+                                                            )}
+                                                        </div>
                                                     </div>
+
+                                                    {job.status === CreationJobStatus.PROCESSING || job.status === CreationJobStatus.PENDING ? (
+                                                        <div className="space-y-1.5 mt-2">
+                                                            <div className="flex justify-between text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
+                                                                <span className="animate-pulse text-primary">Creating...</span>
+                                                                <span>{job.progress}%</span>
+                                                            </div>
+                                                            <Progress
+                                                                value={job.progress}
+                                                                className="h-1.5 w-full bg-secondary border border-primary/5 shadow-inner"
+                                                                indicatorClassName="bg-gradient-to-r from-primary via-indigo-500 to-purple-500 shadow-[0_0_8px_rgba(var(--primary),0.3)]"
+                                                            />
+                                                        </div>
+                                                    ) : job.status === CreationJobStatus.COMPLETED ? (
+                                                        <div className="flex items-center justify-between mt-2">
+                                                            <div className="flex items-center gap-2 text-green-600 dark:text-green-500 text-xs font-bold animate-in fade-in slide-in-from-bottom-1">
+                                                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                                                <span>Ready to view</span>
+                                                            </div>
+                                                            <ExternalLink className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2 mt-2 text-red-600 dark:text-red-500 text-xs font-bold animate-in fade-in slide-in-from-bottom-1">
+                                                            <XCircle className="w-3.5 h-3.5" />
+                                                            <span>Failed</span>
+                                                        </div>
+                                                    )}
                                                 </div>
-
-                                                {job.status === CreationJobStatus.PROCESSING || job.status === CreationJobStatus.PENDING ? (
-                                                    <div className="space-y-2 mt-2">
-                                                        <div className="flex justify-between text-[10px] text-muted-foreground font-medium">
-                                                            <span>Processing...</span>
-                                                            <span>{job.progress}%</span>
-                                                        </div>
-                                                        <Progress value={job.progress} className="h-1.5 w-full bg-muted" />
-                                                    </div>
-                                                ) : job.status === CreationJobStatus.COMPLETED ? (
-                                                    <div className="flex items-center justify-between mt-2">
-                                                        <div className="flex items-center gap-2 text-green-600 dark:text-green-500 text-xs font-bold animate-in fade-in slide-in-from-bottom-1">
-                                                            <CheckCircle2 className="w-3.5 h-3.5" />
-                                                            <span>Ready to view</span>
-                                                        </div>
-                                                        <ExternalLink className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center gap-2 mt-2 text-red-600 dark:text-red-500 text-xs font-bold animate-in fade-in slide-in-from-bottom-1">
-                                                        <XCircle className="w-3.5 h-3.5" />
-                                                        <span>Failed</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </ScrollArea>
 

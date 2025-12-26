@@ -5,15 +5,21 @@ import { CreationJobsRepository } from './infrastructure/persistence/creation-jo
 import { IPaginationOptions } from '../utils/types/pagination-options';
 import { CreationJob, CreationJobStatus } from './domain/creation-jobs';
 import { NullableType } from '../utils/types/nullable.type';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { JOB_QUEUE } from '../execution/queue/execution-queue.module';
 
 import { NotificationsGateway } from '../notifications/notifications.gateway';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class CreationJobsService {
   constructor(
+    @InjectQueue(JOB_QUEUE) private readonly jobQueue: Queue, // Renamed to avoid confusion, but simpler to use generic name
     private readonly creationJobsRepository: CreationJobsRepository,
     private readonly notificationsGateway: NotificationsGateway,
-  ) {}
+    private readonly auditService: AuditService,
+  ) { }
 
   async create(
     createDto: CreateCreationJobDto,
@@ -31,6 +37,18 @@ export class CreationJobsService {
 
     const createdJob = await this.creationJobsRepository.create(job);
 
+    // Activity Log - User started a job
+    if (userId && workspaceId) {
+      await this.auditService.log({
+        userId,
+        workspaceId,
+        action: 'JOB_STARTED',
+        resourceType: 'creation-job',
+        resourceId: createdJob.id,
+        details: { toolId: createDto.creationToolId },
+      });
+    }
+
     // Notify user about job creation
     if (userId) {
       this.notificationsGateway.emitNewNotification({
@@ -43,70 +61,36 @@ export class CreationJobsService {
       });
     }
 
-    // Trigger async processing (Mocking the execution engine)
-    this.processJob(createdJob.id, userId, workspaceId);
+    // Trigger async processing (Real Execution Engine)
+    await this.jobQueue.add('execute-creation-job', { creationJob: createdJob });
 
     return createdJob;
   }
 
-  private async processJob(
-    jobId: string,
-    userId?: string,
-    workspaceId?: string,
-  ) {
-    // Simulate processing steps
-    const steps = 10;
-    const interval = 800; // 800ms per step
+  // processJob method removed
 
-    try {
-      // Update to PROCESSING
-      await this.update(jobId, {
-        status: CreationJobStatus.PROCESSING,
-        progress: 0,
-      });
-
-      for (let i = 1; i <= steps; i++) {
-        await new Promise((resolve) => setTimeout(resolve, interval));
-
-        const progress = i * 10;
-        await this.update(jobId, {
-          progress,
-        });
-      }
-
-      // Complete
-      await this.update(jobId, {
-        status: CreationJobStatus.COMPLETED,
-        progress: 100,
-        outputData: {
-          result: 'Generated content simulation',
-          imageUrl: 'https://via.placeholder.com/1024',
-        },
-      });
-    } catch (error) {
-      console.error(`Job processing failed for ${jobId}`, error);
-      await this.update(jobId, {
-        status: CreationJobStatus.FAILED,
-        error: error.message,
-      });
-    }
-  }
 
   findAllWithPagination({
     paginationOptions,
+    workspaceId,
   }: {
     paginationOptions: IPaginationOptions;
+    workspaceId: string;
   }) {
     return this.creationJobsRepository.findAllWithPagination({
       paginationOptions: {
         page: paginationOptions.page,
         limit: paginationOptions.limit,
       },
+      filterOptions: { workspaceId },
     });
   }
 
-  findById(id: CreationJob['id']): Promise<NullableType<CreationJob>> {
-    return this.creationJobsRepository.findById(id);
+  findById(
+    id: CreationJob['id'],
+    workspaceId: string,
+  ): Promise<NullableType<CreationJob>> {
+    return this.creationJobsRepository.findById(id, workspaceId);
   }
 
   findByIds(ids: CreationJob['id'][]): Promise<CreationJob[]> {
@@ -115,9 +99,14 @@ export class CreationJobsService {
 
   async update(
     id: CreationJob['id'],
+    workspaceId: string,
     updateDto: UpdateCreationJobDto,
   ): Promise<CreationJob | null> {
-    const updatedJob = await this.creationJobsRepository.update(id, updateDto);
+    const updatedJob = await this.creationJobsRepository.update(
+      id,
+      workspaceId,
+      updateDto,
+    );
 
     if (updatedJob && updatedJob.createdBy) {
       // Emit socket event for real-time progress
@@ -140,7 +129,11 @@ export class CreationJobsService {
     return updatedJob;
   }
 
-  remove(id: CreationJob['id']): Promise<void> {
-    return this.creationJobsRepository.remove(id);
+  remove(id: CreationJob['id'], workspaceId: string): Promise<void> {
+    return this.creationJobsRepository.remove(id, workspaceId);
+  }
+
+  removeMany(ids: CreationJob['id'][], workspaceId: string): Promise<void> {
+    return this.creationJobsRepository.removeMany(ids, workspaceId);
   }
 }

@@ -6,15 +6,15 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export interface FormField {
   name: string;
   type:
-    | 'text'
-    | 'textarea'
-    | 'select'
-    | 'radio'
-    | 'checkbox'
-    | 'number'
-    | 'file'
-    | 'slider'
-    | 'color';
+  | 'text'
+  | 'textarea'
+  | 'select'
+  | 'radio'
+  | 'checkbox'
+  | 'number'
+  | 'file'
+  | 'slider'
+  | 'color';
   label: string;
   placeholder?: string;
   description?: string;
@@ -55,18 +55,44 @@ export interface FormConfig {
   submitLabel?: string;
 }
 
-/**
- * Execution flow configuration interface
- */
-export interface ExecutionFlow {
-  type: 'ai-generation' | 'bot-execution' | 'workflow';
-  provider?: string; // e.g., 'openai', 'replicate', 'elevenlabs'
-  model?: string;
-  endpoint?: string;
-  parameters?: Record<string, any>;
-  outputType?: 'image' | 'video' | 'audio' | 'text' | 'json';
+export enum ExecutionType {
+  AI_GENERATION = 'ai-generation',
+  HTTP_WEBHOOK = 'http-webhook',
+  WORKFLOW_CHAIN = 'workflow-chain',
 }
 
+/**
+ * AI Execution Configuration
+ */
+export interface AiExecutionConfig {
+  type: ExecutionType.AI_GENERATION;
+  provider: 'openai' | 'anthropic' | 'gemini';
+  model: string;
+  parameters?: Record<string, any>;
+  promptTemplate: string; // e.g. "Write a story about {{topic}}"
+}
+
+/**
+ * HTTP Webhook Execution Configuration (Enterprise Standard)
+ */
+export interface HttpExecutionConfig {
+  type: ExecutionType.HTTP_WEBHOOK;
+  urlTemplate: string; // e.g., "https://api.crm.com/leads/{{userId}}"
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  headers?: Record<string, string>;
+
+  // Supports complex JSON structures with liquidjs-style injection
+  bodyTemplate?: Record<string, any> | string;
+
+  // Resiliency Settings
+  timeoutMs?: number; // Default 5000
+  retryCount?: number; // Default 3
+
+  // Validation
+  successCondition?: string;
+}
+
+export type ExecutionFlow = AiExecutionConfig | HttpExecutionConfig;
 /**
  * CreationTool domain entity
  * Main entity that defines a creation tool with dynamic forms and execution logic

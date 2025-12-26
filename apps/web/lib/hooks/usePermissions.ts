@@ -5,11 +5,17 @@
 import { useQuery } from '@tanstack/react-query'
 import { permissionsApi } from '@/lib/api/permissions'
 import type { UserCapabilities, ResourceType } from '@/lib/types/permissions'
+import { useAppSelector } from '@/lib/store/hooks'
 
 export function usePermissions() {
+  const { currentWorkspace } = useAppSelector(state => state.workspace)
+
   const { data: capabilities, isLoading, error } = useQuery<UserCapabilities>({
-    queryKey: ['permissions', 'capabilities'],
+    queryKey: ['permissions', 'capabilities', currentWorkspace?.id],
     queryFn: permissionsApi.getMyCapabilities,
+    // Only fetch if we have a workspace or if we want to fallback to system?
+    // Actually backend handles no-workspaceID by return system perms.
+    enabled: true,
     staleTime: 5 * 60 * 1000,
     retry: 1,
   })

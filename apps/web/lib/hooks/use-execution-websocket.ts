@@ -59,7 +59,10 @@ export function useExecutionWebSocket(
 
             const namespace = 'executions'
 
-            wsService.connect(namespace, async () => {
+            wsService.connect(namespace, {
+                token: session?.accessToken,
+                userId: session?.user?.id
+            }, async () => {
 
                 try {
                     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'

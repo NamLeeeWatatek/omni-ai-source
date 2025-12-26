@@ -7,11 +7,11 @@ export const creationJobsApi = {
         return response as unknown as CreationJob;
     },
 
-    findAll: async (query?: any): Promise<{ data: CreationJob[]; hasNextPage: boolean }> => {
-        const response = await axiosClient.get<{ data: CreationJob[]; hasNextPage: boolean }>('/creation-jobs', {
+    findAll: async (query?: any): Promise<{ data: CreationJob[]; hasNextPage: boolean; total: number }> => {
+        const response = await axiosClient.get<{ data: CreationJob[]; hasNextPage: boolean; total: number }>('/creation-jobs', {
             params: query,
         });
-        return response as unknown as { data: CreationJob[]; hasNextPage: boolean };
+        return response as unknown as { data: CreationJob[]; hasNextPage: boolean; total: number };
     },
 
     findOne: async (id: string): Promise<CreationJob> => {
@@ -21,5 +21,9 @@ export const creationJobsApi = {
 
     remove: async (id: string): Promise<void> => {
         await axiosClient.delete(`/creation-jobs/${id}`);
+    },
+
+    removeMany: async (ids: string[]): Promise<void> => {
+        await axiosClient.post('/creation-jobs/bulk-delete', { ids });
     },
 };

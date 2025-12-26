@@ -422,7 +422,7 @@ export default function KnowledgeBaseDetailPage() {
                 <div onClick={e => e.stopPropagation()} className="flex justify-center">
                     <Checkbox
                         checked={selectedIds.includes(row.id)}
-                        onChange={() => dispatch(toggleSelection(row.id))}
+                        onCheckedChange={() => dispatch(toggleSelection(row.id))}
                     />
                 </div>
             )

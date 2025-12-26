@@ -14,10 +14,10 @@ import { AllConfigType } from './config/config.type';
 import { ResolvePromisesInterceptor } from './utils/serializer.interceptor';
 import helmet from 'helmet';
 import * as bodyParser from 'body-parser';
-import { WorkspaceContextMiddleware } from './workspaces/middleware/workspace-context.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
+    bodyParser: false,
     cors: {
       origin: process.env.FRONTEND_DOMAIN || 'http://localhost:3000',
       credentials: true,
@@ -36,8 +36,8 @@ async function bootstrap() {
   );
 
   // âœ… Add default body parser for all other routes
-  app.use(bodyParser.json({ limit: '10mb' }));
-  app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+  app.use(bodyParser.json({ limit: '50mb' }));
+  app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
   app.use(
     helmet({

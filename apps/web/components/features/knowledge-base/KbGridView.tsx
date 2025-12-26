@@ -133,7 +133,7 @@ export function KbGridView({
             <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
               <Checkbox
                 checked={selectedIds.includes(item.id)}
-                onChange={() => onToggleSelection(item.id)}
+                onCheckedChange={() => onToggleSelection(item.id)}
                 onClick={(e) => e.stopPropagation()}
               />
             </div>

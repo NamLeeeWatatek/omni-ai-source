@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { BotsModule } from '../bots/bots.module';
 import { AiProvidersModule } from '../ai-providers/ai-providers.module';
 import { FilesModule } from '../files/files.module';
+import { AuditModule } from '../audit/audit.module';
 
 import { KnowledgeBaseController } from './knowledge-base.controller';
 import { KnowledgeBaseDocumentsController } from './knowledge-base-documents.controller';
@@ -49,6 +50,7 @@ import { KBChunkEntity } from './infrastructure/persistence/relational/entities/
     forwardRef(() => BotsModule),
     AiProvidersModule,
     FilesModule,
+    AuditModule,
   ],
   controllers: [
     KnowledgeBaseController,
@@ -77,4 +79,4 @@ import { KBChunkEntity } from './infrastructure/persistence/relational/entities/
     KBProcessingQueueService,
   ],
 })
-export class KnowledgeBaseModule {}
+export class KnowledgeBaseModule { }

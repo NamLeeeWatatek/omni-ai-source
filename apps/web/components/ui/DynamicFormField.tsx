@@ -364,7 +364,7 @@ export const DynamicFormField = memo(function DynamicFormField({
                         <Checkbox
                             id={fieldId}
                             checked={currentValue || false}
-                            onChange={(e) => onChange(field.name, e.target.checked)}
+                            onCheckedChange={(checked) => onChange(field.name, checked)}
                         />
                         <Label htmlFor={fieldId} className="text-sm font-medium cursor-pointer">
                             {field.label}

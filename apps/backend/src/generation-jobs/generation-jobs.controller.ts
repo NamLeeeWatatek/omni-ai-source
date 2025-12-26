@@ -29,9 +29,9 @@ import { infinityPagination } from '../utils/infinity-pagination';
   version: '1',
 })
 export class GenerationJobsController {
-  constructor(private readonly generationJobsService: GenerationJobsService) {}
+  constructor(private readonly generationJobsService: GenerationJobsService) { }
 
-  // @Roles(RoleEnum.user, RoleEnum.admin)
+  @Roles(RoleEnum.user, RoleEnum.admin)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(

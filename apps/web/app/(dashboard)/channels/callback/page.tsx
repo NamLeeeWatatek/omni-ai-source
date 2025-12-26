@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/hooks/useAuth';
 import axiosClient from '@/lib/axios-client';
 
 export default function ChannelCallbackPage() {
   const searchParams = useSearchParams();
-  const { data: session } = useSession();
+  const { user } = useAuth();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Processing...');
   const [processed, setProcessed] = useState(false);

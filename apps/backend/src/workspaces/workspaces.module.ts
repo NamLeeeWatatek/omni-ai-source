@@ -1,4 +1,5 @@
 ﻿import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   WorkspaceEntity,
@@ -8,7 +9,7 @@ import { WorkspacesService } from './workspaces.service';
 import { WorkspacesController } from './workspaces.controller';
 import { WorkspaceHelperService } from './workspace-helper.service';
 import { WorkspaceAccessGuard } from './guards/workspace-access.guard';
-import { WorkspaceContextMiddleware } from './middleware/workspace-context.middleware';
+import { WorkspaceContextInterceptor } from './interceptors/workspace-context.interceptor';
 
 @Module({
   imports: [TypeOrmModule.forFeature([WorkspaceEntity, WorkspaceMemberEntity])],
@@ -17,13 +18,15 @@ import { WorkspaceContextMiddleware } from './middleware/workspace-context.middl
     WorkspacesService,
     WorkspaceHelperService,
     WorkspaceAccessGuard,
-    WorkspaceContextMiddleware,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: WorkspaceContextInterceptor,
+    },
   ],
   exports: [
     WorkspacesService,
     WorkspaceHelperService,
     WorkspaceAccessGuard,
-    WorkspaceContextMiddleware,
   ],
 })
-export class WorkspacesModule {}
+export class WorkspacesModule { }

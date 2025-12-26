@@ -56,19 +56,34 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, rounded, asChild = false, loading = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button"
+  ({ className, variant, size, rounded, asChild = false, loading = false, children, ...props }, ref) => {
+    if (asChild) {
+      return (
+        <Slot
+          className={cn(buttonVariants({ variant, size, rounded, className }))}
+          ref={ref}
+          // Note: When asChild is true, the child must be a single element.
+          // We can't easily inject a loading spinner here without wrapping,
+          // so we rely on the child or a parent to handle the loading UI if needed,
+          // or we just apply the disabled state to the child.
+          {...(props as any)}
+          disabled={props.disabled || loading}
+        >
+          {children}
+        </Slot>
+      )
+    }
+
     return (
-      <Comp
+      <button
         className={cn(buttonVariants({ variant, size, rounded, className }))}
         ref={ref}
         disabled={props.disabled || loading}
         {...props}
       >
         {loading && <LoadingLogo size="sm" className="mr-2 gap-0" />}
-        {!loading && props.children}
-        {loading && (typeof props.children === 'string' ? 'Processing' : props.children)}
-      </Comp>
+        {children}
+      </button>
     )
   }
 )

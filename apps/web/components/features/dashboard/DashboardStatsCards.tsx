@@ -29,7 +29,7 @@ export function DashboardStatsCards({ stats, itemVariants }: DashboardStatsCards
     const cards = [
         {
             id: 'users',
-            title: t('dashboard.stats.totalUsers'),
+            title: t('dashboard.stats.members'),
             icon: Users,
             color: 'primary',
             total: stats?.users?.total,

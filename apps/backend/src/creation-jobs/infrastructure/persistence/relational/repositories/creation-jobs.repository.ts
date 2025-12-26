@@ -10,38 +10,53 @@ import { IPaginationOptions } from '../../../../../utils/types/pagination-option
 
 @Injectable()
 export class CreationJobsRelationalRepository
-  implements CreationJobsRepository
-{
+  implements CreationJobsRepository {
   constructor(
     @InjectRepository(CreationJobEntity)
     private readonly creationJobsRepository: Repository<CreationJobEntity>,
-  ) {}
+  ) { }
 
   async create(data: CreationJob): Promise<CreationJob> {
     const persistenceModel = CreationJobsMapper.toPersistence(data);
     const newEntity = await this.creationJobsRepository.save(
       this.creationJobsRepository.create(persistenceModel),
     );
-    return this.findById(newEntity.id) as Promise<CreationJob>;
+    return this.findById(newEntity.id, data.workspaceId!) as Promise<CreationJob>;
   }
 
   async findAllWithPagination({
     paginationOptions,
+    filterOptions,
   }: {
     paginationOptions: IPaginationOptions;
-  }): Promise<CreationJob[]> {
-    const entities = await this.creationJobsRepository.find({
+    filterOptions: { workspaceId: string };
+  }): Promise<{ data: CreationJob[], count: number }> {
+    const where: any = {
+      workspaceId: filterOptions.workspaceId,
+    };
+
+    const [entities, count] = await this.creationJobsRepository.findAndCount({
       skip: (paginationOptions.page - 1) * paginationOptions.limit,
       take: paginationOptions.limit,
+      where,
       relations: ['creationTool'],
+      order: {
+        createdAt: 'DESC',
+      }
     });
 
-    return entities.map((entity) => CreationJobsMapper.toDomain(entity));
+    return {
+      data: entities.map((entity) => CreationJobsMapper.toDomain(entity)),
+      count
+    };
   }
 
-  async findById(id: CreationJob['id']): Promise<NullableType<CreationJob>> {
+  async findById(
+    id: CreationJob['id'],
+    workspaceId: string,
+  ): Promise<NullableType<CreationJob>> {
     const entity = await this.creationJobsRepository.findOne({
-      where: { id },
+      where: { id, workspaceId },
       relations: ['creationTool'],
     });
 
@@ -58,14 +73,15 @@ export class CreationJobsRelationalRepository
 
   async update(
     id: CreationJob['id'],
+    workspaceId: string,
     payload: Partial<CreationJob>,
-  ): Promise<CreationJob> {
+  ): Promise<CreationJob | null> {
     const entity = await this.creationJobsRepository.findOne({
-      where: { id },
+      where: { id, workspaceId },
     });
 
     if (!entity) {
-      throw new Error('Record not found');
+      return null;
     }
 
     const updatedEntity = await this.creationJobsRepository.save(
@@ -80,7 +96,11 @@ export class CreationJobsRelationalRepository
     return CreationJobsMapper.toDomain(updatedEntity);
   }
 
-  async remove(id: CreationJob['id']): Promise<void> {
-    await this.creationJobsRepository.delete(id);
+  async remove(id: CreationJob['id'], workspaceId: string): Promise<void> {
+    await this.creationJobsRepository.delete({ id, workspaceId });
+  }
+
+  async removeMany(ids: CreationJob['id'][], workspaceId: string): Promise<void> {
+    await this.creationJobsRepository.delete({ id: In(ids), workspaceId });
   }
 }

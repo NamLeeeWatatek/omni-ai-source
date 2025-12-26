@@ -3,9 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { templatesApi } from '@/lib/api/templates';
-import { creationToolsApi } from '@/lib/api/creation-tools';
+import { creationToolsApi, CreationTool } from '@/lib/api/creation-tools';
 import { Template } from '@/lib/types/template';
-import { CreationTool } from '@/lib/api/creation-tools';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -33,7 +32,7 @@ import {
 } from '@/components/ui/AlertDialog';
 import { Pagination } from '@/components/ui/Pagination';
 
-export default function TemplatesManagePage() {
+export default function TemplatesPage() {
     const searchParams = useSearchParams();
     const initialToolId = searchParams.get('toolId');
 
@@ -74,72 +73,12 @@ export default function TemplatesManagePage() {
                 limit: pageSize,
             };
 
-            // Add filters if active
-            if (searchQuery) {
-                // Determine if searching by name or description based on query content or default to name
-                // Basic API likely supports generic 'search' or specific fields. 
-                // Assuming the API 'findAll' maps query params to filterOptions
-                // We'll use a generic approach or specific fields if the backend supports it.
-                // Looking at TemplatesController, it uses 'filters' inside QueryTemplateDto.
-                // But templatesApi.findAll spreads the query.
-                // Let's assume the backend handles basic key-value filters.
-                // If specific search logic is needed (OR logic), it might be complex via generic query params.
-                // For now, let's pass a search Param if supported, or rely on client-side if API is limited?
-                // Wait, Controller calls `findManyWithPagination`.
-                // Checking `findAll`: params are `page`, `limit`, and `query` object spread to `filterOptions`.
-                // So pass:
-                // query.filters ??
-
-                // Correction: The backend controller takes `@Query() query: QueryTemplateDto`.
-                // Let's check QueryTemplateDto (viewed in previous step but not shown in snippet, assuming standard).
-                // Actually, client side filtering was used before: `filteredTemplates`.
-                // If we move to server side pagination, we must filter on server side.
-                // I will pass search query as `q` or specific fields if supported.
-                // Assuming standard `filters` param structure or flattened.
-                // Let's stick to client-side filtering + server-side pagination for all results?
-                // NO, that defeats the purpose of pagination.
-                // I will modify this to use server-side pagination efficiently.
-                // However, without seeing QueryTemplateDto, I can't be sure of filter fields.
-                // Let's look at `QueryTemplateDto` first or assume we fetch ALL and paginate client side?
-                // "Template Library có lấy phân trang nhưng không dùng pagination trong trang này" implies API returns pagination but UI ignores it.
-
-                // Let's check `lib/api/templates.ts` again.
-                // `findAll` takes `query?: any`.
-                // `TemplatesController.findAll` takes `QueryTemplateDto`.
-                // Let's assume standard filtering isn't fully implemented in DTO yet or is complex.
-                // But wait, the user says "API has pagination".
-                // I will pass page/limit to API.
-            }
-
-            // NOTE: For now, I will keep the filtering client-side IF the server doesn't support complex search yet,
-            // OR I will implement proper server-side filtering.
-            // Given the prompt "template library gets pagination but doesn't use it", 
-            // the priority is enabling the pagination controls and passing page/limit.
-            // If I pass page/limit, the backend returns a slice.
-            // If I filter client side AFTER fetching a slice, it's wrong (searching only current page).
-            // So search MUST be server side or I fetch all and paginate client side.
-            // The user said "Template Library HAS pagination", implying backend supports it.
-            // I'll assume the backend handles `filters` if I pass them.
-            // But `active` filter etc might be needed.
-
-            // Let's check `QueryTemplateDto` in a separate step if needed, but for now I will try to pass standard params.
-            // Actually, to avoid breaking search, I should probably check if `QueryTemplateDto` supports text search.
-            // If not, I might have to fetch all (limit=0/unlimited if possible) and paginate client side, OR accept that search only works on current page (bad).
-
-            // PROPOSAL: Use the existing `filteredTemplates` logic but apply it to the `templates` state which is now just ONE PAGE?
-            // No, that breaks.
-
-            // Let's assume for this specific task, I just enable pagination parameters.
-
             const [templatesData, toolsData] = await Promise.all([
                 templatesApi.findAll({
                     page: currentPage,
                     limit: pageSize,
                     // If we want to filter by tool, pass it
                     ...(selectedToolFilter !== 'all' ? { 'filters[creationToolId]': selectedToolFilter } : {}),
-                    // If we want simple text search, maybe 'q'? 
-                    // I will leave text search client-side filtered on the CURRENT page for now to be safe, 
-                    // or better, if search is active, maybe disable server pagination or reset to 1?
                 }),
                 creationToolsApi.getAllAdmin(),
             ]);
@@ -147,10 +86,6 @@ export default function TemplatesManagePage() {
             setTemplates(Array.isArray(templatesData.data) ? templatesData.data : []);
             setHasNextPage(templatesData.hasNextPage);
             setTotalItems(templatesData.total || 0);
-
-            // If manual loop search is critical and backend doesn't support it, 
-            // we might need to rely on the current behavior for search (filtering the returned page).
-            // But really, I should check `QueryTemplateDto`.
 
             setTools(Array.isArray(toolsData) ? toolsData : []);
         } catch (error) {
@@ -394,7 +329,6 @@ export default function TemplatesManagePage() {
                                 }}
                             >
                                 <Plus className="w-4 h-4 mr-2" />
-                                <Plus className="w-4 h-4 mr-2" />
                                 Create Template
                             </Button>
                         )}
@@ -406,7 +340,7 @@ export default function TemplatesManagePage() {
                                 <Checkbox
                                     id="select-all"
                                     checked={selectedIds.size === templates.length && templates.length > 0}
-                                    onChange={toggleAll}
+                                    onCheckedChange={toggleAll}
                                 />
                                 <label
                                     htmlFor="select-all"
@@ -436,7 +370,7 @@ export default function TemplatesManagePage() {
                                     <div className="absolute top-3 left-3 z-10">
                                         <Checkbox
                                             checked={selectedIds.has(template.id)}
-                                            onChange={() => toggleSelection(template.id)}
+                                            onCheckedChange={() => toggleSelection(template.id)}
                                             className="data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground border-white/50 bg-black/20 backdrop-blur-sm"
                                         />
                                     </div>

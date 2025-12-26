@@ -21,3 +21,8 @@ export interface PaginatedResponse<T> {
         total_archived: number;
     };
 }
+
+export interface InfinityPaginationResponseDto<T> {
+    data: T[];
+    hasNextPage: boolean;
+}

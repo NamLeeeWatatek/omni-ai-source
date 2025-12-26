@@ -37,14 +37,14 @@ import { RoleEnum } from '../roles/roles.enum';
 import { RolesGuard } from '../roles/roles.guard';
 
 @ApiBearerAuth()
-// @UseGuards(AuthGuard('jwt'), RolesGuard)
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 @ApiTags('Creation Tools')
 @Controller({
   path: 'creation-tools',
   version: '1',
 })
 export class CreationToolsController {
-  constructor(private readonly service: CreationToolsService) {}
+  constructor(private readonly service: CreationToolsService) { }
 
   @ApiCreatedResponse({ type: CreationTool })
   @ApiOperation({ summary: 'Create new creation tool (Admin only)' })

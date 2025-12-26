@@ -19,7 +19,13 @@ export class UserMapper {
       raw.firstName && raw.lastName
         ? `${raw.firstName} ${raw.lastName}`.trim()
         : raw.firstName || raw.lastName || null;
-    domainEntity.role = raw.role?._id === '1' ? 'admin' : 'user';
+    if (raw.role) {
+      domainEntity.role = new Role();
+      domainEntity.role.id = raw.role._id;
+      domainEntity.role.name = raw.role.name;
+    } else {
+      domainEntity.role = null;
+    }
     domainEntity.isActive = true;
 
     domainEntity.createdAt = raw.createdAt;
@@ -34,7 +40,8 @@ export class UserMapper {
 
     if (domainEntity.role) {
       role = new RoleSchema();
-      role._id = domainEntity.role === 'admin' ? '1' : '2';
+      role._id = domainEntity.role.id.toString();
+      role.name = domainEntity.role.name;
     }
 
     const persistenceSchema = new UserSchemaClass();

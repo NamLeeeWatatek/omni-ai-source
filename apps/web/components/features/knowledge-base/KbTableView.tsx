@@ -94,7 +94,7 @@ export function KbTableView({
       label: (
         <Checkbox
           checked={items.length > 0 && items.every(item => selectedIds.includes(item.id))}
-          onChange={(e) => onToggleSelectAll?.(e.target.checked)}
+          onCheckedChange={(checked) => onToggleSelectAll?.(!!checked)}
           aria-label="Select all"
         />
       ),
@@ -104,7 +104,7 @@ export function KbTableView({
         <div className="flex justify-center" onClick={e => e.stopPropagation()}>
           <Checkbox
             checked={selectedIds.includes(row.id)}
-            onChange={() => onToggleSelection(row.id)}
+            onCheckedChange={() => onToggleSelection(row.id)}
             aria-label="Select row"
           />
         </div>

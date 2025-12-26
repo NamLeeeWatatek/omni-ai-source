@@ -51,6 +51,7 @@
     },
     "stats": {
       "totalUsers": "Tổng người dùng",
+      "members": "Thành viên",
       "totalBots": "Tổng bot",
       "conversations": "Cuộc hội thoại",
       "flowExecutions": "Lần thực thi workflow",
@@ -70,6 +71,12 @@
       "executions": "lần thực thi",
       "avgMsgs": "tb tin nhắn",
       "avgTime": "tb"
+    },
+    "admin": {
+      "stats": {
+        "creationTools": "Công cụ AI",
+        "generationJobs": "Tiến trình xử lý"
+      }
     }
   },
   "features": {
@@ -141,6 +148,16 @@
     "updated": "Đã cập nhật thành công"
   },
   "login": {
+    "welcomeBack": "Chào mừng trở lại",
+    "subtitle": "Nhập thông tin đăng nhập của bạn để truy cập tài khoản",
+    "signIn": "Đăng nhập",
+    "email": "Email",
+    "emailPlaceholder": "name@example.com",
+    "password": "Mật khẩu",
+    "forgotPassword": "Quên mật khẩu?",
+    "noAccount": "Chưa có tài khoản?",
+    "signUp": "Đăng ký",
+    "or": "HOẶC",
     "title": "Nền tảng đa kênh được hỗ trợ bởi AI",
     "signInWithCasdoor": "Đăng nhập với Casdoor",
     "termsAgreement": "Bằng việc đăng nhập, bạn đồng ý với",
@@ -164,7 +181,32 @@
       "backendConnection": "Không thể kết nối với backend tại {url}. Vui lòng kiểm tra backend có đang chạy không.",
       "backendError": "Backend trả về lỗi {status}: {message}",
       "casdoorConfig": "Casdoor chưa được cấu hình đúng. Vui lòng kiểm tra biến môi trường.",
-      "loginInitFailed": "Không thể khởi tạo đăng nhập Casdoor. Vui lòng kiểm tra console để biết chi tiết."
+      "loginInitFailed": "Không thể khởi tạo đăng nhập Casdoor. Vui lòng kiểm tra console để biết chi tiết.",
+      "invalidCredentials": "Email hoặc mật khẩu không chính xác",
+      "accountNotLinked": "Email chưa được liên kết với tài khoản nào",
+      "generic": "Đã xảy ra lỗi. Vui lòng thử lại."
+    }
+  },
+  "register": {
+    "title": "Tạo tài khoản",
+    "subtitle": "Tham gia cộng đồng của chúng tôi và bắt đầu xây dựng những điều tuyệt vời ngay hôm nay.",
+    "firstName": "Tên",
+    "lastName": "Họ",
+    "email": "Địa chỉ email",
+    "password": "Mật khẩu",
+    "confirmPassword": "Xác nhận mật khẩu",
+    "signUp": "Bắt đầu miễn phí",
+    "alreadyHaveAccount": "Đã có tài khoản?",
+    "signIn": "Đăng nhập",
+    "backToHome": "Quay lại trang chủ",
+    "preparing": "Đang chuẩn bị...",
+    "success": {
+      "title": "Đã gửi xác thực",
+      "description": "Chúng tôi đã gửi một liên kết xác thực đến địa chỉ email của bạn. Vui lòng kiểm tra hộp thư đến và xác nhận tài khoản để bắt đầu.",
+      "returnToLogin": "Quay lại đăng nhập"
+    },
+    "errors": {
+      "generic": "Đăng ký thất bại. Email có thể đã được sử dụng."
     }
   },
   "globalScale": {
@@ -222,6 +264,58 @@
           "Triển khai tại chỗ"
         ]
       }
+    }
+  },
+  "forgotPassword": {
+    "title": "Đặt lại mật khẩu",
+    "subtitle": "Nhập email của bạn và chúng tôi sẽ gửi cho bạn một liên kết để lấy lại quyền truy cập vào tài khoản.",
+    "email": "Địa chỉ email",
+    "emailPlaceholder": "name@example.com",
+    "sendLink": "Gửi liên kết đặt lại",
+    "backToLogin": "Quay lại Đăng nhập",
+    "securing": "Liên kết an toàn...",
+    "success": {
+      "title": "Kiểm tra Email của bạn",
+      "description": "Hướng dẫn đặt lại mật khẩu của bạn đã được gửi đến địa chỉ email nếu nó tồn tại trong hệ thống của chúng tôi.",
+      "backToLogin": "Quay lại Đăng nhập"
+    },
+    "errors": {
+      "generic": "Đã xảy ra lỗi. Vui lòng thử lại."
+    }
+  },
+  "resetPassword": {
+    "title": "Mật khẩu mới",
+    "subtitle": "Hoàn tất cập nhật bảo mật bằng cách chọn một mật khẩu mới mạnh mẽ.",
+    "newPassword": "Mật khẩu mới",
+    "confirmNewPassword": "Xác nhận mật khẩu mới",
+    "updatePassword": "Cập nhật mật khẩu",
+    "backToLogin": "Quay lại Đăng nhập",
+    "securing": "Đang bảo mật quyền truy cập...",
+    "success": {
+      "title": "Đã cập nhật mật khẩu",
+      "description": "Mật khẩu của bạn đã được đặt lại thành công. Bây giờ bạn có thể sử dụng mật khẩu mới để đăng nhập vào tài khoản của mình.",
+      "returnToLogin": "Quay lại Đăng nhập"
+    },
+    "errors": {
+      "generic": "Liên kết đặt lại không hợp lệ hoặc đã hết hạn.",
+      "passwordsDontMatch": "Mật khẩu không khớp"
+    }
+  },
+  "confirmEmail": {
+    "verifying": "Đang xác thực tài khoản",
+    "pleaseWait": "Vui lòng đợi trong khi chúng tôi bảo mật hồ sơ của bạn...",
+    "authenticating": "Đang xác thực...",
+    "success": {
+      "title": "Đã xác thực!",
+      "description": "Email của bạn đã được xác thực thành công. Chào mừng bạn đến với cộng đồng của chúng tôi!",
+      "continueToLogin": "Tiếp tục đăng nhập"
+    },
+    "error": {
+      "title": "Xác thực thất bại",
+      "missingToken": "Thiếu mã xác thực.",
+      "generic": "Xác thực thất bại. Liên kết có thể đã hết hạn.",
+      "createNewAccount": "Tạo tài khoản mới",
+      "returnHome": "Quay lại Trang chủ"
     }
   }
 }

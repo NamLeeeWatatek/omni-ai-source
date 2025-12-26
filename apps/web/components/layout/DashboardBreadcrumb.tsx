@@ -21,12 +21,14 @@ import {
     Home,
     Bot,
     MessageSquare,
+    ChevronRight,
+    ShieldCheck,
 } from 'lucide-react'
 
 interface NavigationItem {
     name: string
     href?: string
-    icon: any
+    icon?: any
     children?: Array<{
         name: string
         href: string
@@ -50,106 +52,60 @@ const navigation: NavigationItem[] = [
     { name: 'Bots', href: '/bots', icon: Bot },
     { name: 'Chat AI', href: '/chat', icon: MessageSquare },
     { name: 'Settings', href: '/settings', icon: Settings },
+    { name: 'System Administration', href: '/system', icon: ShieldCheck },
+    { name: 'Users', href: '/system/users' },
+    { name: 'Roles & Permissions', href: '/system/roles-permissions' },
+    { name: 'Creation Tools', href: '/system/creation-tools' },
+    { name: 'Templates', href: '/system/templates' },
 ]
 
 export const DashboardBreadcrumb = React.memo(() => {
     const pathname = usePathname()
 
     const breadcrumbItems = useMemo(() => {
-        if (pathname === '/dashboard') {
-            return null // No breadcrumb for dashboard
-        }
+        if (pathname === '/dashboard') return null
 
-        const currentPage = navigation.find(item => item.href === pathname)
-        const parentWithChild = navigation.find(item =>
-            item.children?.some(child => child.href === pathname)
-        )
-        const currentChild = parentWithChild?.children?.find(child => child.href === pathname)
+        const segments = pathname.split('/').filter(Boolean)
+        const items: React.ReactNode[] = []
+        let currentPath = ''
 
-        if (currentChild && parentWithChild) {
-            return (
-                <>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        <BreadcrumbLink asChild>
-                            <Link href="#" className="flex items-center gap-2">
-                                <parentWithChild.icon className="w-4 h-4" />
-                                <span>{parentWithChild.name}</span>
-                            </Link>
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        <BreadcrumbPage className="flex items-center gap-2">
-                            {currentChild.name}
-                        </BreadcrumbPage>
-                    </BreadcrumbItem>
-                </>
-            )
-        }
+        segments.forEach((segment, index) => {
+            currentPath += `/${segment}`
+            const isLast = index === segments.length - 1
 
-        if (currentPage) {
-            return (
-                <>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        <BreadcrumbPage className="flex items-center gap-2">
-                            <currentPage.icon className="w-4 h-4" />
-                            <span>{currentPage.name}</span>
-                        </BreadcrumbPage>
-                    </BreadcrumbItem>
-                </>
-            )
-        }
-
-        // Handle dynamic routes (edit/new pages)
-        const pathSegments = pathname.split('/').filter(Boolean)
-
-        if (pathSegments.length > 1) {
-            const baseSegment = pathSegments[0]
-            const basePage = navigation.find(item =>
-                item.href?.includes(`/${baseSegment}`) ||
-                item.children?.some(child => child.href?.includes(`/${baseSegment}`))
+            // Try to find matching item in navigation (including children)
+            const navItem = navigation.find(item =>
+                item.href === currentPath ||
+                item.children?.some(child => child.href === currentPath)
             )
 
-            if (basePage) {
-                const isEdit = pathSegments.includes('edit')
-                const isNew = pathSegments.includes('new')
-                const actionText = isEdit ? 'Edit' : isNew ? 'Create New' : 'View'
+            const childItem = navItem?.children?.find(child => child.href === currentPath)
+            const label = childItem?.name || navItem?.name || segment.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+            const Icon = (index === 0 && navItem?.icon) ? navItem.icon : null
 
-                return (
-                    <>
-                        <BreadcrumbSeparator />
-                        <BreadcrumbItem>
+            items.push(
+                <React.Fragment key={currentPath}>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                        {isLast ? (
+                            <BreadcrumbPage className="flex items-center gap-2">
+                                {Icon && <Icon className="w-4 h-4" />}
+                                <span>{label}</span>
+                            </BreadcrumbPage>
+                        ) : (
                             <BreadcrumbLink asChild>
-                                <Link href="#" className="flex items-center gap-2">
-                                    <basePage.icon className="w-4 h-4" />
-                                    <span>{basePage.name}</span>
+                                <Link href={currentPath as any} className="flex items-center gap-2">
+                                    {Icon && <Icon className="w-4 h-4" />}
+                                    <span>{label}</span>
                                 </Link>
                             </BreadcrumbLink>
-                        </BreadcrumbItem>
-                        <BreadcrumbSeparator />
-                        <BreadcrumbItem>
-                            <BreadcrumbPage className="flex items-center gap-2">
-                                {actionText}
-                            </BreadcrumbPage>
-                        </BreadcrumbItem>
-                    </>
-                )
-            }
-        }
+                        )}
+                    </BreadcrumbItem>
+                </React.Fragment>
+            )
+        })
 
-        // Fallback for unknown routes
-        return (
-            <>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                    <BreadcrumbPage>
-                        {pathSegments[pathSegments.length - 1]?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                    </BreadcrumbPage>
-                </BreadcrumbItem>
-            </>
-        )
+        return items
     }, [pathname])
 
     return (

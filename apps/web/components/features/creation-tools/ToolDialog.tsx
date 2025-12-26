@@ -13,6 +13,8 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
+import { ExecutionConfig } from './ExecutionConfig';
+import { ExecutionFlow } from '@/lib/api/creation-tools';
 import { Label } from '@/components/ui/Label';
 import {
     Select,
@@ -48,6 +50,7 @@ export function ToolDialog({
     const [category, setCategory] = useState('');
     const [isActive, setIsActive] = useState(true);
     const [formConfig, setFormConfig] = useState<FormConfig>({ fields: [], submitLabel: 'Generate' });
+    const [executionFlow, setExecutionFlow] = useState<ExecutionFlow>({ type: 'ai-generation', provider: 'openai', model: 'gpt-4o', promptTemplate: '' });
     const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState('general');
 
@@ -62,6 +65,7 @@ export function ToolDialog({
             setCategory(tool.category || '');
             setIsActive(tool.isActive ?? true);
             setFormConfig(tool.formConfig || { fields: [], submitLabel: 'Generate' });
+            setExecutionFlow(tool.executionFlow || { type: 'ai-generation', provider: 'openai', model: 'gpt-4o', promptTemplate: '' });
         } else if (!open) {
             resetForm();
         }
@@ -74,6 +78,7 @@ export function ToolDialog({
         setCategory('');
         setIsActive(true);
         setFormConfig({ fields: [], submitLabel: 'Generate' });
+        setExecutionFlow({ type: 'ai-generation', provider: 'openai', model: 'gpt-4o', promptTemplate: '' });
         setActiveTab('general');
     };
 
@@ -90,7 +95,7 @@ export function ToolDialog({
                 category,
                 isActive,
                 formConfig,
-                executionFlow: tool?.executionFlow || { type: 'ai-generation', provider: '', model: '', outputType: 'text' },
+                executionFlow,
             });
 
             onOpenChange(false);
@@ -131,9 +136,10 @@ export function ToolDialog({
                 <div className="flex-1 overflow-hidden flex flex-col">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
                         <div className="px-6 py-2 border-b bg-muted/20">
-                            <TabsList className="grid w-full grid-cols-2">
+                            <TabsList className="grid w-full grid-cols-3">
                                 <TabsTrigger value="general">General Info</TabsTrigger>
                                 <TabsTrigger value="form">Form Builder</TabsTrigger>
+                                <TabsTrigger value="execution">Execution Flow</TabsTrigger>
                             </TabsList>
                         </div>
 
@@ -164,7 +170,7 @@ export function ToolDialog({
                                         <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
                                     </div>
                                     <div className="flex items-center space-x-3 p-3 rounded-lg border bg-secondary/10">
-                                        <Checkbox checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
+                                        <Checkbox checked={isActive} onCheckedChange={(checked) => setIsActive(!!checked)} />
                                         <Label>Active Status</Label>
                                     </div>
                                 </div>
@@ -172,6 +178,10 @@ export function ToolDialog({
 
                             <TabsContent value="form" className="mt-0 h-full">
                                 <FormBuilder config={formConfig} onChange={setFormConfig} />
+                            </TabsContent>
+
+                            <TabsContent value="execution" className="mt-0 h-full">
+                                <ExecutionConfig config={executionFlow} onChange={setExecutionFlow} />
                             </TabsContent>
                         </div>
                     </Tabs>

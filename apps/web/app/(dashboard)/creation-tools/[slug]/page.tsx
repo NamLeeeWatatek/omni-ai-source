@@ -16,7 +16,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/RadioGroup';
 import { Slider } from '@/components/ui/Slider';
 import { Checkbox } from '@/components/ui/Checkbox';
-import { Loader2, ArrowLeft, Sparkles, Check, Plus, Filter, LayoutGrid, Settings, Facebook, Instagram, Share2, Globe } from 'lucide-react';
+import { Loader2, ArrowLeft, Sparkles, Check, Plus, Filter, LayoutGrid, Settings, Facebook, Instagram, Share2, Globe, FileText, X } from 'lucide-react';
 import { useToast } from '@/lib/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
@@ -24,10 +24,24 @@ import { ScrollArea } from '@/components/ui/ScrollArea';
 import { creationJobsApi } from '@/lib/api/creation-jobs';
 import { Progress } from '@/components/ui/Progress';
 import { wsService } from '@/lib/services/websocket-service';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/hooks/useAuth';
+
+import { useForm, useFieldArray } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+    Form,
+    FormControl,
+    FormDescription,
+    FormField as ShadcnFormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/components/ui/Form';
 
 import { ActiveJobsWidget } from '@/components/features/creation-tools/ActiveJobsWidget';
 import { CreationJob, CreationJobStatus } from '@/lib/types/creation-job';
+import { FileDropzone } from '@/components/ui/FileUpload';
 
 import { useCreationJobs } from '@/components/providers/CreationJobsProvider';
 
@@ -40,10 +54,14 @@ export default function CreationToolDetailPage() {
     const [templates, setTemplates] = useState<Template[]>([]);
     const [channels, setChannels] = useState<Channel[]>([]);
     const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
-    const [formData, setFormData] = useState<Record<string, any>>({});
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+    // Initialize React Hook Form
+    const form = useForm<z.infer<any>>({
+        defaultValues: {},
+    });
 
     useEffect(() => {
         if (params.slug) {
@@ -58,16 +76,63 @@ export default function CreationToolDetailPage() {
 
             const defaults: Record<string, any> = {};
             let requiresChannels = false;
+            const zodShape: Record<string, any> = {};
 
             toolData.formConfig.fields.forEach((field) => {
+                // Set Defaults
                 if (field.defaultValue !== undefined) {
                     defaults[field.name] = field.defaultValue;
                 }
-                if (field.type === 'channel-selector' || field.name === 'platforms') {
+
+                // Build Zod Schema dynamically
+                let schema: any;
+
+                if (field.type === 'number') {
+                    schema = z.number({ message: "Must be a number" });
+                    if (field.validation?.min !== undefined) schema = schema.min(field.validation.min);
+                    if (field.validation?.max !== undefined) schema = schema.max(field.validation.max);
+                } else if (field.type === 'checkbox') {
+                    schema = z.boolean();
+                } else if (field.type === 'channel-selector') {
+                    schema = z.array(z.string()).min(1, "Please select at least one channel");
+                    requiresChannels = true;
+                } else if (field.type === 'file') {
+                    schema = z.any().refine((val) => val && val.url, "File is required");
+                } else {
+                    // Text, Textarea, Select, Radio
+                    schema = z.string();
+                    if (field.validation?.minLength) schema = schema.min(field.validation.minLength, `Minimum ${field.validation.minLength} characters`);
+                    if (field.validation?.maxLength) schema = schema.max(field.validation.maxLength, `Maximum ${field.validation.maxLength} characters`);
+                    if (field.validation?.pattern) schema = schema.regex(new RegExp(field.validation.pattern), "Invalid format");
+                }
+
+                if (!field.validation?.required && field.type !== 'checkbox') {
+                    schema = schema.optional().or(z.literal(''));
+                } else if (field.validation?.required) {
+                    // Add generic required message if not covered
+                    if (field.type === 'text' || field.type === 'textarea') {
+                        schema = schema.min(1, "This field is required");
+                    }
+                }
+
+                zodShape[field.name] = schema;
+
+                if (field.name === 'platforms') {
                     requiresChannels = true;
                 }
             });
-            setFormData(defaults);
+
+            // Reset form with new schema and defaults
+            const dynamicSchema = z.object(zodShape);
+            form.reset(defaults);
+            // Ideally we would set resolver here, but RHF resolver is set at hook init.
+            // Works if we re-render or use a key, but for dynamic schemas commonly checking inside generic submit 
+            // or just using loose validation until better solution.
+            // For now, we manually enforce the schema check on submit if needed, OR just use standard validation.
+            // Actually, we can't easily swap resolvers on the fly without re-init.
+            // Simplified approach: We'll rely on HTML5/Zod manual check or accept basic string validation for now
+            // UPDATE: To do this properly, we should use a Resolver Generator or just standard RHF rules.
+            // Let's stick to standard RHF 'rules' prop in Controller for simplicity since schema is dynamic.
 
             const templatesData = await templatesApi.findByCreationTool(toolData.id);
             setTemplates(templatesData);
@@ -96,41 +161,25 @@ export default function CreationToolDetailPage() {
     const handleTemplateSelect = (template: Template) => {
         setSelectedTemplate(template);
         if (template.prefilledData) {
-            setFormData({ ...formData, ...template.prefilledData });
+            // Merge per-field to trigger form updates
+            Object.entries(template.prefilledData).forEach(([key, value]) => {
+                form.setValue(key, value);
+            });
         }
     };
 
-    const handleFieldChange = (fieldName: string, value: any) => {
-        setFormData({ ...formData, [fieldName]: value });
-    };
-
-    const handleChannelToggle = (fieldName: string, channelType: string) => {
-        const current = (formData[fieldName] as string[]) || []; // Expecting array of strings (channel types)
-
-        // n8n payload expects ["facebook", "instagram"]
-
-        const isSelected = current.includes(channelType);
-        if (isSelected) {
-            handleFieldChange(fieldName, current.filter(c => c !== channelType));
-        } else {
-            handleFieldChange(fieldName, [...current, channelType]);
-        }
-    }
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const onSubmit = async (data: any) => {
         if (!tool) return;
         setSubmitting(true);
 
         try {
-            const inputData = { ...formData, templateId: selectedTemplate?.id };
+            const inputData = { ...data, templateId: selectedTemplate?.id };
 
             const job = await creationJobsApi.create({
                 creationToolId: tool.id,
                 inputData,
             });
 
-            // Add to active jobs list immediately via global context
             const newJob: CreationJob = {
                 id: job.id,
                 status: CreationJobStatus.PENDING,
@@ -155,7 +204,6 @@ export default function CreationToolDetailPage() {
                 variant: 'destructive',
             });
         } finally {
-            // Unlock immediately
             setSubmitting(false);
         }
     };
@@ -168,7 +216,10 @@ export default function CreationToolDetailPage() {
 
     const shouldShowField = (field: FormField): boolean => {
         if (!field.showIf) return true;
-        const targetValue = formData[field.showIf.field];
+
+        // Watch the dependency field
+        const targetValue = form.watch(field.showIf.field);
+
         switch (field.showIf.operator) {
             case 'equals':
                 return targetValue === field.showIf.value;
@@ -185,234 +236,239 @@ export default function CreationToolDetailPage() {
         switch (type) {
             case 'facebook': return <Facebook className="w-4 h-4 text-blue-600" />;
             case 'instagram': return <Instagram className="w-4 h-4 text-pink-600" />;
-            case 'telegram': return <Share2 className="w-4 h-4 text-sky-500" />; // Lucide doesn't have Telegram, using generic share
+            case 'telegram': return <Share2 className="w-4 h-4 text-sky-500" />;
             default: return <Globe className="w-4 h-4 text-muted-foreground" />;
         }
     };
 
     const renderFormField = (field: FormField) => {
-        if (!shouldShowField(field)) return null;
+        // We handle visibility inside the render to use 'watch' hook naturally
+        const isVisible = shouldShowField(field);
+        if (!isVisible) return null;
 
-        const value = formData[field.name];
+        // Construct rules for RHF (Simple approach without complex Zod resolver for now)
+        const rules: any = {
+            required: field.validation?.required ? "This field is required" : false,
+        };
+        if (field.validation?.min) rules.min = { value: field.validation.min, message: `Minimum value is ${field.validation.min}` };
+        if (field.validation?.max) rules.max = { value: field.validation.max, message: `Maximum value is ${field.validation.max}` };
+        if (field.validation?.minLength) rules.minLength = { value: field.validation.minLength, message: `Minimum ${field.validation.minLength} characters` };
 
-        switch (field.type) {
-            case 'text':
-            case 'number':
-                return (
-                    <div key={field.name} className="space-y-2">
-                        <Label htmlFor={field.name} className="text-sm font-medium">
+        return (
+            <ShadcnFormField
+                key={field.name}
+                control={form.control}
+                name={field.name}
+                rules={rules}
+                render={({ field: formField }) => (
+                    <FormItem className="space-y-2">
+                        <FormLabel className="text-sm font-medium flex items-center gap-1">
                             {field.label}
-                            {field.validation?.required && <span className="text-destructive ml-1">*</span>}
-                        </Label>
+                            {field.validation?.required && <span className="text-destructive">*</span>}
+                        </FormLabel>
+
                         {field.description && (
-                            <p className="text-xs text-muted-foreground">{field.description}</p>
+                            <FormDescription className="text-xs text-muted-foreground mt-0">
+                                {field.description}
+                            </FormDescription>
                         )}
-                        <Input
-                            id={field.name}
-                            type={field.type}
-                            placeholder={field.placeholder}
-                            value={value || ''}
-                            onChange={(e) =>
-                                handleFieldChange(
-                                    field.name,
-                                    field.type === 'number' ? Number(e.target.value) : e.target.value,
-                                )
-                            }
-                            required={field.validation?.required}
-                            min={field.validation?.min}
-                            max={field.validation?.max}
-                            className="bg-background"
-                        />
-                    </div>
-                );
 
-            case 'textarea':
-                return (
-                    <div key={field.name} className="space-y-2">
-                        <Label htmlFor={field.name} className="text-sm font-medium">
-                            {field.label}
-                            {field.validation?.required && <span className="text-destructive ml-1">*</span>}
-                        </Label>
-                        {field.description && (
-                            <p className="text-xs text-muted-foreground">{field.description}</p>
-                        )}
-                        <Textarea
-                            id={field.name}
-                            placeholder={field.placeholder}
-                            value={value || ''}
-                            onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                            required={field.validation?.required}
-                            rows={5}
-                            className="resize-none bg-background font-mono text-sm"
-                        />
-                    </div>
-                );
+                        <FormControl>
+                            {(() => {
+                                switch (field.type) {
+                                    case 'textarea':
+                                        return (
+                                            <Textarea
+                                                placeholder={field.placeholder}
+                                                className="resize-none bg-background text-sm min-h-[120px]"
+                                                {...formField}
+                                            />
+                                        );
+                                    case 'select':
+                                        return (
+                                            <Select onValueChange={formField.onChange} defaultValue={formField.value}>
+                                                <FormControl>
+                                                    <SelectTrigger className="bg-background">
+                                                        <SelectValue placeholder={field.placeholder || "Select an option"} />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {field.options?.map((opt) => (
+                                                        <SelectItem key={opt.value} value={opt.value}>
+                                                            {opt.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        );
+                                    case 'channel-selector':
+                                        const activeChannels = channels.filter(c => c.status === 'active' || c.status === 'connected');
+                                        const currentValues: string[] = Array.isArray(formField.value) ? formField.value : [];
 
-            case 'select':
-                return (
-                    <div key={field.name} className="space-y-2">
-                        <Label htmlFor={field.name} className="text-sm font-medium">
-                            {field.label}
-                            {field.validation?.required && <span className="text-destructive ml-1">*</span>}
-                        </Label>
-                        <Select value={value} onValueChange={(val) => handleFieldChange(field.name, val)}>
-                            <SelectTrigger className="bg-background">
-                                <SelectValue placeholder={field.placeholder || 'Select...'} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {field.options?.map((opt) => (
-                                    <SelectItem key={opt.value} value={opt.value}>
-                                        {opt.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                );
-
-            case 'channel-selector':
-                const activeChannels = channels.filter(c => c.status === 'active' || c.status === 'connected');
-
-                return (
-                    <div key={field.name} className="space-y-3 p-4 rounded-lg border bg-background/50">
-                        <div className="flex flex-col gap-1">
-                            <Label className="text-sm font-medium">{field.label}</Label>
-                            {field.description && (
-                                <p className="text-xs text-muted-foreground">{field.description}</p>
-                            )}
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {/* Show available ACTIVE channels */}
-                            {activeChannels.length > 0 ? (
-                                activeChannels.map(channel => {
-                                    const isSelected = (value as string[])?.includes(channel.type);
-                                    return (
-                                        <div
-                                            key={channel.id}
-                                            onClick={() => handleChannelToggle(field.name, channel.type)}
-                                            className={cn(
-                                                "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all hover:bg-accent hover:border-primary/50",
-                                                isSelected ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border"
-                                            )}
-                                        >
-                                            <div className={cn(
-                                                "w-8 h-8 rounded-full border flex items-center justify-center transition-colors shrink-0",
-                                                isSelected ? "bg-primary border-primary" : "bg-muted border-muted-foreground/20"
-                                            )}>
-                                                {isSelected ? (
-                                                    <Check className="w-4 h-4 text-primary-foreground" />
+                                        return (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                                                {activeChannels.length > 0 ? (
+                                                    activeChannels.map(channel => {
+                                                        const isSelected = currentValues.includes(channel.type);
+                                                        return (
+                                                            <div
+                                                                key={channel.id}
+                                                                onClick={() => {
+                                                                    const newValue = isSelected
+                                                                        ? currentValues.filter(v => v !== channel.type)
+                                                                        : [...currentValues, channel.type];
+                                                                    formField.onChange(newValue);
+                                                                }}
+                                                                className={cn(
+                                                                    "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all hover:bg-accent hover:border-primary/50",
+                                                                    isSelected ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border"
+                                                                )}
+                                                            >
+                                                                <div className={cn(
+                                                                    "w-8 h-8 rounded-full border flex items-center justify-center transition-colors shrink-0",
+                                                                    isSelected ? "bg-primary border-primary" : "bg-muted border-muted-foreground/20"
+                                                                )}>
+                                                                    {isSelected ? (
+                                                                        <Check className="w-4 h-4 text-primary-foreground" />
+                                                                    ) : (
+                                                                        getPlatformIcon(channel.type)
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex flex-col min-w-0">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-sm font-medium truncate">{channel.name || channel.type}</span>
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" title="Connected" />
+                                                                    </div>
+                                                                    <span className="text-xs text-muted-foreground capitalize">{channel.type}</span>
+                                                                </div>
+                                                            </div>
+                                                        )
+                                                    })
                                                 ) : (
-                                                    getPlatformIcon(channel.type)
+                                                    <div className="col-span-2 py-6 flex flex-col items-center justify-center text-center gap-2 border border-dashed rounded-lg bg-muted/20">
+                                                        <span className="text-sm text-muted-foreground">No active channels found.</span>
+                                                        <Button variant="outline" size="sm" type="button" onClick={() => window.open('/channels', '_blank')}>
+                                                            Connect Channels
+                                                        </Button>
+                                                    </div>
                                                 )}
                                             </div>
-                                            <div className="flex flex-col min-w-0">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-sm font-medium truncate">{channel.name || channel.type}</span>
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" title="Connected" />
-                                                </div>
-                                                <span className="text-xs text-muted-foreground capitalize">{channel.type}</span>
+                                        );
+                                    case 'checkbox':
+                                        return (
+                                            <div className="flex items-center space-x-2 p-1">
+                                                <Checkbox
+                                                    checked={formField.value}
+                                                    onCheckedChange={formField.onChange}
+                                                />
+                                                <Label className="font-normal cursor-pointer text-sm">
+                                                    Yes, I agree
+                                                </Label>
                                             </div>
-                                        </div>
-                                    )
-                                })
-                            ) : (
-                                <div className="col-span-2 py-6 flex flex-col items-center justify-center text-center gap-2 border border-dashed rounded-lg bg-muted/20">
-                                    <span className="text-sm text-muted-foreground">No active channels found.</span>
-                                    <Button variant="outline" size="sm" onClick={() => window.open('/channels', '_blank')}>
-                                        Connect Channels
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                );
-
-            case 'radio':
-            case 'slider':
-            case 'checkbox':
-                // Keeping these consistent with previous implementation but styled minimally
-                return (
-                    <div key={field.name} className="space-y-3 p-3 rounded-lg border bg-background/50">
-                        <Label className="text-sm font-medium">{field.label}</Label>
-                        {field.type === 'radio' && (
-                            <RadioGroup
-                                value={value}
-                                onValueChange={(val) => handleFieldChange(field.name, val)}
-                                className="flex flex-wrap gap-4"
-                            >
-                                {field.options?.map((opt) => (
-                                    <div key={opt.value} className="flex items-center space-x-2">
-                                        <RadioGroupItem value={opt.value} id={`${field.name}-${opt.value}`} />
-                                        <Label htmlFor={`${field.name}-${opt.value}`}>{opt.label}</Label>
-                                    </div>
-                                ))}
-                            </RadioGroup>
-                        )}
-                        {field.type === 'slider' && (
-                            <div className="pt-2">
-                                <div className="flex justify-between mb-2 text-xs text-muted-foreground">
-                                    <span>{field.validation?.min || 0}</span>
-                                    <span className="font-medium text-foreground">{value || field.defaultValue}</span>
-                                    <span>{field.validation?.max || 100}</span>
-                                </div>
-                                <Slider
-                                    value={[value || field.defaultValue || 0]}
-                                    onValueChange={(vals) => handleFieldChange(field.name, vals[0])}
-                                    min={field.validation?.min || 0}
-                                    max={field.validation?.max || 100}
-                                    step={1}
-                                />
-                            </div>
-                        )}
-                        {field.type === 'checkbox' && (
-                            <div className="flex items-center space-x-2">
-                                <Checkbox
-                                    id={field.name}
-                                    checked={value || false}
-                                    onChange={(e) => handleFieldChange(field.name, e.target.checked)}
-                                />
-                                <Label htmlFor={field.name} className="font-normal">{field.label}</Label>
-                            </div>
-                        )}
-                    </div>
-                );
-
-            case 'file':
-                return (
-                    <div key={field.name} className="space-y-2">
-                        <Label className="text-sm font-medium">{field.label}</Label>
-                        <div className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-accent/50 transition-colors bg-background">
-                            <input
-                                type="file"
-                                className="hidden"
-                                id={field.name}
-                                onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) handleFieldChange(field.name, file);
-                                }}
-                            />
-                            <Label htmlFor={field.name} className="cursor-pointer w-full h-full flex flex-col items-center">
-                                {value ? (
-                                    <>
-                                        <Check className="w-8 h-8 text-primary mb-2" />
-                                        <span className="text-sm font-medium">{typeof value === 'object' && value.name ? value.name : 'File selected'}</span>
-                                        <span className="text-xs text-muted-foreground mt-1">Click to replace</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Plus className="w-8 h-8 text-muted-foreground mb-2" />
-                                        <span className="text-sm text-muted-foreground">Upload file</span>
-                                    </>
-                                )}
-                            </Label>
-                        </div>
-                    </div>
-                );
-
-            default:
-                return null;
-        }
+                                        );
+                                    case 'file':
+                                        return (
+                                            <div className="mt-1">
+                                                {formField.value ? (
+                                                    <div className="relative group rounded-lg border border-border/50 bg-card overflow-hidden hover:shadow-sm transition-all p-4 flex items-center justify-between">
+                                                        <div className="flex items-center gap-3 overflow-hidden">
+                                                            {typeof formField.value === 'object' && formField.value.url && /\.(jpg|jpeg|png|gif|webp)$/i.test(formField.value.url) ? (
+                                                                <div className="w-10 h-10 rounded bg-muted flex-shrink-0 relative overflow-hidden">
+                                                                    <img src={formField.value.url} alt="Preview" className="w-full h-full object-cover" />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center shrink-0">
+                                                                    <FileText className="w-5 h-5 text-primary" />
+                                                                </div>
+                                                            )}
+                                                            <div className="flex flex-col min-w-0">
+                                                                <span className="text-sm font-medium truncate">
+                                                                    {typeof formField.value === 'object' && formField.value.name ? formField.value.name : 'File uploaded'}
+                                                                </span>
+                                                                <span className="text-xs text-muted-foreground">Ready to submit</span>
+                                                            </div>
+                                                        </div>
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                                            onClick={() => formField.onChange(null)}
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <FileDropzone
+                                                        height="h-32"
+                                                        maxSize={50 * 1024 * 1024} // 50MB
+                                                        onUploadComplete={(url, fileData) => {
+                                                            formField.onChange({
+                                                                url,
+                                                                name: fileData.name,
+                                                                id: fileData.id
+                                                            });
+                                                        }}
+                                                        onUploadError={(error) => {
+                                                            toast({
+                                                                title: "Upload Failed",
+                                                                description: error.message,
+                                                                variant: "destructive"
+                                                            });
+                                                        }}
+                                                    />
+                                                )}
+                                            </div>
+                                        );
+                                    case 'radio':
+                                        return (
+                                            <RadioGroup
+                                                onValueChange={formField.onChange}
+                                                defaultValue={formField.value}
+                                                className="grid grid-cols-2 sm:grid-cols-3 gap-3"
+                                            >
+                                                {field.options?.map((opt) => (
+                                                    <div key={opt.value}>
+                                                        <RadioGroupItem
+                                                            value={opt.value}
+                                                            id={`${field.name}-${opt.value}`}
+                                                            className="peer sr-only"
+                                                        />
+                                                        <Label
+                                                            htmlFor={`${field.name}-${opt.value}`}
+                                                            className="flex flex-col items-center justify-center rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 peer-data-[state=checked]:text-primary cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                                        >
+                                                            <span className="text-sm font-semibold">{opt.label}</span>
+                                                        </Label>
+                                                    </div>
+                                                ))}
+                                            </RadioGroup>
+                                        );
+                                    default:
+                                        // Text, Number, standard Input
+                                        return (
+                                            <Input
+                                                type={field.type}
+                                                placeholder={field.placeholder}
+                                                className="bg-background"
+                                                {...formField}
+                                                onChange={(e) => {
+                                                    // Handle number type specifically
+                                                    const val = field.type === 'number' ?
+                                                        (e.target.value === '' ? '' : Number(e.target.value))
+                                                        : e.target.value;
+                                                    formField.onChange(val);
+                                                }}
+                                            />
+                                        );
+                                }
+                            })()}
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+        );
     };
 
     if (loading) {
@@ -471,7 +527,6 @@ export default function CreationToolDetailPage() {
                                     )}
                                 </div>
                             </div>
-
                             {/* Full Categories View for mobile or overflow */}
                             <div className="px-6 py-2 border-b bg-muted/5 flex sm:hidden">
                                 <ScrollArea className="w-full">
@@ -544,13 +599,6 @@ export default function CreationToolDetailPage() {
                                                     <Check className="w-5 h-5 text-primary-foreground stroke-[3]" />
                                                 </div>
                                             )}
-
-                                            {/* Hover indicator for non-selected items */}
-                                            {selectedTemplate?.id !== template.id && (
-                                                <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                                                    <div className="w-4 h-4 rounded-full border-2 border-white/70" />
-                                                </div>
-                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -572,25 +620,27 @@ export default function CreationToolDetailPage() {
                             </div>
 
                             <ScrollArea className="flex-1 p-5">
-                                <form id="creation-form" onSubmit={handleSubmit} className="space-y-6">
-                                    {!selectedTemplate && (
-                                        <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 text-foreground text-sm flex flex-col items-center justify-center text-center gap-3 py-12 animate-pulse">
-                                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                                                <LayoutGrid className="w-6 h-6 text-primary" />
+                                <Form {...form}>
+                                    <form id="creation-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                                        {!selectedTemplate && (
+                                            <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 text-foreground text-sm flex flex-col items-center justify-center text-center gap-3 py-12 animate-pulse">
+                                                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                                    <LayoutGrid className="w-6 h-6 text-primary" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold">Ready to create?</p>
+                                                    <p className="text-muted-foreground text-xs mt-1">Select a template from the gallery to begin</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="font-bold">Ready to create?</p>
-                                                <p className="text-muted-foreground text-xs mt-1">Select a template from the gallery to begin</p>
-                                            </div>
-                                        </div>
-                                    )}
+                                        )}
 
-                                    {tool.formConfig.fields.map((field) => (
-                                        <div key={field.name} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                                            {renderFormField(field)}
-                                        </div>
-                                    ))}
-                                </form>
+                                        {tool.formConfig.fields.map((field) => (
+                                            <div key={field.name} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                                {renderFormField(field)}
+                                            </div>
+                                        ))}
+                                    </form>
+                                </Form>
                             </ScrollArea>
 
                             <div className="p-5 border-t bg-muted/5 flex-none mt-auto space-y-4">

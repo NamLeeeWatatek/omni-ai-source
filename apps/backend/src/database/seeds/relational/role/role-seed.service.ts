@@ -12,23 +12,38 @@ export class RoleSeedService {
     private roleRepository: Repository<RoleEntity>,
     @InjectRepository(PermissionEntity)
     private permissionRepository: Repository<PermissionEntity>,
-  ) {}
+  ) { }
 
   async run() {
     const allPermissions = await this.permissionRepository.find();
 
     const adminPermissions = allPermissions;
 
+    const ownerPermissions = allPermissions.filter((p) => {
+      // Exclude System and IAM permissions for Workspace Owner
+      if (p.name.startsWith('iam:') || p.name.startsWith('system:')) {
+        return false;
+      }
+      // Exclude global wildcards if any (like '*')
+      if (p.name === '*') return false;
+      return true;
+    });
+
     const userPermissions = allPermissions.filter((p) =>
       [
-        'flow:read',
-        'flow:execute',
-        'bot:read',
-        'channel:read',
-        'template:read',
-        'integration:read',
-        'workspace:read',
-        'settings:read',
+        'flows:ListFlows',
+        'flows:GetFlow',
+        'flows:ExecuteFlow',
+        'chatbot:ListBots',
+        'chatbot:GetBot',
+        'chatbot:ExecuteBot',
+        'templates:ListTemplates',
+        'templates:GetTemplate',
+        'files:ListFiles',
+        'workspaces:ListWorkspaces',
+        'workspaces:GetWorkspace',
+        'integrations:ListIntegrations',
+        // 'system:ReadSettings' // Users shouldn't read system settings? Maybe workspace settings.
       ].includes(p.name),
     );
 
@@ -36,26 +51,26 @@ export class RoleSeedService {
       {
         id: RoleEnum.admin,
         name: 'Admin',
-        description: 'Administrator with full access',
+        description: 'System Administrator with full access to everything',
         permissions: adminPermissions,
       },
       {
         id: RoleEnum.user,
         name: 'User',
-        description: 'Regular user with limited access',
+        description: 'Regular system user',
         permissions: userPermissions,
       },
       {
         id: RoleEnum.member,
         name: 'Member',
-        description: 'Workspace member',
+        description: 'Workspace member with standard access',
         permissions: userPermissions,
       },
       {
         id: RoleEnum.owner,
         name: 'Owner',
-        description: 'Workspace owner',
-        permissions: adminPermissions,
+        description: 'Workspace owner with full access to workspace resources',
+        permissions: ownerPermissions,
       },
     ];
 

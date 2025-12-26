@@ -9,6 +9,7 @@ import {
   IsBoolean,
   IsEmail,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import validateConfig from '../../utils/validate-config';
 import { MailConfig } from './mail-config.type';
 
@@ -37,27 +38,33 @@ class EnvironmentVariablesValidator {
   MAIL_DEFAULT_NAME: string;
 
   @IsBoolean()
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
   MAIL_IGNORE_TLS: boolean;
 
   @IsBoolean()
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
   MAIL_SECURE: boolean;
 
   @IsBoolean()
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
   MAIL_REQUIRE_TLS: boolean;
 }
 
 export default registerAs<MailConfig>('mail', () => {
-  validateConfig(process.env, EnvironmentVariablesValidator);
+  const config = validateConfig(process.env, EnvironmentVariablesValidator);
 
   return {
-    port: process.env.MAIL_PORT ? parseInt(process.env.MAIL_PORT, 10) : 587,
-    host: process.env.MAIL_HOST,
-    user: process.env.MAIL_USER,
-    password: process.env.MAIL_PASSWORD,
-    defaultEmail: process.env.MAIL_DEFAULT_EMAIL,
-    defaultName: process.env.MAIL_DEFAULT_NAME,
-    ignoreTLS: process.env.MAIL_IGNORE_TLS === 'true',
-    secure: process.env.MAIL_SECURE === 'true',
-    requireTLS: process.env.MAIL_REQUIRE_TLS === 'true',
+    port: config.MAIL_PORT ? config.MAIL_PORT : 587,
+    host: config.MAIL_HOST,
+    user: config.MAIL_USER,
+    password: config.MAIL_PASSWORD,
+    defaultEmail: config.MAIL_DEFAULT_EMAIL,
+    defaultName: config.MAIL_DEFAULT_NAME,
+    ignoreTLS: config.MAIL_IGNORE_TLS ?? false,
+    secure: config.MAIL_SECURE ?? false,
+    requireTLS: config.MAIL_REQUIRE_TLS ?? false,
   };
 });
