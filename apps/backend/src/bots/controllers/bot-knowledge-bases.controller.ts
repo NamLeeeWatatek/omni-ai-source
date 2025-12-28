@@ -23,12 +23,14 @@ import { BotsService } from '../bots.service';
 import { LinkKnowledgeBaseDto } from '../dto/update-bot.dto';
 import { BotKnowledgeBase } from '../domain/bot';
 
+import { WorkspaceAccessGuard } from '../../workspaces/guards/workspace-access.guard';
+
 @ApiTags('Bot Knowledge Bases')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), WorkspaceAccessGuard)
 @Controller({ path: 'bots/:id/knowledge-bases', version: '1' })
 export class BotKnowledgeBasesController {
-  constructor(private readonly botsService: BotsService) {}
+  constructor(private readonly botsService: BotsService) { }
 
   @Post()
   @ApiOperation({ summary: 'Link knowledge base to bot' })

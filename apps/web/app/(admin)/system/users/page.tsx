@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { PageShell } from '@/components/layout/PageShell'
 import { CardDescription } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -21,60 +21,54 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu"
-import { useDebounce } from '@/lib/hooks/useDebounce'
+
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { formatDate } from '@/lib/utils/date'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/Avatar'
 
 export default function AdminUsersPage() {
-    const [users, setUsers] = useState<User[]>([])
-    const [roles, setRoles] = useState<RoleEntity[]>([])
-    const [loading, setLoading] = useState(true)
-    const [search, setSearch] = useState('')
     const [page, setPage] = useState(1)
-    const [totalUsers, setTotalUsers] = useState(0)
-    const [totalPages, setTotalPages] = useState(1)
+    const [limit, setLimit] = useState(10)
+    const [search, setSearch] = useState('')
+    const [querySearch, setQuerySearch] = useState('')
     const [selectedUser, setSelectedUser] = useState<User | null>(null)
     const [isEditRoleOpen, setIsEditRoleOpen] = useState(false)
     const [newRoleId, setNewRoleId] = useState<string>('')
 
-    const debouncedSearch = useDebounce(search, 500)
+    const searchTimerRef = useRef<NodeJS.Timeout>()
 
+    // Cleanup timer
     useEffect(() => {
-        fetchRoles()
+        return () => {
+            if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+        }
     }, [])
 
-    useEffect(() => {
-        fetchUsers()
-    }, [page, debouncedSearch])
+    // Roles Query
+    const { data: rolesData } = useQuery({
+        queryKey: ['roles-list'],
+        queryFn: () => adminApi.getRoles(),
+        initialData: []
+    })
+    const roles = Array.isArray(rolesData) ? rolesData : [];
 
-    const fetchRoles = async () => {
-        try {
-            const data = await adminApi.getRoles()
-            setRoles(data)
-        } catch (error) {
-            console.error('Failed to fetch roles', error)
-        }
-    }
+    // Users Query
+    const { data: usersResponse, isLoading, refetch: refetchUsers } = useQuery({
+        queryKey: ['users', page, limit, querySearch],
+        queryFn: () => adminApi.getUsers({
+            page,
+            limit,
+            search: querySearch
+        }),
+        placeholderData: keepPreviousData
+    })
 
-    const fetchUsers = async () => {
-        setLoading(true)
-        try {
-            const response = await adminApi.getUsers({
-                page,
-                limit: 10,
-                search: debouncedSearch
-            })
+    const users = usersResponse?.data || []
+    const totalUsers = usersResponse?.total || 0
+    const totalPages = Math.ceil(totalUsers / limit)
 
-            setUsers(response.data)
-            setTotalUsers(response.total)
-            setTotalPages(Math.ceil(response.total / 10))
-        } catch (error) {
-            toast.error('Failed to fetch users')
-        } finally {
-            setLoading(false)
-        }
-    }
+
 
     const handleEditRole = (user: User) => {
         setSelectedUser(user)
@@ -92,7 +86,7 @@ export default function AdminUsersPage() {
             })
             toast.success('User role updated')
             setIsEditRoleOpen(false)
-            fetchUsers()
+            refetchUsers()
         } catch (error) {
             toast.error('Failed to update user role')
         }
@@ -191,7 +185,7 @@ export default function AdminUsersPage() {
 
     const paginationInfo = {
         page,
-        limit: 10,
+        limit,
         total: totalUsers,
         totalPages,
         hasNextPage: page < totalPages
@@ -207,6 +201,7 @@ export default function AdminUsersPage() {
         <PageShell
             title="User Directory"
             description="Manage your organization's users, roles, and access permissions."
+            icon={UserIcon}
             actions={
                 <Button className="gap-2 shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground h-9 px-4">
                     <UserIcon className="w-4 h-4" />
@@ -239,7 +234,16 @@ export default function AdminUsersPage() {
                                 placeholder="Search users by name or email..."
                                 className="pl-9 h-9 bg-background border-muted-foreground/20 focus-visible:ring-primary/30"
                                 value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                onChange={(e) => {
+                                    const value = e.target.value
+                                    setSearch(value)
+
+                                    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+                                    searchTimerRef.current = setTimeout(() => {
+                                        setQuerySearch(value)
+                                        setPage(1)
+                                    }, 500)
+                                }}
                             />
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -250,9 +254,13 @@ export default function AdminUsersPage() {
                     <DataTable
                         data={users}
                         columns={columns}
-                        loading={loading}
+                        loading={isLoading}
                         pagination={paginationInfo}
                         onPageChange={setPage}
+                        onPageSizeChange={(newLimit) => {
+                            setLimit(newLimit)
+                            setPage(1)
+                        }}
                         searchable={false}
                         className="space-y-0"
                         tableClassName="rounded-none border-none shadow-none"

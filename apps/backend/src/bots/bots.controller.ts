@@ -36,18 +36,23 @@ import {
 import { infinityPagination } from '../utils/infinity-pagination';
 
 import { CurrentWorkspace } from '../workspaces/decorators/current-workspace.decorator';
+import { WorkspaceAccessGuard } from '../workspaces/guards/workspace-access.guard';
+
+import { Permissions } from '../permissions/decorators/permissions.decorator';
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 
 @ApiTags('Bots')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), WorkspaceAccessGuard, PermissionsGuard)
 @Controller({ path: 'bots', version: '1' })
 export class BotsController {
   constructor(
     private readonly botsService: BotsService,
     private readonly botInteractionService: BotInteractionService,
-  ) {}
+  ) { }
 
   @Post()
+  @Permissions('bot:Create')
   @ApiOperation({ summary: 'Create bot' })
   @ApiCreatedResponse({ type: Bot })
   @HttpCode(HttpStatus.CREATED)
@@ -60,6 +65,7 @@ export class BotsController {
   }
 
   @Get()
+  @Permissions('bot:List')
   @ApiOperation({ summary: 'Get all bots with pagination' })
   @ApiOkResponse({ type: InfinityPaginationResponse(Bot) })
   @SerializeOptions({ groups: ['admin'] })
@@ -87,17 +93,17 @@ export class BotsController {
       workspaceId,
     };
 
-    return infinityPagination(
-      await this.botsService.findManyWithPagination({
-        filterOptions,
-        sortOptions: query?.sort || undefined,
-        paginationOptions: { page, limit },
-      }),
-      { page, limit },
-    );
+    const { data, total } = await this.botsService.findManyWithPagination({
+      filterOptions,
+      sortOptions: query?.sort || undefined,
+      paginationOptions: { page, limit },
+    });
+
+    return infinityPagination(data, { page, limit }, total);
   }
 
   @Get(':id')
+  @Permissions('bot:Get')
   @ApiOperation({ summary: 'Get bot by ID' })
   @ApiOkResponse({ type: Bot })
   @ApiParam({ name: 'id', type: String })
@@ -106,6 +112,7 @@ export class BotsController {
   }
 
   @Patch(':id')
+  @Permissions('bot:Update')
   @ApiOperation({ summary: 'Update bot' })
   @ApiOkResponse({ type: Bot })
   @ApiParam({ name: 'id', type: String })
@@ -114,6 +121,7 @@ export class BotsController {
   }
 
   @Delete(':id')
+  @Permissions('bot:Delete')
   @ApiOperation({ summary: 'Delete bot (soft delete)' })
   @ApiParam({ name: 'id', type: String })
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -122,6 +130,7 @@ export class BotsController {
   }
 
   @Post(':id/activate')
+  @Permissions('bot:Update')
   @ApiOperation({ summary: 'Activate bot' })
   @ApiOkResponse({ type: Bot })
   @ApiParam({ name: 'id', type: String })
@@ -130,6 +139,7 @@ export class BotsController {
   }
 
   @Post(':id/pause')
+  @Permissions('bot:Update')
   @ApiOperation({ summary: 'Pause bot' })
   @ApiOkResponse({ type: Bot })
   @ApiParam({ name: 'id', type: String })
@@ -138,6 +148,7 @@ export class BotsController {
   }
 
   @Post(':id/archive')
+  @Permissions('bot:Update')
   @ApiOperation({ summary: 'Archive bot' })
   @ApiOkResponse({ type: Bot })
   @ApiParam({ name: 'id', type: String })
@@ -146,6 +157,7 @@ export class BotsController {
   }
 
   @Post(':id/duplicate')
+  @Permissions('bot:Create')
   @ApiOperation({ summary: 'Duplicate bot' })
   @ApiCreatedResponse({ type: Bot })
   @ApiParam({ name: 'id', type: String })
@@ -159,21 +171,24 @@ export class BotsController {
   }
 
   @Get(':id/stats')
+  @Permissions('bot:Get')
   @ApiOperation({ summary: 'Get bot statistics' })
-  @ApiParam({ name: 'id', type: String })
-  getBotStats(@Param('id') id: string) {
+  @ApiParam({ name: 'botId', type: String })
+  getBotStats(@Param('botId') id: string) {
     return this.botInteractionService.getBotStats(id);
   }
 
   @Get(':id/interaction-context')
+  @Permissions('conversation:Get')
   @ApiOperation({ summary: 'Get bot interaction context' })
   @ApiParam({ name: 'id', type: String })
   getBotInteractionContext(@Param('id') id: string) {
     return this.botInteractionService.getBotForInteraction(id);
   }
 
-  @Post(':id/validate')
-  @ApiOperation({ summary: 'Validate bot can interact' })
+  @Post(':id/takeover')
+  @Permissions('conversation:Update')
+  @ApiOperation({ summary: 'Agent takes over conversation from bot' })
   @ApiParam({ name: 'id', type: String })
   validateBot(@Param('id') id: string) {
     return this.botInteractionService.validateBotInteraction(id);

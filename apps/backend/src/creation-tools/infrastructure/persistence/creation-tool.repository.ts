@@ -8,9 +8,7 @@ import {
 } from '../../dto/query-creation-tool.dto';
 
 export abstract class CreationToolRepository {
-  abstract create(
-    data: Omit<CreationTool, 'id' | 'createdAt' | 'deletedAt' | 'updatedAt'>,
-  ): Promise<CreationTool>;
+  abstract create(data: DeepPartial<CreationTool>): Promise<CreationTool>;
 
   abstract findManyWithPagination({
     filterOptions,
@@ -20,7 +18,7 @@ export abstract class CreationToolRepository {
     filterOptions?: FilterCreationToolDto | null;
     sortOptions?: SortCreationToolDto[] | null;
     paginationOptions: IPaginationOptions;
-  }): Promise<CreationTool[]>;
+  }): Promise<[CreationTool[], number]>;
 
   abstract findAll(filters?: {
     isActive?: boolean;

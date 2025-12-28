@@ -34,13 +34,18 @@ import {
 import { Conversation, Message, MessageFeedback } from './domain/conversation';
 import { CurrentWorkspace } from '../workspaces/decorators/current-workspace.decorator';
 
+import { WorkspaceAccessGuard } from '../workspaces/guards/workspace-access.guard';
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { Permissions } from '../permissions/decorators/permissions.decorator';
+
 @ApiTags('Conversations')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), WorkspaceAccessGuard, PermissionsGuard)
 @Controller({ path: 'conversations', version: '1' })
 export class ConversationsController {
-  constructor(private readonly conversationsService: ConversationsService) {}
+  constructor(private readonly conversationsService: ConversationsService) { }
 
+  @Permissions('conversation:Create')
   @Post()
   @ApiOperation({ summary: 'Create conversation' })
   @ApiCreatedResponse({ type: Conversation })
@@ -49,6 +54,7 @@ export class ConversationsController {
     return this.conversationsService.create(createDto);
   }
 
+  @Permissions('conversation:List')
   @Get()
   @ApiOperation({ summary: 'Get all conversations with pagination' })
   @ApiHeader({
@@ -106,6 +112,7 @@ export class ConversationsController {
     });
   }
 
+  @Permissions('conversation:Get')
   @Get(':id')
   @ApiOperation({ summary: 'Get conversation by ID' })
   @ApiOkResponse({ type: Conversation })
@@ -114,6 +121,7 @@ export class ConversationsController {
     return this.conversationsService.findOne(id);
   }
 
+  @Permissions('conversation:Update')
   @Patch(':id/status')
   @ApiOperation({ summary: 'Update conversation status' })
   @ApiOkResponse({ type: Conversation })
@@ -141,6 +149,7 @@ export class ConversationsController {
     return this.conversationsService.archive(id);
   }
 
+  @Permissions('conversation:Update')
   @Post(':id/takeover')
   @ApiOperation({ summary: 'Agent takes over conversation from bot' })
   @ApiOkResponse({ type: Conversation })
@@ -160,6 +169,7 @@ export class ConversationsController {
     return this.conversationsService.handback(id);
   }
 
+  @Permissions('conversation:Delete')
   @Delete(':id')
   @ApiOperation({ summary: 'Delete conversation (soft delete)' })
   @ApiParam({ name: 'id', type: String })
@@ -249,6 +259,7 @@ export class ConversationsController {
     return this.conversationsService.getMessageFeedback(messageId);
   }
 
+  @Permissions('conversation:Get')
   @Get('stats/:botId')
   @ApiOperation({ summary: 'Get conversation statistics' })
   @ApiParam({ name: 'botId', type: String })

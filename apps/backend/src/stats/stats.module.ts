@@ -32,4 +32,4 @@ import { GenerationJobEntity } from '../generation-jobs/infrastructure/persisten
   providers: [StatsService],
   exports: [StatsService],
 })
-export class StatsModule { }
+export class StatsModule {}

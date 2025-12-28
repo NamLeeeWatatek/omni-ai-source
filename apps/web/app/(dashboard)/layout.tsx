@@ -15,6 +15,7 @@ import { ErrorBoundary } from '@/components/providers/ErrorBoundary'
 import { CreationJobsProvider } from '@/components/providers/CreationJobsProvider'
 import { QueryProvider } from '@/components/providers/QueryProvider'
 import { ActiveJobsWidget } from '@/components/features/creation-tools/ActiveJobsWidget'
+import { WorkspaceInitializer } from '@/components/providers/WorkspaceInitializer'
 
 export default function DashboardLayout({
     children,
@@ -27,40 +28,34 @@ export default function DashboardLayout({
     const [showNotifications, setShowNotifications] = useState(false)
 
     // Auth hooks
+    // Auth hooks - logic simplified for hybrid approach
     const [isLoggingOut, setIsLoggingOut] = useState(false)
-    const { isAuthenticated, isLoading, signOut, accessToken, error } = useAuth()
+    const { isAuthenticated, isLoading, signOut, accessToken, user } = useAuth()
     const pathname = usePathname()
     const router = useRouter()
     const { t } = useTranslation()
 
     // Handle session errors and redirects
+    // We keep this for client-side protection fallback, but we don't block rendering
     useEffect(() => {
-        if (isLoading) return
-
-        if (!isAuthenticated || !accessToken) {
-            const currentPath = window.location.pathname + window.location.search
-            router.push(`/login?callbackUrl=${encodeURIComponent(currentPath)}` as any)
+        if (!isLoading && (!isAuthenticated || !accessToken)) {
+            // Optional: Force redirect if needed, but Middleware usually handles this
+            // router.push('/login')
         }
     }, [isLoading, isAuthenticated, accessToken, router])
 
-    // While loading session OR performing logout, show global loading screen
-    if (isLoading || isLoggingOut) {
+    // While performing logout, show global loading screen
+    if (isLoggingOut) {
         return (
             <div className="h-screen flex items-center justify-center bg-background">
-                <LoadingLogo size="lg" text={isLoggingOut ? t('dashboard.confirm.signingOut') : t('common.loading')} />
+                <LoadingLogo size="lg" text={t('dashboard.confirm.signingOut')} />
             </div>
         )
     }
 
-    // Rely on middleware for protection. 
-    // If we reach here and not authenticated, we redirect.
-    if (!isAuthenticated || !accessToken) {
-        return (
-            <div className="h-screen flex items-center justify-center bg-background">
-                <LoadingLogo size="lg" text={t('login.redirecting')} />
-            </div>
-        )
-    }
+    // REMOVED: Blocking loading screen logic
+    // We now allow partial rendering (skeleton or initial UI) instead of white screen.
+    // Ideally, the parent Server Component has already validated the session.
 
     // Layout action handlers
     const toggleSection = (sectionName: string) => {
@@ -82,26 +77,16 @@ export default function DashboardLayout({
 
     const handleSignOut = async () => {
         setIsLoggingOut(true);
-        try {
-            // Clean logout with redirect to login
-            await signOut({ redirect: true, callbackUrl: '/login' });
-        } catch (err) {
-            console.error('Logout failed:', err);
-            setIsLoggingOut(false);
-            if (typeof window !== 'undefined') (window as any)._isSigningOut = false;
-        }
+        // signOut handles backend call, client cleanup, and redirection
+        await signOut({ redirect: true, callbackUrl: '/login' });
     }
 
-    // Responsive page container logic
-    // Write mode only: full width, no page-container
     const isEditMode = pathname.includes('mode=edit')
-    // Other flow/ugc pages: no page-container but need padding
-    const isFlowPage = pathname.startsWith('/ugc-factory/')
-
     const isSpecialPage = isEditMode
 
     return (
         <div className="h-screen flex bg-background overflow-hidden">
+            <WorkspaceInitializer />
             {/* Mobile Sheet Navigation */}
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
                 <SheetContent side="left" className="p-0 w-72 border-r border-border/40 bg-background/95 backdrop-blur-xl">
@@ -114,6 +99,7 @@ export default function DashboardLayout({
                         }}
                         sidebarOpen={true}
                         onCloseSidebar={() => setSidebarOpen(false)}
+                        user={user} // Pass user data
                     />
                 </SheetContent>
             </Sheet>
@@ -125,31 +111,30 @@ export default function DashboardLayout({
                     onToggleSection={toggleSection}
                     onSignOutConfirm={handleSignOut}
                     sidebarOpen={true}
+                    user={user} // Pass user data
                 />
             </div>
 
             {/* Main content area */}
             <main className="flex-1 flex flex-col lg:pl-64 overflow-hidden min-w-0 transition-all duration-300">
-                <QueryProvider>
-                    <CreationJobsProvider>
-                        {/* Header with Redux-managed features */}
-                        <DashboardHeader
-                            showNotifications={showNotifications}
-                            onToggleNotifications={handleToggleNotifications}
-                            onToggleSidebar={handleToggleSidebar}
-                        />
+                <CreationJobsProvider>
+                    {/* Header with Redux-managed features */}
+                    <DashboardHeader
+                        showNotifications={showNotifications}
+                        onToggleNotifications={handleToggleNotifications}
+                        onToggleSidebar={handleToggleSidebar}
+                    />
 
-                        {/* Content area with conditional container classes */}
-                        <div className="flex-1 overflow-hidden relative min-h-0">
-                            <div className={`h-full ${isSpecialPage ? '' : isFlowPage ? 'page-container-full overflow-auto' : 'page-container overflow-auto'}`}>
-                                <ErrorBoundary>
-                                    {children}
-                                </ErrorBoundary>
-                            </div>
+                    {/* Content area with conditional container classes */}
+                    <div className="flex-1 overflow-hidden relative min-h-0">
+                        <div className={`h-full ${isSpecialPage ? 'overflow-auto' : 'page-container overflow-auto'}`}>
+                            <ErrorBoundary>
+                                {children}
+                            </ErrorBoundary>
                         </div>
-                        <ActiveJobsWidget />
-                    </CreationJobsProvider>
-                </QueryProvider>
+                    </div>
+                    <ActiveJobsWidget />
+                </CreationJobsProvider>
             </main >
 
             {/* Progress Overlay for async operations */}

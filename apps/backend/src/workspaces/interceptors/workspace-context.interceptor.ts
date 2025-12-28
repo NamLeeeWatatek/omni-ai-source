@@ -1,8 +1,8 @@
 import {
-    Injectable,
-    NestInterceptor,
-    ExecutionContext,
-    CallHandler,
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { WorkspaceHelperService } from '../workspace-helper.service';
@@ -13,25 +13,25 @@ import { WorkspaceHelperService } from '../workspace-helper.service';
  */
 @Injectable()
 export class WorkspaceContextInterceptor implements NestInterceptor {
-    constructor(private readonly workspaceHelper: WorkspaceHelperService) { }
+  constructor(private readonly workspaceHelper: WorkspaceHelperService) {}
 
-    async intercept(
-        context: ExecutionContext,
-        next: CallHandler,
-    ): Promise<Observable<any>> {
-        const request = context.switchToHttp().getRequest();
+  async intercept(
+    context: ExecutionContext,
+    next: CallHandler,
+  ): Promise<Observable<any>> {
+    const request = context.switchToHttp().getRequest();
 
-        // Only attempt to set workspace if user is authenticated
-        if (request.user?.id) {
-            // Get user's default workspace and cache it in request
-            const defaultWorkspace =
-                await this.workspaceHelper.getUserDefaultWorkspace(request.user.id);
+    // Only attempt to set workspace if user is authenticated
+    if (request.user?.id) {
+      // Get user's default workspace and cache it in request
+      const defaultWorkspace =
+        await this.workspaceHelper.getUserDefaultWorkspace(request.user.id);
 
-            if (defaultWorkspace) {
-                request.defaultWorkspaceId = defaultWorkspace.id;
-            }
-        }
-
-        return next.handle();
+      if (defaultWorkspace) {
+        request.defaultWorkspaceId = defaultWorkspace.id;
+      }
     }
+
+    return next.handle();
+  }
 }

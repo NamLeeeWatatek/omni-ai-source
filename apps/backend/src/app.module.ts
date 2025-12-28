@@ -4,6 +4,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { BullModule } from '@nestjs/bullmq';
 import { UsersModule } from './users/users.module';
 import { FilesModule } from './files/files.module';
+import { ScheduleModule } from '@nestjs/schedule'; // Import ScheduleModule
 import { AuthModule } from './auth/auth.module';
 import databaseConfig from './database/config/database.config';
 import authConfig from './auth/config/auth.config';
@@ -56,7 +57,6 @@ import { ExecutionModule } from './execution/execution.module';
 import { ProjectsModule } from './projects/projects.module';
 import { CreationToolsModule } from './creation-tools/creation-tools.module';
 
-
 /**
  * Dynamically selects the database module based on configuration.
  * Uses MongoDB (Mongoose) for document database or SQL (TypeORM) for relational database.
@@ -64,19 +64,21 @@ import { CreationToolsModule } from './creation-tools/creation-tools.module';
 const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
   .isDocumentDatabase
   ? MongooseModule.forRootAsync({
-    useClass: MongooseConfigService,
-  })
+      useClass: MongooseConfigService,
+    })
   : TypeOrmModule.forRootAsync({
-    useClass: TypeOrmConfigService,
-    dataSourceFactory: async (options: DataSourceOptions) => {
-      return new DataSource(options).initialize();
-    },
-  });
+      useClass: TypeOrmConfigService,
+      dataSourceFactory: async (options: DataSourceOptions) => {
+        return new DataSource(options).initialize();
+      },
+    });
 
+import { CategoriesModule } from './categories/categories.module';
 import { CreationJobsModule } from './creation-jobs/creation-jobs.module';
 
 @Module({
   imports: [
+    CategoriesModule,
     CreationJobsModule,
     ConfigModule.forRoot({
       isGlobal: true,
@@ -98,6 +100,7 @@ import { CreationJobsModule } from './creation-jobs/creation-jobs.module';
       isGlobal: true,
       ttl: 300,
     }),
+    ScheduleModule.forRoot(), // Initialize ScheduleModule for Cron
     infrastructureDatabaseModule,
     BullModule.forRootAsync({
       useFactory: (configService: ConfigService) => ({
@@ -180,4 +183,4 @@ import { CreationJobsModule } from './creation-jobs/creation-jobs.module';
     ExecutionModule,
   ],
 })
-export class AppModule { }
+export class AppModule {}

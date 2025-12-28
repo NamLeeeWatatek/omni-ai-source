@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useConversationsSocket } from '@/lib/hooks/useConversationsSocket';
 import { useNotifications } from '@/lib/hooks/useNotifications';
@@ -52,7 +52,7 @@ import { cn } from '@/lib/utils';
 import { ChannelConversation } from '@/components/features/conversations/ChannelConversationList';
 import { Badge } from '@/components/ui/Badge';
 import { MessageRole } from '@/lib/types/conversations';
-import { PageHeader } from '@/components/ui/PageHeader';
+
 
 type Conversation = ChannelConversation;
 
@@ -92,7 +92,7 @@ const formatRelativeTime = (dateString: string): string => {
   }
 };
 
-export default function ConversationsPage() {
+function ConversationsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -1067,5 +1067,13 @@ function ConversationChat({
         />
       </div>
     </>
+  );
+}
+
+export default function ConversationsPage() {
+  return (
+    <Suspense fallback={<div className="h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div></div>}>
+      <ConversationsPageContent />
+    </Suspense>
   );
 }

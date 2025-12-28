@@ -6,6 +6,7 @@ import {
   Inject,
   forwardRef,
 } from '@nestjs/common';
+import { I18nContext, I18nService } from 'nestjs-i18n';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -13,15 +14,12 @@ import {
   BotKnowledgeBaseEntity,
 } from './infrastructure/persistence/relational/entities/bot.entity';
 import { BotStatus } from './bots.enum';
-// import { FlowStatus } from '../flows/flows.enum';
-// import { FlowVersionEntity } from '../flows/infrastructure/persistence/relational/entities/flow-version.entity';
 import { WorkspaceMemberEntity } from '../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
 import { WorkspaceHelperService } from '../workspaces/workspace-helper.service';
 import { WidgetVersionService } from './services/widget-version.service';
 import { CreateBotDto } from './dto/create-bot.dto';
 import {
   UpdateBotDto,
-  CreateFlowVersionDto,
   LinkKnowledgeBaseDto,
 } from './dto/update-bot.dto';
 import { ChannelEntity } from '../channels/infrastructure/persistence/relational/entities/channel.entity';
@@ -31,8 +29,6 @@ export class BotsService {
   constructor(
     @InjectRepository(BotEntity)
     private botRepository: Repository<BotEntity>,
-    // @InjectRepository(FlowVersionEntity)
-    // private flowVersionRepository: Repository<FlowVersionEntity>,
     @InjectRepository(BotKnowledgeBaseEntity)
     private botKbRepository: Repository<BotKnowledgeBaseEntity>,
     @InjectRepository(WorkspaceMemberEntity)
@@ -41,7 +37,8 @@ export class BotsService {
     private channelRepository: Repository<ChannelEntity>,
     private workspaceHelper: WorkspaceHelperService,
     private widgetVersionService: WidgetVersionService,
-  ) {}
+    private readonly i18n: I18nService,
+  ) { }
 
   async getUserDefaultWorkspace(userId: string) {
     return this.workspaceHelper.getUserDefaultWorkspace(userId);
@@ -53,7 +50,10 @@ export class BotsService {
 
   async create(createDto: CreateBotDto, userId: string) {
     if (!createDto.workspaceId) {
-      throw new BadRequestException('workspaceId is required');
+      const lang = I18nContext.current()?.lang;
+      throw new BadRequestException(
+        this.i18n.t('common.workspaceIdRequired', { lang }),
+      );
     }
 
     const bot = this.botRepository.create({
@@ -80,11 +80,10 @@ export class BotsService {
             },
             messages: {
               welcome:
-                createDto.welcomeMessage ||
-                'Xin chÃ o! TÃ´i cÃ³ thá»ƒ giÃºp gÃ¬ cho báº¡n?',
-              placeholder: createDto.placeholderText || 'Nháº­p tin nháº¯n...',
-              offline: 'ChÃºng tÃ´i hiá»‡n khÃ´ng trá»±c tuyáº¿n',
-              errorMessage: 'ÄÃ£ cÃ³ lá»—i xáº£y ra',
+                createDto.welcomeMessage || 'chatbot.default_welcome',
+              placeholder: createDto.placeholderText || 'chatbot.default_placeholder',
+              offline: 'chatbot.default_offline',
+              errorMessage: 'chatbot.default_error',
             },
             behavior: {
               autoOpen: false,
@@ -114,7 +113,7 @@ export class BotsService {
         defaultVersion.id,
         userId,
       );
-    } catch (error) {}
+    } catch (error) { }
 
     return savedBot;
   }
@@ -184,10 +183,12 @@ export class BotsService {
     // Apply pagination
     if (paginationOptions) {
       const { page, limit } = paginationOptions;
-      query.skip((page - 1) * limit).take(limit + 1); // +1 to check if there's a next page
+      query.skip((page - 1) * limit).take(limit);
     }
 
-    return query.getMany();
+    const [data, total] = await query.getManyAndCount();
+
+    return { data, total };
   }
 
   async findOne(id: string) {
@@ -238,92 +239,6 @@ export class BotsService {
     return this.update(id, { status: BotStatus.ARCHIVED });
   }
 
-  /*
-  async createFlowVersion(
-    botId: string,
-    dto: CreateFlowVersionDto,
-    userId: string,
-  ) {
-    await this.findOne(botId);
-
-    const latestVersion = await this.flowVersionRepository
-      .createQueryBuilder('version')
-      .where('version.botId = :botId', { botId })
-      .orderBy('version.version', 'DESC')
-      .getOne();
-
-    const version = this.flowVersionRepository.create({
-      botId,
-      version: latestVersion ? latestVersion.version + 1 : 1,
-      name: dto.name,
-      description: dto.description,
-      flow: dto.flow ?? {},
-      status: 'draft',
-      createdBy: userId,
-      isPublished: false,
-    });
-
-    return this.flowVersionRepository.save(version);
-  }
-
-  async getFlowVersions(botId: string) {
-    return this.flowVersionRepository.find({
-      where: { botId },
-      order: { version: 'DESC' },
-    });
-  }
-
-  async getFlowVersion(botId: string, versionId: string) {
-    const version = await this.flowVersionRepository.findOne({
-      where: { id: versionId, botId },
-    });
-
-    if (!version) {
-      throw new NotFoundException('Flow version not found');
-    }
-
-    return version;
-  }
-
-  async updateFlowVersion(
-    botId: string,
-    versionId: string,
-    dto: CreateFlowVersionDto,
-  ) {
-    const version = await this.getFlowVersion(botId, versionId);
-
-    if (version.status === FlowStatus.PUBLISHED) {
-      throw new ForbiddenException('Cannot update published version');
-    }
-
-    if (dto.name !== undefined) version.name = dto.name;
-    if (dto.description !== undefined) version.description = dto.description;
-    if (dto.flow !== undefined) version.flow = dto.flow;
-
-    return this.flowVersionRepository.save(version);
-  }
-
-  async publishFlowVersion(botId: string, versionId: string) {
-    const version = await this.getFlowVersion(botId, versionId);
-
-    await this.flowVersionRepository.update(
-      { botId, status: FlowStatus.PUBLISHED },
-      { status: FlowStatus.ARCHIVED, isPublished: false },
-    );
-
-    version.status = FlowStatus.PUBLISHED;
-    version.isPublished = true;
-    version.publishedAt = new Date();
-
-    return this.flowVersionRepository.save(version);
-  }
-
-  async getPublishedVersion(botId: string) {
-    return this.flowVersionRepository.findOne({
-      where: { botId, status: FlowStatus.PUBLISHED },
-    });
-  }
-  */
 
   async linkKnowledgeBase(botId: string, dto: LinkKnowledgeBaseDto) {
     await this.findOne(botId);
@@ -545,105 +460,5 @@ export class BotsService {
     return this.updateBotChannel(botId, channelId, { isActive }, userId);
   }
 
-  async updateAppearance(
-    botId: string,
-    appearance: {
-      primaryColor?: string;
-      backgroundColor?: string;
-      botMessageColor?: string;
-      botMessageTextColor?: string;
-      fontFamily?: string;
-      position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
-      buttonSize?: 'small' | 'medium' | 'large';
-      showAvatar?: boolean;
-      showTimestamp?: boolean;
-      welcomeMessage?: string;
-      placeholderText?: string;
-    },
-    userId: string,
-  ) {
-    await this.findOne(botId);
-
-    const configUpdate: any = {};
-
-    if (
-      appearance.primaryColor ||
-      appearance.backgroundColor ||
-      appearance.botMessageColor ||
-      appearance.botMessageTextColor ||
-      appearance.fontFamily ||
-      appearance.position ||
-      appearance.buttonSize ||
-      appearance.showAvatar !== undefined ||
-      appearance.showTimestamp !== undefined
-    ) {
-      configUpdate.theme = {};
-      if (appearance.primaryColor)
-        configUpdate.theme.primaryColor = appearance.primaryColor;
-      if (appearance.backgroundColor)
-        configUpdate.theme.backgroundColor = appearance.backgroundColor;
-      if (appearance.botMessageColor)
-        configUpdate.theme.botMessageColor = appearance.botMessageColor;
-      if (appearance.botMessageTextColor)
-        configUpdate.theme.botMessageTextColor = appearance.botMessageTextColor;
-      if (appearance.fontFamily)
-        configUpdate.theme.fontFamily = appearance.fontFamily;
-      if (appearance.position)
-        configUpdate.theme.position = appearance.position;
-      if (appearance.buttonSize)
-        configUpdate.theme.buttonSize = appearance.buttonSize;
-      if (appearance.showAvatar !== undefined)
-        configUpdate.theme.showAvatar = appearance.showAvatar;
-      if (appearance.showTimestamp !== undefined)
-        configUpdate.theme.showTimestamp = appearance.showTimestamp;
-    }
-
-    if (appearance.welcomeMessage || appearance.placeholderText) {
-      configUpdate.messages = {};
-      if (appearance.welcomeMessage)
-        configUpdate.messages.welcome = appearance.welcomeMessage;
-      if (appearance.placeholderText)
-        configUpdate.messages.placeholder = appearance.placeholderText;
-    }
-
-    const changelog = 'Updated appearance settings';
-
-    return this.widgetVersionService.updateActiveVersionConfig(
-      botId,
-      configUpdate,
-      userId,
-      changelog,
-    );
-  }
-
-  async getAppearance(botId: string) {
-    await this.findOne(botId);
-
-    const activeVersion =
-      await this.widgetVersionService.getActiveVersion(botId);
-
-    if (!activeVersion) {
-      throw new NotFoundException('No active widget version found');
-    }
-
-    return {
-      primaryColor: activeVersion.config.theme?.primaryColor || '#667eea',
-      backgroundColor: activeVersion.config.theme?.backgroundColor || '#ffffff',
-      botMessageColor: activeVersion.config.theme?.botMessageColor || '#f9fafb',
-      botMessageTextColor:
-        activeVersion.config.theme?.botMessageTextColor || '#1f2937',
-      fontFamily:
-        activeVersion.config.theme?.fontFamily ||
-        '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto',
-      position: activeVersion.config.theme?.position || 'bottom-right',
-      buttonSize: activeVersion.config.theme?.buttonSize || 'medium',
-      showAvatar: activeVersion.config.theme?.showAvatar ?? true,
-      showTimestamp: activeVersion.config.theme?.showTimestamp ?? true,
-      welcomeMessage:
-        activeVersion.config.messages?.welcome ||
-        'Xin chÃ o! TÃ´i cÃ³ thá»ƒ giÃºp gÃ¬ cho báº¡n?',
-      placeholderText:
-        activeVersion.config.messages?.placeholder || 'Nháº­p tin nháº¯n...',
-    };
-  }
+  // Appearance logic moved to BotAppearanceService
 }

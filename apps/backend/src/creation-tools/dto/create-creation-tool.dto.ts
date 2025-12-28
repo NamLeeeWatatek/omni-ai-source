@@ -36,10 +36,10 @@ export class CreateCreationToolDto {
   @IsString()
   coverImage?: string;
 
-  @ApiPropertyOptional({ example: 'content-creation' })
+  @ApiPropertyOptional({ example: 'uuid-of-category' })
   @IsOptional()
   @IsString()
-  category?: string;
+  categoryId?: string;
 
   @ApiProperty({
     type: Object,

@@ -1,5 +1,6 @@
 import { CreationTool } from '../../../../domain/creation-tool';
 import { CreationToolEntity } from '../entities/creation-tool.entity';
+import { CategoryMapper } from '../../../../../categories/infrastructure/persistence/relational/mappers/category.mapper';
 
 export class CreationToolMapper {
   static toDomain(raw: CreationToolEntity): CreationTool {
@@ -10,7 +11,9 @@ export class CreationToolMapper {
     domainEntity.description = raw.description;
     domainEntity.icon = raw.icon;
     domainEntity.coverImage = raw.coverImage;
-    domainEntity.category = raw.category;
+    if (raw.category) {
+      domainEntity.category = CategoryMapper.toDomain(raw.category);
+    }
     domainEntity.formConfig = raw.formConfig;
     domainEntity.executionFlow = raw.executionFlow;
     domainEntity.isActive = raw.isActive;
@@ -33,7 +36,11 @@ export class CreationToolMapper {
     persistenceEntity.description = domainEntity.description;
     persistenceEntity.icon = domainEntity.icon;
     persistenceEntity.coverImage = domainEntity.coverImage;
-    persistenceEntity.category = domainEntity.category;
+    if (domainEntity.category) {
+      persistenceEntity.category = CategoryMapper.toPersistence(
+        domainEntity.category,
+      );
+    }
     persistenceEntity.formConfig = domainEntity.formConfig;
     persistenceEntity.executionFlow = domainEntity.executionFlow;
     persistenceEntity.isActive = domainEntity.isActive;

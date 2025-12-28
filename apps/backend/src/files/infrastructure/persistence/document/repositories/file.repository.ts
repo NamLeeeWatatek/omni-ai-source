@@ -35,4 +35,20 @@ export class FileDocumentRepository implements FileRepository {
   async delete(id: FileType['id']): Promise<void> {
     await this.fileModel.findByIdAndDelete(id);
   }
+
+  async update(id: FileType['id'], payload: Partial<FileType>): Promise<void> {
+    await this.fileModel.findByIdAndUpdate(id, payload);
+  }
+
+  async findOldTemporaryFiles(): Promise<FileType[]> {
+    const yesterday = new Date();
+    yesterday.setHours(yesterday.getHours() - 24);
+
+    const fileObjects = await this.fileModel.find({
+      isTemp: true,
+      createdAt: { $lt: yesterday },
+    });
+
+    return fileObjects.map((fileObject) => FileMapper.toDomain(fileObject));
+  }
 }

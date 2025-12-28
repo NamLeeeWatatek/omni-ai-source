@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Label } from '@/components/ui/Label'
-import { ShieldCheck, ArrowLeft, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { ShieldCheck, ArrowLeft, Loader2, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react'
 import { useState, Suspense, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
@@ -34,6 +34,8 @@ function ResetPasswordPageContent() {
     const [error, setError] = useState<string | null>(null)
     const [isSuccess, setIsSuccess] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const [showPassword, setShowPassword] = useState(false)
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
     const { register, handleSubmit, formState: { errors } } = useForm<ResetFormValues>({
         resolver: zodResolver(resetSchema(t))
@@ -109,27 +111,47 @@ function ResetPasswordPageContent() {
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                         <div className="space-y-2">
                             <Label htmlFor="password">{t('resetPassword.newPassword')}</Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                placeholder="••••••••"
-                                className="h-14 bg-background/50 border-border/50 text-lg rounded-2xl focus:ring-primary/20 transition-all"
-                                {...register('password')}
-                                disabled={isLoading}
-                            />
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="••••••••"
+                                    className="h-14 bg-background/50 border-border/50 text-lg rounded-2xl focus:ring-primary/20 transition-all pr-12"
+                                    {...register('password')}
+                                    disabled={isLoading}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-4 text-muted-foreground hover:text-foreground transition-colors"
+                                    tabIndex={-1}
+                                >
+                                    {showPassword ? <EyeOff className="h-5 w-5 py-0.5" /> : <Eye className="h-5 w-5 py-0.5" />}
+                                </button>
+                            </div>
                             {errors.password && <p className="text-xs text-destructive font-medium">{errors.password.message}</p>}
                         </div>
 
                         <div className="space-y-2">
                             <Label htmlFor="confirmPassword">{t('resetPassword.confirmNewPassword')}</Label>
-                            <Input
-                                id="confirmPassword"
-                                type="password"
-                                placeholder="••••••••"
-                                className="h-14 bg-background/50 border-border/50 text-lg rounded-2xl focus:ring-primary/20 transition-all"
-                                {...register('confirmPassword')}
-                                disabled={isLoading}
-                            />
+                            <div className="relative">
+                                <Input
+                                    id="confirmPassword"
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    placeholder="••••••••"
+                                    className="h-14 bg-background/50 border-border/50 text-lg rounded-2xl focus:ring-primary/20 transition-all pr-12"
+                                    {...register('confirmPassword')}
+                                    disabled={isLoading}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute right-4 top-4 text-muted-foreground hover:text-foreground transition-colors"
+                                    tabIndex={-1}
+                                >
+                                    {showConfirmPassword ? <EyeOff className="h-5 w-5 py-0.5" /> : <Eye className="h-5 w-5 py-0.5" />}
+                                </button>
+                            </div>
                             {errors.confirmPassword && <p className="text-xs text-destructive font-medium">{errors.confirmPassword.message}</p>}
                         </div>
 

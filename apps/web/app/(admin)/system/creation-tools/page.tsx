@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { creationToolsApi, CreationTool } from '@/lib/api/creation-tools';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
@@ -25,10 +25,11 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/AlertDialog';
 
+
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+
 export default function CreationToolsPage() {
     const router = useRouter();
-    const [tools, setTools] = useState<CreationTool[]>([]);
-    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [toolDialogOpen, setToolDialogOpen] = useState(false);
     const [editingTool, setEditingTool] = useState<CreationTool | null>(null);
@@ -36,23 +37,39 @@ export default function CreationToolsPage() {
     const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
     const [toolToDelete, setToolToDelete] = useState<string | null>(null);
 
-    useEffect(() => {
-        loadTools();
-    }, []);
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
-    // Load all creation tools with admin privileges
-    const loadTools = async () => {
-        try {
-            setLoading(true);
-            const data = await creationToolsApi.getAllAdmin();
-            setTools(Array.isArray(data) ? data : []);
-        } catch (error) {
-            const message = handleApiError(error);
-            toast.error(message);
-        } finally {
-            setLoading(false);
+
+    const [querySearch, setQuerySearch] = useState('')
+    const searchTimerRef = useRef<NodeJS.Timeout>()
+
+    // Cleanup timer
+    useEffect(() => {
+        return () => {
+            if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
         }
-    };
+    }, [])
+
+    // Reset to page 1 when search changes
+
+
+    const { data: response, isLoading: loading, refetch } = useQuery({
+        queryKey: ['creation-tools', currentPage, pageSize, querySearch],
+        queryFn: () => creationToolsApi.getAll({
+            page: currentPage,
+            limit: pageSize,
+            filters: querySearch ? { name: querySearch } : undefined
+        }),
+        placeholderData: keepPreviousData,
+    })
+
+    const tools = response && Array.isArray(response.data)
+        ? response.data
+        : (Array.isArray(response) ? response : []);
+
+    const totalItems = response && response.total ? response.total : (Array.isArray(response) ? response.length : 0);
 
     const handleSaveTool = async (data: Partial<CreationTool>) => {
         try {
@@ -63,7 +80,7 @@ export default function CreationToolsPage() {
                 await creationToolsApi.create(data);
                 toast.success('Tool created successfully');
             }
-            await loadTools();
+            await refetch();
         } catch (error) {
             const message = handleApiError(error);
             toast.error(message);
@@ -84,7 +101,7 @@ export default function CreationToolsPage() {
             setDeletingId(id);
             await creationToolsApi.delete(id);
             toast.success('Tool deleted successfully');
-            await loadTools();
+            await refetch();
         } catch (error) {
             const message = handleApiError(error);
             toast.error(message);
@@ -95,28 +112,15 @@ export default function CreationToolsPage() {
         }
     };
 
-    const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(9);
 
-    const filteredTools = tools.filter(tool =>
-        tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tool.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
 
-    const paginatedTools = filteredTools.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
-    // Reset to page 1 when search changes
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchQuery]);
-
-    if (loading) return <PageLoading message="Loading tools..." />;
+    if (loading && tools.length === 0) return <PageLoading message="Loading tools..." />;
 
     return (
         <PageShell
-            title="creation tools"
-            titleClassName="capitalize"
+            title="Creation Tools"
             description="Configure and manage your AI creation tools"
+            icon={Wrench}
             actions={
                 <Button
                     onClick={() => {
@@ -138,14 +142,23 @@ export default function CreationToolsPage() {
                         <Input
                             placeholder="Search tools..."
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => {
+                                const value = e.target.value
+                                setSearchQuery(value);
+
+                                if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+                                searchTimerRef.current = setTimeout(() => {
+                                    setQuerySearch(value)
+                                    setCurrentPage(1)
+                                }, 500)
+                            }}
                             className="pl-9 bg-card/50"
                         />
                     </div>
                 </div>
 
                 {/* Tools Grid */}
-                {filteredTools.length === 0 ? (
+                {tools.length === 0 && !loading ? (
                     // ... No Results UI
                     <div className="flex flex-col items-center justify-center py-16 border rounded-lg bg-card/30 border-dashed">
                         {/* ... content ... */}
@@ -175,7 +188,7 @@ export default function CreationToolsPage() {
                 ) : (
                     <>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-2">
-                            {paginatedTools.map((tool) => (
+                            {tools.map((tool) => (
                                 <Card
                                     key={tool.id}
                                     className="group hover:shadow-xl transition-all duration-300 border-border/60 hover:border-primary/20 hover:-translate-y-1 overflow-hidden flex flex-col h-full bg-card"
@@ -203,7 +216,7 @@ export default function CreationToolsPage() {
                                         <div className="flex gap-2 mb-4">
                                             {tool.category && (
                                                 <Badge variant="outline" className="text-xs font-normal text-muted-foreground bg-secondary/30">
-                                                    {tool.category}
+                                                    {tool.category.name}
                                                 </Badge>
                                             )}
                                         </div>
@@ -263,13 +276,13 @@ export default function CreationToolsPage() {
                                 pagination={{
                                     page: currentPage,
                                     limit: pageSize,
-                                    total: filteredTools.length,
-                                    totalPages: Math.ceil(filteredTools.length / pageSize),
-                                    hasNextPage: currentPage < Math.ceil(filteredTools.length / pageSize)
+                                    total: totalItems,
+                                    totalPages: Math.ceil(totalItems / pageSize),
+                                    hasNextPage: currentPage < Math.ceil(totalItems / pageSize)
                                 }}
                                 onPageChange={setCurrentPage}
                                 onPageSizeChange={setPageSize}
-                                pageSizeOptions={[9, 18, 27, 36]}
+                                pageSizeOptions={[10, 20, 30, 50]}
                             />
                         </div>
                     </>

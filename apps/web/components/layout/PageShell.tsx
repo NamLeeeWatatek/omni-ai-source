@@ -1,5 +1,7 @@
 import React from 'react'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '../ui/PageHeader'
+import { LucideIcon } from 'lucide-react'
 
 interface PageShellProps {
     children: React.ReactNode
@@ -7,9 +9,11 @@ interface PageShellProps {
     titleClassName?: string
     description?: string
     actions?: React.ReactNode
+    icon?: LucideIcon
+    onRefresh?: () => void
+    refreshing?: boolean
     className?: string
     contentClassName?: string
-    headerClassName?: string
     fullWidth?: boolean
 }
 
@@ -19,35 +23,26 @@ export const PageShell = ({
     titleClassName,
     description,
     actions,
+    icon,
+    onRefresh,
+    refreshing,
     className,
     contentClassName,
-    headerClassName,
     fullWidth = false
 }: PageShellProps) => {
     return (
-        <div className={cn("flex flex-col space-y-8", className)}>
-            {(title || actions) && (
-                <div className={cn("flex flex-col space-y-2", headerClassName)}>
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                            {title && (
-                                <h2 className={cn("text-2xl font-bold tracking-tight text-foreground sm:text-3xl", titleClassName)}>
-                                    {title}
-                                </h2>
-                            )}
-                            {description && (
-                                <p className="text-sm text-muted-foreground">
-                                    {description}
-                                </p>
-                            )}
-                        </div>
-                        {actions && (
-                            <div className="flex items-center gap-2">
-                                {actions}
-                            </div>
-                        )}
-                    </div>
-                </div>
+        <div className={cn("flex flex-col", className)}>
+            {title && (
+                <PageHeader
+                    title={title}
+                    description={description}
+                    icon={icon}
+                    onRefresh={onRefresh}
+                    refreshing={refreshing}
+                    className="mb-6 px-1"
+                >
+                    {actions}
+                </PageHeader>
             )}
 
             <div className={cn("flex-1", contentClassName)}>

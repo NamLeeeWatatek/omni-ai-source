@@ -9,11 +9,13 @@
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   JoinColumn,
+  OneToOne,
 } from 'typeorm';
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 import { WorkspaceEntity } from '../../../../../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
 import { WorkspaceOwnedEntity } from '../../../../../utils/workspace-owned.entity';
-// import { FlowVersionEntity } from '../../../../../flows/infrastructure/persistence/relational/entities/flow-version.entity';
+import { WidgetVersionEntity } from './widget-version.entity';
+import { AiProviderEntity } from '../../../../../ai-providers/infrastructure/persistence/relational/entities/ai-provider.entity';
 import {
   BotStatus,
   BotWidgetPosition,
@@ -64,6 +66,10 @@ export class BotEntity extends WorkspaceOwnedEntity {
   @Column({ name: 'ai_provider_id', type: 'uuid', nullable: true })
   aiProviderId?: string | null;
 
+  @ManyToOne(() => AiProviderEntity)
+  @JoinColumn({ name: 'ai_provider_id' })
+  aiProvider?: AiProviderEntity;
+
   @Column({ name: 'ai_model_name', type: String, nullable: true })
   aiModelName?: string | null;
 
@@ -76,47 +82,15 @@ export class BotEntity extends WorkspaceOwnedEntity {
   @Column({ name: 'allowed_origins', type: 'jsonb', nullable: true })
   allowedOrigins?: string[] | null;
 
-  @Column({ name: 'welcome_message', type: String, nullable: true })
-  welcomeMessage?: string | null;
-
-  @Column({ name: 'placeholder_text', type: String, nullable: true })
-  placeholderText?: string | null;
-
-  @Column({ name: 'primary_color', type: String, nullable: true })
-  primaryColor?: string | null;
-
-  @Column({
-    name: 'widget_position',
-    type: String,
-    default: BotWidgetPosition.BOTTOM_RIGHT,
-  })
-  widgetPosition: BotWidgetPosition;
-
-  @Column({
-    name: 'widget_button_size',
-    type: String,
-    default: BotWidgetButtonSize.MEDIUM,
-  })
-  widgetButtonSize: BotWidgetButtonSize;
-
-  @Column({ name: 'show_avatar', type: Boolean, default: true })
-  showAvatar: boolean;
-
-  @Column({ name: 'show_timestamp', type: Boolean, default: true })
-  showTimestamp: boolean;
-
-  @Column({ name: 'widget_enabled', type: Boolean, default: true })
-  widgetEnabled: boolean;
+  // Appearance columns removed - they are managed by WidgetVersionEntity.config
 
   @Column({ name: 'active_version_id', type: 'uuid', nullable: true })
   activeVersionId?: string | null;
 
-  // @ManyToOne(() => FlowVersionEntity, { nullable: true })
-  // @JoinColumn({ name: 'active_version_id' })
-  // activeVersion?: FlowVersionEntity;
+  @OneToOne(() => WidgetVersionEntity)
+  @JoinColumn({ name: 'active_version_id' })
+  activeVersion?: WidgetVersionEntity;
 
-  // @OneToMany(() => FlowVersionEntity, (version) => version.bot)
-  // flowVersions?: FlowVersionEntity[];
 
   @OneToMany(() => BotKnowledgeBaseEntity, (bkb) => bkb.bot)
   knowledgeBases?: BotKnowledgeBaseEntity[];

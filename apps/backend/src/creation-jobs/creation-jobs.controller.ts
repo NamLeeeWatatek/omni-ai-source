@@ -8,9 +8,8 @@ import {
   Delete,
   UseGuards,
   Query,
-  Req,
+  Request,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { CreationJobsService } from './creation-jobs.service';
 import { CreateCreationJobDto } from './dto/create-creation-jobs.dto';
 import { UpdateCreationJobDto } from './dto/update-creation-jobs.dto';
@@ -29,10 +28,14 @@ import {
 } from '../utils/dto/infinity-pagination-response.dto';
 import { infinityPagination } from '../utils/infinity-pagination';
 import { FindAllCreationJobsDto } from './dto/find-all-creation-jobs.dto';
+import { WorkspaceAccessGuard } from '../workspaces/guards/workspace-access.guard';
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { Permissions } from '../permissions/decorators/permissions.decorator';
+import { CurrentWorkspace } from '../workspaces/decorators/current-workspace.decorator';
 
-@ApiTags('Creation-jobs')
+@ApiTags('Creation Jobs')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), WorkspaceAccessGuard, PermissionsGuard)
 @Controller({
   path: 'creation-jobs',
   version: '1',
@@ -41,41 +44,27 @@ export class CreationJobsController {
   constructor(private readonly service: CreationJobsService) { }
 
   @Post()
+  @Permissions('job:Create')
   @ApiCreatedResponse({
     type: CreationJob,
   })
-  create(@Body() createDto: CreateCreationJobDto, @Req() request: Request) {
-    const user = request.user as any;
-    return this.service.create(createDto, user?.id, user?.workspaceId);
+  create(
+    @Body() createDto: CreateCreationJobDto,
+    @Request() req,
+    @CurrentWorkspace() workspaceId: string,
+  ) {
+    return this.service.create(createDto, req.user.id, workspaceId);
   }
 
   @Get()
+  @Permissions('job:List')
   @ApiOkResponse({
     type: InfinityPaginationResponse(CreationJob),
   })
   async findAll(
     @Query() query: FindAllCreationJobsDto,
-    @Req() request: Request,
+    @CurrentWorkspace() workspaceId: string,
   ): Promise<InfinityPaginationResponseDto<CreationJob>> {
-    const user = request.user as any;
-
-    // Fallback: If no workspace selected in token, try to find default from DB or just pick first one (NOT RECOMMENDED for prod but good for dev fix)
-    let workspaceId = user?.workspaceId;
-
-    // TODO: This logic should ideally be in a Guard or Interceptor to populate default workspace
-    if (!workspaceId) {
-      // Log warning
-      console.warn('findAll: No workspaceId in user token, using fallback logic might be needed or frontend needs to refresh token');
-
-      // TEMPORARY FIX: For now, we will throw but with better message, OR you can inject WorkspacesService to find default.
-      // But since we can't inject easily here without changing constructor...
-      // Let's rely on the frontend sending the header OR the Previous logic was strict.
-
-      // Actually, the error trace shows the JWT payload SHOULD have it if logged in correctly. 
-      // If it's missing, it means the user session is old or created before workspace logic.
-
-      throw new Error('Workspace not selected. Please logout and login again to refresh session.');
-    }
     const page = query?.page ?? 1;
     let limit = query?.limit ?? 10;
     if (limit > 50) {
@@ -87,17 +76,14 @@ export class CreationJobsController {
         page,
         limit,
       },
-      workspaceId: user?.workspaceId,
-    }); // Lint ID: 3419feac-083f-4bff-b254-829a33ebf6c0 (Fixes type mismatch)
+      workspaceId,
+    });
 
-    return infinityPagination(
-      result.data,
-      { page, limit },
-      result.count
-    );
+    return infinityPagination(result.data, { page, limit }, result.count);
   }
 
   @Get(':id')
+  @Permissions('job:Get')
   @ApiParam({
     name: 'id',
     type: String,
@@ -106,13 +92,12 @@ export class CreationJobsController {
   @ApiOkResponse({
     type: CreationJob,
   })
-  findById(@Param('id') id: string, @Req() request: Request) {
-    const user = request.user as any;
-    if (!user?.workspaceId) throw new Error('Workspace not selected');
-    return this.service.findById(id, user.workspaceId);
+  findById(@Param('id') id: string, @CurrentWorkspace() workspaceId: string) {
+    return this.service.findById(id, workspaceId);
   }
 
   @Patch(':id')
+  @Permissions('job:Update')
   @ApiParam({
     name: 'id',
     type: String,
@@ -124,32 +109,31 @@ export class CreationJobsController {
   update(
     @Param('id') id: string,
     @Body() updateDto: UpdateCreationJobDto,
-    @Req() request: Request,
+    @CurrentWorkspace() workspaceId: string,
   ) {
-    const user = request.user as any;
-    if (!user?.workspaceId) throw new Error('Workspace not selected');
-    return this.service.update(id, user.workspaceId, updateDto);
+    return this.service.update(id, workspaceId, updateDto);
   }
 
   @Delete(':id')
+  @Permissions('job:Delete')
   @ApiParam({
     name: 'id',
     type: String,
     required: true,
   })
-  remove(@Param('id') id: string, @Req() request: Request) {
-    const user = request.user as any;
-    if (!user?.workspaceId) throw new Error('Workspace not selected');
-    return this.service.remove(id, user.workspaceId);
+  remove(@Param('id') id: string, @CurrentWorkspace() workspaceId: string) {
+    return this.service.remove(id, workspaceId);
   }
 
   @Post('bulk-delete')
+  @Permissions('job:Delete')
   @ApiOkResponse({
     description: 'Bulk delete creation jobs',
   })
-  removeMany(@Body('ids') ids: string[], @Req() request: Request) {
-    const user = request.user as any;
-    if (!user?.workspaceId) throw new Error('Workspace not selected');
-    return this.service.removeMany(ids, user.workspaceId);
+  removeMany(
+    @Body('ids') ids: string[],
+    @CurrentWorkspace() workspaceId: string,
+  ) {
+    return this.service.removeMany(ids, workspaceId);
   }
 }

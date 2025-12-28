@@ -24,6 +24,7 @@ import { FacebookWebhookProcessor } from './webhooks/facebook-webhook.processor'
 import { WebhookLoggerInterceptor } from './interceptors/webhook-logger.interceptor';
 import { FacebookSyncService } from './services/facebook-sync.service';
 import { FacebookConversationSyncService } from './services/facebook-conversation-sync.service';
+import { WorkspacesModule } from '../workspaces/workspaces.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { FacebookConversationSyncService } from './services/facebook-conversatio
       MessageEntity,
     ]),
     forwardRef(() => ConversationsModule),
+    forwardRef(() => WorkspacesModule),
   ],
   controllers: [
     ChannelsController,
@@ -66,7 +68,7 @@ export class ChannelsModule implements OnModuleInit {
     private readonly facebookProvider: FacebookProvider,
     private readonly googleProvider: GoogleProvider,
     private readonly omiProvider: OmiProvider,
-  ) {}
+  ) { }
 
   onModuleInit() {
     this.strategy.register('facebook', this.facebookProvider);

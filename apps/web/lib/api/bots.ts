@@ -62,13 +62,15 @@ export interface CreateBotDto {
 export interface UpdateBotDto extends Partial<CreateBotDto> { }
 
 export const botsApi = {
-  async getAll(workspaceId: string, status?: string) {
+  async getAll(workspaceId: string, options?: { page?: number; limit?: number; status?: string }) {
     const filters: any = { workspaceId }
-    if (status) filters.status = status
+    if (options?.status) filters.status = options.status
 
     return await axiosClient.get('/bots', {
       params: {
         workspaceId, // Pass explicitly for @CurrentWorkspace decorator
+        page: options?.page || 1,
+        limit: options?.limit || 10,
         filters: JSON.stringify(filters)
       }
     })

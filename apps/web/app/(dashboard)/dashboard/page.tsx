@@ -1,20 +1,10 @@
-import { redirect } from 'next/navigation'
-import { auth } from '@/auth'
 import { DashboardClient } from '@/components/features/dashboard/DashboardClient'
 
-export default async function DashboardPage() {
-    // Check authentication on server
-    const session = await auth()
-    if (!session) {
-        redirect('/login')
-    }
-
+export default function DashboardPage() {
     // Let client fetch data directly from backend API via React Query
+    // Auth is handled by Middleware and Layout
     return (
-        <DashboardClient
-            initialStats={null}
-            user={session.user}
-        />
+        <DashboardClient />
     )
 }
 

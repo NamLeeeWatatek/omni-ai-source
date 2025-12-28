@@ -13,8 +13,8 @@ export const adminApi = {
     },
 
     // Roles
-    getRoles: async (): Promise<RoleEntity[]> => {
-        return apiClient.get('/roles') as any
+    getRoles: async (params?: { search?: string }): Promise<RoleEntity[]> => {
+        return apiClient.get('/roles', { params }) as any
     },
 
     getRole: async (id: number): Promise<RoleEntity> => {
@@ -34,8 +34,8 @@ export const adminApi = {
     },
 
     // Permissions
-    getPermissions: async (): Promise<PermissionEntity[]> => {
-        return apiClient.get('/permissions') as any
+    getPermissions: async (params?: { search?: string }): Promise<PermissionEntity[]> => {
+        return apiClient.get('/permissions', { params }) as any
     },
 
     createPermission: async (data: { resource: string, action: string, description: string }): Promise<PermissionEntity> => {

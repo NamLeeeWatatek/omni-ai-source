@@ -51,7 +51,13 @@ export const DashboardHeader = React.memo<DashboardHeaderProps>(({
     onToggleNotifications,
     onToggleSidebar
 }) => {
-    const { theme, setTheme } = useTheme()
+    const { resolvedTheme, setTheme } = useTheme()
+    const [mounted, setMounted] = React.useState(false)
+
+    React.useEffect(() => {
+        setMounted(true)
+    }, [])
+
 
     return (
         <header className="h-16 flex items-center justify-between px-6 flex-shrink-0 bg-background/50 backdrop-blur-xl border-b border-border/10 sticky top-0 z-40 transition-all duration-200">
@@ -76,11 +82,13 @@ export const DashboardHeader = React.memo<DashboardHeaderProps>(({
                 <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
                     className="relative w-9 h-9 rounded-full hover:bg-primary/5"
                     title="Toggle theme"
                 >
-                    {theme === 'dark' ? (
+                    {!mounted ? (
+                        <div className="w-4 h-4" />
+                    ) : resolvedTheme === 'dark' ? (
                         <Sun className="w-4 h-4" />
                     ) : (
                         <Moon className="w-4 h-4" />

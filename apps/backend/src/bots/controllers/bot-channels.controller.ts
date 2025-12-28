@@ -22,12 +22,14 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { BotsService } from '../bots.service';
 
+import { WorkspaceAccessGuard } from '../../workspaces/guards/workspace-access.guard';
+
 @ApiTags('Bot Channels')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), WorkspaceAccessGuard)
 @Controller({ path: 'bots/:id/channels', version: '1' })
 export class BotChannelsController {
-  constructor(private readonly botsService: BotsService) {}
+  constructor(private readonly botsService: BotsService) { }
 
   @Get()
   @ApiOperation({ summary: 'Get bot channels' })

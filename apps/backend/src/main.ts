@@ -42,7 +42,6 @@ async function bootstrap() {
   app.use(
     helmet({
       contentSecurityPolicy: false,
-      frameguard: false,
     }),
   );
 

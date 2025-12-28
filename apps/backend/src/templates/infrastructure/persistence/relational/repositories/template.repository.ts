@@ -11,6 +11,7 @@ import { Template } from '../../../../domain/template';
 import { TemplateRepository } from '../../template.repository';
 import { TemplateMapper } from '../mappers/template.mapper';
 import { IPaginationOptions } from '../../../../../utils/types/pagination-options';
+import { DeepPartial } from '../../../../../utils/types/deep-partial.type';
 
 @Injectable()
 export class TemplatesRelationalRepository implements TemplateRepository {
@@ -19,8 +20,8 @@ export class TemplatesRelationalRepository implements TemplateRepository {
     private readonly templatesRepository: Repository<TemplateEntity>,
   ) {}
 
-  async create(data: Template): Promise<Template> {
-    const persistenceModel = TemplateMapper.toPersistence(data);
+  async create(data: DeepPartial<Template>): Promise<Template> {
+    const persistenceModel = TemplateMapper.toPersistence(data as Template);
     const newEntity = await this.templatesRepository.save(
       this.templatesRepository.create(persistenceModel),
     );
@@ -35,19 +36,15 @@ export class TemplatesRelationalRepository implements TemplateRepository {
     filterOptions?: FilterTemplateDto | null;
     sortOptions?: SortTemplateDto[] | null;
     paginationOptions: IPaginationOptions;
-  }): Promise<Template[]> {
+  }): Promise<[Template[], number]> {
     const where: FindOptionsWhere<TemplateEntity> = {};
 
     if (filterOptions?.isActive !== undefined) {
       where.isActive = filterOptions.isActive;
     }
 
-    if (filterOptions?.name) {
-      where.name = Like(`%${filterOptions.name}%`);
-    }
-
     if (filterOptions?.category) {
-      where.category = filterOptions.category;
+      where.category = { slug: filterOptions.category };
     }
 
     if (filterOptions?.workspaceId) {
@@ -58,7 +55,15 @@ export class TemplatesRelationalRepository implements TemplateRepository {
       where.createdBy = filterOptions.createdBy;
     }
 
-    const entities = await this.templatesRepository.find({
+    if (filterOptions?.creationToolId) {
+      where.creationToolId = filterOptions.creationToolId;
+    }
+
+    if (filterOptions?.name) {
+      where.name = Like(`%${filterOptions.name}%`);
+    }
+
+    const [entities, count] = await this.templatesRepository.findAndCount({
       skip: (paginationOptions.page - 1) * paginationOptions.limit,
       take: paginationOptions.limit,
       where,
@@ -72,7 +77,10 @@ export class TemplatesRelationalRepository implements TemplateRepository {
       ),
     });
 
-    return entities.map((template) => TemplateMapper.toDomain(template));
+    return [
+      entities.map((template) => TemplateMapper.toDomain(template)),
+      count,
+    ];
   }
 
   async findById(id: Template['id']): Promise<NullableType<Template>> {
@@ -128,7 +136,7 @@ export class TemplatesRelationalRepository implements TemplateRepository {
       return null;
     }
 
-    const updatedEntity = await this.templatesRepository.save(
+    await this.templatesRepository.save(
       this.templatesRepository.create(
         TemplateMapper.toPersistence({
           ...TemplateMapper.toDomain(entity),
@@ -137,7 +145,12 @@ export class TemplatesRelationalRepository implements TemplateRepository {
       ),
     );
 
-    return TemplateMapper.toDomain(updatedEntity);
+    const updatedEntity = await this.templatesRepository.findOne({
+      where: { id: entity.id },
+      relations: ['creationTool'], // category is eager, creationTool is not
+    });
+
+    return updatedEntity ? TemplateMapper.toDomain(updatedEntity) : null;
   }
 
   async bulkUpdate(

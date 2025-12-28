@@ -5,11 +5,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
-import { useAuth } from '@/lib/hooks/useAuth'
 import { usePermissions } from '@/lib/hooks/usePermissions'
 import {
     Layout,
-    Grid,
     Radio,
     Settings,
     Database,
@@ -19,11 +17,11 @@ import {
     Bot,
     Sparkles,
     Package,
-    GalleryVerticalEnd,
-    History
 } from 'lucide-react'
 import { WorkspaceSwitcher } from '@/components/features/workspace/WorkspaceSwitcher'
 import { cn } from '@/lib/utils'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/Avatar'
+import { UserRole } from '@/types/next-auth'
 
 interface NavigationItem {
     name: string
@@ -35,12 +33,21 @@ interface NavigationItem {
     }>
 }
 
+interface UserProp {
+    name?: string | null
+    email?: string | null
+    image?: string | null
+    avatarUrl?: string | null
+    role?: UserRole | string | null
+}
+
 interface DashboardSidebarProps {
     expandedSections: string[]
     onToggleSection: (section: string) => void
     onSignOutConfirm: () => void
     sidebarOpen: boolean
     onCloseSidebar?: () => void
+    user?: UserProp | null
 }
 
 const getTranslatedNavigation = (t: any): NavigationItem[] => [
@@ -57,16 +64,23 @@ const getTranslatedNavigation = (t: any): NavigationItem[] => [
     { name: t('settings'), href: '/settings', icon: Settings },
 ]
 
+const getRoleName = (role: UserRole | string | null | undefined): string => {
+    if (!role) return '';
+    if (typeof role === 'string') return role;
+    if (typeof role === 'object' && 'name' in role) return role.name || '';
+    return '';
+}
+
 export const DashboardSidebar = React.memo<DashboardSidebarProps>(({
     expandedSections,
     onToggleSection,
     onSignOutConfirm,
     sidebarOpen,
-    onCloseSidebar
+    onCloseSidebar,
+    user
 }) => {
     const pathname = usePathname()
     const { t } = useTranslation()
-    const { user } = useAuth()
     const { capabilities } = usePermissions()
     const navigation = getTranslatedNavigation(t)
 
@@ -76,7 +90,7 @@ export const DashboardSidebar = React.memo<DashboardSidebarProps>(({
     }
 
     const getUserName = () => {
-        if (!user) return 'Loading'
+        if (!user) return 'User'
         return user.name || user.email || 'User'
     }
 
@@ -104,7 +118,7 @@ export const DashboardSidebar = React.memo<DashboardSidebarProps>(({
                     <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
                         <Sparkles className="w-4 h-4 text-primary" />
                     </div>
-                    <span className="text-lg font-bold tracking-tight text-foreground">WataOmi</span>
+                    <span className="text-lg font-bold tracking-tight text-foreground">Wata AI</span>
                 </div>
             </div>
 
@@ -185,20 +199,21 @@ export const DashboardSidebar = React.memo<DashboardSidebarProps>(({
             <div className="p-3 border-t border-border/30">
                 <div className="group rounded-xl border border-border/30 bg-card/20 p-3 hover:bg-card/40 transition-all duration-200">
                     <div className="flex items-center gap-3 mb-3">
-                        <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center ring-1 ring-border/50">
-                            <span className="text-xs font-semibold text-secondary-foreground">
+                        <Avatar className="w-9 h-9 border border-border/50">
+                            <AvatarImage src={user?.avatarUrl || user?.image || ''} />
+                            <AvatarFallback className="bg-secondary text-secondary-foreground text-xs font-bold">
                                 {getUserInitial()}
-                            </span>
-                        </div>
+                            </AvatarFallback>
+                        </Avatar>
 
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                                 <p className="text-sm font-medium truncate text-foreground">
                                     {getUserName()}
                                 </p>
-                                {capabilities?.role && (
+                                {user?.role && (
                                     <span className="inline-flex items-center rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary ring-1 ring-inset ring-primary/20 capitalize">
-                                        {capabilities.role}
+                                        {getRoleName(user.role)}
                                     </span>
                                 )}
                             </div>

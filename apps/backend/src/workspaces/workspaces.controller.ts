@@ -29,12 +29,16 @@ import {
 } from './dto/update-workspace.dto';
 import { Workspace, WorkspaceMember } from './domain/workspace';
 
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { Permissions } from '../permissions/decorators/permissions.decorator';
+import { WorkspaceAccessGuard } from './guards/workspace-access.guard';
+
 @ApiTags('Workspaces')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), PermissionsGuard)
 @Controller({ path: 'workspaces', version: '1' })
 export class WorkspacesController {
-  constructor(private readonly workspacesService: WorkspacesService) {}
+  constructor(private readonly workspacesService: WorkspacesService) { }
 
   @Post()
   @ApiOperation({ summary: 'Create workspace' })
@@ -58,6 +62,8 @@ export class WorkspacesController {
     return this.workspacesService.getUserDefaultWorkspace(req.user.id);
   }
 
+  @Permissions('workspaces:Get')
+  @UseGuards(WorkspaceAccessGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Get workspace by ID' })
   @ApiOkResponse({ type: Workspace })
@@ -74,6 +80,8 @@ export class WorkspacesController {
     return this.workspacesService.findBySlug(slug);
   }
 
+  @Permissions('workspaces:Update')
+  @UseGuards(WorkspaceAccessGuard)
   @Patch(':id')
   @ApiOperation({ summary: 'Update workspace' })
   @ApiOkResponse({ type: Workspace })
@@ -86,6 +94,8 @@ export class WorkspacesController {
     return this.workspacesService.update(id, updateDto, req.user.id);
   }
 
+  @Permissions('workspaces:Delete')
+  @UseGuards(WorkspaceAccessGuard)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete workspace' })
   @ApiParam({ name: 'id', type: String })
@@ -94,6 +104,8 @@ export class WorkspacesController {
     return this.workspacesService.remove(id, req.user.id);
   }
 
+  @Permissions('iam:ListMembers')
+  @UseGuards(WorkspaceAccessGuard)
   @Get(':id/members')
   @ApiOperation({ summary: 'Get workspace members' })
   @ApiOkResponse({ type: [WorkspaceMember] })
@@ -102,15 +114,23 @@ export class WorkspacesController {
     return this.workspacesService.getMembers(id);
   }
 
+  @Permissions('iam:AddMember')
+  @UseGuards(WorkspaceAccessGuard)
   @Post(':id/members')
   @ApiOperation({ summary: 'Add member to workspace' })
   @ApiCreatedResponse({ type: WorkspaceMember })
   @ApiParam({ name: 'id', type: String })
   @HttpCode(HttpStatus.CREATED)
-  addMember(@Param('id') id: string, @Body() body: AddMemberDto) {
-    return this.workspacesService.addMember(id, body.userId, body.role);
+  addMember(
+    @Param('id') id: string,
+    @Body() body: AddMemberDto,
+    @Request() req,
+  ) {
+    return this.workspacesService.addMember(id, body.userId, body.role, req.user.id);
   }
 
+  @Permissions('iam:UpdateMember')
+  @UseGuards(WorkspaceAccessGuard)
   @Patch(':id/members/:userId')
   @ApiOperation({ summary: 'Update member role' })
   @ApiOkResponse({ type: WorkspaceMember })
@@ -120,19 +140,33 @@ export class WorkspacesController {
     @Param('id') id: string,
     @Param('userId') userId: string,
     @Body() body: UpdateMemberRoleDto,
+    @Request() req,
   ) {
-    return this.workspacesService.updateMemberRole(id, userId, body.role);
+    return this.workspacesService.updateMemberRole(
+      id,
+      userId,
+      body.role,
+      req.user.id,
+    );
   }
 
+  @Permissions('iam:RemoveMember')
+  @UseGuards(WorkspaceAccessGuard)
   @Delete(':id/members/:userId')
   @ApiOperation({ summary: 'Remove member from workspace' })
   @ApiParam({ name: 'id', type: String })
   @ApiParam({ name: 'userId', type: String })
   @HttpCode(HttpStatus.NO_CONTENT)
-  removeMember(@Param('id') id: string, @Param('userId') userId: string) {
-    return this.workspacesService.removeMember(id, userId);
+  removeMember(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Request() req,
+  ) {
+    return this.workspacesService.removeMember(id, userId, req.user.id);
   }
 
+  @Permissions('workspaces:TransferOwnership')
+  @UseGuards(WorkspaceAccessGuard)
   @Post(':id/transfer-ownership')
   @ApiOperation({ summary: 'Transfer workspace ownership' })
   @ApiOkResponse({ type: Workspace })

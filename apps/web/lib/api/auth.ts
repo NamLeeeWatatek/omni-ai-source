@@ -15,4 +15,10 @@ export const authApi = {
 
     resetPassword: (data: any) =>
         axiosClient.post('/auth/reset/password', data),
+
+    me: () =>
+        axiosClient.get('/auth/me'),
+
+    updateMe: (data: any) =>
+        axiosClient.patch('/auth/me', data),
 };

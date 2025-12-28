@@ -4,10 +4,13 @@ import {
   DeleteDateColumn,
   Entity,
   Index,
+  ManyToOne,
+  JoinColumn,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
+import { CategoryEntity } from '../../../../../categories/infrastructure/persistence/relational/entities/category.entity';
 
 @Entity({ name: 'creation_tool' })
 export class CreationToolEntity extends EntityRelationalHelper {
@@ -31,9 +34,11 @@ export class CreationToolEntity extends EntityRelationalHelper {
   @Column({ name: 'cover_image', type: String, nullable: true })
   coverImage?: string;
 
-  @Column({ type: String, nullable: true })
-  @Index()
-  category?: string;
+  @ManyToOne(() => CategoryEntity, {
+    eager: true,
+  })
+  @JoinColumn({ name: 'category_id' })
+  category?: CategoryEntity;
 
   @Column({ name: 'form_config', type: 'jsonb' })
   formConfig: any;

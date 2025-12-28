@@ -1,50 +1,58 @@
+"use client"
+
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-type AvatarProps = React.HTMLAttributes<HTMLDivElement>
-
-const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
-  ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(
-        "relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full",
-        className
-      )}
-      {...props}
-    />
-  )
-)
+const Avatar = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full",
+      className
+    )}
+    {...props}
+  />
+))
 Avatar.displayName = "Avatar"
 
-type AvatarImageProps = React.ImgHTMLAttributes<HTMLImageElement>
+const AvatarImage = React.forwardRef<
+  HTMLImageElement,
+  React.ImgHTMLAttributes<HTMLImageElement>
+>(({ className, src, ...props }, ref) => {
+  const [hasError, setHasError] = React.useState(false)
+  const [isLoading, setIsLoading] = React.useState(true)
 
-const AvatarImage = React.forwardRef<HTMLImageElement, AvatarImageProps>(
-  ({ className, ...props }, ref) => (
+  if (!src || hasError) return null
+
+  return (
     <img
       ref={ref}
+      src={src}
       className={cn("aspect-square h-full w-full object-cover", className)}
+      onLoad={() => setIsLoading(false)}
+      onError={() => setHasError(true)}
       {...props}
     />
   )
-)
+})
 AvatarImage.displayName = "AvatarImage"
 
-type AvatarFallbackProps = React.HTMLAttributes<HTMLDivElement>
-
-const AvatarFallback = React.forwardRef<HTMLDivElement, AvatarFallbackProps>(
-  ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(
-        "flex h-full w-full items-center justify-center rounded-full bg-muted",
-        className
-      )}
-      {...props}
-    />
-  )
-)
+const AvatarFallback = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "flex h-full w-full items-center justify-center rounded-full bg-muted font-medium text-muted-foreground",
+      className
+    )}
+    {...props}
+  />
+))
 AvatarFallback.displayName = "AvatarFallback"
 
 export { Avatar, AvatarImage, AvatarFallback }
-

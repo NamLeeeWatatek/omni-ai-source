@@ -4,7 +4,7 @@ import { RoleEnum } from './roles.enum';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) { }
+  constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
     const roles = this.reflector.getAllAndOverride<(number | string)[]>(
@@ -38,11 +38,13 @@ export class RolesGuard implements CanActivate {
 
       // 2b. Nếu decorator truyền vào là Name ('admin') -> so sánh Name
       if (userRole.name) {
-        const hasNameMatch = roles.map((r) => String(r).toLowerCase()).includes(userRole.name.toLowerCase());
+        const hasNameMatch = roles
+          .map((r) => String(r).toLowerCase())
+          .includes(userRole.name.toLowerCase());
         if (hasNameMatch) return true;
       }
       // 2c. Fallback: Map từ Name trong decorator ('admin') sang ID trong RoleEnum (1) để so sánh vói userRole.id
-      const hasMappedIdMatch = roles.some(role => {
+      const hasMappedIdMatch = roles.some((role) => {
         if (typeof role === 'string') {
           // Access enum by key string (e.g. RoleEnum['admin'])
           const enumId = (RoleEnum as any)[role.toLowerCase()];

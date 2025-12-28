@@ -9,4 +9,11 @@ export abstract class FileRepository {
   abstract findByIds(ids: FileType['id'][]): Promise<FileType[]>;
 
   abstract delete(id: FileType['id']): Promise<void>;
+
+  abstract update(
+    id: FileType['id'],
+    payload: Partial<FileType>,
+  ): Promise<void>;
+
+  abstract findOldTemporaryFiles(): Promise<FileType[]>;
 }

@@ -22,12 +22,14 @@ import { CreateBotFunctionDto } from '../dto/create-bot-function.dto';
 import { UpdateBotFunctionDto } from '../dto/update-bot-function.dto';
 import { ExecuteBotFunctionDto } from '../dto/execute-bot-function.dto';
 
+import { WorkspaceAccessGuard } from '../../workspaces/guards/workspace-access.guard';
+
 @ApiTags('Bot Functions')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), WorkspaceAccessGuard)
 @Controller({ path: 'bots/:id/functions', version: '1' })
 export class BotFunctionsController {
-  constructor(private readonly botFunctionsService: BotFunctionsService) {}
+  constructor(private readonly botFunctionsService: BotFunctionsService) { }
 
   @Post()
   @ApiOperation({ summary: 'Create bot function' })

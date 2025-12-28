@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { WorkspaceRole } from './enums/workspace-role.enum';
 import {
   WorkspaceEntity,
   WorkspaceMemberEntity,
@@ -24,7 +25,7 @@ export class WorkspacesService {
     private workspaceRepository: Repository<WorkspaceEntity>,
     @InjectRepository(WorkspaceMemberEntity)
     private memberRepository: Repository<WorkspaceMemberEntity>,
-  ) {}
+  ) { }
 
   async create(createDto: CreateWorkspaceDto, ownerId: string) {
     const existing = await this.workspaceRepository.findOne({
@@ -45,7 +46,7 @@ export class WorkspacesService {
     await this.memberRepository.save({
       workspaceId: saved.id,
       userId: ownerId,
-      roleId: getWorkspaceRoleId('owner'),
+      roleId: getWorkspaceRoleId(WorkspaceRole.OWNER),
     });
 
     return saved;
@@ -90,7 +91,7 @@ export class WorkspacesService {
     await this.memberRepository.save({
       workspaceId: saved.id,
       userId,
-      roleId: getWorkspaceRoleId('owner'),
+      roleId: getWorkspaceRoleId(WorkspaceRole.OWNER),
     });
 
     return saved;
@@ -131,7 +132,10 @@ export class WorkspacesService {
         relations: ['role'],
       });
       const role = getWorkspaceRoleFromEntity(member?.role);
-      if (!member || (role !== 'owner' && role !== 'admin')) {
+      if (
+        !member ||
+        (role !== WorkspaceRole.OWNER && role !== WorkspaceRole.ADMIN)
+      ) {
         throw new ForbiddenException('Not authorized to update workspace');
       }
     }
@@ -162,8 +166,19 @@ export class WorkspacesService {
   async addMember(
     workspaceId: string,
     userId: string,
-    role: 'admin' | 'member' = 'member',
+    role: WorkspaceRole = WorkspaceRole.MEMBER,
+    actorId?: string,
   ) {
+    if (actorId) {
+      const actorRole = await this.getMemberRole(workspaceId, actorId);
+      if (
+        actorRole !== WorkspaceRole.OWNER &&
+        actorRole !== WorkspaceRole.ADMIN
+      ) {
+        throw new ForbiddenException('Only admins and owners can add members');
+      }
+    }
+
     const existing = await this.memberRepository.findOne({
       where: { workspaceId, userId },
     });
@@ -179,11 +194,37 @@ export class WorkspacesService {
     return this.memberRepository.save(member);
   }
 
+  // Internal method for Invitation Service
+  async addDirectMember(workspaceId: string, userId: string, roleId: number) {
+    const existing = await this.memberRepository.findOne({
+      where: { workspaceId, userId },
+    });
+    if (existing) {
+      // Already member, update role? or just ignore
+      return existing;
+    }
+    const member = this.memberRepository.create({
+      workspaceId,
+      userId,
+      roleId,
+    });
+    return this.memberRepository.save(member);
+  }
+
   async updateMemberRole(
     workspaceId: string,
     userId: string,
-    role: 'admin' | 'member',
+    role: WorkspaceRole,
+    actorId: string,
   ) {
+    // 1. Check actor permissions
+    const actorRole = await this.getMemberRole(workspaceId, actorId);
+    if (
+      actorRole !== WorkspaceRole.OWNER &&
+      actorRole !== WorkspaceRole.ADMIN
+    ) {
+      throw new ForbiddenException('Only admins and owners can update roles');
+    }
     const member = await this.memberRepository.findOne({
       where: { workspaceId, userId },
       relations: ['role'],
@@ -194,15 +235,36 @@ export class WorkspacesService {
     }
 
     const currentRole = getWorkspaceRoleFromEntity(member.role);
-    if (currentRole === 'owner') {
+    if (currentRole === WorkspaceRole.OWNER) {
       throw new ForbiddenException('Cannot change owner role');
+    }
+
+    // New Logic: Admin cannot demote/promote another Admin?
+    // Usually Admin CAN change Member <-> Admin.
+    // But Admin CANNOT touch Owner (handled above).
+    // If target is Admin, and actor is Admin -> strictly speaking often allowed, but user asked for hierarchy.
+    // Let's allow Admin to manage other Admins for now, OR restrict:
+    if (
+      actorRole === WorkspaceRole.ADMIN &&
+      currentRole === WorkspaceRole.ADMIN &&
+      role !== WorkspaceRole.ADMIN
+    ) {
+      // Hierarchy: Owner > Admin. Admin = Admin?
+      // Let's enforce Owner > Admin. Admin cannot change other Admin's role.
+      throw new ForbiddenException('Only owner can modify admin roles');
     }
 
     member.roleId = getWorkspaceRoleId(role);
     return this.memberRepository.save(member);
   }
 
-  async removeMember(workspaceId: string, userId: string) {
+  async removeMember(workspaceId: string, userId: string, actorId: string) {
+    const actorRole = await this.getMemberRole(workspaceId, actorId);
+
+    if (actorRole !== WorkspaceRole.OWNER && actorRole !== WorkspaceRole.ADMIN) {
+      throw new ForbiddenException('Only admins and owners can remove members');
+    }
+
     const member = await this.memberRepository.findOne({
       where: { workspaceId, userId },
       relations: ['role'],
@@ -213,8 +275,13 @@ export class WorkspacesService {
     }
 
     const role = getWorkspaceRoleFromEntity(member.role);
-    if (role === 'owner') {
+    if (role === WorkspaceRole.OWNER) {
       throw new ForbiddenException('Cannot remove workspace owner');
+    }
+
+    // Role Hierarchy: Admin cannot remove Admin
+    if (actorRole === WorkspaceRole.ADMIN && role === WorkspaceRole.ADMIN) {
+      throw new ForbiddenException('Admins cannot remove other admins');
     }
 
     await this.memberRepository.delete({ workspaceId, userId });
@@ -223,14 +290,14 @@ export class WorkspacesService {
   async getMembers(workspaceId: string) {
     return this.memberRepository.find({
       where: { workspaceId },
-      relations: ['user'],
+      relations: ['user', 'role'],
     });
   }
 
   async getMemberRole(
     workspaceId: string,
     userId: string,
-  ): Promise<'owner' | 'admin' | 'member' | null> {
+  ): Promise<WorkspaceRole | null> {
     const member = await this.memberRepository.findOne({
       where: { workspaceId, userId },
       relations: ['role'],
@@ -264,11 +331,11 @@ export class WorkspacesService {
 
     await this.memberRepository.update(
       { workspaceId, userId: currentOwnerId },
-      { roleId: getWorkspaceRoleId('admin') },
+      { roleId: getWorkspaceRoleId(WorkspaceRole.ADMIN) },
     );
     await this.memberRepository.update(
       { workspaceId, userId: newOwnerId },
-      { roleId: getWorkspaceRoleId('owner') },
+      { roleId: getWorkspaceRoleId(WorkspaceRole.OWNER) },
     );
 
     return workspace;

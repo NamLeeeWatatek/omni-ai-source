@@ -6,9 +6,9 @@ import { RoleEntity } from './infrastructure/persistence/relational/entities/rol
 import { PermissionEntity } from '../permissions/infrastructure/persistence/relational/entities/permission.entity';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([RoleEntity, PermissionEntity])],
-    controllers: [RolesController],
-    providers: [RolesService],
-    exports: [RolesService],
+  imports: [TypeOrmModule.forFeature([RoleEntity, PermissionEntity])],
+  controllers: [RolesController],
+  providers: [RolesService],
+  exports: [RolesService],
 })
-export class RolesModule { }
+export class RolesModule {}

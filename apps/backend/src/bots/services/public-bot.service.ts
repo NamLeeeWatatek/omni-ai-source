@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
+import { I18nContext, I18nService } from 'nestjs-i18n';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BotEntity } from '../infrastructure/persistence/relational/entities/bot.entity';
@@ -49,7 +50,8 @@ export class PublicBotService {
     private readonly kbRagService: KBRagService,
     private readonly aiProvidersService: AiProvidersService,
     private readonly widgetVersionService: WidgetVersionService,
-  ) {}
+    private readonly i18n: I18nService,
+  ) { }
 
   async getBotConfig(
     botId: string,
@@ -58,7 +60,7 @@ export class PublicBotService {
     versionId?: string,
   ): Promise<BotConfigResponseDto> {
     const bot = await this.botRepository.findOne({
-      where: { id: botId, status: BotStatus.ACTIVE, widgetEnabled: true },
+      where: { id: botId, status: BotStatus.ACTIVE },
     });
 
     if (!bot) {
@@ -112,9 +114,14 @@ export class PublicBotService {
       timezone: bot.timezone,
       welcomeMessage:
         widgetVersion.config.messages?.welcome ||
-        'Xin chÃ o! TÃ´i cÃ³ thá»ƒ giÃºp gÃ¬ cho báº¡n?',
+        this.i18n.t('ai.defaultWelcome', {
+          lang: I18nContext.current()?.lang,
+        }),
       placeholderText:
-        widgetVersion.config.messages?.placeholder || 'Nháº­p tin nháº¯n...',
+        widgetVersion.config.messages?.placeholder ||
+        this.i18n.t('ai.defaultPlaceholder', {
+          lang: I18nContext.current()?.lang,
+        }),
       theme: {
         primaryColor: widgetVersion.config.theme?.primaryColor || '#667eea',
         position: widgetVersion.config.theme?.position || 'bottom-right',
@@ -131,7 +138,7 @@ export class PublicBotService {
     origin?: string,
   ): Promise<CreateConversationResponseDto> {
     const bot = await this.botRepository.findOne({
-      where: { id: botId, status: BotStatus.ACTIVE, widgetEnabled: true },
+      where: { id: botId, status: BotStatus.ACTIVE },
     });
 
     if (!bot) {
@@ -190,7 +197,7 @@ export class PublicBotService {
 
     const bot = conversation.bot;
 
-    if (!bot || bot.status !== BotStatus.ACTIVE || !bot.widgetEnabled) {
+    if (!bot || bot.status !== BotStatus.ACTIVE) {
       throw new ForbiddenException('Bot is not available');
     }
 

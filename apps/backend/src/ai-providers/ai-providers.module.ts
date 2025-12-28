@@ -14,6 +14,9 @@ import { AiProviderConfigRelationalRepository } from './infrastructure/persisten
 import { AiProviderConfigRepository } from './infrastructure/persistence/ai-provider-config.repository';
 import { SystemAiSettingsRepository } from './infrastructure/system/system-ai-settings.repository';
 import { EncryptionUtil } from '../common/utils/encryption.util';
+import { WorkspacesModule } from '../workspaces/workspaces.module';
+import { PermissionsModule } from '../permissions/permissions.module';
+import { forwardRef } from '@nestjs/common';
 
 @Module({
   imports: [
@@ -25,6 +28,8 @@ import { EncryptionUtil } from '../common/utils/encryption.util';
       AiUsageLogEntity,
       SystemAiSettingsEntity,
     ]),
+    forwardRef(() => WorkspacesModule),
+    PermissionsModule,
   ],
   controllers: [AiProvidersController],
   providers: [
@@ -38,4 +43,4 @@ import { EncryptionUtil } from '../common/utils/encryption.util';
   ],
   exports: [AiProvidersService],
 })
-export class AiProvidersModule {}
+export class AiProvidersModule { }

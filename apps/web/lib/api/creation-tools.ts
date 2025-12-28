@@ -1,4 +1,5 @@
 import { axiosClient } from '../axios-client';
+import { Category } from './categories';
 
 export interface CreationTool {
     id: string;
@@ -7,7 +8,8 @@ export interface CreationTool {
     description?: string;
     icon?: string;
     coverImage?: string;
-    category?: string;
+    category?: Category;
+    categoryId?: string;
     formConfig: FormConfig;
     executionFlow: ExecutionFlow;
     isActive: boolean;
@@ -82,11 +84,23 @@ export const creationToolsApi = {
         return Array.isArray(data) ? data : [];
     },
 
+    getAll: async (params?: { page?: number; limit?: number; filters?: any; sort?: any }): Promise<{ data: CreationTool[]; hasNextPage: boolean; total: number }> => {
+        const queryParams = new URLSearchParams();
+        if (params?.page) queryParams.append('page', params.page.toString());
+        if (params?.limit) queryParams.append('limit', params.limit.toString());
+        if (params?.filters) queryParams.append('filters', JSON.stringify(params.filters));
+        if (params?.sort) queryParams.append('sort', JSON.stringify(params.sort));
+
+        const response: any = await axiosClient.get(`/creation-tools?${queryParams.toString()}`);
+        return response;
+    },
+
     getAllAdmin: async (): Promise<CreationTool[]> => {
         // Fetch all tools (active & inactive) for admin management
         // Endpoint returns standard pagination: { data: [...], hasNextPage: boolean }
         const response: any = await axiosClient.get('/creation-tools?limit=100');
-        return response?.data && Array.isArray(response.data) ? response.data : [];
+        // Handle both paginated response and direct array (legacy)
+        return response?.data ? response.data : (Array.isArray(response) ? response : []);
     },
 
     getBySlug: async (slug: string): Promise<CreationTool> => {

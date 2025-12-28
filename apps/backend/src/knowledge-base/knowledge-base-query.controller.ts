@@ -7,12 +7,14 @@ import {
   GenerateAnswerDto,
 } from './dto/kb-document.dto';
 
+import { WorkspaceAccessGuard } from '../workspaces/guards/workspace-access.guard';
+
 @ApiTags('Knowledge Base - Query & RAG')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), WorkspaceAccessGuard)
 @Controller({ path: 'knowledge-bases', version: '1' })
 export class KnowledgeBaseQueryController {
-  constructor(private readonly ragService: KBRagService) {}
+  constructor(private readonly ragService: KBRagService) { }
 
   @Post('query')
   @ApiOperation({ summary: 'Query knowledge base (vector search)' })

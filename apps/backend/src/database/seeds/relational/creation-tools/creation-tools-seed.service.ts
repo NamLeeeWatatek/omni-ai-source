@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreationToolEntity } from '../../../../creation-tools/infrastructure/persistence/relational/entities/creation-tool.entity';
 import { TemplateEntity } from '../../../../templates/infrastructure/persistence/relational/entities/template.entity';
+import { CategoryEntity } from '../../../../categories/infrastructure/persistence/relational/entities/category.entity';
 
 @Injectable()
 export class CreationToolsSeederService {
@@ -13,6 +14,8 @@ export class CreationToolsSeederService {
     private creationToolRepository: Repository<CreationToolEntity>,
     @InjectRepository(TemplateEntity)
     private templateRepository: Repository<TemplateEntity>,
+    @InjectRepository(CategoryEntity)
+    private categoryRepository: Repository<CategoryEntity>,
   ) {}
 
   async run() {
@@ -358,7 +361,7 @@ export class CreationToolsSeederService {
   }
 
   private async createOrUpdateTool(
-    data: Partial<CreationToolEntity>,
+    data: Omit<Partial<CreationToolEntity>, 'category'> & { category?: string },
   ): Promise<CreationToolEntity> {
     const existingTool = await this.creationToolRepository.findOne({
       where: { slug: data.slug },
@@ -366,13 +369,24 @@ export class CreationToolsSeederService {
     if (existingTool) {
       return existingTool;
     }
-    const tool = this.creationToolRepository.create(data);
+
+    let category: CategoryEntity | null = null;
+    if (data.category && typeof data.category === 'string') {
+      category = await this.categoryRepository.findOne({
+        where: { slug: data.category },
+      });
+    }
+
+    const tool = this.creationToolRepository.create({
+      ...data,
+      category: category ?? undefined,
+    } as any) as any as CreationToolEntity;
     return this.creationToolRepository.save(tool);
   }
 
   private async createOrUpdateTemplate(
     toolId: string,
-    data: Partial<TemplateEntity>,
+    data: Omit<Partial<TemplateEntity>, 'category'> & { category?: string },
   ): Promise<TemplateEntity> {
     const existingTemplate = await this.templateRepository.findOne({
       where: {
@@ -385,10 +399,18 @@ export class CreationToolsSeederService {
       return existingTemplate;
     }
 
+    let category: CategoryEntity | null = null;
+    if (data.category && typeof data.category === 'string') {
+      category = await this.categoryRepository.findOne({
+        where: { slug: data.category },
+      });
+    }
+
     const template = this.templateRepository.create({
       ...data,
       creationToolId: toolId,
-    });
+      category: category ?? undefined,
+    } as any) as any as TemplateEntity;
     return this.templateRepository.save(template);
   }
 }

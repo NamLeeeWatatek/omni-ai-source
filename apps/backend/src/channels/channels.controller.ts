@@ -15,12 +15,14 @@ import { ChannelsService } from './channels.service';
 import { CreateConnectionDto } from '../integrations/dto/create-connection.dto';
 import { CurrentWorkspace } from '../workspaces/decorators/current-workspace.decorator';
 
+import { WorkspaceAccessGuard } from '../workspaces/guards/workspace-access.guard';
+
 @ApiTags('Channels')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), WorkspaceAccessGuard)
 @Controller({ path: 'channels', version: '1' })
 export class ChannelsController {
-  constructor(private readonly channelsService: ChannelsService) {}
+  constructor(private readonly channelsService: ChannelsService) { }
 
   @Get()
   @ApiOperation({ summary: 'Get all channel connections' })

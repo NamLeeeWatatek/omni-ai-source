@@ -3,8 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BotEntity } from './infrastructure/persistence/relational/entities/bot.entity';
 import { ConversationEntity } from '../conversations/infrastructure/persistence/relational/entities/conversation.entity';
-// import { FlowsService } from '../flows/flows.service';
-// import { ExecutionService } from '../flows/execution.service';
+import { ChannelEntity } from '../channels/infrastructure/persistence/relational/entities/channel.entity';
 import { MessengerService } from '../channels/providers/messenger.service';
 import { InstagramService } from '../channels/providers/instagram.service';
 import { TelegramService } from '../channels/providers/telegram.service';
@@ -27,13 +26,13 @@ export class BotExecutionService {
     private botRepository: Repository<BotEntity>,
     @InjectRepository(ConversationEntity)
     private conversationRepository: Repository<ConversationEntity>,
-    // private flowsService: FlowsService,
-    // private executionService: ExecutionService,
+    @InjectRepository(ChannelEntity)
+    private channelRepository: Repository<ChannelEntity>,
     private messengerService: MessengerService,
     private instagramService: InstagramService,
     private telegramService: TelegramService,
     private kbRagService: KBRagService,
-  ) {}
+  ) { }
 
   async processMessage(incomingMessage: IncomingMessage): Promise<void> {
     try {
@@ -50,11 +49,7 @@ export class BotExecutionService {
         return;
       }
 
-      // if (bot.flowId && bot.flowId !== null) {
-      //   await this.executeBotFlow(bot, incomingMessage);
-      // } else {
       await this.answerWithKnowledgeBase(bot, incomingMessage);
-      // }
     } catch (error) {
       this.logger.error(
         `Error processing message: ${error.message}`,
@@ -66,64 +61,18 @@ export class BotExecutionService {
   private async findActiveBotForChannel(
     channel: string,
   ): Promise<BotEntity | null> {
-    return this.botRepository.findOne({
-      where: { isActive: true },
-      relations: ['flow'],
+    const channelEntity = await this.channelRepository.findOne({
+      where: { type: channel, isActive: true },
+      relations: ['bot'],
     });
-  }
 
-  /*
-  private async executeBotFlow(
-    bot: BotEntity,
-    incomingMessage: IncomingMessage,
-  ): Promise<void> {
-    try {
-      if (!bot.flowId) {
-        this.logger.error('Bot flowId is null');
-        return;
-      }
-
-      this.logger.log(`Executing flow ${bot.flowId} for bot ${bot.name}`);
-
-      const flow = await this.flowsService.findOne(bot.flowId.toString());
-
-      if (!flow) {
-        this.logger.error(`Flow ${bot.flowId} not found`);
-        return;
-      }
-
-      const flowInput = {
-        trigger: 'message',
-        channel: incomingMessage.channel,
-        senderId: incomingMessage.senderId,
-        message: incomingMessage.message,
-        conversationId: incomingMessage.conversationId,
-        metadata: incomingMessage.metadata,
-        timestamp: new Date().toISOString(),
-      };
-
-      const flowData = {
-        nodes: flow.nodes || [],
-        edges: flow.edges || [],
-      };
-
-      const executionId = await this.executionService.executeFlow(
-        bot.flowId.toString(),
-        flowData,
-        flowInput,
-      );
-
-      this.logger.log(
-        `Flow execution started: ${executionId} for bot ${bot.name}`,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Error executing bot flow: ${error.message}`,
-        error.stack,
-      );
+    if (channelEntity?.bot && channelEntity.bot.isActive) {
+      return channelEntity.bot;
     }
+
+    return null;
   }
-  */
+
 
   async sendResponse(
     channel: string,

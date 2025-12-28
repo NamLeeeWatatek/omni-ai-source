@@ -1,4 +1,5 @@
 ﻿import { Injectable, Logger } from '@nestjs/common';
+import { I18nContext, I18nService } from 'nestjs-i18n';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { KBEmbeddingsService } from './kb-embeddings.service';
@@ -38,7 +39,8 @@ export class KBRagService {
     private readonly botKbRepository: Repository<BotKnowledgeBaseEntity>,
     @InjectRepository(KBChunkEntity)
     private readonly chunkRepository: Repository<KBChunkEntity>,
-  ) {}
+    private readonly i18n: I18nService,
+  ) { }
 
   async query(
     query: string,
@@ -221,8 +223,9 @@ export class KBRagService {
         this.logger.warn(
           `âš ï¸ No relevant chunks found for question: "${question}"`,
         );
+        const lang = I18nContext.current()?.lang;
         return {
-          answer: "I don't have enough information to answer that question.",
+          answer: this.i18n.t('ai.ragNoInfo', { lang }),
           sources: [],
         };
       }
@@ -235,14 +238,8 @@ export class KBRagService {
         .map((chunk, index) => `[${index + 1}] ${chunk.content}`)
         .join('\n\n');
 
-      const prompt = `Based on the following context, answer the question. If the context doesn't contain relevant information, say so.
-
-Context:
-${context}
-
-Question: ${question}
-
-Answer:`;
+      const lang = I18nContext.current()?.lang;
+      const prompt = `${this.i18n.t('ai.ragPromptPrefix', { lang })}\n\nContext:\n${context}\n\nQuestion: ${question}\n\nAnswer:`;
 
       // âœ… Use configured AI provider for the knowledge base if available
       let answer: string;
@@ -464,12 +461,12 @@ Answer:`;
       // âœ… Use chatWithHistoryUsingProvider to properly get API key from user settings
       const answer = aiProviderId
         ? await this.aiProvidersService.chatWithHistoryUsingProvider(
-            messages,
-            modelName,
-            aiProviderId,
-            workspaceId ? 'workspace' : 'user',
-            workspaceId || bot.createdBy || 'system',
-          )
+          messages,
+          modelName,
+          aiProviderId,
+          workspaceId ? 'workspace' : 'user',
+          workspaceId || bot.createdBy || 'system',
+        )
         : await this.aiProvidersService.chatWithHistory(messages, modelName);
 
       return {
@@ -534,17 +531,17 @@ Answer:`;
       // Load bot configuration first (if provided)
       const bot = botId
         ? await this.botRepository.findOne({
-            where: { id: botId },
-            select: [
-              'id',
-              'name',
-              'workspaceId',
-              'aiProviderId',
-              'aiModelName',
-              'systemPrompt',
-              'createdBy',
-            ],
-          })
+          where: { id: botId },
+          select: [
+            'id',
+            'name',
+            'workspaceId',
+            'aiProviderId',
+            'aiModelName',
+            'systemPrompt',
+            'createdBy',
+          ],
+        })
         : null;
 
       if (!bot && botId) {
@@ -706,11 +703,12 @@ Answer:`;
   ): Array<{ role: 'system' | 'user' | 'assistant'; content: string }> {
     let fullSystemPrompt = systemPrompt;
 
+    const lang = I18nContext.current()?.lang;
     if (ragContext) {
       fullSystemPrompt +=
-        '\n\nYou have access to the following information from the knowledge base:\n\n' +
+        `\n\n${this.i18n.t('ai.ragContextPrefix', { lang })}\n\n` +
         `${ragContext}\n\n` +
-        "Use this information to answer the user's question. If the information is not in the knowledge base, say so clearly.";
+        this.i18n.t('ai.ragPromptPrefix', { lang });
     }
 
     return [

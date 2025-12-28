@@ -8,6 +8,7 @@ import {
   HttpCode,
   Post,
   Body,
+  Request,
 } from '@nestjs/common';
 import { CreateGenerationJobDto } from './dto/create-generation-job.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -20,10 +21,14 @@ import { CurrentWorkspace } from '../workspaces/decorators/current-workspace.dec
 import { Workspace } from '../workspaces/domain/workspace';
 import { IPaginationOptions } from '../utils/types/pagination-options';
 import { infinityPagination } from '../utils/infinity-pagination';
+import { WorkspaceAccessGuard } from '../workspaces/guards/workspace-access.guard';
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { Permissions } from '../permissions/decorators/permissions.decorator';
 
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'), RolesGuard)
-@ApiTags('GenerationJobs')
+@ApiTags('Generation Jobs')
+@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'), WorkspaceAccessGuard, PermissionsGuard)
 @Controller({
   path: 'generation-jobs',
   version: '1',
@@ -31,12 +36,13 @@ import { infinityPagination } from '../utils/infinity-pagination';
 export class GenerationJobsController {
   constructor(private readonly generationJobsService: GenerationJobsService) { }
 
-  @Roles(RoleEnum.user, RoleEnum.admin)
   @Post()
+  @Permissions('job:Create')
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() createGenerationJobDto: CreateGenerationJobDto,
     @CurrentWorkspace() workspace: Workspace,
+    @Request() req,
   ) {
     const { params, ...rest } = createGenerationJobDto;
 
@@ -44,12 +50,13 @@ export class GenerationJobsController {
       ...rest,
       inputData: params,
       workspaceId: workspace.id,
+      userId: req.user.id,
       status: 'pending',
     });
   }
 
-  @Roles(RoleEnum.user, RoleEnum.admin)
   @Get()
+  @Permissions('job:List')
   @HttpCode(HttpStatus.OK)
   async findAll(
     @Query('page') page: number,
@@ -72,8 +79,8 @@ export class GenerationJobsController {
     );
   }
 
-  @Roles(RoleEnum.user, RoleEnum.admin)
   @Get(':id')
+  @Permissions('job:Get')
   @HttpCode(HttpStatus.OK)
   async findOne(@Param('id') id: string) {
     return this.generationJobsService.findById(id);

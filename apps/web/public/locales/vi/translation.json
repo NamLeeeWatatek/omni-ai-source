@@ -82,7 +82,7 @@
   "features": {
     "unifiedPlatform": "Nền tảng thống nhất",
     "comprehensiveSolution": "Giải pháp toàn diện cho chăm sóc khách hàng tự động",
-    "solutionDescription": "Giảm chi phí, tăng doanh thu và điều hành doanh nghiệp của bạn hiệu quả hơn với nền tảng AI được tích hợp đầy đủ. Sử dụng WataOmi để quản lý tất cả kênh liên lạc, tự động hóa quy trình bán hàng và chăm sóc khách hàng 24/7.",
+    "solutionDescription": "Giảm chi phí, tăng doanh thu và điều hành doanh nghiệp của bạn hiệu quả hơn với nền tảng AI được tích hợp đầy đủ. Sử dụng Wata AI để quản lý tất cả kênh liên lạc, tự động hóa quy trình bán hàng và chăm sóc khách hàng 24/7.",
     "items": {
       "unifiedMultiChannel": "Đa kênh thống nhất",
       "unifiedMultiChannelDesc": "Kết nối WhatsApp, Messenger, Instagram, Telegram và các kênh khác trong một nền tảng duy nhất.",
@@ -211,7 +211,7 @@
   },
   "globalScale": {
     "title": "Quy mô toàn cầu",
-    "description": "WataOmi vận hành trên quy mô toàn cầu, xử lý hàng triệu cuộc hội thoại một cách an toàn và đáng tin cậy.",
+    "description": "Wata AI vận hành trên quy mô toàn cầu, xử lý hàng triệu cuộc hội thoại một cách an toàn và đáng tin cậy.",
     "messagesPerDay": "Tin nhắn mỗi ngày",
     "uptime": "Thời gian hoạt động",
     "integratedChannels": "Kênh tích hợp",
@@ -228,7 +228,7 @@
     "plans": {
       "starter": {
         "name": "Cơ bản",
-        "description": "Hoàn hảo để thử nghiệm WataOmi",
+        "description": "Hoàn hảo để thử nghiệm Wata AI",
         "features": [
           "1 bot",
           "100 cuộc hội thoại/tháng",

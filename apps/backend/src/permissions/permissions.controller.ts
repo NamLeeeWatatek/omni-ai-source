@@ -9,6 +9,7 @@
   Param,
   HttpCode,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
@@ -31,7 +32,7 @@ import { RolesGuard } from '../roles/roles.guard';
   version: '1',
 })
 export class PermissionsController {
-  constructor(private readonly permissionsService: PermissionsService) { }
+  constructor(private readonly permissionsService: PermissionsService) {}
 
   @Get('me/capabilities')
   @ApiOperation({ summary: 'Get current user capabilities and permissions' })
@@ -47,7 +48,11 @@ export class PermissionsController {
     @Body() dto: PermissionCheckRequestDto,
   ): Promise<PermissionCheckResponseDto> {
     const workspaceId = req.headers['x-workspace-id'] || req.query.workspaceId;
-    return this.permissionsService.checkPermissions(req.user, dto.permissions, workspaceId);
+    return this.permissionsService.checkPermissions(
+      req.user,
+      dto.permissions,
+      workspaceId,
+    );
   }
 
   @Post()
@@ -60,8 +65,8 @@ export class PermissionsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all system permissions' })
-  async findAll() {
-    return this.permissionsService.findAll();
+  async findAll(@Query('search') search?: string) {
+    return this.permissionsService.findAll(search);
   }
 
   @Delete(':id')

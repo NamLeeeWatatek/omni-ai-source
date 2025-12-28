@@ -26,6 +26,7 @@ import {
 import { useCategories } from '@/lib/hooks/useCategories';
 import { Loader2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { IconPicker } from '@/components/ui/IconPicker';
 
 interface ToolDialogProps {
     open: boolean;
@@ -47,6 +48,7 @@ export function ToolDialog({
     const [name, setName] = useState('');
     const [slug, setSlug] = useState('');
     const [description, setDescription] = useState('');
+    const [icon, setIcon] = useState('');
     const [category, setCategory] = useState('');
     const [isActive, setIsActive] = useState(true);
     const [formConfig, setFormConfig] = useState<FormConfig>({ fields: [], submitLabel: 'Generate' });
@@ -62,7 +64,8 @@ export function ToolDialog({
             setName(tool.name || '');
             setSlug(tool.slug || '');
             setDescription(tool.description || '');
-            setCategory(tool.category || '');
+            setIcon(tool.icon || '');
+            setCategory(tool.category?.id || '');
             setIsActive(tool.isActive ?? true);
             setFormConfig(tool.formConfig || { fields: [], submitLabel: 'Generate' });
             setExecutionFlow(tool.executionFlow || { type: 'ai-generation', provider: 'openai', model: 'gpt-4o', promptTemplate: '' });
@@ -75,6 +78,7 @@ export function ToolDialog({
         setName('');
         setSlug('');
         setDescription('');
+        setIcon('');
         setCategory('');
         setIsActive(true);
         setFormConfig({ fields: [], submitLabel: 'Generate' });
@@ -92,7 +96,8 @@ export function ToolDialog({
                 name,
                 slug,
                 description,
-                category,
+                icon,
+                categoryId: category,
                 isActive,
                 formConfig,
                 executionFlow,
@@ -161,9 +166,13 @@ export function ToolDialog({
                                         <Select value={category} onValueChange={setCategory}>
                                             <SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger>
                                             <SelectContent>
-                                                {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                                                {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Icon</Label>
+                                        <IconPicker value={icon} onChange={setIcon} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Description</Label>

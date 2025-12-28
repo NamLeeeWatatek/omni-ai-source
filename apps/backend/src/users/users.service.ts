@@ -9,29 +9,31 @@ import { FilterUserDto, SortUserDto } from './dto/query-user.dto';
 import { UserRepository } from './infrastructure/persistence/user.repository';
 import { User } from './domain/user';
 import bcrypt from 'bcryptjs';
-import { AuthProvidersEnum } from '../auth/auth-providers.enum';
-import { IPaginationOptions } from '../utils/types/pagination-options';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { RoleEnum } from '../roles/roles.enum';
 import { Role } from '../roles/domain/role';
+import { RoleEnum } from '../roles/roles.enum';
+import { IPaginationOptions } from '../utils/types/pagination-options';
+import { FilesService } from '../files/files.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly usersRepository: UserRepository) { }
+  constructor(
+    private readonly usersRepository: UserRepository,
+    private readonly filesService: FilesService,
+  ) { }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    let password: string | undefined = undefined;
+    const clonedPayload = {
+      ...createUserDto,
+    };
 
-    if (createUserDto.password) {
+    if (clonedPayload.password) {
       const salt = await bcrypt.genSalt();
-      password = await bcrypt.hash(createUserDto.password, salt);
+      clonedPayload.password = await bcrypt.hash(clonedPayload.password, salt);
     }
 
-    let email: string | null = null;
-
-    if (createUserDto.email) {
+    if (clonedPayload.email) {
       const userObject = await this.usersRepository.findByEmail(
-        createUserDto.email,
+        clonedPayload.email,
       );
       if (userObject) {
         throw new UnprocessableEntityException({
@@ -41,29 +43,24 @@ export class UsersService {
           },
         });
       }
-      email = createUserDto.email;
     }
 
-    let name = createUserDto.name;
-    if (!name && (createUserDto.firstName || createUserDto.lastName)) {
-      name = [createUserDto.firstName, createUserDto.lastName]
-        .filter(Boolean)
-        .join(' ');
+    if (clonedPayload.role) {
+      clonedPayload.role = {
+        id: RoleEnum[clonedPayload.role as keyof typeof RoleEnum],
+      } as Role;
+    } else {
+      clonedPayload.role = {
+        id: RoleEnum.user,
+      } as Role;
     }
 
     const user = await this.usersRepository.create({
-      email,
-      name,
-      avatarUrl: createUserDto.avatarUrl,
-      password,
-      provider: createUserDto.provider ?? AuthProvidersEnum.email,
-      providerId: createUserDto.providerId ?? createUserDto.socialId,
-      isActive: createUserDto.isActive ?? true,
-      role: createUserDto.role
-        ? ({
-          id: RoleEnum[createUserDto.role as keyof typeof RoleEnum],
-          name: createUserDto.role,
-        } as Role)
+      ...clonedPayload,
+      provider: clonedPayload.provider || 'email',
+      isActive: clonedPayload.isActive ?? true,
+      role: clonedPayload.role
+        ? (clonedPayload.role as Role)
         : ({
           id: RoleEnum.user,
           name: 'user',
@@ -73,10 +70,12 @@ export class UsersService {
       socialId: createUserDto.socialId,
     });
 
+    await this.filesService.confirmFromUrl(user.avatarUrl);
+
     return user;
   }
 
-  findManyWithPagination({
+  async findManyWithPagination({
     filterOptions,
     sortOptions,
     paginationOptions,
@@ -84,7 +83,7 @@ export class UsersService {
     filterOptions?: FilterUserDto | null;
     sortOptions?: SortUserDto[] | null;
     paginationOptions: IPaginationOptions;
-  }): Promise<User[]> {
+  }): Promise<[User[], number]> {
     return this.usersRepository.findManyWithPagination({
       filterOptions,
       sortOptions,
@@ -117,21 +116,16 @@ export class UsersService {
     });
   }
 
-  async update(
-    id: User['id'],
-    updateUserDto: UpdateUserDto,
-  ): Promise<User | null> {
-    let password: string | undefined = undefined;
+  async update(id: User['id'], updateUserDto: any): Promise<User | null> {
+    const currentUser = await this.usersRepository.findById(id);
 
-    if (updateUserDto.password) {
-      const userObject = await this.usersRepository.findById(id);
-      if (userObject && userObject?.password !== updateUserDto.password) {
-        const salt = await bcrypt.genSalt();
-        password = await bcrypt.hash(updateUserDto.password, salt);
-      }
+    let password = updateUserDto.password;
+    if (password) {
+      const salt = await bcrypt.genSalt();
+      password = await bcrypt.hash(password, salt);
     }
 
-    let email: string | null | undefined = undefined;
+    let email = updateUserDto.email;
 
     if (updateUserDto.email) {
       const userObject = await this.usersRepository.findByEmail(
@@ -156,7 +150,6 @@ export class UsersService {
       (updateUserDto.firstName !== undefined ||
         updateUserDto.lastName !== undefined)
     ) {
-      const currentUser = await this.usersRepository.findById(id);
       const firstName = updateUserDto.firstName ?? currentUser?.firstName;
       const lastName = updateUserDto.lastName ?? currentUser?.lastName;
       name = [firstName, lastName].filter(Boolean).join(' ') || null;
@@ -165,7 +158,7 @@ export class UsersService {
     const updatedUser = await this.usersRepository.update(id, {
       email,
       name,
-      avatarUrl: updateUserDto.avatarUrl,
+      avatarUrl: updateUserDto.avatarUrl ?? updateUserDto.photo?.path,
       password,
       provider: updateUserDto.provider,
       providerId: updateUserDto.providerId ?? updateUserDto.socialId,
@@ -180,18 +173,31 @@ export class UsersService {
             : (updateUserDto.role as Role | null)
           : undefined,
       roleId: updateUserDto.roleId,
-      permissions: updateUserDto.permissions,
       emailVerifiedAt: updateUserDto.emailVerifiedAt,
       firstName: updateUserDto.firstName,
       lastName: updateUserDto.lastName,
       socialId: updateUserDto.socialId,
     });
 
+    if (updatedUser) {
+      // Confirm new avatar if it exists
+      if (updatedUser.avatarUrl) {
+        await this.filesService.confirmFromUrl(updatedUser.avatarUrl);
+      }
+
+      // Cleanup old avatar if it changed and was different from new one
+      if (
+        currentUser?.avatarUrl &&
+        currentUser.avatarUrl !== updatedUser.avatarUrl
+      ) {
+        await this.filesService.deleteFromUrl(currentUser.avatarUrl);
+      }
+    }
+
     return updatedUser;
   }
 
   async remove(id: User['id']): Promise<void> {
-    const user = await this.usersRepository.findById(id);
     await this.usersRepository.remove(id);
   }
 

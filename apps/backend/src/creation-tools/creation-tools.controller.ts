@@ -35,9 +35,13 @@ import { infinityPagination } from '../utils/infinity-pagination';
 import { Roles } from '../roles/roles.decorator';
 import { RoleEnum } from '../roles/roles.enum';
 import { RolesGuard } from '../roles/roles.guard';
+import { WorkspaceAccessGuard } from '../workspaces/guards/workspace-access.guard';
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { Permissions } from '../permissions/decorators/permissions.decorator';
+import { CurrentWorkspace } from '../workspaces/decorators/current-workspace.decorator';
 
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+@UseGuards(AuthGuard('jwt'), WorkspaceAccessGuard, PermissionsGuard)
 @ApiTags('Creation Tools')
 @Controller({
   path: 'creation-tools',
@@ -47,8 +51,8 @@ export class CreationToolsController {
   constructor(private readonly service: CreationToolsService) { }
 
   @ApiCreatedResponse({ type: CreationTool })
-  @ApiOperation({ summary: 'Create new creation tool (Admin only)' })
-  @Roles(RoleEnum.admin)
+  @ApiOperation({ summary: 'Create new creation tool' })
+  @Permissions('tool:Create')
   @SerializeOptions({ groups: ['admin'] })
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -58,6 +62,7 @@ export class CreationToolsController {
 
   @ApiOkResponse({ type: InfinityPaginationResponse(CreationTool) })
   @ApiOperation({ summary: 'Get all creation tools with pagination' })
+  @Permissions('tool:List')
   @Get()
   @HttpCode(HttpStatus.OK)
   async findAll(
@@ -69,18 +74,18 @@ export class CreationToolsController {
       limit = 50;
     }
 
-    return infinityPagination(
-      await this.service.findManyWithPagination({
-        filterOptions: query?.filters,
-        sortOptions: query?.sort,
-        paginationOptions: { page, limit },
-      }),
-      { page, limit },
-    );
+    const [data, total] = await this.service.findManyWithPagination({
+      filterOptions: query?.filters,
+      sortOptions: query?.sort,
+      paginationOptions: { page, limit },
+    });
+
+    return infinityPagination(data, { page, limit }, total);
   }
 
   @ApiOkResponse({ type: [CreationTool] })
   @ApiOperation({ summary: 'Get all active creation tools (simplified)' })
+  @Permissions('tool:List')
   @Get('active')
   @HttpCode(HttpStatus.OK)
   findAllActive(): Promise<CreationTool[]> {
@@ -89,6 +94,7 @@ export class CreationToolsController {
 
   @ApiOkResponse({ type: CreationTool })
   @ApiOperation({ summary: 'Get creation tool by slug' })
+  @Permissions('tool:Get')
   @Get('slug/:slug')
   @HttpCode(HttpStatus.OK)
   @ApiParam({ name: 'slug', type: String, required: true })
@@ -98,6 +104,7 @@ export class CreationToolsController {
 
   @ApiOkResponse({ type: CreationTool })
   @ApiOperation({ summary: 'Get creation tool by ID' })
+  @Permissions('tool:Get')
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @ApiParam({ name: 'id', type: String, required: true })
@@ -109,6 +116,7 @@ export class CreationToolsController {
 
   @ApiOkResponse({ type: [CreationTool] })
   @ApiOperation({ summary: 'Get creation tools by workspace ID' })
+  @Permissions('tool:List')
   @Get('workspace/:workspaceId')
   @HttpCode(HttpStatus.OK)
   @ApiParam({ name: 'workspaceId', type: String, required: true })
@@ -119,8 +127,8 @@ export class CreationToolsController {
   }
 
   @ApiOkResponse({ type: CreationTool })
-  @ApiOperation({ summary: 'Update creation tool (Admin only)' })
-  @Roles(RoleEnum.admin)
+  @ApiOperation({ summary: 'Update creation tool' })
+  @Permissions('tool:Update')
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiParam({ name: 'id', type: String, required: true })
@@ -131,8 +139,8 @@ export class CreationToolsController {
     return this.service.update(id, updateDto);
   }
 
-  @ApiOperation({ summary: 'Delete creation tool (Admin only)' })
-  @Roles(RoleEnum.admin)
+  @ApiOperation({ summary: 'Delete creation tool' })
+  @Permissions('tool:Delete')
   @Delete(':id')
   @ApiParam({ name: 'id', type: String, required: true })
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -141,8 +149,8 @@ export class CreationToolsController {
   }
 
   @ApiOkResponse({ type: CreationTool })
-  @ApiOperation({ summary: 'Activate creation tool (Admin only)' })
-  @Roles(RoleEnum.admin)
+  @ApiOperation({ summary: 'Activate creation tool' })
+  @Permissions('tool:Update')
   @Post(':id/activate')
   @HttpCode(HttpStatus.OK)
   @ApiParam({ name: 'id', type: String, required: true })
@@ -151,8 +159,8 @@ export class CreationToolsController {
   }
 
   @ApiOkResponse({ type: CreationTool })
-  @ApiOperation({ summary: 'Deactivate creation tool (Admin only)' })
-  @Roles(RoleEnum.admin)
+  @ApiOperation({ summary: 'Deactivate creation tool' })
+  @Permissions('tool:Update')
   @Post(':id/deactivate')
   @HttpCode(HttpStatus.OK)
   @ApiParam({ name: 'id', type: String, required: true })

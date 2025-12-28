@@ -24,7 +24,6 @@ export class UserMapper {
 
     domainEntity.externalId = raw.externalId;
 
-    domainEntity.permissions = raw.permissions;
     domainEntity.lastLogin = raw.lastLogin;
     domainEntity.failedLoginAttempts = raw.failedLoginAttempts;
     domainEntity.lockedUntil = raw.lockedUntil;
@@ -69,7 +68,6 @@ export class UserMapper {
 
     persistenceEntity.externalId = domainEntity.externalId;
 
-    persistenceEntity.permissions = domainEntity.permissions;
     persistenceEntity.lastLogin = domainEntity.lastLogin;
     persistenceEntity.failedLoginAttempts =
       domainEntity.failedLoginAttempts ?? 0;

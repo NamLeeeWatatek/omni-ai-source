@@ -2,7 +2,6 @@
 
 import { Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { AnimatedDots } from './AnimatedDots'
 
 interface LoadingLogoProps {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
@@ -15,71 +14,53 @@ export function LoadingLogo({
   size = 'md',
   text,
   className,
-  showGlow = true
 }: LoadingLogoProps) {
-  const sizeClasses = {
-    xs: 'w-6 h-6',
-    sm: 'w-10 h-10',
+
+  // Container dimensions (Square aspect ratio)
+  const boxSizes = {
+    xs: 'w-10 h-10',
+    sm: 'w-12 h-12',
     md: 'w-16 h-16',
-    lg: 'w-20 h-20',
-    xl: 'w-28 h-28'
+    lg: 'w-24 h-24',
+    xl: 'w-32 h-32'
   }
 
+  // Icon dimensions
   const iconSizes = {
-    xs: 'w-3 h-3',
-    sm: 'w-5 h-5',
+    xs: 'w-5 h-5',
+    sm: 'w-6 h-6',
     md: 'w-8 h-8',
-    lg: 'w-10 h-10',
-    xl: 'w-14 h-14'
-  }
-
-  const textSizeClasses = {
-    xs: 'text-xs',
-    sm: 'text-sm',
-    md: 'text-base',
-    lg: 'text-lg',
-    xl: 'text-xl'
+    lg: 'w-12 h-12',
+    xl: 'w-16 h-16'
   }
 
   return (
     <div className={cn("flex flex-col items-center justify-center gap-4", className)}>
-      <div className="relative group">
-        {/* Glow effect */}
-        {showGlow && (
-          <div className="absolute inset-0 rounded-full bg-primary/30 blur-xl animate-pulse" />
-        )}
+      {/* Magic Border Container */}
+      <div className={cn("relative flex items-center justify-center rounded-2xl overflow-hidden", boxSizes[size])}>
 
-        {/* Spinner with gradient border */}
-        <div className="relative">
-          <div className={cn(
-            sizeClasses[size],
-            'rounded-full bg-gradient-to-tr from-primary via-primary/80 to-primary/60',
-            'p-[2px] animate-spin'
-          )}>
-            <div className="w-full h-full rounded-full bg-background/95 backdrop-blur-sm" />
-          </div>
+        {/* Spinning Gradient Background Layer */}
+        <div className="absolute inset-[-50%] flex items-center justify-center">
+          <div className="w-[200%] h-[200%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,hsl(var(--primary))_50%,transparent_100%)] opacity-100" />
+        </div>
 
-          {/* Center icon */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Sparkles className={cn(
-              iconSizes[size],
-              "text-primary animate-pulse"
-            )} />
-          </div>
+        {/* Inner Mask Layer */}
+        <div className="absolute inset-[2px] rounded-[14px] bg-background/90 backdrop-blur-3xl flex items-center justify-center z-10 shadow-inner">
+          {/* Subtle Inner Highlight */}
+          <div className="absolute inset-0 rounded-[14px] border border-white/5" />
+
+          {/* Brand Icon */}
+          <Sparkles className={cn(
+            iconSizes[size],
+            "text-primary fill-primary/20 animate-pulse"
+          )} />
         </div>
       </div>
-
       {text && (
-        <p className={cn(
-          textSizeClasses[size],
-          'text-muted-foreground font-medium flex items-center'
-        )} suppressHydrationWarning>
+        <p className="text-sm font-medium text-muted-foreground animate-pulse tracking-wide">
           {text}
-          <AnimatedDots className="opacity-70" />
         </p>
       )}
     </div>
   )
 }
-
-

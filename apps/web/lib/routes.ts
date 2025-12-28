@@ -71,6 +71,9 @@ export const paths = {
             root: `${ROOTS.SYSTEM}/creation-tools`,
             details: (slug: string) => `${ROOTS.SYSTEM}/creation-tools/${slug}`,
         },
+        categories: {
+            root: `${ROOTS.SYSTEM}/categories`,
+        },
         templates: {
             root: `${ROOTS.SYSTEM}/templates`,
             manage: `${ROOTS.SYSTEM}/templates`, // Consolidated route

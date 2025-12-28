@@ -3,9 +3,10 @@
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Label } from '@/components/ui/Label'
-import { Sparkles, ArrowLeft, Loader2, AlertCircle } from 'lucide-react'
+import { Sparkles, ArrowLeft, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { useState, Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import type { Route } from 'next'
 import { useTranslation } from 'react-i18next'
 import { signIn, useSession } from 'next-auth/react'
 import { useForm } from 'react-hook-form'
@@ -29,6 +30,8 @@ function LoginPageContent() {
     const { data: session, status } = useSession()
     const [loginError, setLoginError] = useState<string | null>(null)
     const [isLoading, setIsLoading] = useState(false)
+    const [isRedirecting, setIsRedirecting] = useState(false)
+    const [showPassword, setShowPassword] = useState(false)
 
     const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
         resolver: zodResolver(loginSchema(t))
@@ -37,10 +40,11 @@ function LoginPageContent() {
     useEffect(() => {
         // Only redirect if fully authenticated with a token
         if (status === 'authenticated' && session?.accessToken) {
+            setIsRedirecting(true)
             const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
             // Ensure callbackUrl is a relative path to prevent open redirect vulnerabilities
-            const safeRedirect = callbackUrl.startsWith('/') ? callbackUrl : '/dashboard'
-            router.push(safeRedirect as any)
+            const safeRedirect = (callbackUrl.startsWith('/') ? callbackUrl : '/dashboard') as Route
+            router.push(safeRedirect)
         }
     }, [status, session, router, searchParams])
 
@@ -55,16 +59,12 @@ function LoginPageContent() {
         }
     }, [searchParams, t])
 
-    if (status === 'loading') {
+    if (status === 'loading' || isRedirecting) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-background">
-                <LoadingLogo size="lg" text={t('login.pleaseWait')} />
+                <LoadingLogo size="lg" text={isRedirecting ? t('login.redirecting') : t('login.pleaseWait')} />
             </div>
         )
-    }
-
-    if (status === 'authenticated') {
-        return null
     }
 
     const onSubmit = async (data: LoginFormValues) => {
@@ -79,18 +79,17 @@ function LoginPageContent() {
 
             if (result?.error) {
                 setLoginError(t('login.errors.invalidCredentials'))
+                setIsLoading(false)
             } else {
-                // Refresh the server-side session state before navigating
-                router.refresh()
+                console.log('[Login] Success, prefetching dashboard...')
+                setIsRedirecting(true)
+                router.prefetch('/dashboard')
                 const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
-                const safeRedirect = callbackUrl.startsWith('/') ? callbackUrl : '/dashboard'
-
-                // Use a soft navigation to prevent "white screen" during full reload
-                router.push(safeRedirect as any)
+                const safeRedirect = (callbackUrl.startsWith('/') ? callbackUrl : '/dashboard') as Route
+                router.push(safeRedirect)
             }
         } catch (error) {
             setLoginError(t('login.errors.generic'))
-        } finally {
             setIsLoading(false)
         }
     }
@@ -183,13 +182,24 @@ function LoginPageContent() {
                                     {t('login.forgotPassword')}
                                 </Link>
                             </div>
-                            <Input
-                                id="password"
-                                type="password"
-                                className="h-12 bg-background/50 border-border/50"
-                                {...register('password')}
-                                disabled={isLoading}
-                            />
+
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    className="h-12 bg-background/50 border-border/50 pr-10"
+                                    {...register('password')}
+                                    disabled={isLoading}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                                    tabIndex={-1}
+                                >
+                                    {showPassword ? <EyeOff className="h-5 w-5 py-0.5" /> : <Eye className="h-5 w-5 py-0.5" />}
+                                </button>
+                            </div>
                             {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
                         </div>
 
@@ -231,20 +241,14 @@ function LoginPageContent() {
                         </Link>
                     </div>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     )
 }
 
 export default function LoginPage() {
-    const { t } = useTranslation()
-
     return (
-        <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center bg-background force-light">
-                <LoadingLogo size="lg" text={t('login.loading')} />
-            </div>
-        }>
+        <Suspense fallback={<div />}>
             <LoginPageContent />
         </Suspense>
     )

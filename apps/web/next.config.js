@@ -29,6 +29,7 @@ const nextConfig = {
   },
   experimental: {
     typedRoutes: true,
+    optimizePackageImports: ['lucide-react', 'react-icons', 'framer-motion', '@tanstack/react-query'],
   },
 }
 

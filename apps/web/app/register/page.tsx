@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Label } from '@/components/ui/Label'
-import { Sparkles, ArrowLeft, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Sparkles, ArrowLeft, Loader2, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react'
 import { useState, Suspense, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
@@ -16,7 +16,10 @@ import { LoadingLogo } from '@/components/ui/LoadingLogo'
 import { authApi } from '@/lib/api/auth'
 import Link from 'next/link'
 
-const registerSchema = (t: any) => z.object({
+import type { Route } from 'next'
+import { AxiosError } from 'axios'
+
+const registerSchema = (t: (key: string) => string) => z.object({
     firstName: z.string().min(2, t('validation.tooShort')),
     lastName: z.string().min(2, t('validation.tooShort')),
     email: z.string().email(t('validation.invalid')),
@@ -36,6 +39,8 @@ function RegisterPageContent() {
     const [error, setError] = useState<string | null>(null)
     const [isSuccess, setIsSuccess] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const [showPassword, setShowPassword] = useState(false)
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
     const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormValues>({
         resolver: zodResolver(registerSchema(t))
@@ -43,7 +48,7 @@ function RegisterPageContent() {
 
     useEffect(() => {
         if (status === 'authenticated') {
-            router.push('/dashboard')
+            router.push('/dashboard' as Route)
         }
     }, [status, router])
 
@@ -58,8 +63,9 @@ function RegisterPageContent() {
                 lastName: data.lastName,
             })
             setIsSuccess(true)
-        } catch (err: any) {
-            setError(err.response?.data?.message || t('register.errors.generic'))
+        } catch (err: unknown) {
+            const axiosError = err as AxiosError<{ message?: string }>
+            setError(axiosError.response?.data?.message || t('register.errors.generic'))
         } finally {
             setIsLoading(false)
         }
@@ -153,24 +159,44 @@ function RegisterPageContent() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div className="space-y-2">
                                 <Label htmlFor="password">{t('register.password')}</Label>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    className="h-12 bg-background/50 border-border/50"
-                                    {...register('password')}
-                                    disabled={isLoading}
-                                />
+                                <div className="relative">
+                                    <Input
+                                        id="password"
+                                        type={showPassword ? "text" : "password"}
+                                        className="h-12 bg-background/50 border-border/50 pr-10"
+                                        {...register('password')}
+                                        disabled={isLoading}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                                        tabIndex={-1}
+                                    >
+                                        {showPassword ? <EyeOff className="h-5 w-5 py-0.5" /> : <Eye className="h-5 w-5 py-0.5" />}
+                                    </button>
+                                </div>
                                 {errors.password && <p className="text-xs text-destructive font-medium">{errors.password.message}</p>}
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="confirmPassword">{t('register.confirmPassword')}</Label>
-                                <Input
-                                    id="confirmPassword"
-                                    type="password"
-                                    className="h-12 bg-background/50 border-border/50"
-                                    {...register('confirmPassword')}
-                                    disabled={isLoading}
-                                />
+                                <div className="relative">
+                                    <Input
+                                        id="confirmPassword"
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        className="h-12 bg-background/50 border-border/50 pr-10"
+                                        {...register('confirmPassword')}
+                                        disabled={isLoading}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                                        tabIndex={-1}
+                                    >
+                                        {showConfirmPassword ? <EyeOff className="h-5 w-5 py-0.5" /> : <Eye className="h-5 w-5 py-0.5" />}
+                                    </button>
+                                </div>
                                 {errors.confirmPassword && <p className="text-xs text-destructive font-medium">{errors.confirmPassword.message}</p>}
                             </div>
                         </div>
@@ -220,14 +246,8 @@ function RegisterPageContent() {
 }
 
 export default function RegisterPage() {
-    const { t } = useTranslation()
-
     return (
-        <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center bg-background">
-                <LoadingLogo size="lg" text={t('register.preparing')} />
-            </div>
-        }>
+        <Suspense fallback={<div />}>
             <RegisterPageContent />
         </Suspense>
     )

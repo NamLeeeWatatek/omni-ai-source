@@ -58,9 +58,6 @@ export class User {
   @ApiPropertyOptional({ type: Number })
   roleId?: number;
 
-  @ApiPropertyOptional({ type: Object, description: 'Custom permissions' })
-  @Expose({ groups: ['me', 'admin'] })
-  permissions?: Record<string, any>;
 
   @ApiPropertyOptional({ type: Date, description: 'Last login timestamp' })
   lastLogin?: Date | null;

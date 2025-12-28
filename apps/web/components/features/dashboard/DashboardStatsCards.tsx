@@ -5,9 +5,11 @@ import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 import type { DashboardStats } from "@/lib/types"
 
+import { Variants } from 'framer-motion'
+
 interface DashboardStatsCardsProps {
     stats: DashboardStats | undefined
-    itemVariants: any
+    itemVariants: Variants
 }
 
 export function DashboardStatsCards({ stats, itemVariants }: DashboardStatsCardsProps) {

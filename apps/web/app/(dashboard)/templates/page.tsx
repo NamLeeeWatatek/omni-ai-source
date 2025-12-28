@@ -6,7 +6,7 @@ import { useTemplates } from '@/lib/hooks/useTemplates'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { Edit, Trash2 } from 'lucide-react'
+import { Edit, Trash2, LayoutGrid } from 'lucide-react'
 import { PageLoading } from '@/components/ui/PageLoading'
 import toast from '@/lib/toast'
 import { TemplateDialog } from '@/components/features/creation-tools/TemplateDialog'
@@ -59,11 +59,15 @@ export default function TemplatesPage() {
     if (loading) return <PageLoading />
 
     return (
-        <div className="container mx-auto p-6 space-y-6">
+        <div className="space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-center">
-                {/* ... */}
-            </div>
+            <PageHeader
+                title="My Templates"
+                description="Manage and reuse your saved creation templates."
+                onRefresh={refreshTemplates}
+                refreshing={loading}
+                className="px-1"
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {paginatedTemplates.map(template => (

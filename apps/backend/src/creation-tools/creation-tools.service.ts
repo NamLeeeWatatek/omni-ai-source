@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import { CreateCreationToolDto } from './dto/create-creation-tool.dto';
 import { UpdateCreationToolDto } from './dto/update-creation-tool.dto';
+import { FilesService } from '../files/files.service';
 import { NullableType } from '../utils/types/nullable.type';
 import {
   FilterCreationToolDto,
@@ -12,22 +14,31 @@ import { IPaginationOptions } from '../utils/types/pagination-options';
 
 @Injectable()
 export class CreationToolsService {
-  constructor(private readonly repository: CreationToolRepository) {}
+  constructor(
+    private readonly repository: CreationToolRepository,
+    private readonly filesService: FilesService,
+    private readonly i18n: I18nService,
+  ) { }
 
   async create(createDto: CreateCreationToolDto): Promise<CreationTool> {
-    return this.repository.create({
+    const tool = await this.repository.create({
       name: createDto.name,
       slug: createDto.slug,
       description: createDto.description,
       icon: createDto.icon,
       coverImage: createDto.coverImage,
-      category: createDto.category,
+      category: createDto.categoryId ? { id: createDto.categoryId } : undefined,
       formConfig: createDto.formConfig,
       executionFlow: createDto.executionFlow,
       isActive: createDto.isActive ?? true,
       workspaceId: createDto.workspaceId,
       sortOrder: createDto.sortOrder ?? 0,
     });
+
+    await this.filesService.confirmFromUrl(tool.icon);
+    await this.filesService.confirmFromUrl(tool.coverImage);
+
+    return tool;
   }
 
   async findAll(filters?: {
@@ -45,7 +56,7 @@ export class CreationToolsService {
     filterOptions?: FilterCreationToolDto | null;
     sortOptions?: SortCreationToolDto[] | null;
     paginationOptions: IPaginationOptions;
-  }): Promise<CreationTool[]> {
+  }): Promise<[CreationTool[], number]> {
     return this.repository.findManyWithPagination({
       filterOptions,
       sortOptions,
@@ -69,11 +80,24 @@ export class CreationToolsService {
     id: CreationTool['id'],
     updateDto: UpdateCreationToolDto,
   ): Promise<CreationTool> {
-    const tool = await this.repository.update(id, updateDto);
+    const updatePayload: any = { ...updateDto };
+    if (updateDto.categoryId) {
+      updatePayload.category = { id: updateDto.categoryId };
+      delete updatePayload.categoryId;
+    }
+
+    const tool = await this.repository.update(id, updatePayload);
 
     if (!tool) {
-      throw new NotFoundException('Creation tool not found');
+      throw new NotFoundException(
+        this.i18n.t('common.notFound', {
+          args: { resource: 'Creation tool' },
+        }),
+      );
     }
+
+    await this.filesService.confirmFromUrl(tool.icon);
+    await this.filesService.confirmFromUrl(tool.coverImage);
 
     return tool;
   }
@@ -86,7 +110,11 @@ export class CreationToolsService {
     const tool = await this.repository.update(id, { isActive: true });
 
     if (!tool) {
-      throw new NotFoundException('Creation tool not found');
+      throw new NotFoundException(
+        this.i18n.t('common.notFound', {
+          args: { resource: 'Creation tool' },
+        }),
+      );
     }
 
     return tool;
@@ -96,7 +124,11 @@ export class CreationToolsService {
     const tool = await this.repository.update(id, { isActive: false });
 
     if (!tool) {
-      throw new NotFoundException('Creation tool not found');
+      throw new NotFoundException(
+        this.i18n.t('common.notFound', {
+          args: { resource: 'Creation tool' },
+        }),
+      );
     }
 
     return tool;

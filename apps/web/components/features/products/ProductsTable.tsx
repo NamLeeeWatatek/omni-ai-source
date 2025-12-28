@@ -34,6 +34,8 @@ interface ProductsTableProps {
     onSelectionChange?: (ids: string[]) => void;
     pagination?: PaginationInfo;
     onPageChange?: (page: number) => void;
+    pageSizeOptions?: number[];
+    onPageSizeChange?: (pageSize: number) => void;
 }
 
 export function ProductsTable({
@@ -44,7 +46,9 @@ export function ProductsTable({
     selectedIds = [],
     onSelectionChange,
     pagination,
-    onPageChange
+    onPageChange,
+    pageSizeOptions,
+    onPageSizeChange
 }: ProductsTableProps) {
     const [selectedJob, setSelectedJob] = useState<CreationJob | null>(null);
     const [isDeletingBulk, setIsDeletingBulk] = useState(false);
@@ -233,6 +237,8 @@ export function ProductsTable({
                 searchable={false}
                 pagination={pagination}
                 onPageChange={onPageChange}
+                pageSizeOptions={pageSizeOptions}
+                onPageSizeChange={onPageSizeChange}
                 selectedIds={selectedIds}
                 onSelectionChange={onSelectionChange}
                 compact

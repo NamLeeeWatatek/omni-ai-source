@@ -43,4 +43,7 @@ export class FileEntity extends EntityRelationalHelper {
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
+
+  @Column({ name: 'is_temp', type: 'boolean', default: true })
+  isTemp: boolean;
 }

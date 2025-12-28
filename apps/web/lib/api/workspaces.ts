@@ -12,6 +12,36 @@ export interface Workspace {
     updatedAt: string
 }
 
+export enum WorkspaceRole {
+    OWNER = 'owner',
+    ADMIN = 'admin',
+    MEMBER = 'member',
+    VIEWER = 'viewer',
+}
+
+export interface WorkspaceMember {
+    workspaceId: string
+    userId: string
+    roleId: number
+    role: {
+        id: number
+        name: string
+    }
+    user: {
+        id: string
+        email: string
+        firstName: string
+        lastName: string
+        avatarUrl: string
+    }
+    joinedAt: string
+}
+
+export interface CreateInvitationDto {
+    email: string
+    role?: WorkspaceRole
+}
+
 export const workspacesApi = {
     async getCurrent(): Promise<Workspace> {
         return axiosClient.get<Workspace>('/workspaces/current') as unknown as Workspace
@@ -19,5 +49,21 @@ export const workspacesApi = {
 
     async getAll(): Promise<Workspace[]> {
         return axiosClient.get<Workspace[]>('/workspaces') as unknown as Workspace[]
+    },
+
+    async getMembers(id: string): Promise<WorkspaceMember[]> {
+        return axiosClient.get<WorkspaceMember[]>(`/workspaces/${id}/members`) as unknown as WorkspaceMember[]
+    },
+
+    async inviteMember(workspaceId: string, data: CreateInvitationDto) {
+        return axiosClient.post(`/workspaces/invitations/${workspaceId}`, data)
+    },
+
+    async removeMember(workspaceId: string, userId: string) {
+        return axiosClient.delete(`/workspaces/${workspaceId}/members/${userId}`)
+    },
+
+    async updateMemberRole(workspaceId: string, userId: string, role: WorkspaceRole) {
+        return axiosClient.patch(`/workspaces/${workspaceId}/members/${userId}`, { role })
     }
 }

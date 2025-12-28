@@ -17,6 +17,8 @@ import { ChannelsModule } from '../channels/channels.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { KnowledgeBaseModule } from '../knowledge-base/knowledge-base.module';
 import { AiProvidersModule } from '../ai-providers/ai-providers.module';
+import { WorkspacesModule } from '../workspaces/workspaces.module';
+import { PermissionsModule } from '../permissions/permissions.module';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { AiProvidersModule } from '../ai-providers/ai-providers.module';
     forwardRef(() => SubscriptionsModule),
     forwardRef(() => KnowledgeBaseModule),
     AiProvidersModule,
+    forwardRef(() => WorkspacesModule),
+    PermissionsModule,
   ],
   controllers: [ConversationsController, AiConversationsController],
   providers: [
@@ -46,4 +50,4 @@ import { AiProvidersModule } from '../ai-providers/ai-providers.module';
     ConversationEventListener,
   ],
 })
-export class ConversationsModule {}
+export class ConversationsModule { }

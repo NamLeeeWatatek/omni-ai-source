@@ -16,14 +16,14 @@ export interface AuditLog {
 
 export const auditApi = {
     getLogs: (workspaceId: string, params?: any) =>
-        axiosClient.get<PaginatedResponse<AuditLog>>(`/api/v1/audit/logs/${workspaceId}`, { params }),
+        axiosClient.get<PaginatedResponse<AuditLog>>(`/audit/logs/${workspaceId}`, { params }),
 
     getMyActivity: (workspaceId: string, params?: any) =>
-        axiosClient.get<PaginatedResponse<AuditLog>>(`/api/v1/audit/my-activity/${workspaceId}`, { params }),
+        axiosClient.get<PaginatedResponse<AuditLog>>(`/audit/my-activity/${workspaceId}`, { params }),
 
     getDataAccessLogs: (workspaceId: string, params?: any) =>
-        axiosClient.get<PaginatedResponse<AuditLog>>(`/api/v1/audit/data-access/${workspaceId}`, { params }),
+        axiosClient.get<PaginatedResponse<AuditLog>>(`/audit/data-access/${workspaceId}`, { params }),
 
     cleanup: (daysOld: number) =>
-        axiosClient.post('/api/v1/audit/cleanup', null, { params: { daysOld } }),
+        axiosClient.post('/audit/cleanup', null, { params: { daysOld } }),
 };

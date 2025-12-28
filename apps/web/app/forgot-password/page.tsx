@@ -9,11 +9,12 @@ import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { LoadingLogo } from '@/components/ui/LoadingLogo'
 import { authApi } from '@/lib/api/auth'
 import Link from 'next/link'
 
-const forgotSchema = (t: any) => z.object({
+import { AxiosError } from 'axios'
+
+const forgotSchema = (t: (key: string) => string) => z.object({
     email: z.string().email(t('validation.invalid')),
 })
 
@@ -35,8 +36,9 @@ function ForgotPasswordPageContent() {
         try {
             await authApi.forgotPassword(data.email)
             setIsSuccess(true)
-        } catch (err: any) {
-            setError(err.response?.data?.message || t('forgotPassword.errors.generic'))
+        } catch (err: unknown) {
+            const axiosError = err as AxiosError<{ message?: string }>
+            setError(axiosError.response?.data?.message || t('forgotPassword.errors.generic'))
         } finally {
             setIsLoading(false)
         }
@@ -136,14 +138,8 @@ function ForgotPasswordPageContent() {
 }
 
 export default function ForgotPasswordPage() {
-    const { t } = useTranslation()
-
     return (
-        <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center bg-background">
-                <LoadingLogo size="lg" text={t('forgotPassword.securing')} />
-            </div>
-        }>
+        <Suspense fallback={<div />}>
             <ForgotPasswordPageContent />
         </Suspense>
     )

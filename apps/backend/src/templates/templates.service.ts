@@ -1,4 +1,5 @@
 import { Injectable, UnprocessableEntityException } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { NullableType } from '../utils/types/nullable.type';
 import { FilterTemplateDto, SortTemplateDto } from './dto/query-template.dto';
@@ -8,13 +9,16 @@ import { IPaginationOptions } from '../utils/types/pagination-options';
 import { UpdateTemplateDto } from './dto/update-template.dto';
 
 import { AiProvidersService } from '../ai-providers/ai-providers.service';
+import { FilesService } from '../files/files.service';
 
 @Injectable()
 export class TemplatesService {
   constructor(
     private readonly templatesRepository: TemplateRepository,
     private readonly aiProvidersService: AiProvidersService,
-  ) {}
+    private readonly filesService: FilesService,
+    private readonly i18n: I18nService,
+  ) { }
 
   async create(
     createTemplateDto: CreateTemplateDto,
@@ -31,17 +35,19 @@ export class TemplatesService {
         throw new UnprocessableEntityException({
           status: 422,
           errors: {
-            name: 'templateNameAlreadyExistsInWorkspace',
+            name: this.i18n.t('template.nameAlreadyExists'),
           },
         });
       }
     }
 
-    return this.templatesRepository.create({
+    const template = await this.templatesRepository.create({
       creationToolId: createTemplateDto.creationToolId,
       name: createTemplateDto.name,
       description: createTemplateDto.description,
-      category: createTemplateDto.category,
+      category: createTemplateDto.categoryId
+        ? { id: createTemplateDto.categoryId }
+        : undefined,
       prefilledData: createTemplateDto.prefilledData,
       thumbnailUrl: createTemplateDto.thumbnailUrl,
       executionOverrides: createTemplateDto.executionOverrides,
@@ -57,6 +63,10 @@ export class TemplatesService {
       inputSchema: createTemplateDto.inputSchema,
       sortOrder: createTemplateDto.sortOrder ?? 0,
     });
+
+    await this.filesService.confirmFromUrl(template.thumbnailUrl);
+
+    return template;
   }
 
   findManyWithPagination({
@@ -67,7 +77,7 @@ export class TemplatesService {
     filterOptions?: FilterTemplateDto | null;
     sortOptions?: SortTemplateDto[] | null;
     paginationOptions: IPaginationOptions;
-  }): Promise<Template[]> {
+  }): Promise<[Template[], number]> {
     return this.templatesRepository.findManyWithPagination({
       filterOptions,
       sortOptions,
@@ -108,14 +118,16 @@ export class TemplatesService {
           throw new UnprocessableEntityException({
             status: 422,
             errors: {
-              name: 'templateNameAlreadyExistsInWorkspace',
+              name: this.i18n.t('template.nameAlreadyExists'),
             },
           });
         }
       }
     }
 
-    return this.templatesRepository.update(id, {
+    const oldTemplate = await this.templatesRepository.findById(id);
+
+    const updatedTemplate = await this.templatesRepository.update(id, {
       name: updateTemplateDto.name,
       description: updateTemplateDto.description,
       creationToolId: updateTemplateDto.creationToolId,
@@ -125,7 +137,9 @@ export class TemplatesService {
       prompt: updateTemplateDto.prompt,
       mediaFiles: updateTemplateDto.mediaFiles,
       styleConfig: updateTemplateDto.styleConfig,
-      category: updateTemplateDto.category,
+      category: updateTemplateDto.categoryId
+        ? { id: updateTemplateDto.categoryId }
+        : undefined,
       isActive: updateTemplateDto.isActive,
       workspaceId: updateTemplateDto.workspaceId,
       promptTemplate: updateTemplateDto.promptTemplate,
@@ -134,6 +148,33 @@ export class TemplatesService {
       inputSchema: updateTemplateDto.inputSchema,
       sortOrder: updateTemplateDto.sortOrder,
     });
+
+    // 1. Confirm new ones
+    await this.filesService.confirmFromUrl(updateTemplateDto.thumbnailUrl);
+    await this.filesService.confirmManyFromUrls(updateTemplateDto.mediaFiles);
+
+    // 2. Diff and cleanup old ones
+    if (oldTemplate) {
+      // Thumbnail cleanup
+      if (
+        oldTemplate.thumbnailUrl &&
+        oldTemplate.thumbnailUrl !== updateTemplateDto.thumbnailUrl
+      ) {
+        await this.filesService.deleteFromUrl(oldTemplate.thumbnailUrl);
+      }
+
+      // MediaFiles cleanup (Diffing the arrays)
+      if (oldTemplate.mediaFiles && updateTemplateDto.mediaFiles) {
+        const deletedMedia = oldTemplate.mediaFiles.filter(
+          (url) => !updateTemplateDto.mediaFiles?.includes(url),
+        );
+        for (const url of deletedMedia) {
+          await this.filesService.deleteFromUrl(url);
+        }
+      }
+    }
+
+    return updatedTemplate;
   }
 
   async remove(id: Template['id']): Promise<void> {
@@ -144,7 +185,11 @@ export class TemplatesService {
     ids: Template['id'][],
     updateTemplateDto: UpdateTemplateDto,
   ): Promise<void> {
-    return this.templatesRepository.bulkUpdate(ids, updateTemplateDto);
+    const { category, categoryId, ...rest } = updateTemplateDto;
+    return this.templatesRepository.bulkUpdate(ids, {
+      ...rest,
+      category: categoryId ? { id: categoryId } : undefined,
+    } as any);
   }
 
   async bulkRemove(ids: Template['id'][]): Promise<void> {

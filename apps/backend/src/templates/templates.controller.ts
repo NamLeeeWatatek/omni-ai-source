@@ -24,10 +24,13 @@ import { NullableType } from '../utils/types/nullable.type';
 import { Template } from './domain/template';
 import { InfinityPaginationResponseDto } from '../utils/dto/infinity-pagination-response.dto';
 import { infinityPagination } from '../utils/infinity-pagination';
+import { WorkspaceAccessGuard } from '../workspaces/guards/workspace-access.guard';
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { Permissions } from '../permissions/decorators/permissions.decorator';
 
 @ApiTags('Templates')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+@UseGuards(AuthGuard('jwt'), WorkspaceAccessGuard, PermissionsGuard)
 @Controller({
   path: 'templates',
   version: '1',
@@ -37,12 +40,13 @@ export class TemplatesController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @Roles(RoleEnum.admin, RoleEnum.user)
+  @Permissions('template:Create')
   create(@Body() createTemplateDto: CreateTemplateDto): Promise<Template> {
     return this.templatesService.create(createTemplateDto);
   }
 
   @Get()
+  @Permissions('template:List')
   @HttpCode(HttpStatus.OK)
   async findAll(
     @Query() query: QueryTemplateDto,
@@ -53,20 +57,20 @@ export class TemplatesController {
       limit = 50;
     }
 
-    return infinityPagination(
-      await this.templatesService.findManyWithPagination({
-        paginationOptions: {
-          page,
-          limit,
-        },
-        filterOptions: query.filters,
-        sortOptions: query.sort,
-      }),
-      { page, limit },
-    );
+    const [data, total] = await this.templatesService.findManyWithPagination({
+      paginationOptions: {
+        page,
+        limit,
+      },
+      filterOptions: query.filters,
+      sortOptions: query.sort,
+    });
+
+    return infinityPagination(data, { page, limit }, total);
   }
 
   @Get(':id')
+  @Permissions('template:Get')
   @HttpCode(HttpStatus.OK)
   findOne(@Param('id') id: string): Promise<NullableType<Template>> {
     return this.templatesService.findById(id);
@@ -74,6 +78,7 @@ export class TemplatesController {
 
   // Get all templates associated with a specific creation tool
   @Get('by-tool/:creationToolId')
+  @Permissions('template:List')
   @HttpCode(HttpStatus.OK)
   async findByCreationTool(
     @Param('creationToolId') creationToolId: string,
@@ -83,7 +88,7 @@ export class TemplatesController {
 
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
-  @Roles(RoleEnum.admin, RoleEnum.user)
+  @Permissions('template:Update')
   update(
     @Param('id') id: string,
     @Body() updateTemplateDto: UpdateTemplateDto,
@@ -93,14 +98,14 @@ export class TemplatesController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles(RoleEnum.admin)
+  @Permissions('template:Delete')
   remove(@Param('id') id: string): Promise<void> {
     return this.templatesService.remove(id);
   }
 
   @Patch('bulk/update')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles(RoleEnum.admin)
+  @Permissions('template:Update')
   async bulkUpdate(
     @Body()
     bulkUpdateDto: import('./dto/bulk-operation-template.dto').BulkUpdateTemplateDto,
@@ -113,7 +118,7 @@ export class TemplatesController {
 
   @Post('bulk/delete')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles(RoleEnum.admin)
+  @Permissions('template:Delete')
   async bulkRemove(
     @Body()
     bulkDeleteDto: import('./dto/bulk-operation-template.dto').BulkDeleteTemplateDto,

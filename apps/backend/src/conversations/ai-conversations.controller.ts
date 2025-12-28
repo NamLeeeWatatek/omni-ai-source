@@ -17,12 +17,14 @@ import {
   UpdateAiConversationDto,
 } from './dto/ai-conversation.dto';
 
+import { WorkspaceAccessGuard } from '../workspaces/guards/workspace-access.guard';
+
 @ApiTags('AI Conversations')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), WorkspaceAccessGuard)
 @Controller({ path: 'ai-conversations', version: '1' })
 export class AiConversationsController {
-  constructor(private readonly conversationsService: AiConversationsService) {}
+  constructor(private readonly conversationsService: AiConversationsService) { }
 
   @Get()
   @ApiOperation({ summary: 'Get all AI conversations' })

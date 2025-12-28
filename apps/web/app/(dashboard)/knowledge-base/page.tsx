@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { KBCollectionDialog } from '@/components/features/knowledge-base';
 import {
     Database,
@@ -33,41 +34,58 @@ import {
     DropdownMenuTrigger
 } from '@/components/ui/DropdownMenu';
 import { PageLoading } from '@/components/ui/PageLoading';
+import { Pagination } from '@/components/ui/Pagination';
+import { PageHeader } from '@/components/ui/PageHeader';
 
-// ... imports ...
+
+
+import { useWorkspace } from '@/lib/hooks/useWorkspace';
 
 export default function KnowledgeBasePage() {
     const router = useRouter();
-    const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { workspaceId, isLoading: isWorkspaceLoading } = useWorkspace();
     const [searchQuery, setSearchQuery] = useState('');
+    const [querySearch, setQuerySearch] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(12);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [deleteItem, setDeleteItem] = useState<KnowledgeBase | null>(null);
 
-    const loadKnowledgeBases = async () => {
-        try {
-            setLoading(true);
-            const data = await getKnowledgeBases();
-            if (Array.isArray(data)) {
-                setKnowledgeBases(data);
-            } else {
-                setKnowledgeBases((data as any).data || data.items || []);
-            }
-        } catch (error) {
-            toast.error('Failed to load knowledge bases');
-        } finally {
-            setLoading(false);
-        }
-    };
+    const searchTimerRef = useRef<NodeJS.Timeout>();
 
+    // Cleanup timer
     useEffect(() => {
-        loadKnowledgeBases();
+        return () => {
+            if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+        }
     }, []);
 
-    const filteredKnowledgeBases = knowledgeBases.filter(kb =>
-        kb.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (kb.description && kb.description.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
+    const { data: kbData, isLoading: loading, refetch } = useQuery({
+        queryKey: ['knowledge-bases', workspaceId, currentPage, pageSize, querySearch],
+        queryFn: async (): Promise<{ data: KnowledgeBase[], total: number }> => {
+            if (!workspaceId) return { data: [], total: 0 };
+
+            const data: any = await getKnowledgeBases({
+                page: currentPage,
+                limit: pageSize,
+                workspaceId,
+                filters: JSON.stringify({
+                    search: querySearch
+                })
+            });
+
+            // Normalize return
+            if (Array.isArray(data)) {
+                return { data, total: data.length };
+            }
+            return { data: data.data || [], total: data.total || 0 };
+        },
+        enabled: !!workspaceId,
+        placeholderData: keepPreviousData,
+    });
+
+    const knowledgeBases = kbData?.data || [];
+    const totalItems = kbData?.total || 0;
 
     const formatSize = (bytes: string | number) => {
         const size = typeof bytes === 'string' ? parseInt(bytes) : bytes;
@@ -79,6 +97,7 @@ export default function KnowledgeBasePage() {
     };
 
     const handleCreateKnowledgeBase = async (data: { name: string; description?: string; aiProviderId?: string; ragModel?: string; embeddingModel?: string; color?: string }) => {
+        if (!workspaceId) return;
         try {
             await createKnowledgeBase({
                 name: data.name,
@@ -87,11 +106,12 @@ export default function KnowledgeBasePage() {
                 ragModel: data.ragModel,
                 embeddingModel: data.embeddingModel,
                 color: data.color || '#3B82F6',
-                isPublic: false
+                isPublic: false,
+                workspaceId
             });
             toast.success('Knowledge Base created successfully');
             setDialogOpen(false);
-            loadKnowledgeBases();
+            refetch();
         } catch (error) {
             toast.error('Failed to create knowledge base');
         }
@@ -103,41 +123,30 @@ export default function KnowledgeBasePage() {
             await deleteKnowledgeBase(deleteItem.id);
             toast.success('Knowledge Base deleted successfully');
             setDeleteItem(null);
-            loadKnowledgeBases();
+            refetch();
         } catch (error) {
             toast.error('Failed to delete knowledge base');
         }
     };
 
-    if (loading) return <PageLoading message="Loading knowledge bases" />;
+    if (loading && knowledgeBases.length === 0) return <PageLoading message="Loading knowledge bases" />;
 
     return (
         <div className="h-full flex flex-col space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="space-y-1">
-                    <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-                        Knowledge Base
-                    </h1>
-                    <p className="text-muted-foreground text-lg">
-                        Manage your intelligence assets and structured documentation.
-                    </p>
-                </div>
+            <PageHeader
+                title="Knowledge Base"
+                description="Manage your intelligence assets and structured documentation."
+                onRefresh={refetch}
+                refreshing={loading}
+                premium
+            >
                 <div className="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        onClick={loadKnowledgeBases}
-                        disabled={loading}
-                        className="rounded-lg border-border/60 hover:bg-muted/50 h-10 px-4 transition-all active:scale-95"
-                    >
-                        <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                        Refresh
-                    </Button>
                     <Button onClick={() => setDialogOpen(true)} className="rounded-lg shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 h-10 px-6 font-bold transition-all active:scale-95">
                         <Plus className="w-4 h-4 mr-2" />
                         New Knowledge Base
                     </Button>
                 </div>
-            </div>
+            </PageHeader>
 
             <div className="flex items-center gap-4">
                 <div className="relative flex-1 max-w-sm group">
@@ -145,13 +154,22 @@ export default function KnowledgeBasePage() {
                     <Input
                         placeholder="Search system intelligence..."
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            setSearchQuery(val);
+
+                            if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+                            searchTimerRef.current = setTimeout(() => {
+                                setQuerySearch(val);
+                                setCurrentPage(1);
+                            }, 500);
+                        }}
                         className="pl-10 rounded-lg border-border/50 bg-muted/20 focus:bg-background transition-all"
                     />
                 </div>
             </div>
 
-            {filteredKnowledgeBases.length === 0 ? (
+            {knowledgeBases.length === 0 && !loading ? (
                 <div className="flex flex-col items-center justify-center flex-1 py-12 border-2 border-dashed border-border/40 rounded-lg bg-muted/5 glass">
                     <div className="w-20 h-20 bg-primary/5 rounded-full flex items-center justify-center mb-6 ring-8 ring-primary/5">
                         <Database className="w-10 h-10 text-primary opacity-40" />
@@ -166,76 +184,96 @@ export default function KnowledgeBasePage() {
                     </Button>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredKnowledgeBases.map((kb) => (
-                        <Card
-                            key={kb.id}
-                            className="p-6 cursor-pointer hover:shadow-lg transition-shadow group border-border/60 hover:border-border"
-                            onClick={() => router.push(`/knowledge-base/${kb.id}`)}
-                        >
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="w-12 h-12 rounded-lg flex items-center justify-center shadow-lg border border-white/5 transition-transform group-hover:scale-110" style={{ backgroundColor: kb.color || '#3B82F6' }}>
-                                    <Database className="w-6 h-6 text-white" />
-                                </div>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-9 w-9 opacity-0 group-hover:opacity-100 transition-all rounded-full hover:bg-muted/80">
-                                            <MoreVertical className="w-4 h-4 text-muted-foreground" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-48">
-                                        <DropdownMenuItem
-                                            className="cursor-pointer"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                // TODO: Add edit functionality
-                                            }}
-                                        >
-                                            <Edit2 className="w-4 h-4 mr-2" />
-                                            Edit Properties
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                            className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setDeleteItem(kb);
-                                            }}
-                                        >
-                                            <Trash2 className="w-4 h-4 mr-2" />
-                                            Delete Asset
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-lg mb-1 line-clamp-1">{kb.name}</h3>
-                                <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
-                                    {kb.description || 'No description available'}
-                                </p>
-                                <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-4 border-t border-border/10 pt-4">
-                                    <div className="flex items-center gap-1.5">
-                                        <FileText className="w-3.5 h-3.5 text-primary" />
-                                        <span>{kb.totalDocuments} Docs</span>
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {knowledgeBases.map((kb: KnowledgeBase) => (
+                            <Card
+                                key={kb.id}
+                                className="p-6 cursor-pointer hover:shadow-lg transition-shadow group border-border/60 hover:border-border"
+                                onClick={() => router.push(`/knowledge-base/${kb.id}`)}
+                            >
+                                <div className="flex items-start justify-between mb-4">
+                                    <div className="w-12 h-12 rounded-lg flex items-center justify-center shadow-lg border border-white/5 transition-transform group-hover:scale-110" style={{ backgroundColor: kb.color || '#3B82F6' }}>
+                                        <Database className="w-6 h-6 text-white" />
                                     </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <Database className="w-3.5 h-3.5 text-primary" />
-                                        <span>{formatSize(kb.totalSize)}</span>
-                                    </div>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-9 w-9 opacity-0 group-hover:opacity-100 transition-all rounded-full hover:bg-muted/80">
+                                                <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-48">
+                                            <DropdownMenuItem
+                                                className="cursor-pointer"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    // TODO: Add edit functionality
+                                                }}
+                                            >
+                                                <Edit2 className="w-4 h-4 mr-2" />
+                                                Edit Properties
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setDeleteItem(kb);
+                                                }}
+                                            >
+                                                <Trash2 className="w-4 h-4 mr-2" />
+                                                Delete Asset
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-tight py-0.5 px-2 bg-primary/5 text-primary border-primary/10">
-                                        {kb.embeddingModel}
-                                    </Badge>
-                                    {(kb as any).isActive && (
-                                        <Badge variant="success" className="text-[10px] font-bold uppercase tracking-tight py-0.5 px-2">
-                                            Active
+                                <div>
+                                    <h3 className="font-bold text-lg mb-1 line-clamp-1">{kb.name}</h3>
+                                    <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
+                                        {kb.description || 'No description available'}
+                                    </p>
+                                    <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-4 border-t border-border/10 pt-4">
+                                        <div className="flex items-center gap-1.5">
+                                            <FileText className="w-3.5 h-3.5 text-primary" />
+                                            <span>{kb.totalDocuments} Docs</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <Database className="w-3.5 h-3.5 text-primary" />
+                                            <span>{formatSize(kb.totalSize)}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-tight py-0.5 px-2 bg-primary/5 text-primary border-primary/10">
+                                            {kb.embeddingModel}
                                         </Badge>
-                                    )}
+                                        {(kb as any).isActive && (
+                                            <Badge variant="success" className="text-[10px] font-bold uppercase tracking-tight py-0.5 px-2">
+                                                Active
+                                            </Badge>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        </Card>
-                    ))}
+                            </Card>
+                        ))}
+                    </div>
+
+                    {knowledgeBases.length > 0 && (
+                        <Pagination
+                            pagination={{
+                                page: currentPage,
+                                limit: pageSize,
+                                total: totalItems,
+                                totalPages: Math.ceil(totalItems / pageSize),
+                                hasNextPage: currentPage < Math.ceil(totalItems / pageSize)
+                            }}
+                            onPageChange={setCurrentPage}
+                            onPageSizeChange={(size: number) => {
+                                setPageSize(size);
+                                setCurrentPage(1);
+                            }}
+                            pageSizeOptions={[6, 9, 12, 24, 48]}
+                        />
+                    )}
                 </div>
             )}
 

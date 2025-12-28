@@ -11,6 +11,7 @@
   Query,
   HttpCode,
   HttpStatus,
+  Inject,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -39,12 +40,17 @@ import {
   SystemAiSettings,
 } from './domain/ai-provider';
 
+import { CurrentWorkspace } from '../workspaces/decorators/current-workspace.decorator';
+import { WorkspaceAccessGuard } from '../workspaces/guards/workspace-access.guard';
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { Permissions } from '../permissions/decorators/permissions.decorator';
+
 @ApiTags('AI Providers')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), WorkspaceAccessGuard, PermissionsGuard)
 @Controller({ path: 'ai-providers', version: '1' })
 export class AiProvidersController {
-  constructor(private readonly aiProvidersService: AiProvidersService) {}
+  constructor(private readonly aiProvidersService: AiProvidersService) { }
 
   // Get all available AI providers (global list)
   @Get()
@@ -65,6 +71,7 @@ export class AiProvidersController {
 
   // User configs
   @Post('user/configs')
+  @Permissions('ai:Create')
   @ApiOperation({ summary: 'Create user AI provider config' })
   @ApiCreatedResponse({ type: UserAiProviderConfig })
   @HttpCode(HttpStatus.CREATED)
@@ -73,6 +80,7 @@ export class AiProvidersController {
   }
 
   @Get('user/configs')
+  @Permissions('ai:List')
   @ApiOperation({ summary: 'Get user AI provider configs' })
   @ApiOkResponse({ type: [UserAiProviderConfig] })
   getUserConfigs(@Request() req) {
@@ -80,6 +88,7 @@ export class AiProvidersController {
   }
 
   @Get('user/configs/:id')
+  @Permissions('ai:Get')
   @ApiOperation({ summary: 'Get user AI provider config by ID' })
   @ApiOkResponse({ type: UserAiProviderConfig })
   @ApiParam({ name: 'id', type: String })
@@ -88,6 +97,7 @@ export class AiProvidersController {
   }
 
   @Patch('user/configs/:id')
+  @Permissions('ai:Update')
   @ApiOperation({ summary: 'Update user AI provider config' })
   @ApiOkResponse({ type: UserAiProviderConfig })
   @ApiParam({ name: 'id', type: String })
@@ -100,6 +110,7 @@ export class AiProvidersController {
   }
 
   @Delete('user/configs/:id')
+  @Permissions('ai:Delete')
   @ApiOperation({ summary: 'Delete user AI provider config' })
   @ApiParam({ name: 'id', type: String })
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -115,7 +126,7 @@ export class AiProvidersController {
     return this.aiProvidersService.verifyUserConfig(req.user.id, id);
   }
 
-  // Workspace configs
+  @Permissions('ai:Create')
   @Post('workspace/:workspaceId/configs')
   @ApiOperation({ summary: 'Create workspace AI provider config' })
   @ApiCreatedResponse({ type: WorkspaceAiProviderConfig })
@@ -128,6 +139,7 @@ export class AiProvidersController {
     return this.aiProvidersService.createWorkspaceConfig(workspaceId, dto);
   }
 
+  @Permissions('ai:List')
   @Get('workspace/:workspaceId/configs')
   @ApiOperation({ summary: 'Get workspace AI provider configs' })
   @ApiOkResponse({ type: [WorkspaceAiProviderConfig] })
@@ -136,6 +148,7 @@ export class AiProvidersController {
     return this.aiProvidersService.getWorkspaceConfigs(workspaceId);
   }
 
+  @Permissions('ai:Get')
   @Get('workspace/:workspaceId/configs/:id')
   @ApiOperation({ summary: 'Get workspace AI provider config by ID' })
   @ApiOkResponse({ type: WorkspaceAiProviderConfig })
@@ -148,6 +161,7 @@ export class AiProvidersController {
     return this.aiProvidersService.getWorkspaceConfig(workspaceId, id);
   }
 
+  @Permissions('ai:Update')
   @Patch('workspace/:workspaceId/configs/:id')
   @ApiOperation({ summary: 'Update workspace AI provider config' })
   @ApiOkResponse({ type: WorkspaceAiProviderConfig })
@@ -161,6 +175,7 @@ export class AiProvidersController {
     return this.aiProvidersService.updateWorkspaceConfig(workspaceId, id, dto);
   }
 
+  @Permissions('ai:Delete')
   @Delete('workspace/:workspaceId/configs/:id')
   @ApiOperation({ summary: 'Delete workspace AI provider config' })
   @ApiParam({ name: 'workspaceId', type: String })
@@ -173,6 +188,7 @@ export class AiProvidersController {
     return this.aiProvidersService.deleteWorkspaceConfig(workspaceId, id);
   }
 
+  @Permissions('ai:List')
   @Get('workspace/:workspaceId/usage')
   @ApiOperation({ summary: 'Get workspace AI usage logs' })
   @ApiOkResponse({ type: [AiUsageLog] })
@@ -193,6 +209,7 @@ export class AiProvidersController {
     });
   }
 
+  @Permissions('ai:List')
   @Get('workspace/:workspaceId/usage/stats')
   @ApiOperation({ summary: 'Get workspace AI usage statistics' })
   @ApiParam({ name: 'workspaceId', type: String })
@@ -338,6 +355,7 @@ export class AiProvidersController {
 
   // System AI Settings endpoints
   @Get('system/settings')
+  @Permissions('ai:Get')
   @ApiOperation({ summary: 'Get system AI settings' })
   @ApiOkResponse({ type: SystemAiSettings })
   getSystemAiSettings() {
@@ -345,6 +363,7 @@ export class AiProvidersController {
   }
 
   @Patch('system/settings')
+  @Permissions('ai:Update')
   @ApiOperation({ summary: 'Update system AI settings' })
   @ApiOkResponse({ type: SystemAiSettings })
   updateSystemAiSettings(@Body() dto: UpdateSystemAiSettingsDto) {

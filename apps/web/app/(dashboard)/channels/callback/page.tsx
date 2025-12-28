@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import axiosClient from '@/lib/axios-client';
 
-export default function ChannelCallbackPage() {
+function ChannelCallbackContent() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -137,5 +137,13 @@ export default function ChannelCallbackPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ChannelCallbackPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">Loading...</div>}>
+      <ChannelCallbackContent />
+    </Suspense>
   );
 }

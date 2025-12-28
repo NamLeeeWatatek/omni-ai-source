@@ -29,12 +29,14 @@ import {
   WidgetDeploymentResponseDto,
 } from '../dto/widget-version.dto';
 
+import { WorkspaceAccessGuard } from '../../workspaces/guards/workspace-access.guard';
+
 @ApiTags('Widget Versions')
-@Controller({ path: 'bots/:botId/widget/versions', version: '1' })
-@UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
+@UseGuards(JwtAuthGuard, WorkspaceAccessGuard)
+@Controller({ path: 'bots/:id/widget-versions', version: '1' })
 export class WidgetVersionController {
-  constructor(private readonly widgetVersionService: WidgetVersionService) {}
+  constructor(private readonly widgetVersionService: WidgetVersionService) { }
 
   @Get()
   @HttpCode(HttpStatus.OK)

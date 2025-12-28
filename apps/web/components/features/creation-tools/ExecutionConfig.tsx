@@ -17,7 +17,19 @@ import {
 } from '@/components/ui/Select';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { Info, AlertTriangle, Code } from 'lucide-react';
+import { Info, AlertTriangle, Search, FileText, Loader2, BookOpen } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/Dialog';
+import { templatesApi } from '@/lib/api/templates';
+import { Template } from '@/lib/types/template';
+import { useDebounce } from '@/lib/hooks/useDebounce';
+import { useWorkspace } from '@/lib/hooks/useWorkspace';
 
 interface ExecutionConfigProps {
     config: ExecutionFlow;
@@ -122,10 +134,17 @@ function AiConfigEditor({ config, onChange }: { config: AiExecutionConfig, onCha
                 </div>
 
                 <div className="space-y-2">
-                    <Label className="flex justify-between">
-                        Prompt Template
-                        <Badge variant="outline" className="text-[10px] font-normal font-mono">LiquidJS Supported</Badge>
-                    </Label>
+                    <div className="flex justify-between items-center">
+                        <Label className="flex gap-2 items-center">
+                            Prompt Template
+                            <Badge variant="outline" className="text-[10px] font-normal font-mono">LiquidJS Supported</Badge>
+                        </Label>
+                        <TemplateSelector onSelect={(template) => {
+                            if (template) {
+                                onChange({ ...config, promptTemplate: template });
+                            }
+                        }} />
+                    </div>
                     <div className="relative">
                         <Textarea
                             value={config.promptTemplate}
@@ -144,17 +163,6 @@ function AiConfigEditor({ config, onChange }: { config: AiExecutionConfig, onCha
 }
 
 function HttpConfigEditor({ config, onChange }: { config: HttpExecutionConfig, onChange: (c: HttpExecutionConfig) => void }) {
-    const handleHeaderChange = (text: string) => {
-        try {
-            const parsed = JSON.parse(text);
-            onChange({ ...config, headers: parsed });
-        } catch (e) {
-            // Allow typing invalid JSON temporarily (controlled input), 
-            // but ideally we'd use a state for the text and parse on blur.
-            // For simplicity in this artifact, we assume user pastes valid JSON or uses a smarter editor in future.
-        }
-    };
-
     return (
         <Card className="border-border/60 bg-card/40">
             <CardContent className="space-y-5 p-5">
@@ -241,5 +249,99 @@ function HttpConfigEditor({ config, onChange }: { config: HttpExecutionConfig, o
 
             </CardContent>
         </Card>
+    );
+}
+
+function TemplateSelector({ onSelect }: { onSelect: (templateContent: string) => void }) {
+    const [open, setOpen] = useState(false);
+    const [templates, setTemplates] = useState<Template[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 500);
+    const { workspaceId } = useWorkspace();
+
+    useEffect(() => {
+        if (open && workspaceId) {
+            loadTemplates();
+        }
+    }, [open, debouncedSearch, workspaceId]);
+
+    const loadTemplates = async () => {
+        setLoading(true);
+        try {
+            const result = await templatesApi.findAll({
+                page: 1,
+                limit: 20,
+                workspaceId,
+                search: debouncedSearch
+            });
+            setTemplates(result.data || []);
+        } catch (error) {
+            console.error('Failed to load templates', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5">
+                    <BookOpen className="w-3.5 h-3.5" />
+                    Load from Library
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md p-0 overflow-hidden">
+                <DialogHeader className="p-4 border-b bg-muted/20">
+                    <DialogTitle className="text-base font-semibold">Select Prompt Template</DialogTitle>
+                </DialogHeader>
+                <div className="p-4 space-y-4">
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search templates..."
+                            className="pl-9"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
+                    <div className="h-[300px] overflow-y-auto border rounded-md divide-y">
+                        {loading ? (
+                            <div className="flex h-full items-center justify-center">
+                                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                            </div>
+                        ) : templates.length === 0 ? (
+                            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                                No templates found
+                            </div>
+                        ) : (
+                            templates.map((t) => (
+                                <button
+                                    key={t.id}
+                                    className="w-full text-left p-3 hover:bg-muted/50 transition-colors flex items-start gap-3 group"
+                                    onClick={() => {
+                                        onSelect(t.promptTemplate || '');
+                                        setOpen(false);
+                                    }}
+                                >
+                                    <div className="mt-0.5 w-8 h-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
+                                        <FileText className="w-4 h-4 text-primary" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="font-medium text-sm truncate">{t.name}</div>
+                                        <div className="text-xs text-muted-foreground line-clamp-1 truncate">
+                                            {t.description || 'No description'}
+                                        </div>
+                                    </div>
+                                    <Badge variant="secondary" className="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
+                                        Select
+                                    </Badge>
+                                </button>
+                            ))
+                        )}
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
     );
 }

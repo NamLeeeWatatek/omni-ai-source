@@ -7,7 +7,6 @@ import { WorkspaceInitializer } from '@/components/providers/WorkspaceInitialize
 export function ReduxProvider({ children }: { children: React.ReactNode }) {
   return (
     <Provider store={store}>
-      <WorkspaceInitializer />
       {children}
     </Provider>
   )

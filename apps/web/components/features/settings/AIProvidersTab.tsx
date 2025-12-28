@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/Input';
 import { DataTable } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { toast } from 'sonner';
+import { AIProviderDialog } from './AIProviderDialog';
 
 // Icon mapping utility
 const getProviderIcon = (iconName?: string) => {
@@ -83,10 +84,12 @@ export function AIProvidersTab({ userConfigs, availableProviders, loading, onDat
   const [pageSize, setPageSize] = useState(9);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [configToDelete, setConfigToDelete] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedConfig, setSelectedConfig] = useState<any>(null);
 
   const handleOpenDialog = (config?: UserAiProviderConfig | ProviderDisplayData) => {
-    // TODO: Implement dialog opening logic
-    console.log('Open dialog for config:', config);
+    setSelectedConfig(config || null);
+    setDialogOpen(true);
   };
 
   const handleVerify = async (id: string) => {
@@ -509,6 +512,13 @@ export function AIProvidersTab({ userConfigs, availableProviders, loading, onDat
           )}
         </>
       )}
+
+      <AIProviderDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        availableProviders={availableProviders}
+        config={selectedConfig}
+      />
     </div>
   );
 }

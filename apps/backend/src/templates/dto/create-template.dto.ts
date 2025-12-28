@@ -24,10 +24,10 @@ export class CreateTemplateDto {
   @IsString()
   description?: string | null;
 
-  @ApiPropertyOptional({ example: 'portrait' })
+  @ApiPropertyOptional({ example: 'uuid-of-category' })
   @IsOptional()
   @IsString()
-  category?: string | null;
+  categoryId?: string | null;
 
   @ApiPropertyOptional({
     type: Object,

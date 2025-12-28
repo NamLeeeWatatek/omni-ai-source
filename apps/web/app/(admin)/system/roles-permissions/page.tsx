@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { PageShell } from '@/components/layout/PageShell';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -45,11 +46,9 @@ import {
 } from '@/components/ui/AlertDialog';
 
 export default function RolesPermissionsPage() {
-    const [roles, setRoles] = useState<RoleEntity[]>([]);
-    const [permissions, setPermissions] = useState<PermissionEntity[]>([])
     const [selectedRole, setSelectedRole] = useState<RoleEntity | null>(null);
-    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+
     const [rolePermissions, setRolePermissions] = useState<string[]>([]);
     const [hasChanges, setHasChanges] = useState(false);
     const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
@@ -63,9 +62,47 @@ export default function RolesPermissionsPage() {
     const [permissionToEdit, setPermissionToEdit] = useState<{ resource: string, action: string, description: string }>({ resource: '', action: '', description: '' });
     const [permissionSearch, setPermissionSearch] = useState('');
 
+    const [querySearch, setQuerySearch] = useState('')
+    const [queryPermissionSearch, setQueryPermissionSearch] = useState('')
+
+    const roleSearchTimerRef = useRef<NodeJS.Timeout>()
+    const permissionSearchTimerRef = useRef<NodeJS.Timeout>()
+
+    // Cleanup timers
     useEffect(() => {
-        fetchData();
-    }, []);
+        return () => {
+            if (roleSearchTimerRef.current) clearTimeout(roleSearchTimerRef.current)
+            if (permissionSearchTimerRef.current) clearTimeout(permissionSearchTimerRef.current)
+        }
+    }, [])
+
+    const { data: rolesData, refetch: refetchRoles } = useQuery({
+        queryKey: ['roles', querySearch],
+        queryFn: async () => {
+            const rolesRes = await adminApi.getRoles({ search: querySearch });
+            return (rolesRes as any).data || rolesRes;
+        },
+        placeholderData: keepPreviousData
+    });
+
+    const roles = Array.isArray(rolesData) ? rolesData : [];
+
+    const { data: permissionsData, refetch: refetchPermissions } = useQuery({
+        queryKey: ['permissions', queryPermissionSearch],
+        queryFn: async () => {
+            const permissionsRes = await adminApi.getPermissions({ search: queryPermissionSearch });
+            return (permissionsRes as any).data || permissionsRes;
+        },
+        placeholderData: keepPreviousData
+    });
+
+    const permissions = Array.isArray(permissionsData) ? permissionsData : [];
+
+    useEffect(() => {
+        if (roles.length > 0 && !selectedRole && !search) {
+            setSelectedRole(roles[0]);
+        }
+    }, [roles, selectedRole, search]);
 
     useEffect(() => {
         if (selectedRole) {
@@ -73,26 +110,6 @@ export default function RolesPermissionsPage() {
             setHasChanges(false);
         }
     }, [selectedRole]);
-
-    const fetchData = async () => {
-        try {
-            const [rolesRes, permissionsRes] = await Promise.all([
-                adminApi.getRoles(),
-                adminApi.getPermissions()
-            ]);
-            const rolesData = (rolesRes as any).data || rolesRes;
-            const permissionsData = (permissionsRes as any).data || permissionsRes;
-            setRoles(Array.isArray(rolesData) ? rolesData : []);
-            setPermissions(Array.isArray(permissionsData) ? permissionsData : []);
-            if (rolesData.length > 0 && !selectedRole) {
-                setSelectedRole(rolesData[0]);
-            }
-        } catch (error) {
-            toast.error('Failed to load roles and permissions');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handlePermissionToggle = (permId: string) => {
         const newSetup = rolePermissions.includes(permId)
@@ -111,18 +128,12 @@ export default function RolesPermissionsPage() {
             });
             toast.success('Role permissions updated');
             setHasChanges(false);
-            // Update local state
-            const updatedRoles = roles.map(r => {
-                if (r.id === selectedRole.id) {
-                    return {
-                        ...r,
-                        permissions: permissions.filter(p => rolePermissions.includes(p.id))
-                    }
-                }
-                return r;
-            });
-            setRoles(updatedRoles);
-            setSelectedRole(updatedRoles.find(r => r.id === selectedRole.id) || null);
+
+            refetchRoles();
+
+            // We need to wait for refetch to update local state fully if we want to be pure
+            // But we can just rely on the next render
+            setSelectedRole(prev => prev ? { ...prev, permissions: permissions.filter(p => rolePermissions.includes(p.id)) } : null);
         } catch (error) {
             toast.error('Failed to update role');
         }
@@ -147,7 +158,7 @@ export default function RolesPermissionsPage() {
             }
             setIsRoleDialogOpen(false);
             setRoleToEdit(null);
-            fetchData();
+            refetchRoles();
         } catch (error) {
             toast.error('Failed to save role');
         }
@@ -174,7 +185,7 @@ export default function RolesPermissionsPage() {
             if (selectedRole?.id === roleToDeleteId) {
                 setSelectedRole(null);
             }
-            fetchData();
+            refetchRoles();
         } catch (error) {
             toast.error('Failed to delete role');
         }
@@ -186,7 +197,7 @@ export default function RolesPermissionsPage() {
             toast.success('Permission created');
             setIsPermissionDialogOpen(false);
             setPermissionToEdit({ resource: '', action: '', description: '' });
-            fetchData();
+            refetchPermissions();
         } catch (error) {
             toast.error('Failed to create permission');
         }
@@ -199,41 +210,38 @@ export default function RolesPermissionsPage() {
             toast.success('Permission deleted');
             setIsDeletePermissionOpen(false);
             setPermissionToDeleteId(null);
-            fetchData();
+            refetchPermissions();
         } catch (error) {
             toast.error('Failed to delete permission');
         }
     };
 
-    const filteredRoles = (roles || []).filter(r => r.name.toLowerCase().includes(search.toLowerCase()));
+
 
     // Group permissions
-    const groupedPermissions = permissions.reduce((acc, perm) => {
+    const groupedPermissions = permissions.reduce((acc, perm: PermissionEntity) => {
         if (!acc[perm.resource]) acc[perm.resource] = [];
         acc[perm.resource].push(perm);
         return acc;
     }, {} as Record<string, PermissionEntity[]>);
 
-    const filteredPermissions = permissions.filter(p =>
-        p.resource.toLowerCase().includes(permissionSearch.toLowerCase()) ||
-        p.action.toLowerCase().includes(permissionSearch.toLowerCase()) ||
-        (p.description || '').toLowerCase().includes(permissionSearch.toLowerCase())
-    );
+
 
     return (
         <PageShell
             title="IAM - Identity & Access Management"
             description="Manage system access control via Roles and Permissions."
+            icon={ShieldCheck}
             actions={
                 activeTab === 'roles' ? (
-                    <Button onClick={handleOpenCreateDialog} className="gap-2 shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground">
+                    <Button onClick={handleOpenCreateDialog} className="gap-2 shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground h-10 px-6 font-bold rounded-xl">
                         <Plus className="w-4 h-4" />
                         Create Role
                     </Button>
                 ) : (
                     <Button
                         onClick={() => setIsPermissionDialogOpen(true)}
-                        className="gap-2 shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground"
+                        className="gap-2 shadow-sm bg-primary hover:bg-primary/90 text-primary-foreground h-10 px-6 font-bold rounded-xl"
                     >
                         <Plus className="w-4 h-4" />
                         New Permission
@@ -269,14 +277,21 @@ export default function RolesPermissionsPage() {
                                                 placeholder="Find role..."
                                                 className="pl-9 h-9 bg-background"
                                                 value={search}
-                                                onChange={(e) => setSearch(e.target.value)}
+                                                onChange={(e) => {
+                                                    const val = e.target.value
+                                                    setSearch(val)
+                                                    if (roleSearchTimerRef.current) clearTimeout(roleSearchTimerRef.current)
+                                                    roleSearchTimerRef.current = setTimeout(() => {
+                                                        setQuerySearch(val)
+                                                    }, 500)
+                                                }}
                                             />
                                         </div>
                                     </CardHeader>
                                     <CardContent className="p-0 flex-1 overflow-hidden">
                                         <ScrollArea className="h-full">
                                             <div className="p-2 space-y-1">
-                                                {filteredRoles.map(role => (
+                                                {roles.map(role => (
                                                     <div
                                                         key={role.id}
                                                         className={cn(
@@ -350,7 +365,7 @@ export default function RolesPermissionsPage() {
                                         <CardContent className="p-0 flex-1 overflow-auto bg-slate-50/50 dark:bg-slate-950/20">
                                             <div className="p-6">
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                    {Object.entries(groupedPermissions).map(([resource, perms]) => (
+                                                    {(Object.entries(groupedPermissions) as [string, PermissionEntity[]][]).map(([resource, perms]) => (
                                                         <div key={resource} className="space-y-3 p-4 rounded-xl border bg-card shadow-sm">
                                                             <h4 className="font-semibold capitalize flex items-center gap-2 border-b pb-2">
                                                                 <div className="w-2 h-2 rounded-full bg-primary" />
@@ -410,14 +425,21 @@ export default function RolesPermissionsPage() {
                                         placeholder="Search permissions..."
                                         className="pl-9 h-9 bg-background"
                                         value={permissionSearch}
-                                        onChange={(e) => setPermissionSearch(e.target.value)}
+                                        onChange={(e) => {
+                                            const val = e.target.value
+                                            setPermissionSearch(val)
+                                            if (permissionSearchTimerRef.current) clearTimeout(permissionSearchTimerRef.current)
+                                            permissionSearchTimerRef.current = setTimeout(() => {
+                                                setQueryPermissionSearch(val)
+                                            }, 500)
+                                        }}
                                     />
                                 </div>
                             </CardHeader>
                             <CardContent className="flex-1 overflow-hidden p-0">
                                 <ScrollArea className="h-full">
                                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {filteredPermissions.map(perm => (
+                                        {permissions.map(perm => (
                                             <div key={perm.id} className="group p-3 border rounded-lg flex flex-col gap-1 bg-card hover:bg-muted/30 transition-colors h-fit relative">
                                                 <div className="flex items-center justify-between">
                                                     <span className="font-mono text-xs font-bold text-primary flex items-center gap-2">

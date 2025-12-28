@@ -28,7 +28,7 @@ import { RolesGuard } from '../roles/roles.guard';
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @Controller({ path: 'audit', version: '1' })
 export class AuditController {
-  constructor(private readonly auditService: AuditService) { }
+  constructor(private readonly auditService: AuditService) {}
 
   @Get('logs/:workspaceId')
   @Roles('admin')

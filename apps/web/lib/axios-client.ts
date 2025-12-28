@@ -1,8 +1,12 @@
-import axios from 'axios';
-import { getSession, signOut } from 'next-auth/react';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { getSession } from 'next-auth/react';
 
 const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
+/**
+ * Clean Axios client for backend API communication.
+ * Completely decoupled from LocalStorage.
+ */
 export const axiosClient = axios.create({
   baseURL,
   headers: {
@@ -10,19 +14,30 @@ export const axiosClient = axios.create({
   },
 });
 
-
 let activeWorkspaceId: string | null = null;
+let cachedToken: string | null = null;
 
-export const setActiveWorkspaceId = (id: string) => {
+export const setActiveWorkspaceId = (id: string | null) => {
   activeWorkspaceId = id;
 };
 
-axiosClient.interceptors.request.use(
-  async (config) => {
-    const session = await getSession();
+export const setAxiosToken = (token: string | null) => {
+  cachedToken = token;
+};
 
-    if (session?.accessToken) {
-      config.headers.Authorization = `Bearer ${session.accessToken}`;
+// Request Interceptor: Attach token and workspace ID
+axiosClient.interceptors.request.use(
+  async (config: InternalAxiosRequestConfig) => {
+    // 1. Get token from cache or session
+    if (!cachedToken) {
+      const session = await getSession();
+      if (session?.accessToken) {
+        cachedToken = session.accessToken;
+      }
+    }
+
+    if (cachedToken) {
+      config.headers.Authorization = `Bearer ${cachedToken}`;
     }
 
     if (activeWorkspaceId) {
@@ -31,54 +46,20 @@ axiosClient.interceptors.request.use(
 
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error: Error) => Promise.reject(error)
 );
 
+// Response Interceptor: Basic error handling
 axiosClient.interceptors.response.use(
   (response) => response.data,
-  async (error) => {
-    const originalRequest = error.config;
-
-    // Handle 401 Unauthorized errors
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      // Avoid retrying for actual login or refresh-token endpoints to prevent infinite loops
-      const isAuthEndpoint = originalRequest.url?.includes('/auth/email/login') ||
-        originalRequest.url?.includes('/auth/refresh-token') ||
-        originalRequest.url?.includes('/auth/logout');
-
-      if (!isAuthEndpoint) {
-        originalRequest._retry = true;
-
-        try {
-          // Trigger NextAuth's silent refresh by fetching the current session.
-          // NextAuth's internal callbacks (jwt/session) will handle the token rotation if it's expired.
-          const session = await getSession();
-
-          if (session?.accessToken) {
-            // Update the Authorization header with the new token
-            originalRequest.headers.Authorization = `Bearer ${session.accessToken}`;
-            // Retry the original request
-            return axiosClient(originalRequest);
-          }
-        } catch (refreshError) {
-          console.error('[Axios] Silent refresh attempted but failed:', refreshError);
-        }
-      }
-
-      // If retry isn't possible or failed, trigger a clean logout if we're in the browser
-      if (typeof window !== 'undefined' && !isAuthEndpoint) {
-        const currentPath = window.location.pathname;
-        if (currentPath !== '/login' && !(window as any)._isSigningOut) {
-          console.warn('[Axios] Unauthorized - Redirecting to login...');
-          (window as any)._isSigningOut = true;
-          // Force a clean logout and redirect to login page
-          await signOut({ callbackUrl: `/login?callbackUrl=${encodeURIComponent(currentPath)}`, redirect: true });
-        }
-      }
+  async (error: AxiosError) => {
+    // If we get a 401, it means the token in memory might be stale
+    // but NextAuth should have handled refresh in the background via getSession().
+    // If it still fails, we let the component or SessionWatcher handle the logout.
+    if (error.response?.status === 401) {
+      // Clear cache so next request tries to get fresh session
+      cachedToken = null;
     }
-
     return Promise.reject(error);
   }
 );

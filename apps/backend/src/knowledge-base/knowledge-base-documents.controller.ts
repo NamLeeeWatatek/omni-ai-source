@@ -111,15 +111,17 @@ function fixEncoding(filename: string): string {
 // Alias for backward compatibility if needed, though we'll update calls
 const decodeFilename = fixEncoding;
 
+import { WorkspaceAccessGuard } from '../workspaces/guards/workspace-access.guard';
+
 @ApiTags('Knowledge Base - Documents')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), WorkspaceAccessGuard)
 @Controller({ path: 'knowledge-bases', version: '1' })
 export class KnowledgeBaseDocumentsController {
   constructor(
     private readonly documentsService: KBDocumentsService,
     private readonly crawlerService: KBCrawlerService,
-  ) {}
+  ) { }
 
   @Post('documents')
   @ApiOperation({ summary: 'Create document' })
@@ -162,11 +164,11 @@ export class KnowledgeBaseDocumentsController {
       title: doc.title ? decodeFilename(doc.title) : doc.title,
       metadata: doc.metadata
         ? {
-            ...doc.metadata,
-            originalName: doc.metadata.originalName
-              ? decodeFilename(doc.metadata.originalName)
-              : doc.metadata.originalName,
-          }
+          ...doc.metadata,
+          originalName: doc.metadata.originalName
+            ? decodeFilename(doc.metadata.originalName)
+            : doc.metadata.originalName,
+        }
         : doc.metadata,
     }));
 
@@ -374,11 +376,11 @@ export class KnowledgeBaseDocumentsController {
         : createdDoc.title,
       metadata: createdDoc.metadata
         ? {
-            ...createdDoc.metadata,
-            originalName: createdDoc.metadata.originalName
-              ? decodeFilename(createdDoc.metadata.originalName)
-              : createdDoc.metadata.originalName,
-          }
+          ...createdDoc.metadata,
+          originalName: createdDoc.metadata.originalName
+            ? decodeFilename(createdDoc.metadata.originalName)
+            : createdDoc.metadata.originalName,
+        }
         : createdDoc.metadata,
     };
   }

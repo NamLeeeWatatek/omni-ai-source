@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { templatesApi } from '@/lib/api/templates';
 import { creationToolsApi, CreationTool } from '@/lib/api/creation-tools';
@@ -12,7 +14,6 @@ import { Badge } from '@/components/ui/Badge';
 import { Loader2, Plus, Edit2, Trash2, Search, Sparkles, Filter } from 'lucide-react';
 import { AssignToolDialog } from '@/components/features/creation-tools/AssignToolDialog';
 import { TemplateDialog } from '@/components/features/creation-tools/TemplateDialog';
-import { PageLoading } from '@/components/ui/PageLoading';
 import toast from '@/lib/toast';
 import { handleApiError } from '@/lib/utils/api-error';
 import { PageShell } from '@/components/layout/PageShell';
@@ -36,9 +37,7 @@ export default function TemplatesPage() {
     const searchParams = useSearchParams();
     const initialToolId = searchParams.get('toolId');
 
-    const [templates, setTemplates] = useState<Template[]>([]);
-    const [tools, setTools] = useState<CreationTool[]>([]);
-    const [loading, setLoading] = useState(true);
+
     const [searchQuery, setSearchQuery] = useState('');
     const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
     const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
@@ -49,9 +48,8 @@ export default function TemplatesPage() {
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(12);
-    const [totalItems, setTotalItems] = useState(0);
-    const [hasNextPage, setHasNextPage] = useState(false);
+    const [pageSize, setPageSize] = useState(10);
+
 
     // Bulk Actions State
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -59,42 +57,51 @@ export default function TemplatesPage() {
     const [bulkDeleteAlertOpen, setBulkDeleteAlertOpen] = useState(false);
     const [bulkDeleting, setBulkDeleting] = useState(false);
 
+    const [querySearch, setQuerySearch] = useState('')
+    const searchTimerRef = useRef<NodeJS.Timeout>()
+
+    // Cleanup timer
     useEffect(() => {
-        loadData();
-    }, [currentPage, pageSize, searchQuery, selectedToolFilter]);
+        return () => {
+            if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+        }
+    }, [])
 
-    const loadData = async () => {
-        try {
-            setLoading(true);
+    // Reset page on search change
 
-            // Build query object
-            const query: any = {
+
+    // Query for Creation Tools (for filter)
+    const { data: toolsData } = useQuery({
+        queryKey: ['creation-tools-all'],
+        queryFn: () => creationToolsApi.getAllAdmin(),
+        initialData: []
+    });
+
+    // Query for Templates
+    const { data: templatesData, isLoading, refetch } = useQuery({
+        queryKey: ['templates', currentPage, pageSize, querySearch, selectedToolFilter],
+        queryFn: async () => {
+            const filters: any = {};
+            if (selectedToolFilter !== 'all') {
+                filters.creationToolId = selectedToolFilter;
+            }
+            if (querySearch) {
+                filters.name = querySearch;
+            }
+
+            return templatesApi.findAll({
                 page: currentPage,
                 limit: pageSize,
-            };
+                filters: JSON.stringify(filters),
+            });
+        },
+        placeholderData: keepPreviousData,
+    });
 
-            const [templatesData, toolsData] = await Promise.all([
-                templatesApi.findAll({
-                    page: currentPage,
-                    limit: pageSize,
-                    // If we want to filter by tool, pass it
-                    ...(selectedToolFilter !== 'all' ? { 'filters[creationToolId]': selectedToolFilter } : {}),
-                }),
-                creationToolsApi.getAllAdmin(),
-            ]);
-
-            setTemplates(Array.isArray(templatesData.data) ? templatesData.data : []);
-            setHasNextPage(templatesData.hasNextPage);
-            setTotalItems(templatesData.total || 0);
-
-            setTools(Array.isArray(toolsData) ? toolsData : []);
-        } catch (error) {
-            const message = handleApiError(error);
-            toast.error(message);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const templates = Array.isArray(templatesData?.data) ? templatesData.data : [];
+    const totalItems = templatesData?.total || 0;
+    const hasNextPage = templatesData?.hasNextPage || false;
+    const tools = Array.isArray(toolsData) ? toolsData : [];
 
     const handleSaveTemplate = async (data: Partial<Template>) => {
         try {
@@ -105,7 +112,7 @@ export default function TemplatesPage() {
                 await templatesApi.create(data);
                 toast.success('Template created successfully');
             }
-            await loadData();
+            await refetch();
         } catch (error) {
             const message = handleApiError(error);
             toast.error(message);
@@ -126,7 +133,7 @@ export default function TemplatesPage() {
             setDeletingId(id);
             await templatesApi.delete(id);
             toast.success('Template deleted successfully');
-            await loadData();
+            await refetch();
         } catch (error) {
             const message = handleApiError(error);
             toast.error(message);
@@ -154,12 +161,18 @@ export default function TemplatesPage() {
     };
 
     const toggleAll = () => {
-        if (selectedIds.size === filteredTemplates.length) {
-            setSelectedIds(new Set());
+        const currentPageIds = templates.map(t => t.id);
+        const allCurrentPageSelected = currentPageIds.every(id => selectedIds.has(id));
+
+        const newSelected = new Set(selectedIds);
+        if (allCurrentPageSelected) {
+            // Remove all current page IDs
+            currentPageIds.forEach(id => newSelected.delete(id));
         } else {
-            const allIds = new Set(filteredTemplates.map(t => t.id));
-            setSelectedIds(allIds);
+            // Add all current page IDs
+            currentPageIds.forEach(id => newSelected.add(id));
         }
+        setSelectedIds(newSelected);
     };
 
     const handleBulkAssign = async (toolId: string) => {
@@ -167,7 +180,7 @@ export default function TemplatesPage() {
             await templatesApi.bulkUpdate(Array.from(selectedIds), { creationToolId: toolId });
             toast.success(`Successfully assigned ${selectedIds.size} templates`);
             setSelectedIds(new Set());
-            await loadData();
+            await refetch();
         } catch (error) {
             const message = handleApiError(error);
             toast.error('Failed to assign templates: ' + message);
@@ -179,7 +192,7 @@ export default function TemplatesPage() {
             await templatesApi.bulkUpdate(Array.from(selectedIds), { creationToolId: null as any });
             toast.success(`Successfully unassigned ${selectedIds.size} templates`);
             setSelectedIds(new Set());
-            await loadData();
+            await refetch();
         } catch (error) {
             const message = handleApiError(error);
             toast.error('Failed to unassign templates: ' + message);
@@ -192,7 +205,7 @@ export default function TemplatesPage() {
             await templatesApi.bulkDelete(Array.from(selectedIds));
             toast.success(`Successfully deleted ${selectedIds.size} templates`);
             setSelectedIds(new Set());
-            await loadData();
+            await refetch();
         } catch (error) {
             const message = handleApiError(error);
             toast.error('Failed to delete templates: ' + message);
@@ -202,22 +215,16 @@ export default function TemplatesPage() {
         }
     };
 
-    const filteredTemplates = templates.filter((template) => {
-        const matchesSearch =
-            template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            template.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
-        const matchesTool = selectedToolFilter === 'all' || template.creationToolId === selectedToolFilter;
 
-        return matchesSearch && matchesTool;
-    });
 
-    if (loading) return <PageLoading message="Loading templates..." />;
+
 
     return (
         <PageShell
             title="Template Library"
             description="Manage reusable templates for your creation tools"
+            icon={Sparkles}
             actions={
                 <Button
                     onClick={() => {
@@ -239,12 +246,24 @@ export default function TemplatesPage() {
                         <Input
                             placeholder="Search templates..."
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => {
+                                const value = e.target.value
+                                setSearchQuery(value)
+
+                                if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+                                searchTimerRef.current = setTimeout(() => {
+                                    setQuerySearch(value)
+                                    setCurrentPage(1)
+                                }, 500)
+                            }}
                             className="pl-9 bg-card/50"
                         />
                     </div>
                     <div className="w-full sm:w-[200px]">
-                        <Select value={selectedToolFilter} onValueChange={setSelectedToolFilter}>
+                        <Select value={selectedToolFilter} onValueChange={(val) => {
+                            setSelectedToolFilter(val);
+                            setCurrentPage(1);
+                        }}>
                             <SelectTrigger className="bg-card/50">
                                 <div className="flex items-center text-muted-foreground">
                                     <Filter className="w-3.5 h-3.5 mr-2" />
@@ -339,7 +358,7 @@ export default function TemplatesPage() {
                             <div className="flex items-center space-x-2">
                                 <Checkbox
                                     id="select-all"
-                                    checked={selectedIds.size === templates.length && templates.length > 0}
+                                    checked={templates.length > 0 && templates.every(t => selectedIds.has(t.id))}
                                     onCheckedChange={toggleAll}
                                 />
                                 <label
@@ -381,6 +400,8 @@ export default function TemplatesPage() {
                                                 src={template.thumbnailUrl}
                                                 alt={template.name}
                                                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                                loading="lazy"
+                                                decoding="async"
                                             />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center bg-secondary/30 text-muted-foreground/50">
@@ -451,8 +472,11 @@ export default function TemplatesPage() {
                                     hasNextPage: hasNextPage
                                 }}
                                 onPageChange={setCurrentPage}
-                                onPageSizeChange={setPageSize}
-                                pageSizeOptions={[12, 24, 36, 48]}
+                                onPageSizeChange={(newSize) => {
+                                    setPageSize(newSize);
+                                    setCurrentPage(1);
+                                }}
+                                pageSizeOptions={[10, 20, 30, 50]}
                             />
                         </div>
                     </>

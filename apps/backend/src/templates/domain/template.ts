@@ -1,7 +1,6 @@
-import { Exclude, Expose } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-
 import { CreationTool } from '../../creation-tools/domain/creation-tool';
+import { Category } from '../../categories/domain/category';
 
 export class Template {
   @ApiProperty({ type: String })
@@ -26,8 +25,8 @@ export class Template {
   @ApiPropertyOptional({ type: String, description: 'Template description' })
   description?: string | null;
 
-  @ApiPropertyOptional({ type: String, description: 'Template category' })
-  category?: string | null;
+  @ApiPropertyOptional({ type: () => Category })
+  category?: Category | null;
 
   // NEW: Prefilled form data
   @ApiPropertyOptional({

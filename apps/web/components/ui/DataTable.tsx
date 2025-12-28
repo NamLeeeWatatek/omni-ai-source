@@ -142,11 +142,16 @@ export function DataTable<T = any>({
 
   const handleSelectAll = (checked: boolean) => {
     if (!onSelectionChange) return
+    const currentPageIds = data.map((row: any) => row.id).filter(Boolean) as string[]
+
     if (checked) {
-      const allIds = data.map((row: any) => row.id).filter(Boolean) as string[]
-      onSelectionChange(allIds)
+      // Add all current page IDs that are not already selected
+      const newSelectedIds = [...new Set([...selectedIds, ...currentPageIds])]
+      onSelectionChange(newSelectedIds)
     } else {
-      onSelectionChange([])
+      // Remove all current page IDs from selection
+      const newSelectedIds = selectedIds.filter(id => !currentPageIds.includes(id))
+      onSelectionChange(newSelectedIds)
     }
   }
 
@@ -159,6 +164,17 @@ export function DataTable<T = any>({
       onSelectionChange([...selectedIds, id])
     }
   }
+
+  const isAllPageSelected = React.useMemo(() => {
+    if (data.length === 0) return false
+    const currentPageIds = data.map((row: any) => row.id).filter(Boolean) as string[]
+    return currentPageIds.every(id => selectedIds.includes(id))
+  }, [data, selectedIds])
+
+  const isSomePageSelected = React.useMemo(() => {
+    const currentPageIds = data.map((row: any) => row.id).filter(Boolean) as string[]
+    return currentPageIds.some(id => selectedIds.includes(id)) && !isAllPageSelected
+  }, [data, selectedIds, isAllPageSelected])
 
   // Sync local search with prop
   React.useEffect(() => {
@@ -269,6 +285,7 @@ export function DataTable<T = any>({
                   <div className={cn(isSelection && "flex items-center justify-center w-full")}>
                     {isSelection ? (
                       <Checkbox
+                        style={{ padding: '0 !important' }}
                         checked={selectedIds.includes(id)}
                         onCheckedChange={() => handleSelectRow(id)}
                         onClick={(e) => e.stopPropagation()}
@@ -333,7 +350,7 @@ export function DataTable<T = any>({
                   {column.key === 'selection' ? (
                     <div className="flex justify-center items-center h-full w-full">
                       <Checkbox
-                        checked={data.length > 0 && selectedIds.length === data.length}
+                        checked={isAllPageSelected || (isSomePageSelected ? "indeterminate" : false)}
                         onCheckedChange={(checked) => handleSelectAll(!!checked)}
                       />
                     </div>

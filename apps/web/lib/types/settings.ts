@@ -7,6 +7,7 @@ export interface Category {
   color: string
   description?: string
   entity_type: string
+  type: string
   order: number
 }
 

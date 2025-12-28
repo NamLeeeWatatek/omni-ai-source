@@ -312,6 +312,10 @@ export class KBDocumentsService {
 
     const savedDoc = await this.documentRepository.save(document);
 
+    if (savedDoc.fileUrl) {
+      await this.filesService.confirmFromUrl(savedDoc.fileUrl);
+    }
+
     const jobId = this.processingQueue.addJob(
       savedDoc.id,
       createDto.knowledgeBaseId,

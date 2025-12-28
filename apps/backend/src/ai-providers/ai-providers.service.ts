@@ -4,6 +4,7 @@
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { I18nContext, I18nService } from 'nestjs-i18n';
 import { NullableType } from '../utils/types/nullable.type';
 import { AiProviderConfigRepository } from './infrastructure/persistence/ai-provider-config.repository';
 import { SystemAiSettingsRepository } from './infrastructure/system/system-ai-settings.repository';
@@ -41,7 +42,8 @@ export class AiProvidersService {
     private readonly aiProviderConfigRepository: AiProviderConfigRepository,
     private readonly systemAiSettingsRepository: SystemAiSettingsRepository,
     private readonly encryptionService: EncryptionUtil,
-  ) {}
+    private readonly i18n: I18nService,
+  ) { }
 
   /**
    * Encrypts sensitive configuration fields like API keys and URLs.
@@ -325,8 +327,9 @@ export class AiProvidersService {
     } catch (error) {
       this.logger.error(`Ollama embedding failed: ${error.message}`);
       // Fallback to throw clear error
+      const lang = I18nContext.current()?.lang;
       throw new BadRequestException(
-        'Ollama embeddings not properly configured. Consider using OpenAI or Google for embeddings.',
+        this.i18n.t('ai.ollamaNotConfigured', { lang }),
       );
     }
   }
@@ -603,7 +606,12 @@ export class AiProvidersService {
     if (provider === 'google' && process.env.GOOGLE_API_KEY)
       return process.env.GOOGLE_API_KEY;
 
-    throw new Error(`API key for provider ${provider} not configured`);
+    throw new Error(
+      this.i18n.t('ai.apiKeyRequired', {
+        lang: I18nContext.current()?.lang,
+        args: { provider },
+      }),
+    );
   }
 
   async getApiKeyByProviderId(
@@ -710,8 +718,12 @@ export class AiProvidersService {
       !actualApiKey &&
       (providerKey === 'openai' || providerKey === 'anthropic')
     ) {
+      const lang = I18nContext.current()?.lang;
       throw new BadRequestException(
-        `API key required for provider "${providerKey}". Please configure it in workspace or system settings or provide it directy.`,
+        this.i18n.t('ai.apiKeyRequired', {
+          lang,
+          args: { provider: providerKey },
+        }),
       );
     }
 
@@ -762,6 +774,7 @@ export class AiProvidersService {
     const apiConfig = decryptedDomainConfig.config || decryptedDomainConfig;
 
     // Route to appropriate provider method
+    const lang = I18nContext.current()?.lang;
     switch (provider.key) {
       case 'openai':
         return this.chatWithOpenAIHistory(messages, model, apiConfig.apiKey);
@@ -773,12 +786,21 @@ export class AiProvidersService {
         return this.chatWithGoogleHistory(messages, model, apiConfig.apiKey);
       case 'azure':
         // For Azure OpenAI, similar to OpenAI but with different base URL
-        throw new BadRequestException(`Azure provider not yet implemented`);
+        throw new BadRequestException(
+          this.i18n.t('ai.azureNotImplemented', { lang }),
+        );
       case 'custom':
         // For custom providers, we'd need custom logic
-        throw new BadRequestException(`Custom provider not yet implemented`);
+        throw new BadRequestException(
+          this.i18n.t('ai.customNotImplemented', { lang }),
+        );
       default:
-        throw new BadRequestException(`Unsupported provider: ${provider.key}`);
+        throw new BadRequestException(
+          this.i18n.t('ai.unsupportedProvider', {
+            lang,
+            args: { provider: provider.key },
+          }),
+        );
     }
   }
 
@@ -1566,11 +1588,11 @@ Always provide well-reasoned responses and suggest next steps when appropriate.`
       );
       const improvements = improvementsMatch
         ? improvementsMatch[1]
-            .trim()
-            .split('\n')
-            .map((line) => line.replace(/^[-•]/, '').trim())
-            .filter((line) => line && !line.match(/^\*\*/))
-            .slice(0, 5) // Limit to 5 improvements
+          .trim()
+          .split('\n')
+          .map((line) => line.replace(/^[-•]/, '').trim())
+          .filter((line) => line && !line.match(/^\*\*/))
+          .slice(0, 5) // Limit to 5 improvements
         : ['Professional prompt structure with clear guidelines'];
 
       // Extract suggestions section
@@ -1579,14 +1601,14 @@ Always provide well-reasoned responses and suggest next steps when appropriate.`
       );
       const suggestions = suggestionsMatch
         ? suggestionsMatch[1]
-            .trim()
-            .split('\n')
-            .map((line) => line.replace(/^[-•]/, '').trim())
-            .filter((line) => line && !line.match(/^\*\*/))
-            .slice(0, 5) // Limit to 5 suggestions
+          .trim()
+          .split('\n')
+          .map((line) => line.replace(/^[-•]/, '').trim())
+          .filter((line) => line && !line.match(/^\*\*/))
+          .slice(0, 5) // Limit to 5 suggestions
         : [
-            'Use this prompt as the system message when configuring your AI assistant',
-          ];
+          'Use this prompt as the system message when configuring your AI assistant',
+        ];
 
       return {
         prompt:
@@ -1745,10 +1767,10 @@ Always provide well-reasoned responses and suggest next steps when appropriate.`
       );
       const improvements = improvementsMatch
         ? improvementsMatch[1]
-            .trim()
-            .split('\n')
-            .map((line) => line.replace(/^[-•]/, '').trim())
-            .filter((line) => line)
+          .trim()
+          .split('\n')
+          .map((line) => line.replace(/^[-•]/, '').trim())
+          .filter((line) => line)
         : ['Enhanced prompt structure based on your description'];
 
       // Try to extract suggestions section
@@ -1757,13 +1779,13 @@ Always provide well-reasoned responses and suggest next steps when appropriate.`
       );
       const suggestions = suggestionsMatch
         ? suggestionsMatch[1]
-            .trim()
-            .split('\n')
-            .map((line) => line.replace(/^[-•]/, '').trim())
-            .filter((line) => line)
+          .trim()
+          .split('\n')
+          .map((line) => line.replace(/^[-•]/, '').trim())
+          .filter((line) => line)
         : [
-            'Use this prompt as the system message when configuring your AI assistant',
-          ];
+          'Use this prompt as the system message when configuring your AI assistant',
+        ];
 
       return {
         prompt:

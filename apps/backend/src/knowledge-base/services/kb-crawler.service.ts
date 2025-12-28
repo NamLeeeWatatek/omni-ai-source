@@ -44,7 +44,7 @@ export class KBCrawlerService {
     private readonly kbManagementService: KBManagementService,
     private readonly embeddingsService: KBEmbeddingsService,
     private readonly auditService: AuditService,
-  ) { }
+  ) {}
 
   async crawlUrl(url: string): Promise<CrawlResult> {
     try {
@@ -84,7 +84,7 @@ export class KBCrawlerService {
           try {
             const absoluteUrl = new URL(href, url).href;
             links.push(absoluteUrl);
-          } catch (e) { }
+          } catch (e) {}
         }
       });
 

@@ -195,6 +195,9 @@ export default function BotDetailPage() {
                 <PageHeader
                     title={bot.name}
                     description="Configure and manage your chatbot settings"
+                    icon={BotIcon}
+                    onRefresh={loadBot}
+                    refreshing={loading}
                     premium
                 >
                     <div className="flex items-center gap-3">

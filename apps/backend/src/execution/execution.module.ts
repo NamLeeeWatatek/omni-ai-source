@@ -11,22 +11,19 @@ import { AiExecutionStrategy } from './strategies/ai-execution.strategy';
 import { ExecutionStrategyResolver } from './execution-strategy.resolver';
 
 @Module({
-    imports: [
-        ExecutionQueueModule,
-        HttpModule,
-        CreationToolsModule,
-        CreationJobsModule,
-    ],
-    providers: [
-        HttpExecutionStrategy,
-        AiExecutionStrategy,
-        ExecutionStrategyResolver,
-        JobProcessor,
-        ExecutionValidationService,
-    ],
-    exports: [
-        ExecutionQueueModule,
-        HttpExecutionStrategy,
-    ],
+  imports: [
+    ExecutionQueueModule,
+    HttpModule,
+    CreationToolsModule,
+    CreationJobsModule,
+  ],
+  providers: [
+    HttpExecutionStrategy,
+    AiExecutionStrategy,
+    ExecutionStrategyResolver,
+    JobProcessor,
+    ExecutionValidationService,
+  ],
+  exports: [ExecutionQueueModule, HttpExecutionStrategy],
 })
-export class ExecutionModule { }
+export class ExecutionModule {}

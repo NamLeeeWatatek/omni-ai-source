@@ -18,7 +18,9 @@ export class MailService {
 
   async userSignUp(mailData: MailData<{ hash: string }>): Promise<void> {
     const context = I18nContext.current();
-    const lang = context?.lang || this.configService.get('app.fallbackLanguage', { infer: true });
+    const lang =
+      context?.lang ||
+      this.configService.get('app.fallbackLanguage', { infer: true });
 
     const [emailConfirmTitle, text1, text2, text3] = (await Promise.all([
       this.i18n.t('common.confirmEmail', { lang }),
@@ -63,15 +65,19 @@ export class MailService {
     mailData: MailData<{ hash: string; tokenExpires: number }>,
   ): Promise<void> {
     const context = I18nContext.current();
-    const lang = context?.lang || this.configService.get('app.fallbackLanguage', { infer: true });
+    const lang =
+      context?.lang ||
+      this.configService.get('app.fallbackLanguage', { infer: true });
 
-    const [resetPasswordTitle, text1, text2, text3, text4] = (await Promise.all([
-      this.i18n.t('common.resetPassword', { lang }),
-      this.i18n.t('reset-password.text1', { lang }),
-      this.i18n.t('reset-password.text2', { lang }),
-      this.i18n.t('reset-password.text3', { lang }),
-      this.i18n.t('reset-password.text4', { lang }),
-    ])) as any[];
+    const [resetPasswordTitle, text1, text2, text3, text4] = (await Promise.all(
+      [
+        this.i18n.t('common.resetPassword', { lang }),
+        this.i18n.t('reset-password.text1', { lang }),
+        this.i18n.t('reset-password.text2', { lang }),
+        this.i18n.t('reset-password.text3', { lang }),
+        this.i18n.t('reset-password.text4', { lang }),
+      ],
+    )) as any[];
 
     const url = new URL(
       this.configService.getOrThrow('app.frontendDomain', {
@@ -111,7 +117,9 @@ export class MailService {
 
   async confirmNewEmail(mailData: MailData<{ hash: string }>): Promise<void> {
     const context = I18nContext.current();
-    const lang = context?.lang || this.configService.get('app.fallbackLanguage', { infer: true });
+    const lang =
+      context?.lang ||
+      this.configService.get('app.fallbackLanguage', { infer: true });
 
     const [emailConfirmTitle, text1, text2, text3] = (await Promise.all([
       this.i18n.t('common.confirmEmail', { lang }),
@@ -145,6 +153,55 @@ export class MailService {
         url: url.toString(),
         actionTitle: emailConfirmTitle,
         app_name: this.configService.get('app.name', { infer: true }),
+        text1,
+        text2,
+        text3,
+      },
+    });
+  }
+
+  async sendWorkspaceInvitation(mailData: MailData<{ workspaceName: string }>): Promise<void> {
+    const context = I18nContext.current();
+    const lang =
+      context?.lang ||
+      this.configService.get('app.fallbackLanguage', { infer: true });
+
+    const appName = this.configService.get('app.name', { infer: true });
+    const workspaceName = mailData.data.workspaceName;
+
+    const [subject, title, text1, text2, text3, actionBtn] = (await Promise.all([
+      this.i18n.t('invitation.subject', { lang, args: { workspaceName } }),
+      this.i18n.t('invitation.title', { lang, args: { workspaceName, appName } }),
+      this.i18n.t('invitation.text1', { lang, args: { workspaceName } }),
+      this.i18n.t('invitation.text2', { lang }),
+      this.i18n.t('invitation.text3', { lang }),
+      this.i18n.t('invitation.actionBtn', { lang }),
+    ])) as string[];
+
+    const url = new URL(
+      this.configService.getOrThrow('app.frontendDomain', {
+        infer: true,
+      }) + '/login',
+    );
+
+    await this.mailerService.sendMail({
+      to: mailData.to,
+      subject: subject,
+      text: `${url.toString()} ${subject}`,
+      templatePath: path.join(
+        this.configService.getOrThrow('app.workingDirectory', {
+          infer: true,
+        }),
+        'src',
+        'mail',
+        'mail-templates',
+        'invitation.hbs',
+      ),
+      context: {
+        title: title,
+        url: url.toString(),
+        actionTitle: actionBtn,
+        app_name: appName,
         text1,
         text2,
         text3,

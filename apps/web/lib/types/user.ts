@@ -22,6 +22,7 @@ export interface User {
         id: string;
         path: string;
     };
+    avatarUrl?: string | null;
     workspaceId?: string;
     createdAt: string;
     updatedAt: string;
@@ -38,8 +39,9 @@ export interface CreateUserDto {
         id: number;
     };
     roleId?: number;
+    avatarUrl?: string | null;
 }
 
 export interface UpdateUserDto extends Partial<CreateUserDto> {
-    id: string;
+    id?: string;
 }

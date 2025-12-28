@@ -19,7 +19,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-    title: 'WataOmni - One AI. Every Channel. Zero Code.',
+    title: 'Wata AI - One AI. Every Channel. Zero Code.',
     description: 'AI-powered omnichannel customer engagement platform with zero-code flow builder and unified inbox.',
     keywords: ['AI', 'chatbot', 'omnichannel', 'customer engagement', 'automation', 'n8n'],
 }

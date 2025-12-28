@@ -29,6 +29,7 @@ import {
     RefreshCw,
     X,
     ChevronDown,
+    Sparkles,
 } from 'lucide-react'
 import { AiChatInterface } from '@/components/features/chat/AiChatInterface'
 import { AlertDialogConfirm } from '@/components/ui/AlertDialogConfirm'
@@ -75,7 +76,7 @@ export default function ChatWithAIPage() {
     const loadBots = async () => {
         try {
             if (!currentWorkspace) return
-            const response: any = await botsApi.getAll(currentWorkspace.id, 'active')
+            const response: any = await botsApi.getAll(currentWorkspace.id, { status: 'active' })
             const botsData = Array.isArray(response) ? response : (response?.data || [])
             const activeBots = botsData.filter((b: Bot) => b.status === 'active')
             setBots(activeBots)
@@ -563,253 +564,249 @@ export default function ChatWithAIPage() {
             { }
             <div className="flex-1 flex flex-col">
                 { }
-                <header className="border-b border-border/40 bg-background flex-shrink-0">
-                    <div className="px-6 py-4 flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-bold">
-                                {currentConversation?.title || 'Chat with AI'}
-                            </h1>
-                            <p className="text-sm text-muted-foreground mt-1">
-                                {currentConversation
-                                    ? `${messages.length} messages`
-                                    : 'Start a new conversation'}
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setShowSettings(!showSettings)}
-                                className="rounded-lg"
-                            >
-                                <Settings className="w-4 h-4 mr-2" />
-                                Settings
+                <PageHeader
+                    title={currentConversation?.title || 'Chat with AI'}
+                    description={currentConversation ? `${messages.length} messages` : 'Start a new conversation'}
+                    onRefresh={loadConversations}
+                    refreshing={loadingConversations}
+                    premium
+                    className="px-6 py-6 border-b border-border/40 bg-background mb-0"
+                >
+                    <div className="flex items-center gap-3">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowSettings(!showSettings)}
+                            className="rounded-lg h-10 px-4"
+                        >
+                            <Settings className="w-4 h-4 mr-2" />
+                            Settings
+                        </Button>
+                        {currentConversation && (
+                            <Button variant="outline" size="sm" onClick={clearChat} className="rounded-lg h-10 px-4">
+                                <Plus className="w-4 h-4 mr-2" />
+                                New Chat
                             </Button>
-                            {currentConversation && (
-                                <Button variant="outline" size="sm" onClick={clearChat} className="rounded-lg">
-                                    <RefreshCw className="w-4 h-4 mr-2" />
-                                    New Chat
-                                </Button>
-                            )}
-                        </div>
+                        )}
                     </div>
+                </PageHeader>
 
-                    { }
-                    {showSettings && (
-                        <div className="border-t border-border/40 bg-gradient-to-b from-muted/30 to-muted/10">
-                            <div className="max-w-6xl mx-auto p-6 space-y-6">
-                                { }
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <h3 className="text-lg font-semibold flex items-center gap-2">
-                                            <Settings className="w-5 h-5" />
-                                            Chat Configuration
-                                        </h3>
-                                        <p className="text-sm text-muted-foreground mt-1">
-                                            Customize your AI chat experience
-                                        </p>
-                                    </div>
-                                    <Button
-                                        onClick={updateConversationSettings}
-                                        loading={savingSettings}
-                                        disabled={!currentConversation}
-                                        size="sm"
-                                        className="rounded-lg"
+                { }
+                {showSettings && (
+                    <div className="border-t border-border/40 bg-gradient-to-b from-muted/30 to-muted/10">
+                        <div className="max-w-6xl mx-auto p-6 space-y-6">
+                            { }
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                                        <Settings className="w-5 h-5" />
+                                        Chat Configuration
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        Customize your AI chat experience
+                                    </p>
+                                </div>
+                                <Button
+                                    onClick={updateConversationSettings}
+                                    loading={savingSettings}
+                                    disabled={!currentConversation}
+                                    size="sm"
+                                    className="rounded-lg"
+                                >
+                                    <Check className="w-4 h-4 mr-2" />
+                                    Save Settings
+                                </Button>
+                            </div>
+
+                            { }
+                            <div className="space-y-3">
+                                <label className="text-sm font-semibold flex items-center gap-2">
+                                    <MessageCircle className="w-4 h-4 text-primary" />
+                                    Select Bot
+                                </label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    { }
+                                    <Card
+                                        className={`p-4 cursor-pointer transition-all duration-200 rounded-xl ${selectedBot === 'none'
+                                            ? 'border-primary bg-primary/5 shadow-md ring-1 ring-primary/20'
+                                            : 'hover:border-primary/40 hover:shadow-sm'
+                                            }`}
+                                        onClick={() => setSelectedBot('none')}
                                     >
-                                        <Check className="w-4 h-4 mr-2" />
-                                        Save Settings
-                                    </Button>
-                                </div>
-
-                                { }
-                                <div className="space-y-3">
-                                    <label className="text-sm font-semibold flex items-center gap-2">
-                                        <MessageCircle className="w-4 h-4 text-primary" />
-                                        Select Bot
-                                    </label>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                        { }
-                                        <Card
-                                            className={`p-4 cursor-pointer transition-all duration-200 rounded-xl ${selectedBot === 'none'
-                                                ? 'border-primary bg-primary/5 shadow-md ring-1 ring-primary/20'
-                                                : 'hover:border-primary/40 hover:shadow-sm'
-                                                }`}
-                                            onClick={() => setSelectedBot('none')}
-                                        >
-                                            <div className="flex items-start gap-3">
-                                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center flex-shrink-0 shadow-lg">
-                                                    <Zap className="w-5 h-5 text-white" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <h4 className="font-semibold text-sm">Direct AI</h4>
-                                                    <p className="text-xs text-muted-foreground mt-1">
-                                                        Chat directly with AI without bot configuration
-                                                    </p>
-                                                </div>
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center flex-shrink-0 shadow-lg">
+                                                <Zap className="w-5 h-5 text-white" />
                                             </div>
-                                        </Card>
-
-                                        { }
-                                        {bots.map((bot) => (
-                                            <Card
-                                                key={bot.id}
-                                                className={`p-4 cursor-pointer transition-all duration-200 rounded-xl ${selectedBot === bot.id
-                                                    ? 'border-primary bg-primary/5 shadow-md ring-1 ring-primary/20'
-                                                    : 'hover:border-primary/40 hover:shadow-sm'
-                                                    }`}
-                                                onClick={() => setSelectedBot(bot.id)}
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center flex-shrink-0 shadow-lg">
-                                                        <MessageCircle className="w-5 h-5 text-white" />
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <h4 className="font-semibold text-sm truncate">{bot.name}</h4>
-                                                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                                            {bot.description || 'No description'}
-                                                        </p>
-                                                        {bot.aiModelName && (
-                                                            <Badge variant="secondary" className="text-[10px] mt-2 font-bold px-1.5 py-0 bg-primary/10 text-primary border-primary/20">
-                                                                <Zap className="w-3 h-3 mr-1" />
-                                                                {bot.aiModelName}
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </Card>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                { }
-                                {selectedBot === 'none' && (
-                                    <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                                        <div className="flex items-center justify-between">
-                                            <label className="text-sm font-semibold flex items-center gap-2">
-                                                <Book className="w-4 h-4 text-primary" />
-                                                Knowledge Sources
-                                            </label>
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="checkbox"
-                                                    id="enable-kb"
-                                                    checked={useKnowledgeBase}
-                                                    onChange={(e) => {
-                                                        setUseKnowledgeBase(e.target.checked)
-                                                        if (!e.target.checked) {
-                                                            setSelectedKnowledgeBases([])
-                                                        }
-                                                    }}
-                                                    className="rounded"
-                                                />
-                                                <label
-                                                    htmlFor="enable-kb"
-                                                    className="text-sm cursor-pointer"
-                                                >
-                                                    Enable Knowledge Base
-                                                </label>
-                                            </div>
-                                        </div>
-
-                                        {useKnowledgeBase && (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                {knowledgeBases.length === 0 ? (
-                                                    <div className="col-span-full text-center py-8 px-4 border border-dashed border-border/40 rounded-xl">
-                                                        <Book className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                                                        <p className="text-sm text-muted-foreground">
-                                                            No knowledge bases available
-                                                        </p>
-                                                    </div>
-                                                ) : (
-                                                    knowledgeBases.map((kb) => {
-                                                        const isSelected = selectedKnowledgeBases.includes(kb.id)
-                                                        return (
-                                                            <Card
-                                                                key={kb.id}
-                                                                className={`p-4 cursor-pointer transition-all duration-200 rounded-xl ${isSelected
-                                                                    ? 'border-primary bg-primary/5 shadow-md ring-1 ring-primary/20'
-                                                                    : 'hover:border-primary/40 hover:shadow-sm'
-                                                                    }`}
-                                                                onClick={() => {
-                                                                    setSelectedKnowledgeBases((prev) =>
-                                                                        isSelected
-                                                                            ? prev.filter((id) => id !== kb.id)
-                                                                            : [...prev, kb.id]
-                                                                    )
-                                                                }}
-                                                            >
-                                                                <div className="flex items-start gap-3">
-                                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg ${isSelected
-                                                                        ? 'bg-gradient-to-br from-green-600 to-emerald-700'
-                                                                        : 'bg-gradient-to-br from-amber-600 to-orange-700'
-                                                                        }`}>
-                                                                        {isSelected ? (
-                                                                            <Check className="w-5 h-5 text-white" />
-                                                                        ) : (
-                                                                            <Book className="w-5 h-5 text-white" />
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <h4 className="font-semibold text-sm truncate">{kb.name}</h4>
-                                                                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                                                                            {kb.description || 'No description'}
-                                                                        </p>
-                                                                        {kb.totalDocuments !== undefined && (
-                                                                            <p className="text-xs text-muted-foreground mt-1">
-                                                                                {kb.totalDocuments} documents
-                                                                            </p>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </Card>
-                                                        )
-                                                    })
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {selectedKnowledgeBases.length > 0 && (
-                                            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-primary/5 p-3 rounded-lg border border-primary/20">
-                                                <Check className="w-4 h-4 text-primary" />
-                                                <span>
-                                                    {selectedKnowledgeBases.length} knowledge source{selectedKnowledgeBases.length > 1 ? 's' : ''} selected
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {selectedBot !== 'none' && selectedBotData && (
-                                    <div className="bg-muted/50 rounded-xl p-4 border border-border/40">
-                                        <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                                            <Zap className="w-4 h-4 text-primary" />
-                                            Current Configuration
-                                        </h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                                            <div>
-                                                <p className="text-muted-foreground text-xs">Bot</p>
-                                                <p className="font-medium">{selectedBotData.name}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-muted-foreground text-xs">AI Model</p>
-                                                <p className="font-medium">{selectedBotData.aiModelName || 'Default'}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-muted-foreground text-xs">Knowledge Base</p>
-                                                <p className="font-medium">
-                                                    Configured in bot settings
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-semibold text-sm">Direct AI</h4>
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    Chat directly with AI without bot configuration
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="mt-3 text-xs text-muted-foreground">
-                                            <p>Knowledge bases are configured in the bot's Knowledge Base tab and will be used automatically during conversations.</p>
+                                    </Card>
+
+                                    { }
+                                    {bots.map((bot) => (
+                                        <Card
+                                            key={bot.id}
+                                            className={`p-4 cursor-pointer transition-all duration-200 rounded-xl ${selectedBot === bot.id
+                                                ? 'border-primary bg-primary/5 shadow-md ring-1 ring-primary/20'
+                                                : 'hover:border-primary/40 hover:shadow-sm'
+                                                }`}
+                                            onClick={() => setSelectedBot(bot.id)}
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center flex-shrink-0 shadow-lg">
+                                                    <MessageCircle className="w-5 h-5 text-white" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="font-semibold text-sm truncate">{bot.name}</h4>
+                                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                                        {bot.description || 'No description'}
+                                                    </p>
+                                                    {bot.aiModelName && (
+                                                        <Badge variant="secondary" className="text-[10px] mt-2 font-bold px-1.5 py-0 bg-primary/10 text-primary border-primary/20">
+                                                            <Zap className="w-3 h-3 mr-1" />
+                                                            {bot.aiModelName}
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    ))}
+                                </div>
+                            </div>
+
+                            { }
+                            {selectedBot === 'none' && (
+                                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-sm font-semibold flex items-center gap-2">
+                                            <Book className="w-4 h-4 text-primary" />
+                                            Knowledge Sources
+                                        </label>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                id="enable-kb"
+                                                checked={useKnowledgeBase}
+                                                onChange={(e) => {
+                                                    setUseKnowledgeBase(e.target.checked)
+                                                    if (!e.target.checked) {
+                                                        setSelectedKnowledgeBases([])
+                                                    }
+                                                }}
+                                                className="rounded"
+                                            />
+                                            <label
+                                                htmlFor="enable-kb"
+                                                className="text-sm cursor-pointer"
+                                            >
+                                                Enable Knowledge Base
+                                            </label>
                                         </div>
                                     </div>
-                                )}
-                            </div>
+
+                                    {useKnowledgeBase && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            {knowledgeBases.length === 0 ? (
+                                                <div className="col-span-full text-center py-8 px-4 border border-dashed border-border/40 rounded-xl">
+                                                    <Book className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                                                    <p className="text-sm text-muted-foreground">
+                                                        No knowledge bases available
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                knowledgeBases.map((kb) => {
+                                                    const isSelected = selectedKnowledgeBases.includes(kb.id)
+                                                    return (
+                                                        <Card
+                                                            key={kb.id}
+                                                            className={`p-4 cursor-pointer transition-all duration-200 rounded-xl ${isSelected
+                                                                ? 'border-primary bg-primary/5 shadow-md ring-1 ring-primary/20'
+                                                                : 'hover:border-primary/40 hover:shadow-sm'
+                                                                }`}
+                                                            onClick={() => {
+                                                                setSelectedKnowledgeBases((prev) =>
+                                                                    isSelected
+                                                                        ? prev.filter((id) => id !== kb.id)
+                                                                        : [...prev, kb.id]
+                                                                )
+                                                            }}
+                                                        >
+                                                            <div className="flex items-start gap-3">
+                                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg ${isSelected
+                                                                    ? 'bg-gradient-to-br from-green-600 to-emerald-700'
+                                                                    : 'bg-gradient-to-br from-amber-600 to-orange-700'
+                                                                    }`}>
+                                                                    {isSelected ? (
+                                                                        <Check className="w-5 h-5 text-white" />
+                                                                    ) : (
+                                                                        <Book className="w-5 h-5 text-white" />
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <h4 className="font-semibold text-sm truncate">{kb.name}</h4>
+                                                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                                                                        {kb.description || 'No description'}
+                                                                    </p>
+                                                                    {kb.totalDocuments !== undefined && (
+                                                                        <p className="text-xs text-muted-foreground mt-1">
+                                                                            {kb.totalDocuments} documents
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </Card>
+                                                    )
+                                                })
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {selectedKnowledgeBases.length > 0 && (
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-primary/5 p-3 rounded-lg border border-primary/20">
+                                            <Check className="w-4 h-4 text-primary" />
+                                            <span>
+                                                {selectedKnowledgeBases.length} knowledge source{selectedKnowledgeBases.length > 1 ? 's' : ''} selected
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {selectedBot !== 'none' && selectedBotData && (
+                                <div className="bg-muted/50 rounded-xl p-4 border border-border/40">
+                                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                                        <Zap className="w-4 h-4 text-primary" />
+                                        Current Configuration
+                                    </h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                                        <div>
+                                            <p className="text-muted-foreground text-xs">Bot</p>
+                                            <p className="font-medium">{selectedBotData.name}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted-foreground text-xs">AI Model</p>
+                                            <p className="font-medium">{selectedBotData.aiModelName || 'Default'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted-foreground text-xs">Knowledge Base</p>
+                                            <p className="font-medium">
+                                                Configured in bot settings
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="mt-3 text-xs text-muted-foreground">
+                                        <p>Knowledge bases are configured in the bot's Knowledge Base tab and will be used automatically during conversations.</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                    )}
-                </header>
+                    </div>
+                )}
+
 
                 {/* ✅ PROFESSIONAL: Use dedicated AI Chat Interface */}
                 <AiChatInterface
@@ -832,6 +829,6 @@ export default function ChatWithAIPage() {
                 onConfirm={confirmDelete}
                 variant="destructive"
             />
-        </motion.div>
+        </motion.div >
     )
 }

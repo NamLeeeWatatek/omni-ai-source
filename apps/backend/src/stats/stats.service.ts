@@ -44,7 +44,7 @@ export class StatsService {
     private readonly templateRepository: Repository<TemplateEntity>,
     @InjectRepository(GenerationJobEntity)
     private readonly generationJobRepository: Repository<GenerationJobEntity>,
-  ) { }
+  ) {}
 
   async getSystemStats(query: StatsQueryDto): Promise<any> {
     const { startDate, endDate } = this.getDateRange(query);
@@ -87,23 +87,17 @@ export class StatsService {
   ): Promise<DashboardStatsDto> {
     const { startDate, endDate } = this.getDateRange(query);
 
-    const [
-      users,
-      bots,
-      conversations,
-      workspaces,
-      topBots,
-      activityTrend,
-    ] = await Promise.all([
-      this.getUserStats(query, startDate, endDate, workspaceId),
-      this.getBotStats(query, startDate, endDate, workspaceId),
-      this.getConversationStats(query, startDate, endDate, workspaceId),
-      this.getWorkspaceStats(query, startDate, endDate, workspaceId),
-      this.getTopBots(query, startDate, endDate, workspaceId),
-      query.includeTrend !== false
-        ? this.getActivityTrend(query, startDate, endDate, workspaceId)
-        : Promise.resolve([]),
-    ]);
+    const [users, bots, conversations, workspaces, topBots, activityTrend] =
+      await Promise.all([
+        this.getUserStats(query, startDate, endDate, workspaceId),
+        this.getBotStats(query, startDate, endDate, workspaceId),
+        this.getConversationStats(query, startDate, endDate, workspaceId),
+        this.getWorkspaceStats(query, startDate, endDate, workspaceId),
+        this.getTopBots(query, startDate, endDate, workspaceId),
+        query.includeTrend !== false
+          ? this.getActivityTrend(query, startDate, endDate, workspaceId)
+          : Promise.resolve([]),
+      ]);
 
     return {
       users,
@@ -142,8 +136,10 @@ export class StatsService {
       const q = this.userRepository.createQueryBuilder('user');
 
       if (workspaceId) {
-        q.innerJoin(WorkspaceMemberEntity, 'wm', 'wm.userId = user.id')
-          .where('wm.workspaceId = :workspaceId', { workspaceId });
+        q.innerJoin(WorkspaceMemberEntity, 'wm', 'wm.userId = user.id').where(
+          'wm.workspaceId = :workspaceId',
+          { workspaceId },
+        );
       }
 
       if (dateFilter) {
@@ -243,7 +239,9 @@ export class StatsService {
       }
 
       Object.keys(additionalWhere).forEach((key) => {
-        q.andWhere(`conversation.${key} = :${key}`, { [key]: additionalWhere[key] });
+        q.andWhere(`conversation.${key} = :${key}`, {
+          [key]: additionalWhere[key],
+        });
       });
 
       return q;
@@ -285,7 +283,8 @@ export class StatsService {
       growthRate: this.calculateGrowthRate(current, previous),
       active,
       completed,
-      avgMessagesPerConversation: total > 0 ? Number((totalMessages / total).toFixed(2)) : 0,
+      avgMessagesPerConversation:
+        total > 0 ? Number((totalMessages / total).toFixed(2)) : 0,
       trend:
         query.includeTrend !== false
           ? await this.getConversationTrend(startDate, endDate, workspaceId)
@@ -352,7 +351,9 @@ export class StatsService {
       return where;
     };
 
-    const total = await this.creationToolRepository.count({ where: buildWhere() });
+    const total = await this.creationToolRepository.count({
+      where: buildWhere(),
+    });
     const current = await this.creationToolRepository.count({
       where: buildWhere({ createdAt: Between(startDate, endDate) }),
     });
@@ -438,7 +439,9 @@ export class StatsService {
       return where;
     };
 
-    const total = await this.generationJobRepository.count({ where: buildWhere() });
+    const total = await this.generationJobRepository.count({
+      where: buildWhere(),
+    });
     const current = await this.generationJobRepository.count({
       where: buildWhere({ createdAt: Between(startDate, endDate) }),
     });
@@ -462,7 +465,8 @@ export class StatsService {
       growthRate: this.calculateGrowthRate(current, previous),
       successful,
       failed,
-      successRate: total > 0 ? Number(((successful / total) * 100).toFixed(2)) : 0,
+      successRate:
+        total > 0 ? Number(((successful / total) * 100).toFixed(2)) : 0,
       trend:
         query.includeTrend !== false
           ? await this.getJobTrend(startDate, endDate, workspaceId)
@@ -514,7 +518,11 @@ export class StatsService {
   ): Promise<TopItemDto[]> {
     const qb = this.creationToolRepository
       .createQueryBuilder('tool')
-      .leftJoin(GenerationJobEntity, 'job', 'job.creationToolId = CAST(tool.id AS VARCHAR)')
+      .leftJoin(
+        GenerationJobEntity,
+        'job',
+        'job.creationToolId = CAST(tool.id AS VARCHAR)',
+      )
       .select('tool.id', 'id')
       .addSelect('tool.name', 'name')
       .addSelect('COUNT(job.id)', 'count')
@@ -551,101 +559,171 @@ export class StatsService {
     return this.getConversationTrend(startDate, endDate, workspaceId);
   }
 
-  private async getUserTrend(startDate: Date, endDate: Date, workspaceId?: string): Promise<TimeSeriesDataPoint[]> {
-    const q = this.userRepository.createQueryBuilder('user')
+  private async getUserTrend(
+    startDate: Date,
+    endDate: Date,
+    workspaceId?: string,
+  ): Promise<TimeSeriesDataPoint[]> {
+    const q = this.userRepository
+      .createQueryBuilder('user')
       .select("TO_CHAR(user.createdAt, 'YYYY-MM-DD')", 'date')
       .addSelect('COUNT(user.id)', 'value')
-      .where('user.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate });
+      .where('user.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
 
     if (workspaceId) {
-      q.innerJoin(WorkspaceMemberEntity, 'wm', 'wm.userId = user.id')
-        .andWhere('wm.workspaceId = :workspaceId', { workspaceId });
+      q.innerJoin(WorkspaceMemberEntity, 'wm', 'wm.userId = user.id').andWhere(
+        'wm.workspaceId = :workspaceId',
+        { workspaceId },
+      );
     }
 
-    const trend = await q.groupBy("TO_CHAR(user.createdAt, 'YYYY-MM-DD')")
-      .orderBy("date", 'ASC').getRawMany();
+    const trend = await q
+      .groupBy("TO_CHAR(user.createdAt, 'YYYY-MM-DD')")
+      .orderBy('date', 'ASC')
+      .getRawMany();
     return this.fillMissingDates(trend, startDate, endDate);
   }
 
-  private async getBotTrend(startDate: Date, endDate: Date, workspaceId?: string): Promise<TimeSeriesDataPoint[]> {
-    const q = this.botRepository.createQueryBuilder('bot')
+  private async getBotTrend(
+    startDate: Date,
+    endDate: Date,
+    workspaceId?: string,
+  ): Promise<TimeSeriesDataPoint[]> {
+    const q = this.botRepository
+      .createQueryBuilder('bot')
       .select("TO_CHAR(bot.createdAt, 'YYYY-MM-DD')", 'date')
       .addSelect('COUNT(bot.id)', 'value')
-      .where('bot.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate });
+      .where('bot.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
 
     if (workspaceId) {
       q.andWhere('bot.workspaceId = :workspaceId', { workspaceId });
     }
 
-    const trend = await q.groupBy("TO_CHAR(bot.createdAt, 'YYYY-MM-DD')")
-      .orderBy("date", 'ASC').getRawMany();
+    const trend = await q
+      .groupBy("TO_CHAR(bot.createdAt, 'YYYY-MM-DD')")
+      .orderBy('date', 'ASC')
+      .getRawMany();
     return this.fillMissingDates(trend, startDate, endDate);
   }
 
-  private async getConversationTrend(startDate: Date, endDate: Date, workspaceId?: string): Promise<TimeSeriesDataPoint[]> {
-    const q = this.conversationRepository.createQueryBuilder('conversation')
+  private async getConversationTrend(
+    startDate: Date,
+    endDate: Date,
+    workspaceId?: string,
+  ): Promise<TimeSeriesDataPoint[]> {
+    const q = this.conversationRepository
+      .createQueryBuilder('conversation')
       .select("TO_CHAR(conversation.createdAt, 'YYYY-MM-DD')", 'date')
       .addSelect('COUNT(conversation.id)', 'value')
-      .where('conversation.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate });
+      .where('conversation.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
 
     if (workspaceId) {
-      q.leftJoin(BotEntity, 'bot', 'bot.id = conversation.botId')
-        .andWhere('bot.workspaceId = :workspaceId', { workspaceId });
+      q.leftJoin(BotEntity, 'bot', 'bot.id = conversation.botId').andWhere(
+        'bot.workspaceId = :workspaceId',
+        { workspaceId },
+      );
     }
 
-    const trend = await q.groupBy("TO_CHAR(conversation.createdAt, 'YYYY-MM-DD')")
-      .orderBy("date", 'ASC').getRawMany();
+    const trend = await q
+      .groupBy("TO_CHAR(conversation.createdAt, 'YYYY-MM-DD')")
+      .orderBy('date', 'ASC')
+      .getRawMany();
     return this.fillMissingDates(trend, startDate, endDate);
   }
 
-  private async getWorkspaceTrend(startDate: Date, endDate: Date, workspaceId?: string): Promise<TimeSeriesDataPoint[]> {
-    const q = this.workspaceRepository.createQueryBuilder('workspace')
+  private async getWorkspaceTrend(
+    startDate: Date,
+    endDate: Date,
+    workspaceId?: string,
+  ): Promise<TimeSeriesDataPoint[]> {
+    const q = this.workspaceRepository
+      .createQueryBuilder('workspace')
       .select("TO_CHAR(workspace.createdAt, 'YYYY-MM-DD')", 'date')
       .addSelect('COUNT(workspace.id)', 'value')
-      .where('workspace.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate });
+      .where('workspace.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
 
     if (workspaceId) {
       q.andWhere('workspace.id = :workspaceId', { workspaceId });
     }
 
-    const trend = await q.groupBy("TO_CHAR(workspace.createdAt, 'YYYY-MM-DD')")
-      .orderBy("date", 'ASC').getRawMany();
+    const trend = await q
+      .groupBy("TO_CHAR(workspace.createdAt, 'YYYY-MM-DD')")
+      .orderBy('date', 'ASC')
+      .getRawMany();
     return this.fillMissingDates(trend, startDate, endDate);
   }
 
-  private async getCreationToolTrend(startDate: Date, endDate: Date, workspaceId?: string): Promise<TimeSeriesDataPoint[]> {
-    const q = this.creationToolRepository.createQueryBuilder('tool')
+  private async getCreationToolTrend(
+    startDate: Date,
+    endDate: Date,
+    workspaceId?: string,
+  ): Promise<TimeSeriesDataPoint[]> {
+    const q = this.creationToolRepository
+      .createQueryBuilder('tool')
       .select("TO_CHAR(tool.createdAt, 'YYYY-MM-DD')", 'date')
       .addSelect('COUNT(tool.id)', 'value')
-      .where('tool.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate });
+      .where('tool.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
 
     if (workspaceId) {
       q.andWhere('tool.workspaceId = :workspaceId', { workspaceId });
     }
 
-    const trend = await q.groupBy("TO_CHAR(tool.createdAt, 'YYYY-MM-DD')")
-      .orderBy("date", 'ASC').getRawMany();
+    const trend = await q
+      .groupBy("TO_CHAR(tool.createdAt, 'YYYY-MM-DD')")
+      .orderBy('date', 'ASC')
+      .getRawMany();
     return this.fillMissingDates(trend, startDate, endDate);
   }
 
-  private async getJobTrend(startDate: Date, endDate: Date, workspaceId?: string): Promise<TimeSeriesDataPoint[]> {
-    const q = this.generationJobRepository.createQueryBuilder('job')
+  private async getJobTrend(
+    startDate: Date,
+    endDate: Date,
+    workspaceId?: string,
+  ): Promise<TimeSeriesDataPoint[]> {
+    const q = this.generationJobRepository
+      .createQueryBuilder('job')
       .select("TO_CHAR(job.createdAt, 'YYYY-MM-DD')", 'date')
       .addSelect('COUNT(job.id)', 'value')
-      .where('job.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate });
+      .where('job.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
 
     if (workspaceId) {
       q.andWhere('job.workspaceId = :workspaceId', { workspaceId });
     }
 
-    const trend = await q.groupBy("TO_CHAR(job.createdAt, 'YYYY-MM-DD')")
-      .orderBy("date", 'ASC').getRawMany();
+    const trend = await q
+      .groupBy("TO_CHAR(job.createdAt, 'YYYY-MM-DD')")
+      .orderBy('date', 'ASC')
+      .getRawMany();
     return this.fillMissingDates(trend, startDate, endDate);
   }
 
-  private fillMissingDates(trend: any[], startDate: Date, endDate: Date): TimeSeriesDataPoint[] {
+  private fillMissingDates(
+    trend: any[],
+    startDate: Date,
+    endDate: Date,
+  ): TimeSeriesDataPoint[] {
     const result: TimeSeriesDataPoint[] = [];
-    const trendMap = new Map(trend.map(item => [item.date, parseInt(item.value) || 0]));
+    const trendMap = new Map(
+      trend.map((item) => [item.date, parseInt(item.value) || 0]),
+    );
     const curr = new Date(startDate);
     while (curr <= endDate) {
       const dateStr = curr.toISOString().split('T')[0];
@@ -660,12 +738,19 @@ export class StatsService {
     return Number((((current - previous) / previous) * 100).toFixed(2));
   }
 
-  private getDateRange(query: StatsQueryDto): { startDate: Date; endDate: Date } {
+  private getDateRange(query: StatsQueryDto): {
+    startDate: Date;
+    endDate: Date;
+  } {
     const now = new Date();
     let startDate: Date;
     let endDate: Date = new Date(now);
 
-    if (query.period === TimePeriod.CUSTOM && query.startDate && query.endDate) {
+    if (
+      query.period === TimePeriod.CUSTOM &&
+      query.startDate &&
+      query.endDate
+    ) {
       startDate = new Date(query.startDate);
       endDate = new Date(query.endDate);
     } else {

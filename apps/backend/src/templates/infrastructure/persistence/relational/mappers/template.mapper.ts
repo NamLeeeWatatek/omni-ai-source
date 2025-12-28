@@ -1,6 +1,7 @@
 import { Template } from '../../../../domain/template';
 import { TemplateEntity } from '../entities/template.entity';
 import { CreationToolMapper } from '../../../../../creation-tools/infrastructure/persistence/relational/mappers/creation-tool.mapper';
+import { CategoryMapper } from '../../../../../categories/infrastructure/persistence/relational/mappers/category.mapper';
 
 export class TemplateMapper {
   static toDomain(raw: TemplateEntity): Template {
@@ -18,7 +19,9 @@ export class TemplateMapper {
     domainEntity.prompt = raw.prompt;
     domainEntity.mediaFiles = raw.mediaFiles;
     domainEntity.styleConfig = raw.styleConfig;
-    domainEntity.category = raw.category;
+    if (raw.category) {
+      domainEntity.category = CategoryMapper.toDomain(raw.category);
+    }
     domainEntity.isActive = raw.isActive;
     domainEntity.createdBy = raw.createdBy;
     domainEntity.workspaceId = raw.workspaceId;
@@ -50,7 +53,11 @@ export class TemplateMapper {
     persistenceEntity.prompt = domainEntity.prompt;
     persistenceEntity.mediaFiles = domainEntity.mediaFiles;
     persistenceEntity.styleConfig = domainEntity.styleConfig;
-    persistenceEntity.category = domainEntity.category;
+    if (domainEntity.category) {
+      persistenceEntity.category = CategoryMapper.toPersistence(
+        domainEntity.category,
+      );
+    }
     persistenceEntity.isActive = domainEntity.isActive ?? true;
     persistenceEntity.createdBy = domainEntity.createdBy;
     persistenceEntity.workspaceId = domainEntity.workspaceId;

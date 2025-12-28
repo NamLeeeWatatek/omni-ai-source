@@ -11,6 +11,7 @@ import { CreationTool } from '../../../../domain/creation-tool';
 import { CreationToolRepository } from '../../creation-tool.repository';
 import { CreationToolMapper } from '../mappers/creation-tool.mapper';
 import { IPaginationOptions } from '../../../../../utils/types/pagination-options';
+import { DeepPartial } from '../../../../../utils/types/deep-partial.type';
 
 @Injectable()
 export class CreationToolsRelationalRepository
@@ -21,8 +22,10 @@ export class CreationToolsRelationalRepository
     private readonly repository: Repository<CreationToolEntity>,
   ) {}
 
-  async create(data: CreationTool): Promise<CreationTool> {
-    const persistenceModel = CreationToolMapper.toPersistence(data);
+  async create(data: DeepPartial<CreationTool>): Promise<CreationTool> {
+    const persistenceModel = CreationToolMapper.toPersistence(
+      data as CreationTool,
+    );
     const newEntity = await this.repository.save(
       this.repository.create(persistenceModel),
     );
@@ -37,7 +40,7 @@ export class CreationToolsRelationalRepository
     filterOptions?: FilterCreationToolDto | null;
     sortOptions?: SortCreationToolDto[] | null;
     paginationOptions: IPaginationOptions;
-  }): Promise<CreationTool[]> {
+  }): Promise<[CreationTool[], number]> {
     const where: FindOptionsWhere<CreationToolEntity> = {};
 
     if (filterOptions?.isActive !== undefined) {
@@ -53,14 +56,14 @@ export class CreationToolsRelationalRepository
     }
 
     if (filterOptions?.category) {
-      where.category = filterOptions.category;
+      where.category = { slug: filterOptions.category };
     }
 
     if (filterOptions?.workspaceId) {
       where.workspaceId = filterOptions.workspaceId;
     }
 
-    const entities = await this.repository.find({
+    const [entities, count] = await this.repository.findAndCount({
       skip: (paginationOptions.page - 1) * paginationOptions.limit,
       take: paginationOptions.limit,
       where,
@@ -73,7 +76,10 @@ export class CreationToolsRelationalRepository
       ),
     });
 
-    return entities.map((entity) => CreationToolMapper.toDomain(entity));
+    return [
+      entities.map((entity) => CreationToolMapper.toDomain(entity)),
+      count,
+    ];
   }
 
   async findAll(filters?: {
@@ -126,7 +132,7 @@ export class CreationToolsRelationalRepository
       return null;
     }
 
-    const updatedEntity = await this.repository.save(
+    await this.repository.save(
       this.repository.create(
         CreationToolMapper.toPersistence({
           ...CreationToolMapper.toDomain(entity),
@@ -135,7 +141,11 @@ export class CreationToolsRelationalRepository
       ),
     );
 
-    return CreationToolMapper.toDomain(updatedEntity);
+    const updatedEntity = await this.repository.findOne({
+      where: { id: entity.id },
+    });
+
+    return updatedEntity ? CreationToolMapper.toDomain(updatedEntity) : null;
   }
 
   async remove(id: CreationTool['id']): Promise<void> {

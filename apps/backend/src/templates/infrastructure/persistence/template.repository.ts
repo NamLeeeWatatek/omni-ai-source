@@ -9,9 +9,7 @@ import {
 } from '../../dto/query-template.dto';
 
 export abstract class TemplateRepository {
-  abstract create(
-    data: Omit<Template, 'id' | 'createdAt' | 'deletedAt' | 'updatedAt'>,
-  ): Promise<Template>;
+  abstract create(data: DeepPartial<Template>): Promise<Template>;
 
   abstract findManyWithPagination({
     filterOptions,
@@ -21,7 +19,7 @@ export abstract class TemplateRepository {
     filterOptions?: FilterTemplateDto | null;
     sortOptions?: SortTemplateDto[] | null;
     paginationOptions: IPaginationOptions;
-  }): Promise<Template[]>;
+  }): Promise<[Template[], number]>;
 
   abstract findById(id: Template['id']): Promise<NullableType<Template>>;
   abstract findByIds(ids: Template['id'][]): Promise<Template[]>;

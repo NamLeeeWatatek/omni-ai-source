@@ -34,4 +34,4 @@ import { AuthEventListener } from './listeners/auth.listener';
   ],
   exports: [AuthService, TokenRefreshService],
 })
-export class AuthModule { }
+export class AuthModule {}

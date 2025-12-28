@@ -39,9 +39,13 @@ import { KBFoldersService } from './services/kb-folders.service';
 import { KBDocumentsService } from './services/kb-documents.service';
 import { CurrentWorkspace } from '../workspaces/decorators/current-workspace.decorator';
 
+import { WorkspaceAccessGuard } from '../workspaces/guards/workspace-access.guard';
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { Permissions } from '../permissions/decorators/permissions.decorator';
+
 @ApiTags('Knowledge Base')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), WorkspaceAccessGuard, PermissionsGuard)
 @Controller({ path: 'knowledge-bases', version: '1' })
 export class KnowledgeBaseController {
   constructor(
@@ -50,8 +54,9 @@ export class KnowledgeBaseController {
     private readonly kbRagService: KBRagService,
     private readonly foldersService: KBFoldersService,
     private readonly documentsService: KBDocumentsService,
-  ) {}
+  ) { }
 
+  @Permissions('kb:List')
   @Get()
   @ApiOperation({ summary: 'Get all knowledge bases' })
   @ApiOkResponse({
@@ -81,6 +86,7 @@ export class KnowledgeBaseController {
     return infinityPagination(data, { page, limit }, total);
   }
 
+  @Permissions('kb:Create')
   @Post()
   @ApiOperation({ summary: 'Create knowledge base' })
   async create(
@@ -96,6 +102,7 @@ export class KnowledgeBaseController {
     });
   }
 
+  @Permissions('kb:Get')
   @Get(':id')
   @ApiOperation({ summary: 'Get knowledge base by ID' })
   async getOne(@Param('id') id: string, @Request() req) {
@@ -103,6 +110,7 @@ export class KnowledgeBaseController {
     return this.kbService.findOne(id, userId);
   }
 
+  @Permissions('kb:Update')
   @Patch(':id')
   @ApiOperation({ summary: 'Update knowledge base' })
   async update(
@@ -114,6 +122,7 @@ export class KnowledgeBaseController {
     return this.kbService.update(id, userId, updateDto);
   }
 
+  @Permissions('kb:Delete')
   @Delete(':id')
   @ApiOperation({ summary: 'Delete knowledge base' })
   async remove(@Param('id') id: string, @Request() req) {
@@ -121,6 +130,7 @@ export class KnowledgeBaseController {
     return this.kbService.remove(id, userId);
   }
 
+  @Permissions('kb:Delete')
   @Post('batch/delete')
   @ApiOperation({ summary: 'Batch delete folders and documents' })
   async batchDelete(@Request() req, @Body() body: BatchDeleteDto) {
@@ -164,6 +174,7 @@ export class KnowledgeBaseController {
     return results;
   }
 
+  @Permissions('kb:Update')
   @Post('batch/move')
   @ApiOperation({ summary: 'Batch move folders and documents' })
   async batchMove(@Request() req, @Body() body: BatchMoveDto) {
@@ -212,6 +223,7 @@ export class KnowledgeBaseController {
     return results;
   }
 
+  @Permissions('kb:Get')
   @Get(':id/stats')
   @ApiOperation({ summary: 'Get knowledge base statistics' })
   async getStats(@Param('id') id: string, @Request() req) {
@@ -219,6 +231,7 @@ export class KnowledgeBaseController {
     return this.kbService.getStats(id, userId);
   }
 
+  @Permissions('kb:Update')
   @Post(':id/agents')
   @ApiOperation({ summary: 'Assign agent to knowledge base' })
   async assignAgent(
@@ -230,6 +243,7 @@ export class KnowledgeBaseController {
     return this.kbService.assignAgent(id, userId, assignDto);
   }
 
+  @Permissions('kb:Update')
   @Delete(':id/agents/:agentId')
   @ApiOperation({ summary: 'Unassign agent from knowledge base' })
   async unassignAgent(
@@ -241,6 +255,7 @@ export class KnowledgeBaseController {
     return this.kbService.unassignAgent(id, userId, agentId);
   }
 
+  @Permissions('kb:Get')
   @Get(':id/agents')
   @ApiOperation({ summary: 'Get agent assignments' })
   async getAgentAssignments(@Param('id') id: string, @Request() req) {
@@ -297,6 +312,7 @@ export class KnowledgeBaseController {
     }
   }
 
+  @Permissions('kb:Chat')
   @Post('chat')
   @ApiOperation({ summary: 'Chat with knowledge base using RAG' })
   async chatWithKnowledgeBase(

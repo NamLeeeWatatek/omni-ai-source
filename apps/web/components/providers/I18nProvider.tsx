@@ -1,17 +1,27 @@
 'use client'
 
-import { ReactNode, useEffect } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 import '../../lib/i18n/i18n'
+import { LoadingLogo } from '../ui/LoadingLogo'
 
 interface I18nProviderProps {
   children: ReactNode
 }
 
 export function I18nProvider({ children }: I18nProviderProps) {
+  const [mounted, setMounted] = useState(false)
+
   useEffect(() => {
-    // I18n is already initialized by importing the i18n file above
-    // This ensures it only runs on the client side
+    setMounted(true)
   }, [])
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <LoadingLogo size="lg" />
+      </div>
+    )
+  }
 
   return <>{children}</>
 }

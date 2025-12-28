@@ -1,6 +1,7 @@
 ﻿import { PartialType, ApiPropertyOptional } from '@nestjs/swagger';
 import { CreateWorkspaceDto } from './create-workspace.dto';
 import { IsOptional, IsString, IsEnum, Matches } from 'class-validator';
+import { WorkspaceRole } from '../enums/workspace-role.enum';
 
 export class UpdateWorkspaceDto extends PartialType(CreateWorkspaceDto) {
   @ApiPropertyOptional({ example: 'My Workspace' })
@@ -32,14 +33,13 @@ export class AddMemberDto {
   @IsString()
   userId: string;
 
-  @ApiPropertyOptional({ enum: ['admin', 'member'], default: 'member' })
   @IsOptional()
-  @IsEnum(['admin', 'member'])
-  role?: 'admin' | 'member';
+  @IsEnum([WorkspaceRole.ADMIN, WorkspaceRole.MEMBER, WorkspaceRole.VIEWER])
+  role?: WorkspaceRole.ADMIN | WorkspaceRole.MEMBER | WorkspaceRole.VIEWER;
 }
 
 export class UpdateMemberRoleDto {
-  @ApiPropertyOptional({ enum: ['admin', 'member'] })
-  @IsEnum(['admin', 'member'])
-  role: 'admin' | 'member';
+  @ApiPropertyOptional({ enum: [WorkspaceRole.ADMIN, WorkspaceRole.MEMBER, WorkspaceRole.VIEWER] })
+  @IsEnum([WorkspaceRole.ADMIN, WorkspaceRole.MEMBER, WorkspaceRole.VIEWER])
+  role: WorkspaceRole.ADMIN | WorkspaceRole.MEMBER | WorkspaceRole.VIEWER;
 }

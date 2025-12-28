@@ -7,10 +7,19 @@ import { RoleEntity } from '../roles/infrastructure/persistence/relational/entit
 import { PermissionEntity } from './infrastructure/persistence/relational/entities/permission.entity';
 import { WorkspaceMemberEntity } from '../workspaces/infrastructure/persistence/relational/entities/workspace.entity';
 
+import { PermissionsGuard } from './guards/permissions.guard';
+
 @Module({
-  imports: [TypeOrmModule.forFeature([UserEntity, RoleEntity, PermissionEntity, WorkspaceMemberEntity])],
+  imports: [
+    TypeOrmModule.forFeature([
+      UserEntity,
+      RoleEntity,
+      PermissionEntity,
+      WorkspaceMemberEntity,
+    ]),
+  ],
   controllers: [PermissionsController],
-  providers: [PermissionsService],
-  exports: [PermissionsService],
+  providers: [PermissionsService, PermissionsGuard],
+  exports: [PermissionsService, PermissionsGuard],
 })
 export class PermissionsModule { }

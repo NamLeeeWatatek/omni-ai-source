@@ -9,6 +9,7 @@ import {
   getWorkspaceRoleId,
   getWorkspaceRoleFromEntity,
 } from './utils/workspace-role.helper';
+import { WorkspaceRole } from './enums/workspace-role.enum';
 
 @Injectable()
 export class WorkspaceHelperService {
@@ -17,7 +18,7 @@ export class WorkspaceHelperService {
     private workspaceRepository: Repository<WorkspaceEntity>,
     @InjectRepository(WorkspaceMemberEntity)
     private memberRepository: Repository<WorkspaceMemberEntity>,
-  ) {}
+  ) { }
 
   async getUserDefaultWorkspace(userId: string) {
     const membership = await this.memberRepository.findOne({
@@ -66,7 +67,7 @@ export class WorkspaceHelperService {
     await this.memberRepository.save({
       workspaceId: saved.id,
       userId,
-      roleId: getWorkspaceRoleId('owner'),
+      roleId: getWorkspaceRoleId(WorkspaceRole.OWNER),
     });
 
     return saved;
@@ -85,7 +86,7 @@ export class WorkspaceHelperService {
   async getUserRoleInWorkspace(
     userId: string,
     workspaceId: string,
-  ): Promise<'owner' | 'admin' | 'member' | null> {
+  ): Promise<WorkspaceRole | null> {
     const member = await this.memberRepository.findOne({
       where: { userId, workspaceId },
       relations: ['role'],

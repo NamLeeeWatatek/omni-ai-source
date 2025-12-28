@@ -18,12 +18,14 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { WidgetVersionService } from '../services/widget-version.service';
 import { WidgetDeploymentResponseDto } from '../dto/widget-version.dto';
 
-@ApiTags('Widget Deployments')
-@Controller({ path: 'bots/:botId/widget/deployments', version: '1' })
-@UseGuards(JwtAuthGuard)
+import { WorkspaceAccessGuard } from '../../workspaces/guards/workspace-access.guard';
+
+@ApiTags('Widget Deployment')
 @ApiBearerAuth()
+@UseGuards(JwtAuthGuard, WorkspaceAccessGuard)
+@Controller({ path: 'bots/:id/widget/deployment', version: '1' })
 export class WidgetDeploymentController {
-  constructor(private readonly widgetVersionService: WidgetVersionService) {}
+  constructor(private readonly widgetVersionService: WidgetVersionService) { }
 
   @Get()
   @HttpCode(HttpStatus.OK)

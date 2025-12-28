@@ -5,6 +5,7 @@ import { EntityDocumentHelper } from '../../../../../utils/document-entity-helpe
 export type FileSchemaDocument = HydratedDocument<FileSchemaClass>;
 
 @Schema({
+  timestamps: true,
   toJSON: {
     virtuals: true,
     getters: true,
@@ -16,6 +17,9 @@ export class FileSchemaClass extends EntityDocumentHelper {
 
   @Prop({ default: 'images' })
   bucket: string;
+
+  @Prop({ default: true })
+  isTemp: boolean;
 }
 
 export const FileSchema = SchemaFactory.createForClass(FileSchemaClass);

@@ -32,8 +32,10 @@ import {
     Search,
     Settings,
     UserPlus,
-    Activity
+    Activity,
+    Globe
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { AlertBanner } from '@/components/ui/AlertBanner';
 import { AlertDialogConfirm } from '@/components/ui/AlertDialogConfirm';
 import { AssignBotDialog } from '@/components/features/channels/AssignBotDialog';
@@ -264,29 +266,14 @@ export default function ChannelsPageRefactored() {
     };
 
     return (
-        <div className="h-full space-y-8 animate-in fade-in duration-700">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                        Channels & Integrations
-                    </h1>
-                    <p className="text-sm font-medium text-muted-foreground mt-1 max-w-lg">
-                        Connect and orchestrate your communication channels with centralized AI control.
-                    </p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <Button
-                        variant="outline"
-                        rounded="xl"
-                        onClick={loadData}
-                        loading={isLoading}
-                        className="glass shadow-lg border-white/5"
-                    >
-                        <RefreshCw className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")} />
-                        Refresh
-                    </Button>
-                </div>
-            </div>
+        <div className="space-y-6 animate-in fade-in duration-700">
+            <PageHeader
+                title="Channels & Integrations"
+                description="Connect and orchestrate your communication channels with centralized AI control."
+                onRefresh={loadData}
+                refreshing={isLoading}
+                className="px-1"
+            />
 
             <Tabs value={activeTab} onValueChange={(value) => dispatch(setActiveTab(value as 'connected' | 'configurations'))} className="w-full">
                 <TabsList className="grid w-full grid-cols-2 p-1 bg-muted/20 backdrop-blur-md rounded-xl border border-white/5 mb-8">

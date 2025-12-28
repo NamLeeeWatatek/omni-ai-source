@@ -52,7 +52,7 @@ i18n
     },
 
     // Debugging (enable in development)
-    debug: process.env.NODE_ENV === 'development',
+    debug: false,
 
     // Interpolation
     interpolation: {

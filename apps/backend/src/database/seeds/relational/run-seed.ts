@@ -1,4 +1,5 @@
-﻿import { NestFactory } from '@nestjs/core';
+﻿import 'dotenv/config';
+import { NestFactory } from '@nestjs/core';
 import { RoleSeedService } from './role/role-seed.service';
 import { StatusSeedService } from './status/status-seed.service';
 import { UserSeedService } from './user/user-seed.service';
@@ -10,6 +11,7 @@ import { BotSeedService } from './bot/bot-seed.service';
 import { ConversationSeedService } from './conversation/conversation-seed.service';
 import { TemplatesSeedService } from './templates/templates-seed.service';
 import { CreationToolsSeederService } from './creation-tools/creation-tools-seed.service';
+import { CategoriesSeedService } from './categories/categories-seed.service';
 import { SeedModule } from './seed.module';
 
 const runSeed = async () => {
@@ -35,6 +37,7 @@ const runSeed = async () => {
   // await app.get(FlowSeedService).run();
 
   // Seed Creation Tools before Templates (templates reference creation tools)
+  await app.get(CategoriesSeedService).run();
   await app.get(CreationToolsSeederService).run();
 
   await app.get(TemplatesSeedService).run();

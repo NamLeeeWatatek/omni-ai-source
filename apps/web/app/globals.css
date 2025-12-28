@@ -181,7 +181,7 @@
 
   /* Layout Standards */
   .page-container {
-    @apply container mx-auto p-6 max-w-[1600px] animate-in fade-in-5 slide-in-from-bottom-2 duration-500;
+    @apply container mx-auto px-4 md:px-8 py-6 max-w-[1800px] animate-in fade-in-5 slide-in-from-bottom-2 duration-500;
   }
 
   .page-container-full {

@@ -16,7 +16,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/RadioGroup';
 import { Slider } from '@/components/ui/Slider';
 import { Checkbox } from '@/components/ui/Checkbox';
-import { Loader2, ArrowLeft, Sparkles, Check, Plus, Filter, LayoutGrid, Settings, Facebook, Instagram, Share2, Globe, FileText, X } from 'lucide-react';
+import { Loader2, ArrowLeft, Sparkles, Check, Search, Plus, Filter, LayoutGrid, Settings, Facebook, Instagram, Share2, Globe, FileText, X } from 'lucide-react';
 import { useToast } from '@/lib/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
@@ -25,6 +25,7 @@ import { creationJobsApi } from '@/lib/api/creation-jobs';
 import { Progress } from '@/components/ui/Progress';
 import { wsService } from '@/lib/services/websocket-service';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { useDebounce } from '@/lib/hooks/useDebounce';
 
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
@@ -57,6 +58,11 @@ export default function CreationToolDetailPage() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [categories, setCategories] = useState<string[]>([]);
+
+    // Debounce search query to 500ms
+    const debouncedSearch = useDebounce(searchQuery, 500);
 
     // Initialize React Hook Form
     const form = useForm<z.infer<any>>({
@@ -69,6 +75,39 @@ export default function CreationToolDetailPage() {
         }
     }, [params.slug]);
 
+    // Handle Search and Filter via SERVER-SIDE API
+    useEffect(() => {
+        const fetchTemplates = async () => {
+            if (!tool?.id) return;
+
+            try {
+                // Construct filter object
+                const filters: any = {
+                    creationToolId: tool.id
+                };
+
+                if (debouncedSearch && debouncedSearch.trim() !== '') {
+                    filters.name = debouncedSearch.trim();
+                }
+
+                if (selectedCategory && selectedCategory !== 'all') {
+                    filters.category = selectedCategory;
+                }
+
+                // Call API
+                const result = await templatesApi.findAll({
+                    filters: JSON.stringify(filters),
+                    limit: 100
+                });
+
+                setTemplates(result.data);
+            } catch (error) {
+                console.error("Failed to search templates", error);
+            }
+        };
+        fetchTemplates();
+    }, [debouncedSearch, selectedCategory, tool?.id]);
+
     const loadTool = async (slug: string) => {
         try {
             const toolData = await creationToolsApi.getBySlug(slug);
@@ -79,12 +118,10 @@ export default function CreationToolDetailPage() {
             const zodShape: Record<string, any> = {};
 
             toolData.formConfig.fields.forEach((field) => {
-                // Set Defaults
                 if (field.defaultValue !== undefined) {
                     defaults[field.name] = field.defaultValue;
                 }
 
-                // Build Zod Schema dynamically
                 let schema: any;
 
                 if (field.type === 'number') {
@@ -99,7 +136,6 @@ export default function CreationToolDetailPage() {
                 } else if (field.type === 'file') {
                     schema = z.any().refine((val) => val && val.url, "File is required");
                 } else {
-                    // Text, Textarea, Select, Radio
                     schema = z.string();
                     if (field.validation?.minLength) schema = schema.min(field.validation.minLength, `Minimum ${field.validation.minLength} characters`);
                     if (field.validation?.maxLength) schema = schema.max(field.validation.maxLength, `Maximum ${field.validation.maxLength} characters`);
@@ -109,7 +145,6 @@ export default function CreationToolDetailPage() {
                 if (!field.validation?.required && field.type !== 'checkbox') {
                     schema = schema.optional().or(z.literal(''));
                 } else if (field.validation?.required) {
-                    // Add generic required message if not covered
                     if (field.type === 'text' || field.type === 'textarea') {
                         schema = schema.min(1, "This field is required");
                     }
@@ -122,20 +157,20 @@ export default function CreationToolDetailPage() {
                 }
             });
 
-            // Reset form with new schema and defaults
             const dynamicSchema = z.object(zodShape);
             form.reset(defaults);
-            // Ideally we would set resolver here, but RHF resolver is set at hook init.
-            // Works if we re-render or use a key, but for dynamic schemas commonly checking inside generic submit 
-            // or just using loose validation until better solution.
-            // For now, we manually enforce the schema check on submit if needed, OR just use standard validation.
-            // Actually, we can't easily swap resolvers on the fly without re-init.
-            // Simplified approach: We'll rely on HTML5/Zod manual check or accept basic string validation for now
-            // UPDATE: To do this properly, we should use a Resolver Generator or just standard RHF rules.
-            // Let's stick to standard RHF 'rules' prop in Controller for simplicity since schema is dynamic.
 
             const templatesData = await templatesApi.findByCreationTool(toolData.id);
             setTemplates(templatesData);
+
+            // Extract categories
+            const distinctCategories = ['all', ...Array.from(new Set(templatesData.map((t: any) => {
+                if (t.category && typeof t.category === 'object') {
+                    return t.category.slug || t.category.name || 'other';
+                }
+                return t.category || 'other';
+            })))];
+            setCategories(distinctCategories as string[]);
 
             if (requiresChannels) {
                 try {
@@ -191,11 +226,6 @@ export default function CreationToolDetailPage() {
             };
 
             addJob(newJob);
-
-            toast({
-                title: 'Job Started',
-                description: 'Your creation job is running in the background.',
-            });
         } catch (error) {
             console.error('Job submission error:', error);
             toast({
@@ -208,11 +238,8 @@ export default function CreationToolDetailPage() {
         }
     };
 
-    const categories = ['all', ...Array.from(new Set(templates.map((t) => t.category || 'other')))];
-
-    const filteredTemplates = templates.filter((t) =>
-        selectedCategory === 'all' ? true : (t.category || 'other') === selectedCategory
-    );
+    // We use the 'templates' state which is now filtered via API
+    const filteredTemplates = templates;
 
     const shouldShowField = (field: FormField): boolean => {
         if (!field.showIf) return true;
@@ -489,7 +516,7 @@ export default function CreationToolDetailPage() {
 
                         {/* LEFT: Templates Area (7 cols ~ 58%) */}
                         <Card variant="glass" rounded="xl" className="lg:col-span-7 flex flex-col h-full overflow-hidden border-border/40">
-                            <div className="px-6 py-5 border-b flex-none flex items-center justify-between">
+                            <div className="px-6 py-5 border-b flex-none flex flex-col gap-4">
                                 <div className="flex items-center gap-4">
                                     <Button
                                         variant="outline"
@@ -506,25 +533,48 @@ export default function CreationToolDetailPage() {
                                     </div>
                                 </div>
 
-                                {/* Compact Category Filters */}
-                                <div className="hidden sm:flex flex-wrap gap-1.5">
-                                    {categories.slice(0, 3).map((cat) => (
+                                <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+                                    <div className="relative w-full sm:max-w-[240px]">
+                                        <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
+                                        <Input
+                                            placeholder="Search templates..."
+                                            className="pl-9 h-9 border-border/60 bg-muted/20"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                        />
+                                    </div>
+
+                                    {/* Compact Category Filters */}
+                                    <div className="hidden sm:flex flex-wrap gap-1.5 flex-1 justify-end">
                                         <button
-                                            key={cat}
-                                            onClick={() => setSelectedCategory(cat)}
+                                            onClick={() => setSelectedCategory('all')}
                                             className={cn(
                                                 "px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider font-bold transition-all border",
-                                                selectedCategory === cat
+                                                selectedCategory === 'all'
                                                     ? "bg-primary text-primary-foreground border-primary"
                                                     : "bg-background hover:bg-accent border-border text-muted-foreground"
                                             )}
                                         >
-                                            {cat.replace('-', ' ')}
+                                            ALL
                                         </button>
-                                    ))}
-                                    {categories.length > 3 && (
-                                        <Badge variant="outline" className="text-[10px] px-2">+{categories.length - 3}</Badge>
-                                    )}
+                                        {categories.filter(c => c !== 'all').slice(0, 3).map((cat) => (
+                                            <button
+                                                key={cat}
+                                                onClick={() => setSelectedCategory(cat)}
+                                                className={cn(
+                                                    "px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider font-bold transition-all border",
+                                                    selectedCategory === cat
+                                                        ? "bg-primary text-primary-foreground border-primary"
+                                                        : "bg-background hover:bg-accent border-border text-muted-foreground"
+                                                )}
+                                            >
+                                                {cat.replace('-', ' ')}
+                                            </button>
+                                        ))}
+                                        {categories.length > 4 && (
+                                            <Badge variant="outline" className="text-[10px] px-2">+{categories.length - 4}</Badge>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             {/* Full Categories View for mobile or overflow */}
@@ -542,7 +592,7 @@ export default function CreationToolDetailPage() {
                                                         : "bg-background border-border text-muted-foreground"
                                                 )}
                                             >
-                                                {cat}
+                                                {cat === 'all' ? 'ALL' : cat.replace('-', ' ')}
                                             </button>
                                         ))}
                                     </div>
@@ -550,58 +600,67 @@ export default function CreationToolDetailPage() {
                             </div>
 
                             <ScrollArea className="flex-1 p-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
-                                    {filteredTemplates.map((template) => (
-                                        <div
-                                            key={template.id}
-                                            onClick={() => handleTemplateSelect(template)}
-                                            className={cn(
-                                                "group relative aspect-video rounded-2xl overflow-hidden cursor-pointer border-2 transition-all duration-500 ease-out",
-                                                selectedTemplate?.id === template.id
-                                                    ? "border-primary ring-4 ring-primary/10 shadow-2xl scale-[0.98]"
-                                                    : "border-transparent bg-muted/20 hover:border-primary/30 hover:shadow-xl hover:-translate-y-1 hover:scale-[1.01]"
-                                            )}
-                                        >
-                                            {/* Thumbnail */}
-                                            <div className="absolute inset-0 bg-secondary/10">
-                                                {template.thumbnailUrl ? (
-                                                    <img
-                                                        src={template.thumbnailUrl}
-                                                        alt={template.name}
-                                                        className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-                                                    />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center bg-muted/10 group-hover:bg-muted/20 transition-colors">
-                                                        <Sparkles className="w-12 h-12 text-muted-foreground/20 group-hover:text-primary/40 transition-colors duration-500" />
-                                                    </div>
-                                                )}
-                                                {/* Glass overlay on non-hover to brighten, fades out on hover */}
-                                                <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                            </div>
-
-                                            {/* Labels overlay - Smoother gradient */}
-                                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-12 pb-5 px-5 flex flex-col justify-end opacity-90 group-hover:opacity-100 transition-opacity">
-                                                <h3 className="text-white font-bold text-lg leading-tight tracking-tight drop-shadow-sm group-hover:text-primary-foreground transition-colors">
-                                                    {template.name}
-                                                </h3>
-                                                {template.category && (
-                                                    <div className="flex items-center gap-2 mt-1.5">
-                                                        <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-none backdrop-blur-md text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 h-auto">
-                                                            {template.category}
-                                                        </Badge>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Active Checkmark - enhanced animation */}
-                                            {selectedTemplate?.id === template.id && (
-                                                <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/40 animate-in zoom-in spin-in-90 duration-300 z-10">
-                                                    <Check className="w-5 h-5 text-primary-foreground stroke-[3]" />
-                                                </div>
-                                            )}
+                                {filteredTemplates.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-12 text-center opacity-60">
+                                        <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                                            <Search className="w-8 h-8 text-muted-foreground" />
                                         </div>
-                                    ))}
-                                </div>
+                                        <h3 className="font-semibold text-lg">No templates found</h3>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
+                                        {filteredTemplates.map((template) => (
+                                            <div
+                                                key={template.id}
+                                                onClick={() => handleTemplateSelect(template)}
+                                                className={cn(
+                                                    "group relative aspect-video rounded-2xl overflow-hidden cursor-pointer border-2 transition-all duration-500 ease-out",
+                                                    selectedTemplate?.id === template.id
+                                                        ? "border-primary ring-4 ring-primary/10 shadow-2xl scale-[0.98]"
+                                                        : "border-transparent bg-muted/20 hover:border-primary/30 hover:shadow-xl hover:-translate-y-1 hover:scale-[1.01]"
+                                                )}
+                                            >
+                                                {/* Thumbnail */}
+                                                <div className="absolute inset-0 bg-secondary/10">
+                                                    {template.thumbnailUrl ? (
+                                                        <img
+                                                            src={template.thumbnailUrl}
+                                                            alt={template.name}
+                                                            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center bg-muted/10 group-hover:bg-muted/20 transition-colors">
+                                                            <Sparkles className="w-12 h-12 text-muted-foreground/20 group-hover:text-primary/40 transition-colors duration-500" />
+                                                        </div>
+                                                    )}
+                                                    {/* Glass overlay on non-hover to brighten, fades out on hover */}
+                                                    <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                                </div>
+
+                                                {/* Labels overlay - Smoother gradient */}
+                                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-12 pb-5 px-5 flex flex-col justify-end opacity-90 group-hover:opacity-100 transition-opacity">
+                                                    <h3 className="text-white font-bold text-lg leading-tight tracking-tight drop-shadow-sm group-hover:text-primary-foreground transition-colors">
+                                                        {template.name}
+                                                    </h3>
+                                                    {template.category && (
+                                                        <div className="flex items-center gap-2 mt-1.5">
+                                                            <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-none backdrop-blur-md text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 h-auto">
+                                                                {typeof template.category === 'object' ? (template.category as any).name || (template.category as any).slug : template.category}
+                                                            </Badge>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Active Checkmark - enhanced animation */}
+                                                {selectedTemplate?.id === template.id && (
+                                                    <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/40 animate-in zoom-in spin-in-90 duration-300 z-10">
+                                                        <Check className="w-5 h-5 text-primary-foreground stroke-[3]" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </ScrollArea>
                         </Card>
 

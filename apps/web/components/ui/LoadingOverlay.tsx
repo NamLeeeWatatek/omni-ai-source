@@ -62,20 +62,4 @@ export function LoadingOverlay({
     )
 }
 
-/**
- * Full screen overlay without glassmorphism
- * Used for initial page loads or app bootstrapping
- */
-export function LoadingFullscreen({ message }: { message?: string | null }) {
-    return (
-        <div className={cn(
-            'fixed inset-0 z-50 bg-background flex items-center justify-center',
-            'animate-in fade-in duration-500'
-        )}>
-            <div className="flex flex-col items-center gap-6">
-                <LoadingLogo size="xl" text={message || 'Loading'} />
-            </div>
-        </div>
-    )
-}
 

@@ -28,6 +28,7 @@ import { Session } from '../session/domain/session';
 import { SessionService } from '../session/session.service';
 import { User } from '../users/domain/user';
 import { WorkspaceHelperService } from '../workspaces/workspace-helper.service';
+import { WorkspaceInvitationsService } from '../workspaces/workspace-invitations.service';
 
 @Injectable()
 export class AuthService {
@@ -39,7 +40,8 @@ export class AuthService {
     private configService: ConfigService<AllConfigType>,
     private workspaceHelper: WorkspaceHelperService,
     private eventEmitter: EventEmitter2,
-  ) { }
+    private workspaceInvitationsService: WorkspaceInvitationsService,
+  ) {}
 
   async validateLogin(loginDto: AuthEmailLoginDto): Promise<LoginResponseDto> {
     const user = await this.usersService.findByEmail(loginDto.email);
@@ -97,6 +99,14 @@ export class AuthService {
       user,
       hash,
     });
+
+    // Check for pending invitations and join workspaces BEFORE ensuring workspace
+    if (user.email) {
+      await this.workspaceInvitationsService.acceptPendingInvitations(
+        user.email,
+        user.id,
+      );
+    }
 
     const workspace = await this.workspaceHelper.ensureUserHasWorkspace(
       user.id,
@@ -184,6 +194,14 @@ export class AuthService {
       hash,
     });
 
+    // Check for pending invitations
+    if (user.email) {
+      await this.workspaceInvitationsService.acceptPendingInvitations(
+        user.email,
+        user.id,
+      );
+    }
+
     const workspace = await this.workspaceHelper.ensureUserHasWorkspace(
       user.id,
       user.name || undefined,
@@ -235,7 +253,9 @@ export class AuthService {
       },
     );
 
-    console.log(`[AuthService] User registered, emitting event for email verification: ${dto.email}`);
+    console.log(
+      `[AuthService] User registered, emitting event for email verification: ${dto.email}`,
+    );
     this.eventEmitter.emit('user.registered', {
       email: dto.email,
       hash,
@@ -352,7 +372,9 @@ export class AuthService {
       },
     );
 
-    console.log(`[AuthService] Password recovery requested, emitting event: ${email}`);
+    console.log(
+      `[AuthService] Password recovery requested, emitting event: ${email}`,
+    );
     this.eventEmitter.emit('user.forgotPassword', {
       email,
       hash,

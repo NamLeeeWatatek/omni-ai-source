@@ -34,6 +34,8 @@ import { ConversationsModule } from '../conversations/conversations.module';
 import { BotEventListener } from './listeners/bot-event.listener';
 import { BotExecutionEventService } from './listeners/bot-execution-event.service';
 import { MessageBufferService } from './services/message-buffer.service';
+import { BotAppearanceService } from './services/bot-appearance.service';
+import { PermissionsModule } from '../permissions/permissions.module';
 
 import { WidgetAppearanceController } from './controllers/widget-appearance.controller';
 
@@ -50,11 +52,12 @@ import { WidgetAppearanceController } from './controllers/widget-appearance.cont
       MessageEntity,
       ChannelEntity,
     ]),
-    WorkspacesModule,
+    forwardRef(() => WorkspacesModule),
     forwardRef(() => AiProvidersModule),
     forwardRef(() => KnowledgeBaseModule),
     forwardRef(() => ConversationsModule),
     MessagingModule,
+    PermissionsModule,
   ],
   controllers: [
     BotsController,
@@ -77,6 +80,7 @@ import { WidgetAppearanceController } from './controllers/widget-appearance.cont
     BotEventListener,
     BotExecutionEventService,
     MessageBufferService,
+    BotAppearanceService,
   ],
   exports: [
     BotsService,
@@ -87,6 +91,7 @@ import { WidgetAppearanceController } from './controllers/widget-appearance.cont
     BotInteractionService,
     BotExecutionEventService,
     MessageBufferService,
+    BotAppearanceService,
   ],
 })
-export class BotsModule {}
+export class BotsModule { }

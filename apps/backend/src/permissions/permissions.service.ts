@@ -1,6 +1,6 @@
 ﻿import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { User } from '../users/domain/user';
 import { UserEntity } from '../users/infrastructure/persistence/relational/entities/user.entity';
 import { RoleEntity } from '../roles/infrastructure/persistence/relational/entities/role.entity';
@@ -22,12 +22,22 @@ export class PermissionsService {
     private readonly workspaceMemberRepository: Repository<WorkspaceMemberEntity>,
   ) { }
 
-  async findAll() {
+  async findAll(search?: string) {
+    let where: any = {};
+    if (search) {
+      where = [
+        { resource: Like(`%${search}%`) },
+        { action: Like(`%${search}%`) },
+        { description: Like(`%${search}%`) },
+      ];
+    }
+
     return this.permissionRepository.find({
+      where,
       order: {
         resource: 'ASC',
-        action: 'ASC'
-      }
+        action: 'ASC',
+      },
     });
   }
 
@@ -40,7 +50,10 @@ export class PermissionsService {
     await this.permissionRepository.delete(id);
   }
 
-  async getUserCapabilities(user: User, workspaceId?: string): Promise<UserCapabilitiesDto> {
+  async getUserCapabilities(
+    user: User,
+    workspaceId?: string,
+  ): Promise<UserCapabilitiesDto> {
     const userWithPermissions = await this.userRepository.findOne({
       where: { id: user.id },
       relations: ['role', 'role.permissions'],
@@ -53,8 +66,10 @@ export class PermissionsService {
     // Level 1: System Admin Check
     // If the user has a System Global Role of 'Admin' (or equivalent permission '*'), they have full access everywhere.
     const systemRole = userWithPermissions.role;
-    const systemPermissions = systemRole?.permissions?.map(p => `${p.resource}:${p.action}`) || [];
-    const isSystemAdmin = systemRole?.name === 'Admin' || systemPermissions.includes('*');
+    const systemPermissions =
+      systemRole?.permissions?.map((p) => `${p.resource}:${p.action}`) || [];
+    const isSystemAdmin =
+      systemRole?.name === 'Admin' || systemPermissions.includes('*');
 
     let appliedRole = systemRole;
     let appliedClassName = systemRole?.name || 'User';
@@ -78,22 +93,23 @@ export class PermissionsService {
       }
     }
 
-    const rolePermissions = appliedRole?.permissions?.map(p => `${p.resource}:${p.action}`) || [];
-    const inlinePermissions = userWithPermissions.permissions ?
-      Object.keys(userWithPermissions.permissions).filter(k => userWithPermissions.permissions?.[k]) : [];
+    const rolePermissions =
+      appliedRole?.permissions?.map((p) => `${p.resource}:${p.action}`) || [];
 
     // Merge System Permissions (Global) + Workspace Role Permissions (Local)
-    // Actually, usually System Role permissions are additive.
-    // If you are 'User' globally, but 'Admin' in Workspace, you get Admin.
-    // So we should merge them effectively.
-    const allPermissions = Array.from(new Set([...systemPermissions, ...rolePermissions, ...inlinePermissions]));
+    const allPermissions = Array.from(
+      new Set([...systemPermissions, ...rolePermissions]),
+    );
 
     // isAdmin flag usually implies "Bypass all checks".
     // We only want System Admin (Super Admin) to bypass everything.
     const isAdmin = isSystemAdmin;
 
     // For UI widgets, we might want to know if they are AT LEAST a workspace admin (Owner/Admin)
-    const isWorkspaceAdmin = appliedClassName === 'Admin' || appliedClassName === 'Owner';
+    const isWorkspaceAdmin =
+      appliedClassName === 'Admin' ||
+      appliedClassName === 'Owner' ||
+      appliedClassName === 'Manager';
 
     const check = (action: string) => {
       if (isAdmin) return true;
@@ -107,53 +123,57 @@ export class PermissionsService {
     };
 
     const can_create: Record<string, boolean> = {
-      user: check('iam:CreateUser'),
+      user: check('iam:Create'),
       role: check('iam:CreateRole'),
-      flow: check('flows:CreateFlow'),
-      template: check('templates:CreateTemplate'),
-      bot: check('chatbot:CreateBot'),
-      channel: check('channels:CreateChannel'),
-      integration: check('integrations:CreateIntegration'), // or Connect
-      workspace: check('workspaces:CreateWorkspace'),
-      file: check('files:UploadFile'),
+      flow: check('flow:Create'),
+      template: check('template:Create'),
+      bot: check('bot:Create'),
+      channel: check('channel:Create'),
+      integration: check('integration:Create'),
+      workspace: check('workspace:Create'),
+      file: check('file:Upload'),
+      job: check('job:Create'),
     };
 
     const can_read: Record<string, boolean> = {
-      user: check('iam:ListUsers') || check('iam:GetUser'), // Read usually implies List or Get
+      user: check('iam:ListUsers') || check('iam:Get'),
       role: check('iam:ListRoles') || check('iam:GetRole'),
-      flow: check('flows:ListFlows') || check('flows:GetFlow'),
-      template: check('templates:ListTemplates') || check('templates:GetTemplate'),
-      bot: check('chatbot:ListBots') || check('chatbot:GetBot'),
-      channel: check('channels:ListChannels'),
-      integration: check('integrations:ListIntegrations'),
-      workspace: check('workspaces:ListWorkspaces'),
-      file: check('files:ListFiles'),
+      flow: check('flow:List') || check('flow:Get'),
+      template: check('template:List') || check('template:Get'),
+      bot: check('bot:List') || check('bot:Get'),
+      channel: check('channel:List'),
+      integration: check('integration:List'),
+      workspace: check('workspace:List'),
+      file: check('file:List'),
       settings: check('system:ReadSettings'),
       audit: check('system:ReadAuditLogs'),
+      job: check('job:List') || check('job:Get'),
     };
 
     const can_update: Record<string, boolean> = {
-      user: check('iam:UpdateUser'),
+      user: check('iam:Update'),
       role: check('iam:UpdateRole'),
-      flow: check('flows:UpdateFlow'),
-      template: check('templates:UpdateTemplate'),
-      bot: check('chatbot:UpdateBot'),
-      channel: check('channels:UpdateChannel'),
-      integration: check('integrations:UpdateIntegration'),
-      workspace: check('workspaces:UpdateWorkspace'),
+      flow: check('flow:Update'),
+      template: check('template:Update'),
+      bot: check('bot:Update'),
+      channel: check('channel:Update'),
+      integration: check('integration:Update'),
+      workspace: check('workspace:Update'),
       settings: check('system:UpdateSettings'),
+      job: check('job:Update'),
     };
 
     const can_delete: Record<string, boolean> = {
-      user: check('iam:DeleteUser'),
+      user: check('iam:Delete'),
       role: check('iam:DeleteRole'),
-      flow: check('flows:DeleteFlow'),
-      template: check('templates:DeleteTemplate'),
-      bot: check('chatbot:DeleteBot'),
-      channel: check('channels:DeleteChannel'),
-      integration: check('integrations:DeleteIntegration'), // Disconnect
-      workspace: check('workspaces:DeleteWorkspace'),
-      file: check('files:DeleteFile'),
+      flow: check('flow:Delete'),
+      template: check('template:Delete'),
+      bot: check('bot:Delete'),
+      channel: check('channel:Delete'),
+      integration: check('integration:Delete'),
+      workspace: check('workspace:Delete'),
+      file: check('file:Delete'),
+      job: check('job:Delete'),
     };
 
     return {
@@ -164,33 +184,33 @@ export class PermissionsService {
       can_update,
       can_delete,
       can_execute: {
-        flow: check('flows:ExecuteFlow'),
+        flow: check('flow:Execute'),
       },
       widgets: {
         user_management: check('iam:ListUsers'),
-        flow_builder: check('flows:CreateFlow') || check('flows:UpdateFlow'),
-        template_editor: check('templates:CreateTemplate') || check('templates:UpdateTemplate'),
-        bot_manager: check('chatbot:ListBots'),
-        channel_manager: check('channels:ListChannels'),
-        integration_manager: check('integrations:ListIntegrations'),
-        analytics_dashboard: check('analytics:ViewDashboard'), // If we add analytics
-        settings_panel: check('system:ReadSettings'), // Or workspace settings?
-        metadata_editor: isAdmin, // Only System Admin should edit metadata globally
-        flow_viewer: check('flows:ListFlows'),
-        template_viewer: check('templates:ListTemplates'),
-        bot_viewer: check('chatbot:ListBots'),
-        channel_viewer: check('channels:ListChannels'),
+        flow_builder: check('flow:Create') || check('flow:Update'),
+        template_editor: check('template:Create') || check('template:Update'),
+        bot_manager: check('bot:List'),
+        channel_manager: check('channel:List'),
+        integration_manager: check('integration:List'),
+        analytics_dashboard: true, // Placeholder
+        settings_panel: check('system:ReadSettings'),
+        metadata_editor: isAdmin,
+        flow_viewer: check('flow:List'),
+        template_viewer: check('template:List'),
+        bot_viewer: check('bot:List'),
+        channel_viewer: check('channel:List'),
         analytics_viewer: true,
       },
       features: {
         can_export_analytics: isAdmin,
         can_manage_users: check('iam:ListUsers'),
-        can_delete_flows: check('flows:DeleteFlow'),
-        can_delete_templates: check('templates:DeleteTemplate'),
-        can_delete_bots: check('chatbot:DeleteBot'),
-        can_manage_integrations: check('integrations:ListIntegrations'),
+        can_delete_flows: check('flow:Delete'),
+        can_delete_templates: check('template:Delete'),
+        can_delete_bots: check('bot:Delete'),
+        can_manage_integrations: check('integration:List'),
         can_update_settings: check('system:UpdateSettings'),
-        is_admin: isWorkspaceAdmin || isSystemAdmin, // Used for UI "Admin" badge/section. 
+        is_admin: isWorkspaceAdmin || isSystemAdmin,
         is_super_admin: isSystemAdmin,
       },
     };

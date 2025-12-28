@@ -24,6 +24,7 @@ import { LoginResponseDto } from './dto/login-response.dto';
 import { NullableType } from '../utils/types/nullable.type';
 import { User } from '../users/domain/user';
 import { RefreshResponseDto } from './dto/refresh-response.dto';
+import { AuthRefreshTokenDto } from './dto/auth-refresh-token.dto';
 
 @ApiTags('Auth')
 @Controller({
@@ -31,7 +32,7 @@ import { RefreshResponseDto } from './dto/refresh-response.dto';
   version: '1',
 })
 export class AuthController {
-  constructor(private readonly service: AuthService) {}
+  constructor(private readonly service: AuthService) { }
 
   @SerializeOptions({
     groups: ['me'],
@@ -125,7 +126,7 @@ export class AuthController {
     type: RefreshResponseDto,
   })
   public async refreshTokenFromBody(
-    @Body() body: { refreshToken: string },
+    @Body() body: AuthRefreshTokenDto,
   ): Promise<RefreshResponseDto> {
     // Validate and decode refresh token to get session info
     return this.service.refreshTokenFromBody(body.refreshToken);

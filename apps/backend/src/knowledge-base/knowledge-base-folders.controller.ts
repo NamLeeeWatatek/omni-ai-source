@@ -14,12 +14,14 @@ import { AuthGuard } from '@nestjs/passport';
 import { KBFoldersService } from './services/kb-folders.service';
 import { CreateFolderDto, UpdateFolderDto } from './dto/kb-folder.dto';
 
+import { WorkspaceAccessGuard } from '../workspaces/guards/workspace-access.guard';
+
 @ApiTags('Knowledge Base - Folders')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), WorkspaceAccessGuard)
 @Controller({ path: 'knowledge-bases', version: '1' })
 export class KnowledgeBaseFoldersController {
-  constructor(private readonly foldersService: KBFoldersService) {}
+  constructor(private readonly foldersService: KBFoldersService) { }
 
   @Post('folders')
   @ApiOperation({ summary: 'Create folder' })

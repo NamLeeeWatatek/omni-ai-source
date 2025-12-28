@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Category } from '../../categories/domain/category';
 
 /**
  * Form field configuration interface for dynamic forms
@@ -6,15 +7,15 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export interface FormField {
   name: string;
   type:
-  | 'text'
-  | 'textarea'
-  | 'select'
-  | 'radio'
-  | 'checkbox'
-  | 'number'
-  | 'file'
-  | 'slider'
-  | 'color';
+    | 'text'
+    | 'textarea'
+    | 'select'
+    | 'radio'
+    | 'checkbox'
+    | 'number'
+    | 'file'
+    | 'slider'
+    | 'color';
   label: string;
   placeholder?: string;
   description?: string;
@@ -116,8 +117,8 @@ export class CreationTool {
   @ApiPropertyOptional({ type: String })
   coverImage?: string;
 
-  @ApiPropertyOptional({ type: String })
-  category?: string;
+  @ApiPropertyOptional({ type: () => Category })
+  category?: Category;
 
   @ApiProperty({ type: Object, description: 'Dynamic form configuration' })
   formConfig: FormConfig;

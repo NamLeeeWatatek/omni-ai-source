@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import { GenerationJobRepository } from './infrastructure/persistence/generation-job.repository';
 import { GenerationJob } from './domain/generation-job';
 import { IPaginationOptions } from '../utils/types/pagination-options';
@@ -14,6 +15,7 @@ export class GenerationJobsService {
   constructor(
     private readonly generationJobRepository: GenerationJobRepository,
     @InjectQueue(JOB_QUEUE) private readonly jobQueue: Queue,
+    private readonly i18n: I18nService,
   ) { }
 
   async create(
@@ -52,7 +54,11 @@ export class GenerationJobsService {
   ): Promise<GenerationJob | null> {
     const job = await this.generationJobRepository.findById(id);
     if (!job) {
-      throw new NotFoundException('Generation job not found');
+      throw new NotFoundException(
+        this.i18n.t('common.notFound', {
+          args: { resource: 'Generation job' },
+        }),
+      );
     }
     return this.generationJobRepository.update(id, payload);
   }

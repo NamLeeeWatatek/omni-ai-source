@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { PageShell } from '@/components/layout/PageShell';
+import { useState, useEffect } from 'react';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -26,33 +26,44 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { cn } from '@/lib/utils';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useRef } from 'react';
 
 export default function ActivityPage() {
     const { workspace } = useAuth();
-    const [logs, setLogs] = useState<AuditLog[]>([]);
-    const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
+    const [querySearch, setQuerySearch] = useState('');
 
-    const fetchActivity = useCallback(async () => {
-        if (!workspace?.id) return;
-        setLoading(true);
-        try {
-            const { data } = await auditApi.getMyActivity(workspace.id, {
-                page,
-                limit: 20
-            });
-            setLogs(data.items);
-        } catch (error) {
-            console.error('Failed to fetch activity logs', error);
-        } finally {
-            setLoading(false);
-        }
-    }, [workspace?.id, page]);
+    // Manual debounce for search to prevent double-fetch/race conditions
+    const searchTimerRef = useRef<NodeJS.Timeout>();
 
     useEffect(() => {
-        fetchActivity();
-    }, [fetchActivity]);
+        return () => {
+            if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+        }
+    }, []);
+
+    const { data: activityData, isLoading: loading, refetch } = useQuery({
+        queryKey: ['activity-logs', workspace?.id, page, querySearch],
+        queryFn: async () => {
+            if (!workspace?.id) return { items: [], total: 0 };
+            const { data } = await auditApi.getMyActivity(workspace.id, {
+                page,
+                limit: 20,
+                // Add search param if API supports it, implied by UI having search
+                // Assuming the API supports a 'search' or similar param, usually passed here
+                ...(querySearch ? { search: querySearch } : {})
+            });
+            // If the API returns raw array or structure, normalize it here
+            // Based on previous code: setLogs(data.items);
+            return data;
+        },
+        enabled: !!workspace?.id,
+        placeholderData: keepPreviousData,
+    });
+
+    const logs = activityData?.items || [];
 
     const getActionIcon = (action: string) => {
         switch (action) {
@@ -72,16 +83,13 @@ export default function ActivityPage() {
     };
 
     return (
-        <PageShell
-            title="Activity Feed"
-            description="Track your jobs, crawls, and system interactions in real-time."
-            actions={
-                <Button variant="outline" size="sm" onClick={fetchActivity} className="gap-2">
-                    <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
-                    Refresh
-                </Button>
-            }
-        >
+        <div className="space-y-6">
+            <PageHeader
+                title="Activity Feed"
+                description="Track your jobs, crawls, and system interactions in real-time."
+                onRefresh={refetch}
+                refreshing={loading}
+            />
             <div className="space-y-6">
                 <div className="flex gap-4 items-center">
                     <div className="relative flex-1">
@@ -90,7 +98,16 @@ export default function ActivityPage() {
                             placeholder="Filter activities..."
                             className="pl-9 bg-card/50"
                             value={search}
-                            onChange={(e) => setSearch(e.target.value)}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setSearch(val);
+
+                                if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+                                searchTimerRef.current = setTimeout(() => {
+                                    setQuerySearch(val);
+                                    setPage(1);
+                                }, 500);
+                            }}
                         />
                     </div>
                     <Button variant="secondary" className="gap-2">
@@ -162,6 +179,6 @@ export default function ActivityPage() {
                     </div>
                 )}
             </div>
-        </PageShell>
+        </div>
     );
 }

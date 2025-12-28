@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import { EntityRelationalHelper } from '../../../../../utils/relational-entity-helper';
 import { CreationToolEntity } from '../../../../../creation-tools/infrastructure/persistence/relational/entities/creation-tool.entity';
+import { CategoryEntity } from '../../../../../categories/infrastructure/persistence/relational/entities/category.entity';
 
 @Entity({ name: 'template' })
 export class TemplateEntity extends EntityRelationalHelper {
@@ -41,9 +42,9 @@ export class TemplateEntity extends EntityRelationalHelper {
   @Column({ name: 'style_config', type: 'jsonb', nullable: true })
   styleConfig?: Record<string, any> | null;
 
-  @Column({ type: String, nullable: true })
-  @Index()
-  category?: string | null;
+  @ManyToOne(() => CategoryEntity, { eager: true })
+  @JoinColumn({ name: 'category_id' })
+  category?: CategoryEntity | null;
 
   @Column({ name: 'prefilled_data', type: 'jsonb', nullable: true })
   prefilledData?: Record<string, any> | null;

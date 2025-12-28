@@ -1,9 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { TemplatesService } from '../../../../templates/templates.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { TemplateEntity } from '../../../../templates/infrastructure/persistence/relational/entities/template.entity';
+import { CategoryEntity } from '../../../../categories/infrastructure/persistence/relational/entities/category.entity';
 
 @Injectable()
 export class TemplatesSeedService {
-  constructor(private readonly templatesService: TemplatesService) {}
+  constructor(
+    @InjectRepository(TemplateEntity)
+    private readonly templateRepository: Repository<TemplateEntity>,
+    @InjectRepository(CategoryEntity)
+    private readonly categoryRepository: Repository<CategoryEntity>,
+  ) { }
 
   async run() {
     const templates = [
@@ -261,32 +269,29 @@ export class TemplatesSeedService {
     ];
 
     for (const template of templates) {
-      const existingTemplates =
-        await this.templatesService.findManyWithPagination({
-          filterOptions: {
+      const existing = await this.templateRepository.findOne({
+        where: { name: template.name },
+      });
+
+      if (!existing) {
+        let category: CategoryEntity | null = null;
+        if (template.category) {
+          category = await this.categoryRepository.findOne({
+            where: { slug: template.category },
+          });
+        }
+
+        await this.templateRepository.save(
+          this.templateRepository.create({
             name: template.name,
-          },
-          paginationOptions: {
-            page: 1,
-            limit: 1,
-          },
-        });
-
-      // Check if any template matches the name exactly (since repository uses Like)
-      const exactMatch = existingTemplates.find(
-        (t) => t.name === template.name,
-      );
-
-      if (!exactMatch) {
-        await this.templatesService.create({
-          name: template.name,
-          description: template.description,
-          category: template.category,
-          isActive: template.isActive,
-          prompt: template.prompt,
-          promptTemplate: template.promptTemplate,
-          inputSchema: template.inputSchema,
-        });
+            description: template.description,
+            category: category ? category : undefined,
+            isActive: template.isActive,
+            prompt: template.prompt,
+            promptTemplate: template.promptTemplate,
+            inputSchema: template.inputSchema,
+          }),
+        );
       }
     }
   }

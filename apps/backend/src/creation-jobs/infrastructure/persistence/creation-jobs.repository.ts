@@ -31,5 +31,8 @@ export abstract class CreationJobsRepository {
 
   abstract remove(id: CreationJob['id'], workspaceId: string): Promise<void>;
 
-  abstract removeMany(ids: CreationJob['id'][], workspaceId: string): Promise<void>;
+  abstract removeMany(
+    ids: CreationJob['id'][],
+    workspaceId: string,
+  ): Promise<void>;
 }

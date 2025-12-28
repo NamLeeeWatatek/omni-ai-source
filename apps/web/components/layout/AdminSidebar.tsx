@@ -15,11 +15,13 @@ import {
     Sparkles,
     ChevronDown,
     LogOut,
-    ArrowLeft
+    ArrowLeft,
+    Folder
 } from 'lucide-react'
 import { WorkspaceSwitcher } from '@/components/features/workspace/WorkspaceSwitcher'
 import { cn } from '@/lib/utils'
 import { paths } from '@/lib/routes'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/Avatar'
 
 interface NavigationItem {
     name: string
@@ -44,6 +46,7 @@ const getAdminNavigation = (t: any): NavigationItem[] => [
     { name: t('dashboard.title') || 'Dashboard', href: paths.system.root, icon: LayoutDashboard },
     { name: 'Users', href: paths.system.users.root, icon: Users, permission: 'iam:ListUsers' },
     { name: 'Roles & Permissions', href: paths.system.roles.root, icon: ShieldCheck, permission: 'iam:ListRoles' },
+    { name: 'Categories', href: paths.system.categories?.root, icon: Folder, permission: 'tools:ListTools' },
     { name: 'Creation Tools', href: paths.system.creationTools.root, icon: Wrench, permission: 'tools:ListTools' },
     { name: 'Templates', href: paths.system.templates.root, icon: Sparkles, permission: 'templates:ListTemplates' },
 ]
@@ -202,11 +205,12 @@ export const AdminSidebar = React.memo<AdminSidebarProps>(({
             <div className="p-3 border-t border-border/30">
                 <div className="group rounded-xl border border-border/30 bg-card/20 p-3 hover:bg-card/40 transition-all duration-200">
                     <div className="flex items-center gap-3 mb-3">
-                        <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center ring-1 ring-border/50">
-                            <span className="text-xs font-semibold text-secondary-foreground">
+                        <Avatar className="w-9 h-9 border border-border/50">
+                            <AvatarImage src={user?.avatarUrl || ''} />
+                            <AvatarFallback className="bg-secondary text-secondary-foreground text-xs font-bold">
                                 {getUserInitial()}
-                            </span>
-                        </div>
+                            </AvatarFallback>
+                        </Avatar>
 
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">

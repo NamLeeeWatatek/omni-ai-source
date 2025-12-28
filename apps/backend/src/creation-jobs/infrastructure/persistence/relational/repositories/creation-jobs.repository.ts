@@ -10,18 +10,22 @@ import { IPaginationOptions } from '../../../../../utils/types/pagination-option
 
 @Injectable()
 export class CreationJobsRelationalRepository
-  implements CreationJobsRepository {
+  implements CreationJobsRepository
+{
   constructor(
     @InjectRepository(CreationJobEntity)
     private readonly creationJobsRepository: Repository<CreationJobEntity>,
-  ) { }
+  ) {}
 
   async create(data: CreationJob): Promise<CreationJob> {
     const persistenceModel = CreationJobsMapper.toPersistence(data);
     const newEntity = await this.creationJobsRepository.save(
       this.creationJobsRepository.create(persistenceModel),
     );
-    return this.findById(newEntity.id, data.workspaceId!) as Promise<CreationJob>;
+    return this.findById(
+      newEntity.id,
+      data.workspaceId!,
+    ) as Promise<CreationJob>;
   }
 
   async findAllWithPagination({
@@ -30,7 +34,7 @@ export class CreationJobsRelationalRepository
   }: {
     paginationOptions: IPaginationOptions;
     filterOptions: { workspaceId: string };
-  }): Promise<{ data: CreationJob[], count: number }> {
+  }): Promise<{ data: CreationJob[]; count: number }> {
     const where: any = {
       workspaceId: filterOptions.workspaceId,
     };
@@ -42,12 +46,12 @@ export class CreationJobsRelationalRepository
       relations: ['creationTool'],
       order: {
         createdAt: 'DESC',
-      }
+      },
     });
 
     return {
       data: entities.map((entity) => CreationJobsMapper.toDomain(entity)),
-      count
+      count,
     };
   }
 
@@ -100,7 +104,10 @@ export class CreationJobsRelationalRepository
     await this.creationJobsRepository.delete({ id, workspaceId });
   }
 
-  async removeMany(ids: CreationJob['id'][], workspaceId: string): Promise<void> {
+  async removeMany(
+    ids: CreationJob['id'][],
+    workspaceId: string,
+  ): Promise<void> {
     await this.creationJobsRepository.delete({ id: In(ids), workspaceId });
   }
 }

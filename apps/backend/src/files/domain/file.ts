@@ -21,4 +21,37 @@ export class FileType {
   })
   @Allow()
   bucket: string;
+
+  @ApiProperty({
+    type: String,
+    example: 'original-name.jpg',
+  })
+  @Allow()
+  originalName?: string;
+
+  @ApiProperty({
+    type: Number,
+    example: 1024,
+  })
+  @Allow()
+  size?: number;
+
+  @ApiProperty({
+    type: String,
+    example: 'image/jpeg',
+  })
+  @Allow()
+  mimeType?: string;
+
+  @Allow()
+  workspaceId?: string;
+
+  @Allow()
+  createdBy?: string;
+
+  @Allow()
+  createdAt?: Date;
+
+  @Allow()
+  isTemp?: boolean;
 }

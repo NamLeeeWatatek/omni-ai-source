@@ -5,6 +5,9 @@ import { RelationalCreationJobsPersistenceModule } from './infrastructure/persis
 import { NotificationsModule } from '../notifications/notifications.module';
 import { AuditModule } from '../audit/audit.module';
 import { ExecutionQueueModule } from '../execution/queue/execution-queue.module';
+import { WorkspacesModule } from '../workspaces/workspaces.module';
+import { PermissionsModule } from '../permissions/permissions.module';
+import { forwardRef } from '@nestjs/common';
 
 @Module({
   imports: [
@@ -12,6 +15,8 @@ import { ExecutionQueueModule } from '../execution/queue/execution-queue.module'
     NotificationsModule,
     AuditModule,
     ExecutionQueueModule,
+    forwardRef(() => WorkspacesModule),
+    PermissionsModule,
   ],
   controllers: [CreationJobsController],
   providers: [CreationJobsService],

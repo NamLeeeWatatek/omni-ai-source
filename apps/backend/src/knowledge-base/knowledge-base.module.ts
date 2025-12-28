@@ -4,6 +4,8 @@ import { BotsModule } from '../bots/bots.module';
 import { AiProvidersModule } from '../ai-providers/ai-providers.module';
 import { FilesModule } from '../files/files.module';
 import { AuditModule } from '../audit/audit.module';
+import { WorkspacesModule } from '../workspaces/workspaces.module';
+import { PermissionsModule } from '../permissions/permissions.module';
 
 import { KnowledgeBaseController } from './knowledge-base.controller';
 import { KnowledgeBaseDocumentsController } from './knowledge-base-documents.controller';
@@ -51,6 +53,8 @@ import { KBChunkEntity } from './infrastructure/persistence/relational/entities/
     AiProvidersModule,
     FilesModule,
     AuditModule,
+    forwardRef(() => WorkspacesModule),
+    PermissionsModule,
   ],
   controllers: [
     KnowledgeBaseController,

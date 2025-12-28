@@ -5,6 +5,10 @@ import { Transform } from 'class-transformer';
 import { lowerCaseTransformer } from '../../utils/transformers/lower-case.transformer';
 
 export class AuthUpdateDto {
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  avatarUrl?: string | null;
+
   @ApiPropertyOptional({ type: () => FileDto })
   @IsOptional()
   photo?: FileDto | null;

@@ -13,24 +13,17 @@ export const dashboardKeys = {
  * Fetch dashboard statistics
  * Uses TanStack Query v5 for caching and state management
  */
-export function useDashboardStats() {
+export function useDashboardStats(initialData?: DashboardStats) {
     return useQuery({
         queryKey: dashboardKeys.stats(),
         queryFn: async () => {
-            console.log('[useDashboardStats] Fetching...')
-
             const result = await axiosClient.get<DashboardStats>('/stats/dashboard')
-
-            console.log('[useDashboardStats] Result:', result)
-            console.log('[useDashboardStats] Type:', typeof result)
-            console.log('[useDashboardStats] Undefined?', result === undefined)
-
             if (!result) {
                 throw new Error('API returned no data')
             }
-
             return result as unknown as DashboardStats
         },
+        initialData,
         staleTime: CACHE_TIMES.SHORT,
         gcTime: CACHE_TIMES.MEDIUM,
     })

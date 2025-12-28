@@ -7,6 +7,7 @@ export class FileMapper {
     domainEntity.id = raw._id.toString();
     domainEntity.path = raw.path;
     domainEntity.bucket = raw.bucket;
+    domainEntity.isTemp = (raw as any).isTemp;
     return domainEntity;
   }
   static toPersistence(domainEntity: FileType): FileSchemaClass {
@@ -16,6 +17,7 @@ export class FileMapper {
     }
     persistenceSchema.path = domainEntity.path;
     persistenceSchema.bucket = domainEntity.bucket;
+    (persistenceSchema as any).isTemp = domainEntity.isTemp;
     return persistenceSchema;
   }
 }

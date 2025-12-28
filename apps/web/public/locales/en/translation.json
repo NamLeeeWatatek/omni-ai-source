@@ -82,7 +82,7 @@
   "features": {
     "unifiedPlatform": "Unified Platform",
     "comprehensiveSolution": "Comprehensive solution for automated customer care",
-    "solutionDescription": "Reduce costs, increase revenue and operate your business more efficiently with the fully integrated AI platform. Use WataOmi to manage all communication channels, automate sales processes and customer care 24/7.",
+    "solutionDescription": "Reduce costs, increase revenue and operate your business more efficiently with the fully integrated AI platform. Use Wata AI to manage all communication channels, automate sales processes and customer care 24/7.",
     "items": {
       "unifiedMultiChannel": "Unified Multi-Channel",
       "unifiedMultiChannelDesc": "Connect WhatsApp, Messenger, Instagram, Telegram and other channels in a single platform.",
@@ -211,7 +211,7 @@
   },
   "globalScale": {
     "title": "Global Scale",
-    "description": "WataOmi operates on a global scale, handling millions of conversations safely and reliably.",
+    "description": "Wata AI operates on a global scale, handling millions of conversations safely and reliably.",
     "messagesPerDay": "Messages per day",
     "uptime": "Uptime",
     "integratedChannels": "Integrated channels",
@@ -228,7 +228,7 @@
     "plans": {
       "starter": {
         "name": "Starter",
-        "description": "Perfect for trying out WataOmi",
+        "description": "Perfect for trying out Wata AI",
         "features": [
           "1 bot",
           "100 conversations/month",

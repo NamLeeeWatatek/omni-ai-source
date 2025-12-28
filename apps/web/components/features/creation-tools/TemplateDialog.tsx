@@ -173,15 +173,15 @@ export function TemplateDialog({
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
-            <DialogContent className="max-w-2xl gap-0 p-0 overflow-hidden bg-card border-border/50 shadow-2xl">
-                <DialogHeader className="p-6 pb-2">
+            <DialogContent className="max-w-2xl gap-0 p-0 overflow-hidden bg-card border-border/50 shadow-2xl flex flex-col max-h-[90vh]">
+                <DialogHeader className="flex-none p-6 pb-2">
                     <DialogTitle className="text-xl">{template ? 'Edit Template' : 'Create Template'}</DialogTitle>
                     <DialogDescription>
                         {template ? 'Update template information and preview' : 'Add a new template for this creation tool'}
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="p-6 pt-4 max-h-[80vh] overflow-y-auto scrollbar-thin">
+                <div className="flex-1 overflow-y-auto p-6 pt-4 min-h-0 scrollbar-thin">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Creation Tool Selection */}
                         <div className="space-y-2">
@@ -219,93 +219,99 @@ export function TemplateDialog({
                             </div>
                         </div>
 
-                        <div className="space-y-3">
-                            <Label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Media</Label>
-                            <Label>Preview Thumbnail</Label>
+                        <div className="space-y-4">
+                            <Label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider block">Media</Label>
 
-                            <div className="grid grid-cols-5 gap-4">
-                                {/* Upload Area - Spans 3 cols */}
-                                <div className="col-span-3">
-                                    <label
-                                        htmlFor="thumbnail-upload"
-                                        className={cn(
-                                            'relative flex flex-col items-center justify-center aspect-video rounded-lg border-2 border-dashed transition-all cursor-pointer overflow-hidden',
-                                            'border-slate-200 dark:border-slate-800 hover:border-primary/50 hover:bg-accent/50',
-                                            previewUrl ? 'border-solid border-border' : ''
-                                        )}
-                                    >
-                                        {previewUrl ? (
-                                            <div className="relative w-full h-full group">
-                                                {isVideo ? (
-                                                    <video
-                                                        src={previewUrl}
-                                                        className="w-full h-full object-cover"
-                                                        autoPlay
-                                                        loop
-                                                        muted
-                                                    />
-                                                ) : (
-                                                    <img
-                                                        src={previewUrl}
-                                                        alt="Preview"
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                )}
-                                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                                    <Upload className="w-6 h-6 text-white" />
-                                                    <span className="text-white font-medium text-sm">Change</span>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        e.stopPropagation(); // Stop clicking label
-                                                        setPreviewUrl('');
-                                                        setPreviewFile(null);
-                                                    }}
-                                                    className="absolute top-2 right-2 p-1.5 rounded-full bg-white/10 text-white hover:bg-destructive hover:text-white opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
-                                                >
-                                                    <X className="w-3.5 h-3.5" />
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4 gap-2">
-                                                <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
-                                                    <Upload className="w-5 h-5 text-muted-foreground" />
-                                                </div>
-                                                <div className="text-center">
-                                                    <p className="text-sm font-medium text-foreground">Click to upload</p>
-                                                    <p className="text-[10px] text-muted-foreground mt-0.5">JPG, PNG, GIF, MP4 (Max 10MB)</p>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </label>
-                                    <input
-                                        id="thumbnail-upload"
-                                        type="file"
-                                        accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm"
-                                        onChange={handleFileSelect}
-                                        className="hidden"
-                                    />
-                                </div>
+                            <div className="space-y-2">
+                                <Label>Preview Thumbnail</Label>
 
-                                {/* Info - Spans 2 cols */}
-                                <div className="col-span-2 space-y-3 p-3 rounded-lg bg-secondary/30 border border-border/50">
-                                    <h4 className="font-medium text-xs uppercase tracking-wider text-foreground">Guidelines</h4>
-                                    <ul className="space-y-2 text-xs text-muted-foreground">
-                                        <li className="flex items-start gap-2">
-                                            <ImageIcon className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-primary" />
-                                            <span>Images: High quality JPG, PNG, or GIF.</span>
-                                        </li>
-                                        <li className="flex items-start gap-2">
-                                            <Film className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-primary" />
-                                            <span>Videos: Short clips under 30s work best.</span>
-                                        </li>
-                                        <li className="flex items-start gap-2">
-                                            <span className="text-[9px] w-3.5 text-center mt-0.5">16:9</span>
-                                            <span>Ratio: Landscape 16:9 is recommended.</span>
-                                        </li>
-                                    </ul>
+                                <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+                                    {/* Upload Area - Spans 3 cols */}
+                                    <div className="sm:col-span-3">
+                                        <label
+                                            htmlFor="thumbnail-upload"
+                                            className={cn(
+                                                'relative flex flex-col items-center justify-center aspect-video rounded-lg border-2 border-dashed transition-all cursor-pointer overflow-hidden',
+                                                'border-slate-200 dark:border-slate-800 hover:border-primary/50 hover:bg-accent/50',
+                                                previewUrl ? 'border-solid border-border' : ''
+                                            )}
+                                        >
+                                            {previewUrl ? (
+                                                <div className="relative w-full h-full group">
+                                                    {isVideo ? (
+                                                        <video
+                                                            src={previewUrl}
+                                                            className="w-full h-full object-cover"
+                                                            autoPlay
+                                                            loop
+                                                            muted
+                                                            playsInline
+                                                        />
+                                                    ) : (
+                                                        <img
+                                                            src={previewUrl}
+                                                            alt="Preview"
+                                                            className="w-full h-full object-cover"
+                                                            loading="lazy"
+                                                            decoding="async"
+                                                        />
+                                                    )}
+                                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                        <Upload className="w-6 h-6 text-white" />
+                                                        <span className="text-white font-medium text-sm">Change</span>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation(); // Stop clicking label
+                                                            setPreviewUrl('');
+                                                            setPreviewFile(null);
+                                                        }}
+                                                        className="absolute top-2 right-2 p-1.5 rounded-full bg-white/10 text-white hover:bg-destructive hover:text-white opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
+                                                    >
+                                                        <X className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4 gap-2">
+                                                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+                                                        <Upload className="w-5 h-5 text-muted-foreground" />
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <p className="text-sm font-medium text-foreground">Click to upload</p>
+                                                        <p className="text-[10px] text-muted-foreground mt-0.5">JPG, PNG, GIF, MP4 (Max 10MB)</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </label>
+                                        <input
+                                            id="thumbnail-upload"
+                                            type="file"
+                                            accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm"
+                                            onChange={handleFileSelect}
+                                            className="hidden"
+                                        />
+                                    </div>
+
+                                    {/* Info - Spans 2 cols */}
+                                    <div className="sm:col-span-2 space-y-3 p-3 rounded-lg bg-secondary/30 border border-border/50 h-fit">
+                                        <h4 className="font-medium text-xs uppercase tracking-wider text-foreground">Guidelines</h4>
+                                        <ul className="space-y-2 text-xs text-muted-foreground">
+                                            <li className="flex items-start gap-2">
+                                                <ImageIcon className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-primary" />
+                                                <span>Images: High quality JPG, PNG, or GIF.</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <Film className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-primary" />
+                                                <span>Videos: Short clips under 30s work best.</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <span className="text-[9px] w-3.5 text-center mt-0.5">16:9</span>
+                                                <span>Ratio: Landscape 16:9 is recommended.</span>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -340,7 +346,7 @@ export function TemplateDialog({
                     </form>
                 </div>
 
-                <DialogFooter className="p-4 border-t border-border/50 bg-secondary/20">
+                <DialogFooter className="flex-none p-4 border-t border-border/50 bg-secondary/20">
                     <Button type="button" variant="ghost" onClick={handleClose} disabled={saving} className="hover:bg-background">
                         Cancel
                     </Button>
